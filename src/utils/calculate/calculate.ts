@@ -15,7 +15,7 @@ import { handleInterest, loadRatesToYears as loadInterestRatesToYears } from './
 import { payInterestTaxes } from './interest';
 import { retrieveBalances } from './balances';
 import { retrieveTodayBalances } from './balances';
-import { endTiming, startTiming } from '../log';
+import { endTiming, incrementProgressBar, initProgressBar, startTiming, stopProgressBar } from '../log';
 
 export function calculateAllActivity(
   accountsAndTransfers: AccountsAndTransfers,
@@ -23,16 +23,26 @@ export function calculateAllActivity(
   endDate: Date,
   simulation: string,
   monteCarlo: boolean = false,
+  simulationNumber: number = -1,
+  maxSimulations: number = -1,
 ) {
   startTiming(calculateAllActivity);
   loadBillRatesToYears(startDate.getFullYear(), endDate.getFullYear());
   loadInterestRatesToYears(startDate.getFullYear(), endDate.getFullYear());
   addActivities(accountsAndTransfers, endDate, simulation, monteCarlo);
-  calculateActivities(accountsAndTransfers, startDate, endDate, simulation, monteCarlo);
+  calculateActivities(
+    accountsAndTransfers,
+    startDate,
+    endDate,
+    simulation,
+    monteCarlo,
+    simulationNumber,
+    maxSimulations,
+  );
   endTiming(calculateAllActivity);
 }
 
-export function addActivities(
+function addActivities(
   accountsAndTransfers: AccountsAndTransfers,
   endDate: Date,
   simulation: string,
@@ -40,6 +50,7 @@ export function addActivities(
 ) {
   startTiming(addActivities);
   for (const account of accountsAndTransfers.accounts) {
+    startTiming('addActivitiesForAccount');
     for (const activity of account.activity) {
       account.consolidatedActivity.push(new ConsolidatedActivity(activity.serialize()));
     }
@@ -50,22 +61,27 @@ export function addActivities(
       if (b.name === 'Opening Balance') return 1;
       return dayjs(a.date).diff(dayjs(b.date));
     });
+    endTiming('addActivitiesForAccount');
   }
   endTiming(addActivities);
 }
 
-export function calculateActivities(
+function calculateActivities(
   accountsAndTransfers: AccountsAndTransfers,
   startDate: Date,
   endDate: Date,
   simulation: string,
   monteCarlo: boolean = false,
+  simulationNumber: number,
+  maxSimulations: number,
 ) {
   startTiming(calculateActivities);
+  initProgressBar(dayjs(endDate).diff(dayjs(startDate), 'day'), simulationNumber, maxSimulations);
   let { currDate, idxMap, balanceMap, interestIdxMap, interestMap, nextInterestMap } =
     setupCalculation(accountsAndTransfers);
   const { pensions, socialSecurities } = loadPensionsAndSocialSecurity(simulation);
   while (currDate <= endDate) {
+    incrementProgressBar();
     for (const account of accountsAndTransfers.accounts) {
       handleInterest(
         account,
@@ -93,5 +109,6 @@ export function calculateActivities(
     currDate = dayjs(currDate).add(1, 'day').toDate();
   }
   retrieveTodayBalances(accountsAndTransfers, startDate, endDate);
+  stopProgressBar();
   endTiming(calculateActivities);
 }

@@ -31,7 +31,7 @@ export type InvestmentRates = {
 export type Rates = {
   inflation: number[];
   raise: number[];
-  '401kLimitIncrease': number[];
+  limitIncrease401k: number[];
   savings: {
     highYield: number[];
     lowYield: number[];
@@ -50,3 +50,31 @@ export type Portfolio = {
     other: number;
   };
 };
+
+export type SimulationResults = {
+  [year: string]: {
+    [account: string]: {
+      type: string;
+      results: number[];
+    };
+  };
+};
+
+export type PercentileData = {
+  [year: string]: PercentileDataYearItem;
+};
+
+export type PercentileDataYearItem = {
+  [account: string]: {
+    median: number;
+    lowerQuartile: number;
+    upperQuartile: number;
+    min: number;
+    max: number;
+    percentiles: number[];
+  };
+};
+
+export type LineGraphDatasets = { label: string; data: number[]; borderColor: string; backgroundColor: string }[];
+
+export type BarChartDataset = { label: string; data: number[]; backgroundColor: string };

@@ -6,16 +6,18 @@ export function monteCarlo(req: Request) {
   const data = getData(req);
   const accountsAndTransfers = data.accountsAndTransfers;
   const nSimulations = parseFloat(req.query.nSimulations as string);
-  const startDate = data.startDate;
-  const endDate = data.endDate;
+  // const startDate = data.startDate;
+  // const endDate = data.endDate;
   const simulation = data.simulation;
+  const useExistingSimulations = req.query.useExistingSimulations === 'true';
   const selectedAccounts = data.selectedAccounts;
   const results = monteCarloCalculation(
     accountsAndTransfers,
     nSimulations,
-    startDate,
-    endDate,
+    // startDate,
+    // endDate,
     simulation,
+    useExistingSimulations,
     selectedAccounts,
   );
   return results;

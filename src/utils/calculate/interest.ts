@@ -120,6 +120,18 @@ export function handleInterest(
       ),
       currDate,
     );
+    // if (account.name === 'Kendall 401(k)') {
+    //   console.log(
+    //     `${formatDate(currDate)} Interest Rate ${getRate(
+    //       currDate.getFullYear(),
+    //       interestMap[account.id]?.apr as number,
+    //       interestMap[account.id]?.aprVariable as string | null,
+    //       monteCarlo,
+    //     )}, which compounds ${activity.amount as number} applied to ${account.name} with balance ${
+    //       balanceMap[account.id]
+    //     } = ${activity.amount}, increasing balance to ${balanceMap[account.id] + (activity.amount as number)}`,
+    //   );
+    // }
 
     // Insert the interest activity into the consolidated activity array at the current index
     account.consolidatedActivity.splice(
@@ -131,7 +143,7 @@ export function handleInterest(
     );
 
     // Check if this is the first interest for the interest's applicable date
-    if (interestMap[account.id]?.applicableDate === currDate) {
+    if (isSame(interestMap[account.id]?.applicableDate as Date, currDate)) {
       account.consolidatedActivity[idxMap[account.id]].firstInterest = true;
     }
 
@@ -189,6 +201,22 @@ export function loadRatesToYears(startYear: number, endYear: number) {
   //   Object.values(YEAR_RATES).reduce((sum, yearRates) => sum + yearRates.INVESTMENT_RATE, 0) /
   //   Object.keys(YEAR_RATES).length;
   // console.log(`Average investment rate across years ${startYear}-${endYear}: ${(avgInvestmentRate * 100).toFixed(2)}%`);
+  // const avgHighYieldSavingsRate =
+  //   Object.values(YEAR_RATES).reduce((sum, yearRates) => sum + yearRates.HIGH_YIELD_SAVINGS_RATE, 0) /
+  //   Object.keys(YEAR_RATES).length;
+  // console.log(
+  //   `Average high yield savings rate across years ${startYear}-${endYear}: ${(avgHighYieldSavingsRate * 100).toFixed(
+  //     2,
+  //   )}%`,
+  // );
+  // const avgLowYieldSavingsRate =
+  //   Object.values(YEAR_RATES).reduce((sum, yearRates) => sum + yearRates.LOW_YIELD_SAVINGS_RATE, 0) /
+  //   Object.keys(YEAR_RATES).length;
+  // console.log(
+  //   `Average low yield savings rate across years ${startYear}-${endYear}: ${(avgLowYieldSavingsRate * 100).toFixed(
+  //     2,
+  //   )}%`,
+  // );
   // console.log(JSON.stringify(YEAR_RATES, null, 2));
   // console.log(JSON.stringify(YEAR_INVESTMENT_RATES, null, 2));
 }
@@ -271,7 +299,24 @@ function calculateInvestmentRate(year: number) {
   }
   // console.log('rate', rate);
   // console.log('--------------------------------');
+  // console.log(`Rate for year ${year}: ${rate}`);
   return rate;
+  // // Generate a random number with a normal-like distribution centered around 5
+  // const rand = Math.random();
+  // let rate;
+
+  // if (rand < 0.1) {
+  //   // 10% chance for low values
+  //   rate = -10 + Math.random() * 5; // Between -10 and -5
+  // } else if (rand > 0.9) {
+  //   // 10% chance for high values
+  //   rate = 8 + Math.random() * 2; // Between 8 and 10
+  // } else {
+  //   // 80% chance for values around 5
+  //   rate = 2 + Math.random() * 6; // Between 2 and 8, clustering around 5
+  // }
+
+  // return rate / 100;
 }
 
 function getRate(year: number, apr: number, aprVariable: string | null, monteCarlo: boolean) {

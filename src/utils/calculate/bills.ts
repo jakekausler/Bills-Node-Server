@@ -10,8 +10,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { nextDate } from './helpers';
 import { load } from '../io/io';
 import { Rates } from './types';
+import { endTiming, startTiming } from '../log';
 
 export function addBills(account: Account, bills: Bill[], endDate: Date, simulation: string, monteCarlo: boolean) {
+  startTiming('addBills');
   for (const bill of bills) {
     let currDate = bill.startDate;
     let { billIncreasedAmount, billNextIncreaseDate } = getBillIncreasedAmountAndNextIncreaseDate(
@@ -68,6 +70,7 @@ export function addBills(account: Account, bills: Bill[], endDate: Date, simulat
       currDate = bill.checkAnnualDates(currDate);
     }
   }
+  endTiming('addBills');
 }
 
 function getBillIncreasedAmountAndNextIncreaseDate(
@@ -107,17 +110,43 @@ let YEAR_RATES: {
 export function loadRatesToYears(startYear: number, endYear: number) {
   if (!RATES) {
     RATES = load('historicRates.json');
+    if (!RATES) {
+      throw new Error('Failed to load rates');
+    }
   }
   YEAR_RATES = {};
   for (let year = startYear; year <= endYear; year++) {
     YEAR_RATES[year] = {
       '401K_LIMIT_INCREASE_RATE':
-        (RATES?.['401kLimitIncrease'][Math.floor(Math.random() * RATES['401kLimitIncrease'].length)] ?? 0) / 100,
-      INFLATION: (RATES?.inflation[Math.floor(Math.random() * RATES['inflation'].length)] ?? 0) / 100,
-      RAISE_RATE: (RATES?.raise[Math.floor(Math.random() * RATES['raise'].length)] ?? 0) / 100,
+        (RATES.limitIncrease401k[Math.floor(Math.random() * RATES.limitIncrease401k.length)] ?? 0) / 100,
+      INFLATION: (RATES.inflation[Math.floor(Math.random() * RATES.inflation.length)] ?? 0) / 100,
+      RAISE_RATE: (RATES.raise[Math.floor(Math.random() * RATES.raise.length)] ?? 0) / 100,
       MORTGAGE_INCREASE_RATE: 0,
     };
   }
+  // const avg401KLimitIncreaseRate =
+  //   Object.values(YEAR_RATES).reduce((sum, yearRates) => sum + yearRates['401K_LIMIT_INCREASE_RATE'], 0) /
+  //   Object.keys(YEAR_RATES).length;
+  // console.log(
+  //   `Average 401K limit increase rate across years ${startYear}-${endYear}: ${(avg401KLimitIncreaseRate * 100).toFixed(
+  //     2,
+  //   )}%`,
+  // );
+  // const avgInflation =
+  //   Object.values(YEAR_RATES).reduce((sum, yearRates) => sum + yearRates.INFLATION, 0) / Object.keys(YEAR_RATES).length;
+  // console.log(`Average inflation across years ${startYear}-${endYear}: ${(avgInflation * 100).toFixed(2)}%`);
+  // const avgRaiseRate =
+  //   Object.values(YEAR_RATES).reduce((sum, yearRates) => sum + yearRates.RAISE_RATE, 0) /
+  //   Object.keys(YEAR_RATES).length;
+  // console.log(`Average raise rate across years ${startYear}-${endYear}: ${(avgRaiseRate * 100).toFixed(2)}%`);
+  // const avgMortgageIncreaseRate =
+  //   Object.values(YEAR_RATES).reduce((sum, yearRates) => sum + yearRates.MORTGAGE_INCREASE_RATE, 0) /
+  //   Object.keys(YEAR_RATES).length;
+  // console.log(
+  //   `Average mortgage increase rate across years ${startYear}-${endYear}: ${(avgMortgageIncreaseRate * 100).toFixed(
+  //     2,
+  //   )}%`,
+  // );
 }
 
 function getMonteCarloIncreaseBy(bill: Bill, year: number) {

@@ -3,6 +3,8 @@ import { Account } from '../../data/account/account';
 import { Transfers } from '../../data/account/types';
 import { addBills } from './bills';
 import { getById, getByIdWithIdx } from '../array/array';
+import { endTiming } from '../log';
+import { startTiming } from '../log';
 
 export function addTransfers(
   account: Account,
@@ -11,6 +13,7 @@ export function addTransfers(
   transfers: Transfers,
   monteCarlo: boolean,
 ) {
+  startTiming('addTransfers');
   for (const activity of transfers.activity) {
     if (account.name === activity.fro) {
       account.consolidatedActivity.push(
@@ -23,6 +26,7 @@ export function addTransfers(
     }
   }
   addBills(account, transfers.bills, endDate, simulation, monteCarlo);
+  endTiming('addTransfers');
 }
 
 export function dealWithOtherTransfers(
