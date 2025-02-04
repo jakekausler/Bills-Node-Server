@@ -1,0 +1,42 @@
+{
+  "Amusement": ["Movies & TV", "Music", "Events", "Places", "Travel", "Other"],
+  "Banking": ["Fees", "Interest", "Taxes", "Other"],
+  "Food": ["Groceries", "Restaurants", "Coffee Shops", "Snacks", "Other"],
+  "Gifts": ["Birthdays", "Anniversaries", "Holidays", "Charity", "Donations", "Other"],
+  "Health": ["Gym Membership", "Doctor", "Dentist", "Pharmacy", "Therapy", "Other"],
+  "Housing": ["Mortgage", "Property Taxes", "Maintenance & Repairs", "Cleaning", "HOA", "Escrow", "Other"],
+  "Income": ["Salary", "Bonus", "Retirement", "Other"],
+  "Insurance": ["Health", "Dental", "Vision", "Life", "Disability", "Auto", "Home", "Travel", "Personal", "Other"],
+  "Ignore": ["Balance Adjustment", "Transfer", "Projection", "Other"],
+  "Other": ["Other"],
+  "Personal Care": ["Hair", "Other"],
+  "Pets": ["Food", "Medicine", "Supplies", "Toys", "Vet", "Other"],
+  "Shopping": [
+    "Books",
+    "Video Games",
+    "Electronics & Software",
+    "Clothing & Shoes",
+    "Furniture & Decor",
+    "Cleaning Supplies",
+    "Craft Supplies",
+    "Hobbies",
+    "Nick Nacks",
+    "Plants",
+    "Other"
+  ],
+  "Transportation": [
+    "Car Payment",
+    "Cleaning",
+    "Fuel",
+    "Car Maintenance & Repairs",
+    "Rideshare",
+    "Public Transportation",
+    "Hotel",
+    "Parking",
+    "Registration",
+    "Taxes",
+    "Airfare",
+    "Other"
+  ],
+  "Utilities": ["Electricity", "Water & Sewer", "Gas", "Internet & Cable", "Phone", "Trash & Recycling", "Other"]
+}

@@ -1,0 +1,111 @@
+{
+  "total_breakdown": {
+    "cash": 0.01238899975,
+    "stock": 0.8000439969,
+    "bond": 0.18702200200000002,
+    "preferred": 0.0,
+    "convertible": 0.00011499999949999999,
+    "other": 0.000439999982
+  },
+  "data": {
+    "VTINX": {
+      "assets": {
+        "cash": 0.0216,
+        "stock": 0.2859,
+        "bond": 0.6919,
+        "preferred": 0.0,
+        "convertible": 0.0004,
+        "other": 0.0002
+      },
+      "percentage": 0.02
+    },
+    "VTWNX": {
+      "assets": {
+        "cash": 0.0199,
+        "stock": 0.35619998,
+        "bond": 0.6233,
+        "preferred": 0.0,
+        "convertible": 0.0004,
+        "other": 0.0002
+      },
+      "percentage": 0.03
+    },
+    "VTHRX": {
+      "assets": {
+        "cash": 0.0115,
+        "stock": 0.59580004,
+        "bond": 0.39200002,
+        "preferred": 0.0,
+        "convertible": 0.00029999999,
+        "other": 0.0004
+      },
+      "percentage": 0.05
+    },
+    "VFORX": {
+      "assets": {
+        "cash": 0.0135,
+        "stock": 0.7414,
+        "bond": 0.24450001,
+        "preferred": 0.0,
+        "convertible": 0.0002,
+        "other": 0.0005
+      },
+      "percentage": 0.1
+    },
+    "VFIFX": {
+      "assets": {
+        "cash": 0.0172,
+        "stock": 0.88269997,
+        "bond": 0.0994,
+        "preferred": 0.0,
+        "convertible": 0.0001,
+        "other": 0.00059999997
+      },
+      "percentage": 0.15
+    },
+    "VTTSX": {
+      "assets": {
+        "cash": 0.0179,
+        "stock": 0.8819,
+        "bond": 0.0995,
+        "preferred": 0.0,
+        "convertible": 0.0001,
+        "other": 0.00059999997
+      },
+      "percentage": 0.2
+    },
+    "VSVNX": {
+      "assets": {
+        "cash": 0.013099999,
+        "stock": 0.8837,
+        "bond": 0.1025,
+        "preferred": 0.0,
+        "convertible": 0.0001,
+        "other": 0.00059999997
+      },
+      "percentage": 0.25
+    },
+    "5021": {
+      "assets": {
+        "cash": 0,
+        "stock": 0,
+        "bond": 1,
+        "preferred": 0,
+        "convertible": 0,
+        "other": 0
+      },
+      "percentage": 0.05
+    },
+    "5019": {
+      "assets": {
+        "cash": 0,
+        "stock": 1,
+        "bond": 0,
+        "preferred": 0,
+        "convertible": 0,
+        "other": 0
+      },
+      "percentage": 0.15
+    }
+  }
+}

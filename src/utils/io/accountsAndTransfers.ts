@@ -1,0 +1,51 @@
+import { load, save } from './io';
+import { Account } from '../../data/account/account';
+import { AccountsAndTransfers, AccountsAndTransfersData } from '../../data/account/types';
+import { Activity } from '../../data/activity/activity';
+import { Bill } from '../../data/bill/bill';
+import { calculateAllActivity } from '../calculate/calculate';
+import { CACHE_ACCOUNTS_AND_TRANSFERS, getCacheKey, updateCache as doUpdateCache, getCache, resetCache } from './cache';
+
+export const FILE_NAME = 'refinance';
+
+export function loadData(startDate: Date, endDate: Date, simulation: string = 'Default', updateCache: boolean = true) {
+	if (updateCache || !getCache(CACHE_ACCOUNTS_AND_TRANSFERS, getCacheKey(startDate, endDate, simulation))) {
+		resetCache();
+		doUpdateCache(
+			CACHE_ACCOUNTS_AND_TRANSFERS,
+			getCacheKey(startDate, endDate, simulation),
+			getAccountsAndTransfers(startDate, endDate, simulation),
+		);
+	}
+	return getCache(CACHE_ACCOUNTS_AND_TRANSFERS, getCacheKey(startDate, endDate, simulation));
+}
+
+function getAccountsAndTransfers(startDate: Date, endDate: Date, simulation: string): AccountsAndTransfers {
+	const data = load<AccountsAndTransfersData>(`${FILE_NAME}.json`);
+
+	const accountsAndTransfers: AccountsAndTransfers = { accounts: [], transfers: { activity: [], bills: [] } };
+
+	for (const account of data.accounts) {
+		accountsAndTransfers.accounts.push(new Account(account, simulation));
+	}
+	for (const transfer of data.transfers.activity) {
+		accountsAndTransfers.transfers.activity.push(new Activity(transfer, simulation));
+	}
+	for (const transfer of data.transfers.bills) {
+		accountsAndTransfers.transfers.bills.push(new Bill(transfer, simulation));
+	}
+
+	calculateAllActivity(accountsAndTransfers, startDate, endDate, simulation);
+
+	return accountsAndTransfers;
+}
+
+export function saveData(data: AccountsAndTransfers) {
+	const accounts = data.accounts.map((account) => account.serialize());
+	const transfers = {
+		activity: data.transfers.activity.map((transfer) => transfer.serialize()),
+		bills: data.transfers.bills.map((bill) => bill.serialize()),
+	};
+	save<AccountsAndTransfersData>({ accounts, transfers }, `${FILE_NAME}.json`);
+	resetCache();
+}
