@@ -68,6 +68,7 @@ export default [
           format: null,
         },
       ],
+      '@typescript-eslint/no-namespace': 'off',
     },
   },
 ];
