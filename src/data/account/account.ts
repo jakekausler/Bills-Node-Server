@@ -23,9 +23,10 @@ export class Account {
   interestPayAccount: string | null;
   usesRMD: boolean;
   accountOwnerDOB: Date | null;
-  RMDAccount: string | null;
+  rmdAccount: string | null;
   minimumBalance: number | null;
   minimumPullAmount: number | null;
+  performPulls: boolean;
 
   constructor(data: AccountData, simulation: string = 'Default') {
     this.id = data.id || uuidv4();
@@ -57,9 +58,10 @@ export class Account {
     this.interestPayAccount = data.interestPayAccount === undefined ? null : data.interestPayAccount;
     this.usesRMD = data.usesRMD || false;
     this.accountOwnerDOB = data.accountOwnerDOB || null;
-    this.RMDAccount = data.RMDAccount || null;
+    this.rmdAccount = data.rmdAccount || null;
     this.minimumBalance = data.minimumBalance || null;
     this.minimumPullAmount = data.minimumPullAmount || null;
+    this.performPulls = data.performPulls || false;
   }
 
   serialize(): AccountData {
@@ -79,9 +81,10 @@ export class Account {
       interestPayAccount: this.interestPayAccount,
       usesRMD: this.usesRMD,
       accountOwnerDOB: this.accountOwnerDOB,
-      RMDAccount: this.RMDAccount,
+      rmdAccount: this.rmdAccount,
       minimumBalance: this.minimumBalance,
       minimumPullAmount: this.minimumPullAmount,
+      performPulls: this.performPulls,
     };
   }
 
@@ -100,9 +103,10 @@ export class Account {
       interestPayAccount: this.interestPayAccount,
       usesRMD: this.usesRMD,
       accountOwnerDOB: this.accountOwnerDOB,
-      RMDAccount: this.RMDAccount,
+      rmdAccount: this.rmdAccount,
       minimumBalance: this.minimumBalance,
       minimumPullAmount: this.minimumPullAmount,
+      performPulls: this.performPulls,
     };
   }
 

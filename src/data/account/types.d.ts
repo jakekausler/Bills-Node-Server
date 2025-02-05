@@ -36,9 +36,10 @@ export type AccountData = {
   interestPayAccount?: string | null;
   usesRMD?: boolean;
   accountOwnerDOB?: Date | null;
-  RMDAccount?: string | null;
+  rmdAccount?: string | null;
   minimumBalance?: number | null;
   minimumPullAmount?: number | null;
+  performPulls?: boolean;
 };
 
 export type TransfersData = {

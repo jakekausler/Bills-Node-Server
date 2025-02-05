@@ -26,7 +26,7 @@ export function pullIfNeeded(
     return;
   }
   for (const account of accountsAndTransfers.accounts) {
-    if (account.type === 'Checking' && account.pullPriority === -1) {
+    if (account.type === 'Checking' && account.pullPriority === -1 && account.performPulls) {
       // Check if the account's balance is less than the minimum balance. If so, pull money from the lowest pull priority account that has a positive balance. We might need to pull money from multiple accounts to cover the negative balance
       // If we pull money from an account, we will need to add an additional transaction representing the tax implications of the withdrawal to take place on the next April 1st of this account
       // That transaction will be added to the account's consolidated activity array at the correct index for the account on that date.

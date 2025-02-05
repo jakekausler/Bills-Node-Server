@@ -24,9 +24,9 @@ export function performRMD(
         continue;
       }
 
-      const toAccount = accountsAndTransfers.accounts.find((acc) => acc.name === account.RMDAccount);
+      const toAccount = accountsAndTransfers.accounts.find((acc) => acc.name === account.rmdAccount);
       if (!toAccount) {
-        throw new Error(`Account ${account.RMDAccount} not found`);
+        throw new Error(`Account ${account.rmdAccount} not found`);
       }
 
       balanceMap[account.id] -= rmdAmount;
@@ -42,7 +42,7 @@ export function performRMD(
         dateIsVariable: false,
         dateVariable: null,
         from: account.name,
-        to: account.RMDAccount,
+        to: account.rmdAccount,
         isTransfer: true,
         category: 'Ignore.Transfer',
         flag: false,

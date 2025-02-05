@@ -73,7 +73,7 @@ export function dealWithOtherTransfers(
     ) {
       const availableBalance = balanceMap[account.id];
       if (Math.abs(adjustedAmount) > availableBalance) {
-        adjustedAmount = Math.min(Math.abs(adjustedAmount), availableBalance > 0 ? availableBalance : 0);
+        adjustedAmount = Math.min(Math.abs(adjustedAmount), availableBalance > 0 ? -availableBalance : 0);
       }
     }
 

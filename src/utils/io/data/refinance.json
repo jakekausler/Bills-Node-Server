@@ -134,7 +134,7 @@
           "startDate": "2025-02-13",
           "startDateIsVariable": false,
           "startDateVariable": null,
-          "endDate": "2046-07-15",
+          "endDate": "2048-07-15",
           "endDateIsVariable": true,
           "endDateVariable": "RETIRE_DATE",
           "amount": 2390,
@@ -220,6 +220,32 @@
           "amountVariable": null
         },
         {
+          "id": "f698d283-35c1-4df0-ae79-263550dcb38f",
+          "name": "Extra Kendall Spending",
+          "category": "Shopping.Other",
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "everyN": 1,
+          "periods": "month",
+          "increaseBy": 0.03,
+          "increaseByIsVariable": true,
+          "increaseByVariable": "INFLATION",
+          "increaseByPeriods": "year",
+          "annualStartDate": null,
+          "annualEndDate": null,
+          "isAutomatic": false,
+          "startDate": "2026-05-19",
+          "startDateIsVariable": false,
+          "startDateVariable": null,
+          "endDate": null,
+          "endDateIsVariable": false,
+          "endDateVariable": null,
+          "amount": -550,
+          "amountIsVariable": false,
+          "amountVariable": null
+        },
+        {
           "id": "d82dc889-bfd7-4940-afeb-a17f781703a4",
           "name": "Apopo",
           "category": "Gifts.Charity",
@@ -282,9 +308,10 @@
       "interestPayAccount": null,
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": 2000,
-      "minimumPullAmount": null
+      "minimumPullAmount": 1000,
+      "performPulls": true
     },
     {
       "id": "f2eba978-1ba4-40da-87eb-7671e73c0ad0",
@@ -3157,51 +3184,6 @@
           "dateVariable": "SELL_DATE"
         },
         {
-          "id": "63556630-340e-486b-96bc-6d8147a201b5",
-          "name": "Caseta Dimmers",
-          "category": "Shopping.Electronics & Software",
-          "flag": true,
-          "isTransfer": false,
-          "from": null,
-          "to": null,
-          "amount": -1600,
-          "amountIsVariable": false,
-          "amountVariable": null,
-          "date": "2025-02-14",
-          "dateIsVariable": true,
-          "dateVariable": "SELL_DATE"
-        },
-        {
-          "id": "8b435415-be42-4ede-bad5-5be4aa4f9558",
-          "name": "Motion Switches",
-          "category": "Shopping.Electronics & Software",
-          "flag": true,
-          "isTransfer": false,
-          "from": null,
-          "to": null,
-          "amount": -400,
-          "amountIsVariable": false,
-          "amountVariable": null,
-          "date": "2025-02-14",
-          "dateIsVariable": true,
-          "dateVariable": "SELL_DATE"
-        },
-        {
-          "id": "c6d0952e-6037-4d30-aec2-10f270b61068",
-          "name": "Workshop Ratgdo",
-          "category": "Shopping.Electronics & Software",
-          "flag": true,
-          "isTransfer": false,
-          "from": null,
-          "to": null,
-          "amount": -45,
-          "amountIsVariable": false,
-          "amountVariable": null,
-          "date": "2025-02-14",
-          "dateIsVariable": true,
-          "dateVariable": "SELL_DATE"
-        },
-        {
           "id": "266e7a73-fbbb-44ed-8db4-76da5f99c12e",
           "name": "Old House Sale",
           "category": "Housing.Mortgage",
@@ -3217,21 +3199,6 @@
           "dateVariable": null
         },
         {
-          "id": "efbb92c8-6ce6-411d-bd0d-99e165b2c535",
-          "name": "RoboRock Qrevo Master",
-          "category": "Shopping.Electronics & Software",
-          "flag": true,
-          "isTransfer": false,
-          "from": null,
-          "to": null,
-          "amount": -1100,
-          "amountIsVariable": false,
-          "amountVariable": null,
-          "date": "2025-02-14",
-          "dateIsVariable": true,
-          "dateVariable": "SELL_DATE"
-        },
-        {
           "id": "6e56a9a5-cff3-4fb0-86f7-a042accefe41",
           "name": "Extra Parental Payback",
           "category": "Housing.Mortgage",
@@ -3245,6 +3212,21 @@
           "date": "2025-02-14",
           "dateIsVariable": true,
           "dateVariable": "SELL_DATE"
+        },
+        {
+          "id": "2579f553-be9f-4103-a6ce-4c00b9f9d424",
+          "name": "Frankies Fun Park",
+          "category": "Amusement.Places",
+          "flag": true,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": -300,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-02-14",
+          "dateIsVariable": false,
+          "dateVariable": null
         },
         {
           "id": "2b8c1718-818d-48a2-a91e-774f942272ab",
@@ -3678,21 +3660,6 @@
           "amountIsVariable": false,
           "amountVariable": null,
           "date": "2025-01-16",
-          "dateIsVariable": false,
-          "dateVariable": null
-        },
-        {
-          "id": "2579f553-be9f-4103-a6ce-4c00b9f9d424",
-          "name": "Frankies Fun Park",
-          "category": "Amusement.Places",
-          "flag": true,
-          "isTransfer": false,
-          "from": null,
-          "to": null,
-          "amount": -300,
-          "amountIsVariable": false,
-          "amountVariable": null,
-          "date": "2025-02-16",
           "dateIsVariable": false,
           "dateVariable": null
         },
@@ -6320,7 +6287,7 @@
           "startDate": "2025-02-16",
           "startDateIsVariable": false,
           "startDateVariable": null,
-          "endDate": "2046-07-15",
+          "endDate": "2048-07-15",
           "endDateIsVariable": true,
           "endDateVariable": "RETIRE_DATE",
           "amount": 2000,
@@ -6398,7 +6365,7 @@
           "startDate": "2025-02-21",
           "startDateIsVariable": true,
           "startDateVariable": "LOWER_PAYCHECK_START_DATE",
-          "endDate": "2046-07-15",
+          "endDate": "2048-07-15",
           "endDateIsVariable": true,
           "endDateVariable": "RETIRE_DATE",
           "amount": 2666.73,
@@ -6780,9 +6747,10 @@
       "interestPayAccount": null,
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": 4000,
-      "minimumPullAmount": null
+      "minimumPullAmount": 1000,
+      "performPulls": true
     },
     {
       "id": "a458bdf3-8d66-4769-b40c-516b38028d75",
@@ -7308,9 +7276,10 @@
       "interestPayAccount": null,
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "bd7f0645-b485-4c96-bcbb-10b390b9e8db",
@@ -7533,9 +7502,10 @@
       "interestPayAccount": "Jake",
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
-      "minimumBalance": 2000,
-      "minimumPullAmount": 1000
+      "rmdAccount": null,
+      "minimumBalance": 3000,
+      "minimumPullAmount": 1000,
+      "performPulls": false
     },
     {
       "id": "a9d6dfc1-493c-4b25-a734-dde33ee97b68",
@@ -7591,9 +7561,10 @@
       "interestPayAccount": null,
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "2973daf0-6932-410e-8a27-a8647e54dffa",
@@ -7732,9 +7703,10 @@
       "interestPayAccount": null,
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "87586483-d4ae-40e2-816a-b58fec926faf",
@@ -7768,9 +7740,10 @@
       "interestPayAccount": null,
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "5c9f1e09-ec97-4a40-8dac-3336ed466e8e",
@@ -8171,9 +8144,10 @@
       "interestPayAccount": null,
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "3dee3218-60c5-4ed8-b1e3-b728a2006471",
@@ -19776,9 +19750,10 @@
       "interestPayAccount": null,
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "76e7786a-c89c-41ab-9e2b-e5c13a7d3b1d",
@@ -20449,6 +20424,81 @@
           "amountIsVariable": false,
           "amountVariable": null,
           "date": "2024-12-06",
+          "dateIsVariable": false,
+          "dateVariable": null
+        },
+        {
+          "id": "72308d7a-ebc2-4535-aca7-fc98ff49272f",
+          "name": "Roborock",
+          "category": "Shopping.Electronics & Software",
+          "flag": true,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": -2091.35,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-02-06",
+          "dateIsVariable": false,
+          "dateVariable": null
+        },
+        {
+          "id": "5b1c53f1-fbf8-41e6-ad22-c132424f9da3",
+          "name": "Lutron Light Switches",
+          "category": "Shopping.Electronics & Software",
+          "flag": true,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": -2041.82,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-02-06",
+          "dateIsVariable": false,
+          "dateVariable": null
+        },
+        {
+          "id": "b32d7c82-8670-4129-b6e2-cd920800a9d3",
+          "name": "Aquarium Supplies",
+          "category": "Pets.Supplies",
+          "flag": true,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": -641.86,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-02-06",
+          "dateIsVariable": false,
+          "dateVariable": null
+        },
+        {
+          "id": "f6c682df-0b3f-4d7f-a254-1355f16110be",
+          "name": "Hue Motion Sensors",
+          "category": "Shopping.Electronics & Software",
+          "flag": true,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": -479.3,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-02-06",
+          "dateIsVariable": false,
+          "dateVariable": null
+        },
+        {
+          "id": "d438cae4-cb99-41e6-995f-d6cfdc2dad0a",
+          "name": "Workshop RatGDO",
+          "category": "Shopping.Electronics & Software",
+          "flag": true,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": -66.25,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-02-06",
           "dateIsVariable": false,
           "dateVariable": null
         },
@@ -21788,6 +21838,21 @@
           "dateVariable": null
         },
         {
+          "id": "a8fc4e2d-6694-400d-9f5b-b53a1ee7d5f5",
+          "name": "Aqara Temperature and Humidity Sensors",
+          "category": "Shopping.Electronics & Software",
+          "flag": true,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": 61.12,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-02-22",
+          "dateIsVariable": false,
+          "dateVariable": null
+        },
+        {
           "id": "1885159f-bb10-4a25-89ba-699110377a6a",
           "name": "Sheri's Berries",
           "category": "Gifts.Holidays",
@@ -22536,21 +22601,6 @@
           "date": "2024-10-31",
           "dateIsVariable": false,
           "dateVariable": null
-        },
-        {
-          "id": "a8fc4e2d-6694-400d-9f5b-b53a1ee7d5f5",
-          "name": "Aqara Temperature and Humidity Sensors",
-          "category": "Shopping.Electronics & Software",
-          "flag": true,
-          "isTransfer": false,
-          "from": null,
-          "to": null,
-          "amount": 61.12,
-          "amountIsVariable": false,
-          "amountVariable": null,
-          "date": "2025-01-31",
-          "dateIsVariable": false,
-          "dateVariable": null
         }
       ],
       "bills": [
@@ -22617,9 +22667,10 @@
       "interestPayAccount": null,
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "18754bfc-52fa-4cdb-82f3-327b6f251bb7",
@@ -22653,9 +22704,10 @@
       "interestPayAccount": null,
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "141c272a-a655-4144-a2f2-56a1ff6f6172",
@@ -22697,9 +22749,9 @@
           "to": null,
           "everyN": 2,
           "periods": "week",
-          "increaseBy": 0,
-          "increaseByIsVariable": false,
-          "increaseByVariable": "INFLATION",
+          "increaseBy": 0.03,
+          "increaseByIsVariable": true,
+          "increaseByVariable": "RAISE_RATE",
           "increaseByPeriods": "year",
           "annualStartDate": null,
           "annualEndDate": null,
@@ -22707,9 +22759,9 @@
           "startDate": "2025-02-13",
           "startDateIsVariable": false,
           "startDateVariable": null,
-          "endDate": null,
-          "endDateIsVariable": false,
-          "endDateVariable": null,
+          "endDate": "2048-07-15",
+          "endDateIsVariable": true,
+          "endDateVariable": "RETIRE_DATE",
           "amount": 144,
           "amountIsVariable": false,
           "amountVariable": null
@@ -22733,9 +22785,9 @@
           "startDate": "2025-02-13",
           "startDateIsVariable": false,
           "startDateVariable": null,
-          "endDate": null,
-          "endDateIsVariable": false,
-          "endDateVariable": null,
+          "endDate": "2048-07-15",
+          "endDateIsVariable": true,
+          "endDateVariable": "RETIRE_DATE",
           "amount": 109,
           "amountIsVariable": false,
           "amountVariable": null
@@ -22745,15 +22797,16 @@
       "type": "Investment",
       "pullPriority": 4,
       "interestTaxRate": 0,
-      "withdrawalTaxRate": 0,
+      "withdrawalTaxRate": 0.24,
       "earlyWithdrawlPenalty": 0,
       "earlyWithdrawlDate": "2053-01-15",
       "interestPayAccount": null,
       "usesRMD": true,
       "accountOwnerDOB": "1994-11-16",
-      "RMDAccount": "Kendall",
+      "rmdAccount": "Kendall",
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "9005ec8d-1d71-46ce-82ba-f1781e28a1cb",
@@ -22796,9 +22849,10 @@
       "interestPayAccount": null,
       "usesRMD": true,
       "accountOwnerDOB": "1994-11-16",
-      "RMDAccount": "Kendall",
+      "rmdAccount": "Kendall",
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "8a06d434-8cab-4607-875d-e1cbab574534",
@@ -22910,36 +22964,10 @@
           "startDate": "2025-02-07",
           "startDateIsVariable": false,
           "startDateVariable": null,
-          "endDate": "2046-07-15",
+          "endDate": "2048-07-15",
           "endDateIsVariable": true,
           "endDateVariable": "RETIRE_DATE",
           "amount": 187.5,
-          "amountIsVariable": false,
-          "amountVariable": null
-        },
-        {
-          "id": "7a2ceda4-4195-47f4-af64-5d08732d3359",
-          "name": "401(k) Contribution",
-          "category": "Ignore.Transfer",
-          "isTransfer": false,
-          "from": null,
-          "to": null,
-          "everyN": 2,
-          "periods": "week",
-          "increaseBy": 0.01,
-          "increaseByIsVariable": true,
-          "increaseByVariable": "401K_LIMIT_INCREASE_RATE",
-          "increaseByPeriods": "year",
-          "annualStartDate": null,
-          "annualEndDate": null,
-          "isAutomatic": false,
-          "startDate": "2025-02-21",
-          "startDateIsVariable": true,
-          "startDateVariable": "LOWER_PAYCHECK_START_DATE",
-          "endDate": "2046-07-15",
-          "endDateIsVariable": true,
-          "endDateVariable": "RETIRE_DATE",
-          "amount": 904,
           "amountIsVariable": false,
           "amountVariable": null
         },
@@ -22968,6 +22996,32 @@
           "amount": 250,
           "amountIsVariable": false,
           "amountVariable": null
+        },
+        {
+          "id": "7a2ceda4-4195-47f4-af64-5d08732d3359",
+          "name": "401(k) Contribution",
+          "category": "Ignore.Transfer",
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "everyN": 2,
+          "periods": "week",
+          "increaseBy": 0.01,
+          "increaseByIsVariable": true,
+          "increaseByVariable": "401K_LIMIT_INCREASE_RATE",
+          "increaseByPeriods": "year",
+          "annualStartDate": null,
+          "annualEndDate": null,
+          "isAutomatic": false,
+          "startDate": "2025-02-21",
+          "startDateIsVariable": true,
+          "startDateVariable": "LOWER_PAYCHECK_START_DATE",
+          "endDate": "2048-07-15",
+          "endDateIsVariable": true,
+          "endDateVariable": "RETIRE_DATE",
+          "amount": 904,
+          "amountIsVariable": false,
+          "amountVariable": null
         }
       ],
       "hidden": false,
@@ -22980,9 +23034,10 @@
       "interestPayAccount": null,
       "usesRMD": true,
       "accountOwnerDOB": "1994-11-16",
-      "RMDAccount": "Jake",
+      "rmdAccount": "Jake",
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "6de0db48-fb17-4f29-aa4e-17032809f14c",
@@ -23140,9 +23195,10 @@
       "interestPayAccount": null,
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     },
     {
       "id": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
@@ -23155,6 +23211,16 @@
           "aprVariable": "HIGH_YIELD_SAVINGS_RATE",
           "compounded": "month",
           "applicableDate": "2025-03-01"
+        },
+        {
+          "id": "6d08b8ff-474f-4de5-8593-4b90b9ddd9fc",
+          "apr": 0.05,
+          "aprIsVariable": true,
+          "aprVariable": "INVESTMENT_RATE",
+          "compounded": "month",
+          "applicableDate": "2025-03-28",
+          "applicableDateIsVariable": false,
+          "applicableDateVariable": ""
         }
       ],
       "activity": [],
@@ -23169,9 +23235,10 @@
       "interestPayAccount": "Jake",
       "usesRMD": false,
       "accountOwnerDOB": null,
-      "RMDAccount": null,
+      "rmdAccount": null,
       "minimumBalance": null,
-      "minimumPullAmount": null
+      "minimumPullAmount": null,
+      "performPulls": false
     }
   ],
   "transfers": {
@@ -23192,21 +23259,6 @@
         "dateVariable": null
       },
       {
-        "id": "f56e396c-b19d-4339-86f2-382ae5555f92",
-        "name": "Transfer from Jake to REI",
-        "category": "Ignore.Transfer",
-        "flag": true,
-        "isTransfer": true,
-        "from": "Jake",
-        "to": "REI",
-        "amount": 12868.19,
-        "amountIsVariable": false,
-        "amountVariable": null,
-        "date": "2025-02-14",
-        "dateIsVariable": true,
-        "dateVariable": "SELL_DATE"
-      },
-      {
         "id": "44a4815a-f80b-44fa-a9d9-ea9b127dd566",
         "name": "Transfer from Jake to Bathroom",
         "category": "Ignore.Transfer",
@@ -23217,7 +23269,7 @@
         "amount": 4888.03,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-02-20",
+        "date": "2025-02-14",
         "dateIsVariable": false,
         "dateVariable": null
       },
@@ -23229,7 +23281,7 @@
         "isTransfer": true,
         "from": "Jake",
         "to": "Fidelity Money Market",
-        "amount": 87000,
+        "amount": 80000,
         "amountIsVariable": true,
         "amountVariable": "Emergency Transfer",
         "date": "2025-02-14",
@@ -25035,6 +25087,21 @@
         "date": "2025-02-01",
         "dateIsVariable": false,
         "dateVariable": null
+      },
+      {
+        "id": "feb28be5-f0f1-4bf9-84c2-656bc11b4f7d",
+        "name": "Transfer from Jake to REI",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "REI",
+        "amount": 18000,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-02-14",
+        "dateIsVariable": false,
+        "dateVariable": null
       }
     ],
     "bills": [
@@ -25158,7 +25225,7 @@
         "annualStartDate": null,
         "annualEndDate": null,
         "isAutomatic": false,
-        "startDate": "2025-03-28",
+        "startDate": "2025-02-28",
         "startDateIsVariable": false,
         "startDateVariable": null,
         "endDate": null,
@@ -25187,7 +25254,7 @@
         "startDate": "2025-03-01",
         "startDateIsVariable": false,
         "startDateVariable": null,
-        "endDate": "2046-07-15",
+        "endDate": "2048-07-15",
         "endDateIsVariable": true,
         "endDateVariable": "RETIRE_DATE",
         "amount": 1200,
@@ -25239,7 +25306,7 @@
         "startDate": "2025-02-13",
         "startDateIsVariable": false,
         "startDateVariable": null,
-        "endDate": "2046-07-15",
+        "endDate": "2048-07-15",
         "endDateIsVariable": true,
         "endDateVariable": "RETIRE_DATE",
         "amount": 950,
@@ -25265,10 +25332,36 @@
         "startDate": "2040-01-01",
         "startDateIsVariable": true,
         "startDateVariable": "START_TRANSFER_OF_EXTRA",
-        "endDate": "2046-07-15",
-        "endDateIsVariable": true,
-        "endDateVariable": "RETIRE_DATE",
-        "amount": 6000,
+        "endDate": null,
+        "endDateIsVariable": false,
+        "endDateVariable": null,
+        "amount": 5000,
+        "amountIsVariable": false,
+        "amountVariable": null
+      },
+      {
+        "id": "daea8e31-fea9-4209-a496-76354e2e0ef9",
+        "name": "Transfer Extra to Fidelity",
+        "category": "Ignore.Transfer",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Fidelity Money Market",
+        "everyN": 1,
+        "periods": "month",
+        "increaseBy": 0.03,
+        "increaseByIsVariable": true,
+        "increaseByVariable": "INFLATION",
+        "increaseByPeriods": "year",
+        "annualStartDate": null,
+        "annualEndDate": null,
+        "isAutomatic": false,
+        "startDate": "2040-01-01",
+        "startDateIsVariable": true,
+        "startDateVariable": "START_TRANSFER_OF_EXTRA",
+        "endDate": null,
+        "endDateIsVariable": false,
+        "endDateVariable": null,
+        "amount": 5000,
         "amountIsVariable": false,
         "amountVariable": null
       }
