@@ -10,9 +10,15 @@ import {
   getSpecificActivity,
   updateSpecificActivity,
   deleteSpecificActivity,
+  changeAccountForActivity,
 } from './api/accounts/activity/specificActivity';
 import { getAccountBills, addBill } from './api/accounts/bills/bills';
-import { getSpecificBill, updateSpecificBill, deleteSpecificBill } from './api/accounts/bills/bill';
+import {
+  getSpecificBill,
+  updateSpecificBill,
+  deleteSpecificBill,
+  changeAccountForBill,
+} from './api/accounts/bills/bill';
 import { getAccountInterests, addInterest, updateInterest } from './api/accounts/interests/interests';
 import { getSpecificInterest, updateSpecificInterest, deleteSpecificInterest } from './api/accounts/interests/interest';
 import { getCalendarBills } from './api/calendar/bills';
@@ -97,6 +103,12 @@ app
     res.json(deleteSpecificActivity(req));
   });
 
+app
+  .route('/api/accounts/:accountId/activity/:activityId/change_account/:newAccountId')
+  .post((req: Request, res: Response) => {
+    res.json(changeAccountForActivity(req));
+  });
+
 // Bill routes
 app
   .route('/api/accounts/:accountId/bills')
@@ -118,6 +130,10 @@ app
   .delete((req: Request, res: Response) => {
     res.json(deleteSpecificBill(req));
   });
+
+app.route('/api/accounts/:accountId/bills/:billId/change_account/:newAccountId').post((req: Request, res: Response) => {
+  res.json(changeAccountForBill(req));
+});
 
 // Calendar routes
 app.get('/api/calendar/bills', (req: Request, res: Response) => {
