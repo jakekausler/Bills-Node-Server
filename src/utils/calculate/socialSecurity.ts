@@ -42,7 +42,8 @@ export function handleSocialSecurity(
         to: null,
         isTransfer: false,
         category: 'Income.Retirement',
-        flag: false,
+        flag: true,
+        flagColor: 'green',
       });
       balanceMap[payToAccount.id] += socialSecurity.monthlyPay;
       activity.balance = balanceMap[payToAccount.id];

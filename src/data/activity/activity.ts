@@ -4,69 +4,77 @@ import { ActivityData } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 export class Activity {
-	id: string;
-	name: string;
-	category: string;
+  id: string;
+  name: string;
+  category: string;
 
-	flag: boolean;
-	isTransfer: boolean;
-	fro: string | null;
-	to: string | null;
+  flagColor: string | null;
+  flag: boolean;
 
-	amount: number | '{HALF}' | '{FULL}' | '-{HALF}' | '-{FULL}';
-	amountIsVariable: boolean;
-	amountVariable: string | null;
+  isTransfer: boolean;
+  fro: string | null;
+  to: string | null;
 
-	date: Date;
-	dateIsVariable: boolean;
-	dateVariable: string | null;
+  amount: number | '{HALF}' | '{FULL}' | '-{HALF}' | '-{FULL}';
+  amountIsVariable: boolean;
+  amountVariable: string | null;
 
-	constructor(data: ActivityData, simulation: string = 'Default') {
-		this.id = data.id || uuidv4();
-		this.name = data.name;
-		this.category = data.category;
+  date: Date;
+  dateIsVariable: boolean;
+  dateVariable: string | null;
 
-		this.flag = data.flag || false;
-		this.isTransfer = data.isTransfer || false;
-		this.fro = this.isTransfer ? data.from : null;
-		this.to = this.isTransfer ? data.to : null;
+  constructor(data: ActivityData, simulation: string = 'Default') {
+    this.id = data.id || uuidv4();
+    this.name = data.name;
+    this.category = data.category;
 
-		const { date, dateIsVariable, dateVariable } = loadDateOrVariable(
-			data.date,
-			data.dateIsVariable,
-			data.dateVariable,
-			simulation,
-		);
-		this.date = date;
-		this.dateIsVariable = dateIsVariable;
-		this.dateVariable = dateVariable;
+    this.flag = data.flag || false;
+    this.flagColor = data.flagColor || null;
+    if (this.flag && !this.flagColor) {
+      this.flagColor = 'gray';
+    }
 
-		const { amount, amountIsVariable, amountVariable } = loadNumberOrVariable(
-			data.amount,
-			data.amountIsVariable,
-			data.amountVariable,
-			simulation,
-		);
-		this.amount = amount;
-		this.amountIsVariable = amountIsVariable;
-		this.amountVariable = amountVariable;
-	}
+    this.isTransfer = data.isTransfer || false;
+    this.fro = this.isTransfer ? data.from : null;
+    this.to = this.isTransfer ? data.to : null;
 
-	serialize(): ActivityData {
-		return {
-			id: this.id,
-			name: this.name,
-			category: this.category,
-			flag: this.flag,
-			isTransfer: this.isTransfer,
-			from: this.fro,
-			to: this.to,
-			amount: this.amount,
-			amountIsVariable: this.amountIsVariable,
-			amountVariable: this.amountVariable,
-			date: formatDate(this.date),
-			dateIsVariable: this.dateIsVariable,
-			dateVariable: this.dateVariable,
-		};
-	}
+    const { date, dateIsVariable, dateVariable } = loadDateOrVariable(
+      data.date,
+      data.dateIsVariable,
+      data.dateVariable,
+      simulation,
+    );
+    this.date = date;
+    this.dateIsVariable = dateIsVariable;
+    this.dateVariable = dateVariable;
+
+    const { amount, amountIsVariable, amountVariable } = loadNumberOrVariable(
+      data.amount,
+      data.amountIsVariable,
+      data.amountVariable,
+      simulation,
+    );
+    this.amount = amount;
+    this.amountIsVariable = amountIsVariable;
+    this.amountVariable = amountVariable;
+  }
+
+  serialize(): ActivityData {
+    return {
+      id: this.id,
+      name: this.name,
+      category: this.category,
+      flag: this.flag,
+      flagColor: this.flagColor,
+      isTransfer: this.isTransfer,
+      from: this.fro,
+      to: this.to,
+      amount: this.amount,
+      amountIsVariable: this.amountIsVariable,
+      amountVariable: this.amountVariable,
+      date: formatDate(this.date),
+      dateIsVariable: this.dateIsVariable,
+      dateVariable: this.dateVariable,
+    };
+  }
 }

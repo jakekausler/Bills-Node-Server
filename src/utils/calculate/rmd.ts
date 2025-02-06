@@ -45,7 +45,8 @@ export function performRMD(
         to: account.rmdAccount,
         isTransfer: true,
         category: 'Ignore.Transfer',
-        flag: false,
+        flag: true,
+        flagColor: 'grape',
       });
 
       const activityTo = new ConsolidatedActivity({

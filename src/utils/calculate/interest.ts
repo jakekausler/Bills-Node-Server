@@ -63,7 +63,8 @@ export function payInterestTaxes(
         to: null,
         isTransfer: false,
         category: 'Banking.Taxes',
-        flag: false,
+        flag: true,
+        flagColor: 'orange',
       });
       const payeeAccount = getById<Account>(accountsAndTransfers.accounts, payee);
       if (!payeeAccount) {
@@ -120,6 +121,8 @@ export function handleInterest(
       ),
       currDate,
     );
+    activity.flag = true;
+    activity.flagColor = (activity.amount as number) < 0 ? 'pink' : 'lime';
     // if (account.name === 'Kendall 401(k)') {
     //   console.log(
     //     `${formatDate(currDate)} Interest Rate ${getRate(

@@ -66,7 +66,8 @@ export function pullIfNeeded(
           to: account.name,
           isTransfer: true,
           category: 'Ignore.Transfer',
-          flag: false,
+          flag: true,
+          flagColor: 'violet',
         });
         pullActivityAccount.balance = balanceMap[account.id];
 
@@ -141,7 +142,8 @@ export function payPullTaxes(
           to: null,
           isTransfer: false,
           category: 'Banking.Taxes',
-          flag: false,
+          flag: true,
+          flagColor: 'orange',
         });
         taxActivity.balance = balanceMap[account.id] - amount;
         balanceMap[account.id] -= amount;

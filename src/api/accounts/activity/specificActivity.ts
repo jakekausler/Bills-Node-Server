@@ -57,6 +57,7 @@ export function updateSpecificActivity(request: Request) {
   activity.amount = data.data.amount;
   activity.amountVariable = data.data.amountVariable;
   activity.flag = data.data.flag;
+  activity.flagColor = data.data.flagColor;
   activity.isTransfer = data.data.isTransfer;
   if (activity.isTransfer) {
     activity.fro = data.data.from;

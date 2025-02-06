@@ -23,6 +23,8 @@ function getBillAsActivity(request: Request) {
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   for (const a of account.consolidatedActivity) {
     if (a.billId === request.params.billId) {
+      a.flag = false;
+      a.flagColor = null;
       return a.serialize();
     }
   }
@@ -159,6 +161,8 @@ function updateBillAsBill(request: Request) {
   bill.increaseByIsVariable = data.data.increaseByIsVariable;
   bill.increaseByVariable = data.data.increaseByVariable;
   bill.increaseByPeriods = data.data.increaseByPeriods;
+  bill.flag = data.data.flag;
+  bill.flagColor = data.data.flagColor;
 
   if (data.isTransfer && !originalIsTransfer) {
     account.bills.splice(billIdx, 1);

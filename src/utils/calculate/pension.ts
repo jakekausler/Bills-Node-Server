@@ -40,7 +40,8 @@ export function handlePension(
         to: null,
         isTransfer: false,
         category: 'Income.Retirement',
-        flag: false,
+        flag: true,
+        flagColor: 'green',
       });
       balanceMap[payToAccount.id] += pension.monthlyPay;
       activity.balance = balanceMap[payToAccount.id];
