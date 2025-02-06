@@ -26,8 +26,7 @@ export class Account {
   rmdAccount: string | null;
   minimumBalance: number | null;
   minimumPullAmount: number | null;
-  performPulls: boolean;
-  performsPushes: boolean;
+  performsPullsAndPushes: boolean;
   pushStart: Date | null;
   pushEnd: Date | null;
   pushAccount: string | null;
@@ -65,8 +64,7 @@ export class Account {
     this.rmdAccount = data.rmdAccount || null;
     this.minimumBalance = data.minimumBalance || null;
     this.minimumPullAmount = data.minimumPullAmount || null;
-    this.performPulls = data.performPulls || false;
-    this.performsPushes = data.performsPushes || false;
+    this.performsPullsAndPushes = data.performsPullsAndPushes || false;
     this.pushStart = data.pushStart ? new Date(data.pushStart) : null;
     this.pushEnd = data.pushEnd ? new Date(data.pushEnd) : null;
     this.pushAccount = data.pushAccount || null;
@@ -92,8 +90,7 @@ export class Account {
       rmdAccount: this.rmdAccount,
       minimumBalance: this.minimumBalance,
       minimumPullAmount: this.minimumPullAmount,
-      performPulls: this.performPulls,
-      performsPushes: this.performsPushes,
+      performsPullsAndPushes: this.performsPullsAndPushes,
       pushStart: this.pushStart,
       pushEnd: this.pushEnd,
       pushAccount: this.pushAccount,
@@ -118,8 +115,7 @@ export class Account {
       rmdAccount: this.rmdAccount,
       minimumBalance: this.minimumBalance,
       minimumPullAmount: this.minimumPullAmount,
-      performPulls: this.performPulls,
-      performsPushes: this.performsPushes,
+      performsPullsAndPushes: this.performsPullsAndPushes,
       pushStart: this.pushStart,
       pushEnd: this.pushEnd,
       pushAccount: this.pushAccount,
