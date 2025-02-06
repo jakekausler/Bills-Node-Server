@@ -13,10 +13,12 @@ export function retrieveBalances(
 ) {
   while (
     // While we are still within the bounds of the consolidated activity array
-    idxMap[account.id] < account.consolidatedActivity.length &&
-    // And the date of the activity is the current date
-    isSame(account.consolidatedActivity[idxMap[account.id]].date, currDate)
+    idxMap[account.id] < account.consolidatedActivity.length
   ) {
+    // And the date of the activity is the current date
+    if (!isSame(account.consolidatedActivity[idxMap[account.id]]?.date, currDate)) {
+      break;
+    }
     dealWithSpecialFractions(account, accounts, idxMap, balanceMap);
     dealWithOtherTransfers(account, accounts, idxMap, balanceMap);
     updateBalanceMap(account, balanceMap, idxMap);

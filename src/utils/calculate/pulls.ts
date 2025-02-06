@@ -38,7 +38,8 @@ export function pullIfNeeded(
         }
 
         // Calculate amount needed to cover negative balance, plus a margin to limit future pull amounts
-        const amountNeeded = Math.abs(balanceMap[account.id] - (account.minimumBalance ?? 0)) + 2000;
+        const amountNeeded =
+          Math.abs(balanceMap[account.id] - (account.minimumBalance ?? 0)) + (account.minimumPullAmount ?? 0);
         const availableAmount = Math.min(
           amountNeeded,
           balanceMap[pullableAccount.id] - (pullableAccount.minimumBalance ?? 0),

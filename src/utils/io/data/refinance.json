@@ -275,8 +275,8 @@
       "usesRMD": false,
       "accountOwnerDOB": null,
       "rmdAccount": null,
-      "minimumBalance": 2000,
-      "minimumPullAmount": 1000,
+      "minimumBalance": 600,
+      "minimumPullAmount": 400,
       "performPulls": true
     },
     {
@@ -26940,7 +26940,7 @@
         "to": "Mortgage",
         "everyN": 1,
         "periods": "month",
-        "increaseBy": 0.03,
+        "increaseBy": 0,
         "increaseByIsVariable": true,
         "increaseByVariable": "MORTGAGE_INCREASE_RATE",
         "increaseByDate": "01/01",
