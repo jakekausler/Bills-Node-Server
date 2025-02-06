@@ -1,9 +1,8 @@
 from yfinance import Ticker
 import json
-from pprint import pprint
 
 with open(
-    "/home/jakekausler/programs/billsV2/server-node/src/utils/io/data/portfolio.json",
+    f"{__file__}/../portfolio.json",
     "r",
 ) as f:
     portfolio = json.load(f)
@@ -68,7 +67,7 @@ data = {
 }
 
 with open(
-    "/home/jakekausler/programs/billsV2/server-node/src/utils/io/data/portfolioAnalysis.json",
+    f"{__file__}/../portfolioAnalysis.json",
     "w",
 ) as f:
     json.dump(data, f, indent=4)

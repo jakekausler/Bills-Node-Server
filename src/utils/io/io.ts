@@ -1,7 +1,10 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-export const BASE_DATA_DIR = '/home/jakekausler/programs/billsV2/server-node/src/utils/io/data';
+const filename = fileURLToPath(import.meta.url);
+const dirname = path.dirname(filename);
+export const BASE_DATA_DIR = path.join(dirname, 'data');
 
 export function load<T>(fn: string): T {
   const data = readFileSync(path.join(BASE_DATA_DIR, fn), 'utf8');

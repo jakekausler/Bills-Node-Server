@@ -6,7 +6,7 @@ import { Bill } from '../../data/bill/bill';
 import { calculateAllActivity } from '../calculate/calculate';
 import { CACHE_ACCOUNTS_AND_TRANSFERS, getCacheKey, updateCache as doUpdateCache, getCache, resetCache } from './cache';
 
-export const FILE_NAME = 'refinance';
+export const FILE_NAME = 'data';
 
 export function loadData(startDate: Date, endDate: Date, simulation: string = 'Default', updateCache: boolean = true) {
   const key = getCacheKey(startDate, endDate, simulation);

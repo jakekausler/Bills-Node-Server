@@ -41,10 +41,6 @@ function runSimulations(
   for (let i = 0; i < nSimulations; i++) {
     const accountsAndTransfersClone = cloneAccountsAndTransfers(accountsAndTransfers);
     calculateAllActivity(accountsAndTransfersClone, startDate, endDate, simulation, true, i, nSimulations);
-    save(
-      accountsAndTransfersClone.accounts.find((a) => a.name === 'Kendall 401(k)'),
-      `accountsAndTransfersClone.json`,
-    );
     const yearlyGraph = loadYearlyGraph(accountsAndTransfersClone, startDate, endDate, minDate);
     yearlyGraph.labels.forEach((year, idx) => {
       for (const dataset of yearlyGraph.datasets) {
