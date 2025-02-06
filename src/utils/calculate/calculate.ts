@@ -76,12 +76,12 @@ function calculateActivities(
   maxSimulations: number,
 ) {
   startTiming(calculateActivities);
-  //initProgressBar(dayjs(endDate).diff(dayjs(startDate), 'day'), simulationNumber, maxSimulations);
+  initProgressBar(dayjs(endDate).diff(dayjs(startDate), 'day'), simulationNumber, maxSimulations);
   let { currDate, idxMap, balanceMap, interestIdxMap, interestMap, nextInterestMap } =
     setupCalculation(accountsAndTransfers);
   const { pensions, socialSecurities } = loadPensionsAndSocialSecurity(simulation);
   while (currDate <= endDate) {
-    //incrementProgressBar();
+    incrementProgressBar();
     for (const account of accountsAndTransfers.accounts) {
       handleInterest(
         account,
@@ -109,6 +109,6 @@ function calculateActivities(
     currDate = dayjs(currDate).add(1, 'day').toDate();
   }
   retrieveTodayBalances(accountsAndTransfers, startDate, endDate);
-  //stopProgressBar();
+  stopProgressBar();
   endTiming(calculateActivities);
 }
