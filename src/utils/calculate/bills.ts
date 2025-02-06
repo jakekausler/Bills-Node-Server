@@ -32,7 +32,7 @@ export function addBills(account: Account, bills: Bill[], endDate: Date, simulat
       // While we are below either the specified end date or the bill's end date
 
       // Check if we need to increase the bill's amount
-      if (isBefore(billNextIncreaseDate, currDate)) {
+      if (isBeforeOrSame(billNextIncreaseDate, currDate)) {
         // We need to increase the bill's amount if we passed the next increase date
         ({ billIncreasedAmount, billNextIncreaseDate } = getBillIncreasedAmountAndNextIncreaseDate(
           bill,
@@ -81,11 +81,8 @@ function getBillIncreasedAmountAndNextIncreaseDate(
   monteCarlo: boolean,
 ) {
   let billNextIncreaseDate = prevBillNextIncreaseDate;
-  if (bill.increaseByPeriods === 'year') {
-    billNextIncreaseDate = dayjs(prevBillNextIncreaseDate).add(1, 'year').set('date', 1).set('month', 0).toDate();
-  } else {
-    billNextIncreaseDate = nextDate(prevBillNextIncreaseDate, bill.increaseByPeriods, 1);
-  }
+  const { day, month } = bill.increaseByDate;
+  billNextIncreaseDate = dayjs(prevBillNextIncreaseDate).add(1, 'year').set('month', month).set('date', day).toDate();
   const billIncreasedAmount =
     typeof prevBillIncreasedAmount === 'number' && !isFirst
       ? prevBillIncreasedAmount * (1 + getIncreaseBy(bill, dayjs(billNextIncreaseDate).year(), monteCarlo))

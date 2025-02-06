@@ -121,17 +121,24 @@ export function dealWithSpecialFractions(
     if (!otherActivity) {
       throw new Error(`Activity ${account.consolidatedActivity[idxMap[account.id]].id} not found on other side`);
     }
+    let amount = 0;
     if (account.consolidatedActivity[idxMap[account.id]].amount === '{HALF}') {
       // If the amount is half, we need to split the other account's balance in half and update the activities on both sides. Because the amount will be overrided from "{HALF}" to the actual amount, whichever side is processed first will update both sides
       // Calculate the half the other account's balance and round to 2 decimal places
-      const amount = Math.round((balanceToUse / 2) * 100) / 100;
-      // Update the amount of the activity on the other side
-      otherAccount.consolidatedActivity[otherActivityIdx].amount = -amount;
-      // Set the amount of the activity on this side
-      account.consolidatedActivity[idxMap[account.id]].amount = amount;
+      amount = Math.round((balanceToUse / 2) * 100) / 100;
     } else if (account.consolidatedActivity[idxMap[account.id]].amount === '{FULL}') {
       // If the amount is full, we need to add the full balance of the recieving account as an activity on both sides. Because the amount will be overrided from "{FULL}" to the actual amount, whichever side is processed first will update both sides
-      const amount = balanceToUse;
+      amount = balanceToUse;
+    }
+    if (amount === 0) {
+      // If the amount is 0, we don't want to show it. Remove the activity from both sides
+      account.consolidatedActivity.splice(idxMap[account.id], 1);
+      otherAccount.consolidatedActivity.splice(otherActivityIdx, 1);
+      // Decrement the index of the other account
+      idxMap[otherAccount.id]--;
+      // Decrement the index of this account
+      idxMap[account.id]--;
+    } else {
       // Update the amount of the activity on the other side
       otherAccount.consolidatedActivity[otherActivityIdx].amount = -amount;
       // Set the amount of the activity on this side

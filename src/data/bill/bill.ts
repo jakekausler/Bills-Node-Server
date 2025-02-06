@@ -23,8 +23,7 @@ export class Bill {
   increaseBy: number;
   increaseByIsVariable: boolean;
   increaseByVariable: string | null;
-
-  increaseByPeriods: 'day' | 'week' | 'month' | 'year';
+  increaseByDate: { day: number; month: number };
 
   annualStartDate: string | null;
   annualEndDate: string | null;
@@ -78,7 +77,7 @@ export class Bill {
       throw e;
     }
 
-    this.increaseByPeriods = data.increaseByPeriods || 'year';
+    this.increaseByDate = this.setIncreaseByDate(data.increaseByDate);
 
     this.annualStartDate = data.annualStartDate || null;
     this.annualEndDate = data.annualEndDate || null;
@@ -120,6 +119,15 @@ export class Bill {
     this.amountVariable = amountVariable;
   }
 
+  setIncreaseByDate(increaseByDate: string): { day: number; month: number } {
+    return increaseByDate
+      ? {
+          day: parseInt(increaseByDate.split('/')[1]),
+          month: parseInt(increaseByDate.split('/')[0]) - 1,
+        }
+      : { day: 1, month: 0 };
+  }
+
   serialize(): BillData {
     return {
       id: this.id,
@@ -133,7 +141,7 @@ export class Bill {
       increaseBy: this.increaseBy,
       increaseByIsVariable: this.increaseByIsVariable,
       increaseByVariable: this.increaseByVariable,
-      increaseByPeriods: this.increaseByPeriods,
+      increaseByDate: `${(this.increaseByDate.month + 1).toString().padStart(2, '0')}/${this.increaseByDate.day.toString().padStart(2, '0')}`,
       annualStartDate: this.annualStartDate,
       annualEndDate: this.annualEndDate,
       isAutomatic: this.isAutomatic,

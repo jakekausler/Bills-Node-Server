@@ -21,7 +21,7 @@ export type BillData = {
   increaseBy: number;
   increaseByIsVariable: boolean;
   increaseByVariable: string | null;
-  increaseByPeriods: 'day' | 'week' | 'month' | 'year';
+  increaseByDate: string;
   isTransfer: boolean;
   from: string | null;
   to: string | null;

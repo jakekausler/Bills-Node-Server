@@ -136,25 +136,28 @@ export function handleInterest(
     //   );
     // }
 
-    // Insert the interest activity into the consolidated activity array at the current index
-    account.consolidatedActivity.splice(
-      idxMap[account.id],
-      0,
-      new ConsolidatedActivity(activity.serialize(), {
-        interestId: (interestMap[account.id] as Interest).id,
-      }),
-    );
+    // Check if the interest activity is not zero
+    if (activity.amount !== 0) {
+      // Insert the interest activity into the consolidated activity array at the current index
+      account.consolidatedActivity.splice(
+        idxMap[account.id],
+        0,
+        new ConsolidatedActivity(activity.serialize(), {
+          interestId: (interestMap[account.id] as Interest).id,
+        }),
+      );
 
-    // Check if this is the first interest for the interest's applicable date
-    if (isSame(interestMap[account.id]?.applicableDate as Date, currDate)) {
-      account.consolidatedActivity[idxMap[account.id]].firstInterest = true;
+      // Check if this is the first interest for the interest's applicable date
+      if (isSame(interestMap[account.id]?.applicableDate as Date, currDate)) {
+        account.consolidatedActivity[idxMap[account.id]].firstInterest = true;
+      }
+
+      // Update the balance with the interest's amount
+      balanceMap[account.id] += activity.amount as number;
+      account.consolidatedActivity[idxMap[account.id]].balance = balanceMap[account.id];
+
+      idxMap[account.id] += 1;
     }
-
-    // Update the balance with the interest's amount
-    balanceMap[account.id] += activity.amount as number;
-    account.consolidatedActivity[idxMap[account.id]].balance = balanceMap[account.id];
-
-    idxMap[account.id] += 1;
 
     nextInterestMap[account.id] = nextDate(
       nextInterestMap[account.id] as Date,

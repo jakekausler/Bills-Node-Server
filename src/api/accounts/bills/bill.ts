@@ -142,8 +142,8 @@ function updateBillAsBill(request: Request) {
   bill.endDate = data.data.endDate
     ? parseDate(data.data.endDate)
     : data.data.endDateIsVariable && data.data.endDateVariable
-    ? (loadVariable(data.data.endDateVariable, data.simulation) as Date)
-    : null;
+      ? (loadVariable(data.data.endDateVariable, data.simulation) as Date)
+      : null;
   bill.endDateIsVariable = data.data.endDateIsVariable;
   bill.endDateVariable = data.data.endDateVariable;
   bill.category = data.data.category;
@@ -160,7 +160,7 @@ function updateBillAsBill(request: Request) {
   bill.increaseBy = data.data.increaseBy;
   bill.increaseByIsVariable = data.data.increaseByIsVariable;
   bill.increaseByVariable = data.data.increaseByVariable;
-  bill.increaseByPeriods = data.data.increaseByPeriods;
+  bill.increaseByDate = bill.setIncreaseByDate(data.data.increaseByDate);
   bill.flag = data.data.flag;
   bill.flagColor = data.data.flagColor;
 
