@@ -63,8 +63,17 @@ export function updateAccounts(request: Request) {
       if (newAccount.minimumPullAmount !== account.minimumPullAmount) {
         account.minimumPullAmount = newAccount.minimumPullAmount || null;
       }
-      if (newAccount.performPulls !== account.performPulls) {
-        account.performPulls = newAccount.performPulls || false;
+      if (newAccount.performsPullsAndPushes !== account.performsPullsAndPushes) {
+        account.performsPullsAndPushes = newAccount.performsPullsAndPushes || false;
+      }
+      if (newAccount.pushStart !== account.pushStart) {
+        account.pushStart = newAccount.pushStart || null;
+      }
+      if (newAccount.pushEnd !== account.pushEnd) {
+        account.pushEnd = newAccount.pushEnd || null;
+      }
+      if (newAccount.pushAccount !== account.pushAccount) {
+        account.pushAccount = newAccount.pushAccount || null;
       }
     }
   });
