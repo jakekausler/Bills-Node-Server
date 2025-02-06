@@ -112,6 +112,7 @@ function updateBillAsBill(request: Request) {
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   let bill: Bill;
   let billIdx: number;
+  let originalIsTransfer = false;
   if (data.isTransfer) {
     // Try to get the bill from the transfers, but the bill might have been originally a non-transfer bill
     try {
@@ -119,22 +120,24 @@ function updateBillAsBill(request: Request) {
         data.accountsAndTransfers.transfers.bills,
         request.params.billId,
       ));
+      originalIsTransfer = true;
     } catch {
       ({ item: bill, idx: billIdx } = getByIdWithIdx<Bill>(account.bills, request.params.billId));
+      originalIsTransfer = false;
     }
   } else {
     // Try to get the bill from the account, but the bill might have been originally a transfer bill
     try {
       ({ item: bill, idx: billIdx } = getByIdWithIdx<Bill>(account.bills, request.params.billId));
+      originalIsTransfer = false;
     } catch {
       ({ item: bill, idx: billIdx } = getByIdWithIdx<Bill>(
         data.accountsAndTransfers.transfers.bills,
         request.params.billId,
       ));
+      originalIsTransfer = true;
     }
   }
-
-  const originalIsTransfer = bill.isTransfer;
 
   bill.startDate = parseDate(data.data.startDate);
   bill.startDateIsVariable = data.data.startDateIsVariable;
@@ -142,8 +145,8 @@ function updateBillAsBill(request: Request) {
   bill.endDate = data.data.endDate
     ? parseDate(data.data.endDate)
     : data.data.endDateIsVariable && data.data.endDateVariable
-      ? (loadVariable(data.data.endDateVariable, data.simulation) as Date)
-      : null;
+    ? (loadVariable(data.data.endDateVariable, data.simulation) as Date)
+    : null;
   bill.endDateIsVariable = data.data.endDateIsVariable;
   bill.endDateVariable = data.data.endDateVariable;
   bill.category = data.data.category;
@@ -164,12 +167,12 @@ function updateBillAsBill(request: Request) {
   bill.flag = data.data.flag;
   bill.flagColor = data.data.flagColor;
 
-  if (data.isTransfer && !originalIsTransfer) {
-    account.bills.splice(billIdx, 1);
+  if (bill.isTransfer && !originalIsTransfer) {
     data.accountsAndTransfers.transfers.bills.push(bill);
-  } else if (!data.isTransfer && originalIsTransfer) {
-    data.accountsAndTransfers.transfers.bills.splice(billIdx, 1);
+    account.bills.splice(billIdx, 1);
+  } else if (!bill.isTransfer && originalIsTransfer) {
     account.bills.push(bill);
+    data.accountsAndTransfers.transfers.bills.splice(billIdx, 1);
   }
 
   saveData(data.accountsAndTransfers);

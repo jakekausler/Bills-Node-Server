@@ -21,6 +21,7 @@ export function updateSpecificActivity(request: Request) {
   const data = getData<ActivityData>(request);
   let activity: Activity;
   let activityIdx: number;
+  let originalIsTransfer = false;
   if (data.isTransfer) {
     // Try to get the activity from the transfers, but the activity might have been originally a non-transfer activity
     try {
@@ -28,9 +29,11 @@ export function updateSpecificActivity(request: Request) {
         data.accountsAndTransfers.transfers.activity,
         request.params.activityId,
       ));
+      originalIsTransfer = true;
     } catch {
       const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
       ({ item: activity, idx: activityIdx } = getByIdWithIdx<Activity>(account.activity, request.params.activityId));
+      originalIsTransfer = false;
     }
   } else {
     // Try to get the activity from the account, but the activity might have been originally a transfer activity
@@ -39,15 +42,16 @@ export function updateSpecificActivity(request: Request) {
         getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId).activity,
         request.params.activityId,
       ));
+      originalIsTransfer = false;
     } catch {
       ({ item: activity, idx: activityIdx } = getByIdWithIdx<Activity>(
         data.accountsAndTransfers.transfers.activity,
         request.params.activityId,
       ));
+      originalIsTransfer = true;
     }
   }
 
-  const originalIsTransfer = activity.isTransfer;
   activity.name = data.data.name;
   activity.date = parseDate(data.data.date);
   activity.dateIsVariable = data.data.dateIsVariable;
@@ -64,13 +68,13 @@ export function updateSpecificActivity(request: Request) {
     activity.to = data.data.to;
   }
 
-  if (data.isTransfer && !originalIsTransfer) {
+  if (!activity.isTransfer && originalIsTransfer) {
     // If the new activity is not a transfer but the old activity was, remove the old activity from the transfers and add it to the account
-    data.accountsAndTransfers.transfers.activity.splice(activityIdx, 1);
     getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId).activity.push(activity);
-  } else if (!data.isTransfer && originalIsTransfer) {
-    // If the new activity is a transfer but the old activity was not, remove the old activity from the account and add it to the transfers
     data.accountsAndTransfers.transfers.activity.splice(activityIdx, 1);
+  } else if (activity.isTransfer && !originalIsTransfer) {
+    // If the new activity is a transfer but the old activity was not, remove the old activity from the account and add it to the transfers
+    getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId).activity.splice(activityIdx, 1);
     data.accountsAndTransfers.transfers.activity.push(activity);
   }
 
