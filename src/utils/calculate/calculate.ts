@@ -9,8 +9,8 @@ import { addTransfers } from './transfers';
 import { setupCalculation } from './helpers';
 import { handlePension } from './pension';
 import { handleSocialSecurity } from './socialSecurity';
-import { payPullTaxes } from './pulls';
-import { pullIfNeeded } from './pulls';
+import { payPullTaxes, pushIfNeeded } from './pullsAndPushes';
+import { pullIfNeeded } from './pullsAndPushes';
 import { handleInterest, loadRatesToYears as loadInterestRatesToYears } from './interest';
 import { payInterestTaxes } from './interest';
 import { retrieveBalances } from './balances';
@@ -74,14 +74,19 @@ function calculateActivities(
   monteCarlo: boolean = false,
   simulationNumber: number,
   maxSimulations: number,
+  showProgressBar: boolean = false,
 ) {
   startTiming(calculateActivities);
-  initProgressBar(dayjs(endDate).diff(dayjs(startDate), 'day'), simulationNumber, maxSimulations);
+  if (showProgressBar) {
+    initProgressBar(dayjs(endDate).diff(dayjs(startDate), 'day'), simulationNumber, maxSimulations);
+  }
   let { currDate, idxMap, balanceMap, interestIdxMap, interestMap, nextInterestMap } =
     setupCalculation(accountsAndTransfers);
   const { pensions, socialSecurities } = loadPensionsAndSocialSecurity(simulation);
   while (currDate <= endDate) {
-    incrementProgressBar();
+    if (showProgressBar) {
+      incrementProgressBar();
+    }
     for (const account of accountsAndTransfers.accounts) {
       handleInterest(
         account,
@@ -106,9 +111,12 @@ function calculateActivities(
       performRMD(accountsAndTransfers, currDate, balanceMap, idxMap);
     }
     pullIfNeeded(accountsAndTransfers, currDate, balanceMap, idxMap);
+    pushIfNeeded(accountsAndTransfers, currDate, balanceMap, idxMap);
     currDate = dayjs(currDate).add(1, 'day').toDate();
   }
   retrieveTodayBalances(accountsAndTransfers, startDate, endDate);
-  stopProgressBar();
+  if (showProgressBar) {
+    stopProgressBar();
+  }
   endTiming(calculateActivities);
 }

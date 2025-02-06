@@ -7,6 +7,61 @@ import dayjs from 'dayjs';
 import { getById } from '../array/array';
 import { Account } from '../../data/account/account';
 
+export function pushIfNeeded(
+  accountsAndTransfers: AccountsAndTransfers,
+  currDate: Date,
+  balanceMap: Record<string, number>,
+  idxMap: Record<string, number>,
+) {
+  for (const account of accountsAndTransfers.accounts) {
+    if (account.type === 'Checking' && account.pushAccount && account.performsPullsAndPushes) {
+      if (account.pushStart && isBefore(currDate, account.pushStart)) {
+        return;
+      }
+      if (account.pushEnd && isAfter(currDate, account.pushEnd)) {
+        return;
+      }
+      const pushAccount = accountsAndTransfers.accounts.find((a) => a.name === account.pushAccount);
+      if (!pushAccount) {
+        throw new Error(`Push account ${account.pushAccount} not found`);
+      }
+      const pushAmount = balanceMap[account.id] - (account.minimumBalance ?? 0) - (account.minimumPullAmount ?? 0) * 4;
+      if (pushAmount <= 0) {
+        return;
+      }
+      balanceMap[account.id] -= pushAmount;
+      balanceMap[pushAccount.id] += pushAmount;
+      const pushActivity = new ConsolidatedActivity({
+        id: 'AUTO-PUSH',
+        name: `Auto Push to ${pushAccount.name}`,
+        amount: pushAmount,
+        amountIsVariable: false,
+        amountVariable: null,
+        date: formatDate(currDate),
+        dateIsVariable: false,
+        dateVariable: null,
+        from: account.name,
+        to: pushAccount.name,
+        isTransfer: true,
+        category: 'Ignore.Transfer',
+        flag: true,
+        flagColor: 'indigo',
+      });
+      pushActivity.balance = balanceMap[account.id];
+      account.consolidatedActivity.splice(idxMap[account.id], 0, pushActivity);
+      idxMap[account.id]++;
+
+      const pushActivityPushAccount = new ConsolidatedActivity({
+        ...pushActivity.serialize(),
+        amount: -pushAmount,
+      });
+      pushActivityPushAccount.balance = balanceMap[pushAccount.id];
+      pushAccount.consolidatedActivity.splice(idxMap[pushAccount.id], 0, pushActivityPushAccount);
+      idxMap[pushAccount.id]++;
+    }
+  }
+}
+
 function getNextPullableAccount(accountsAndTransfers: AccountsAndTransfers, balanceMap: Record<string, number>) {
   return (
     accountsAndTransfers.accounts
@@ -26,7 +81,7 @@ export function pullIfNeeded(
     return;
   }
   for (const account of accountsAndTransfers.accounts) {
-    if (account.type === 'Checking' && account.pullPriority === -1 && account.performPulls) {
+    if (account.type === 'Checking' && account.pullPriority === -1 && account.performsPullsAndPushes) {
       // Check if the account's balance is less than the minimum balance. If so, pull money from the lowest pull priority account that has a positive balance. We might need to pull money from multiple accounts to cover the negative balance
       // If we pull money from an account, we will need to add an additional transaction representing the tax implications of the withdrawal to take place on the next April 1st of this account
       // That transaction will be added to the account's consolidated activity array at the correct index for the account on that date.
