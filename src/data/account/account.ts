@@ -27,6 +27,10 @@ export class Account {
   minimumBalance: number | null;
   minimumPullAmount: number | null;
   performPulls: boolean;
+  performsPushes: boolean;
+  pushStart: Date | null;
+  pushEnd: Date | null;
+  pushAccount: string | null;
 
   constructor(data: AccountData, simulation: string = 'Default') {
     this.id = data.id || uuidv4();
@@ -62,6 +66,10 @@ export class Account {
     this.minimumBalance = data.minimumBalance || null;
     this.minimumPullAmount = data.minimumPullAmount || null;
     this.performPulls = data.performPulls || false;
+    this.performsPushes = data.performsPushes || false;
+    this.pushStart = data.pushStart ? new Date(data.pushStart) : null;
+    this.pushEnd = data.pushEnd ? new Date(data.pushEnd) : null;
+    this.pushAccount = data.pushAccount || null;
   }
 
   serialize(): AccountData {
@@ -85,6 +93,10 @@ export class Account {
       minimumBalance: this.minimumBalance,
       minimumPullAmount: this.minimumPullAmount,
       performPulls: this.performPulls,
+      performsPushes: this.performsPushes,
+      pushStart: this.pushStart,
+      pushEnd: this.pushEnd,
+      pushAccount: this.pushAccount,
     };
   }
 
@@ -107,6 +119,10 @@ export class Account {
       minimumBalance: this.minimumBalance,
       minimumPullAmount: this.minimumPullAmount,
       performPulls: this.performPulls,
+      performsPushes: this.performsPushes,
+      pushStart: this.pushStart,
+      pushEnd: this.pushEnd,
+      pushAccount: this.pushAccount,
     };
   }
 

@@ -24,7 +24,7 @@ export function handlePension(
           (pension.highestCompensationAverage * pension.accrualFactor * pension.yearsWorked * pension.reductionFactor) /
           12;
       }
-      if (!pension.monthlyPay) {
+      if (pension.monthlyPay === null) {
         throw new Error(`Monthly pay not set for pension ${pension.payToAcccount}`);
       }
       const activity = new ConsolidatedActivity({

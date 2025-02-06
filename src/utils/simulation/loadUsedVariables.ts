@@ -164,6 +164,18 @@ export function loadUsedVariables(
         date: formatDate(bill.startDate),
       });
     }
+    if (bill.increaseByIsVariable && bill.increaseByVariable) {
+      if (!usedVariables[bill.increaseByVariable]) {
+        usedVariables[bill.increaseByVariable] = [];
+      }
+      usedVariables[bill.increaseByVariable].push({
+        type: 'bill',
+        name: bill.name,
+        from: bill.fro ?? '',
+        to: bill.to ?? '',
+        date: formatDate(bill.startDate),
+      });
+    }
   }
   for (const s of socialSecurity) {
     if (!usedVariables[s.startDateVariable]) {

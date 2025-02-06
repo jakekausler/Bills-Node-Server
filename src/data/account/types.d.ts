@@ -40,6 +40,10 @@ export type AccountData = {
   minimumBalance?: number | null;
   minimumPullAmount?: number | null;
   performPulls?: boolean;
+  performsPushes?: boolean;
+  pushStart?: Date | null;
+  pushEnd?: Date | null;
+  pushAccount?: string | null;
 };
 
 export type TransfersData = {
