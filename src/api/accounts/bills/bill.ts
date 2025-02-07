@@ -145,8 +145,8 @@ function updateBillAsBill(request: Request) {
   bill.endDate = data.data.endDate
     ? parseDate(data.data.endDate)
     : data.data.endDateIsVariable && data.data.endDateVariable
-    ? (loadVariable(data.data.endDateVariable, data.simulation) as Date)
-    : null;
+      ? (loadVariable(data.data.endDateVariable, data.simulation) as Date)
+      : null;
   bill.endDateIsVariable = data.data.endDateIsVariable;
   bill.endDateVariable = data.data.endDateVariable;
   bill.category = data.data.category;

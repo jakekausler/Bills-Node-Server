@@ -5,19 +5,19 @@ import { SocialSecurityData } from '../../data/retirement/socialSecurity/types';
 import { load } from './io';
 
 export type PensionsAndSocialSecurity = {
-	pensions: Pension[];
-	socialSecurities: SocialSecurity[];
+  pensions: Pension[];
+  socialSecurities: SocialSecurity[];
 };
 
 export type PensionsAndSocialSecurityData = {
-	pensions: PensionData[];
-	socialSecurities: SocialSecurityData[];
+  pensions: PensionData[];
+  socialSecurities: SocialSecurityData[];
 };
 
 export function loadPensionsAndSocialSecurity(simulation = 'Default'): PensionsAndSocialSecurity {
-	const data = load<PensionsAndSocialSecurityData>('pension_and_social_security.json');
-	return {
-		pensions: data.pensions.map((p) => new Pension(p, simulation)),
-		socialSecurities: data.socialSecurities.map((ss) => new SocialSecurity(ss, simulation)),
-	};
+  const data = load<PensionsAndSocialSecurityData>('pension_and_social_security.json');
+  return {
+    pensions: data.pensions.map((p) => new Pension(p, simulation)),
+    socialSecurities: data.socialSecurities.map((ss) => new SocialSecurity(ss, simulation)),
+  };
 }

@@ -4,6 +4,7 @@ import { Activity } from '../activity/activity';
 import { Bill } from '../bill/bill';
 import { Interest } from '../interest/interest';
 import { ConsolidatedActivity } from '../activity/consolidatedActivity';
+import { formatDate } from '../../utils/date/date';
 
 export class Account {
   id: string;
@@ -60,7 +61,7 @@ export class Account {
     this.earlyWithdrawlDate = data.earlyWithdrawlDate === undefined ? null : data.earlyWithdrawlDate;
     this.interestPayAccount = data.interestPayAccount === undefined ? null : data.interestPayAccount;
     this.usesRMD = data.usesRMD || false;
-    this.accountOwnerDOB = data.accountOwnerDOB || null;
+    this.accountOwnerDOB = data.accountOwnerDOB ? new Date(data.accountOwnerDOB) : null;
     this.rmdAccount = data.rmdAccount || null;
     this.minimumBalance = data.minimumBalance || null;
     this.minimumPullAmount = data.minimumPullAmount || null;
@@ -86,13 +87,13 @@ export class Account {
       earlyWithdrawlDate: this.earlyWithdrawlDate,
       interestPayAccount: this.interestPayAccount,
       usesRMD: this.usesRMD,
-      accountOwnerDOB: this.accountOwnerDOB,
+      accountOwnerDOB: this.accountOwnerDOB ? formatDate(this.accountOwnerDOB) : null,
       rmdAccount: this.rmdAccount,
       minimumBalance: this.minimumBalance,
       minimumPullAmount: this.minimumPullAmount,
       performsPullsAndPushes: this.performsPullsAndPushes,
-      pushStart: this.pushStart,
-      pushEnd: this.pushEnd,
+      pushStart: this.pushStart ? formatDate(this.pushStart) : null,
+      pushEnd: this.pushEnd ? formatDate(this.pushEnd) : null,
       pushAccount: this.pushAccount,
     };
   }
@@ -111,13 +112,13 @@ export class Account {
       earlyWithdrawlDate: this.earlyWithdrawlDate,
       interestPayAccount: this.interestPayAccount,
       usesRMD: this.usesRMD,
-      accountOwnerDOB: this.accountOwnerDOB,
+      accountOwnerDOB: this.accountOwnerDOB ? formatDate(this.accountOwnerDOB) : null,
       rmdAccount: this.rmdAccount,
       minimumBalance: this.minimumBalance,
       minimumPullAmount: this.minimumPullAmount,
       performsPullsAndPushes: this.performsPullsAndPushes,
-      pushStart: this.pushStart,
-      pushEnd: this.pushEnd,
+      pushStart: this.pushStart ? formatDate(this.pushStart) : null,
+      pushEnd: this.pushEnd ? formatDate(this.pushEnd) : null,
       pushAccount: this.pushAccount,
     };
   }

@@ -35,13 +35,13 @@ export type AccountData = {
   earlyWithdrawlDate?: Date | null;
   interestPayAccount?: string | null;
   usesRMD?: boolean;
-  accountOwnerDOB?: Date | null;
+  accountOwnerDOB?: string | null;
   rmdAccount?: string | null;
   minimumBalance?: number | null;
   minimumPullAmount?: number | null;
   performsPullsAndPushes?: boolean;
-  pushStart?: Date | null;
-  pushEnd?: Date | null;
+  pushStart?: string | null;
+  pushEnd?: string | null;
   pushAccount?: string | null;
 };
 

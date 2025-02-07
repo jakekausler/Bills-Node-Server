@@ -9,7 +9,7 @@ export type CacheKey = `${DateString}-${DateString}-${string}`;
 export type Categories = Record<string, string[]>;
 
 export type LoadedSimulations = {
-	name: string;
-	enabled: boolean;
-	selected: boolean;
+  name: string;
+  enabled: boolean;
+  selected: boolean;
 }[];

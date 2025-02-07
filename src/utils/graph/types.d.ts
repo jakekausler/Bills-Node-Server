@@ -1,33 +1,33 @@
 export type GraphData = YearlyGraphData | ActivityGraphData;
 
 export type YearlyGraphData = {
-	type: 'yearly';
-	labels: string[];
-	datasets: YearlyDataset[];
+  type: 'yearly';
+  labels: string[];
+  datasets: YearlyDataset[];
 };
 
 export type ActivityGraphData = {
-	type: 'activity';
-	labels: string[];
-	datasets: ActivityDataset[];
+  type: 'activity';
+  labels: string[];
+  datasets: ActivityDataset[];
 };
 
 export type Dataset = {
-	label: string;
-	data: number[];
+  label: string;
+  data: number[];
 };
 
 export type YearlyDataset = Dataset;
 
 export type ActivityDataset = Dataset & {
-	activity: DailyActivity[];
+  activity: DailyActivity[];
 };
 
 export type DailyActivity = ActivityNameAndAmount[];
 
 export type ActivityNameAndAmount = {
-	name: string;
-	amount: number;
+  name: string;
+  amount: number;
 };
 
 // Keys of accounts

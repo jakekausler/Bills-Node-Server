@@ -1,5 +1,5 @@
-import { loadData } from "./accountsAndTransfers";
-import { MIN_DATE, setMinDate } from "./cache";
+import { loadData } from './accountsAndTransfers';
+import { MIN_DATE, setMinDate } from './cache';
 
 export function minDate() {
   if (MIN_DATE) {
@@ -43,4 +43,3 @@ export function minDate() {
   setMinDate(minDate);
   return minDate;
 }
-

@@ -5,7 +5,7 @@ import { todayBalance } from '../../data/account/account';
 import { Account } from '../../data/account/account';
 
 export function getTodayBalance(request: Request) {
-	const data = getData(request);
-	const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
-	return todayBalance(account);
+  const data = getData(request);
+  const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
+  return todayBalance(account);
 }

@@ -66,8 +66,9 @@ export class Interest {
         amountVariable: null,
         flag: false,
         isTransfer: false,
-        fro: null,
+        from: null,
         to: null,
+        flagColor: null,
       },
       simulation,
     );

@@ -16,7 +16,7 @@ export function performRMD(
     if (account.usesRMD) {
       const ownerDob = account.accountOwnerDOB;
       if (!ownerDob) {
-        continue;
+        throw new Error(`Account ${account.name} has no account owner DOB`);
       }
       const age = dayjs(currDate).diff(ownerDob, 'year');
       const rmdAmount = rmd(balanceMap[account.id], age);

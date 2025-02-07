@@ -1,12 +1,12 @@
 import { DateString } from '../../utils/date/types';
 
 export type InterestData = {
-	id?: string;
-	apr: number;
-	aprIsVariable: boolean;
-	aprVariable: string | null;
-	compounded: 'day' | 'week' | 'month' | 'year';
-	applicableDate: DateString;
-	applicableDateIsVariable: boolean;
-	applicableDateVariable: string | null;
+  id?: string;
+  apr: number;
+  aprIsVariable: boolean;
+  aprVariable: string | null;
+  compounded: 'day' | 'week' | 'month' | 'year';
+  applicableDate: DateString;
+  applicableDateIsVariable: boolean;
+  applicableDateVariable: string | null;
 };

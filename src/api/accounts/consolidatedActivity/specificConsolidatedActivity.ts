@@ -5,8 +5,8 @@ import { Account } from '../../../data/account/account';
 import { ConsolidatedActivity } from '../../../data/activity/consolidatedActivity';
 
 export function getSpecificConsolidatedActivity(request: Request) {
-	const data = getData(request);
-	const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
-	const activity = getById<ConsolidatedActivity>(account.consolidatedActivity, request.params.activityId);
-	return activity.serialize();
+  const data = getData(request);
+  const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
+  const activity = getById<ConsolidatedActivity>(account.consolidatedActivity, request.params.activityId);
+  return activity.serialize();
 }

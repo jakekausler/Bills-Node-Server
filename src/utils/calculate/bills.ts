@@ -1,6 +1,5 @@
 import { isSame } from '../date/date';
 import { Account } from '../../data/account/account';
-import { isBefore } from '../date/date';
 import { formatDate } from '../date/date';
 import { Bill } from '../../data/bill/bill';
 import { isBeforeOrSame } from '../date/date';
@@ -82,7 +81,16 @@ function getBillIncreasedAmountAndNextIncreaseDate(
 ) {
   let billNextIncreaseDate = prevBillNextIncreaseDate;
   const { day, month } = bill.increaseByDate;
-  billNextIncreaseDate = dayjs(prevBillNextIncreaseDate).add(1, 'year').set('month', month).set('date', day).toDate();
+
+  // Get the target date in the current year
+  const currentYearTarget = dayjs(prevBillNextIncreaseDate).set('month', month).set('date', day);
+
+  // If the target date in current year is after the previous date, use current year
+  // Otherwise, add a year
+  billNextIncreaseDate = (
+    currentYearTarget.isAfter(dayjs(prevBillNextIncreaseDate)) ? currentYearTarget : currentYearTarget.add(1, 'year')
+  ).toDate();
+
   const billIncreasedAmount =
     typeof prevBillIncreasedAmount === 'number' && !isFirst
       ? prevBillIncreasedAmount * (1 + getIncreaseBy(bill, dayjs(billNextIncreaseDate).year(), monteCarlo))

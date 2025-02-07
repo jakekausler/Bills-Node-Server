@@ -1,5 +1,5 @@
-import { loadData } from "./accountsAndTransfers";
-import { MAX_DATE, setMaxDate } from "./cache";
+import { loadData } from './accountsAndTransfers';
+import { MAX_DATE, setMaxDate } from './cache';
 
 export function maxDate() {
   if (MAX_DATE) {
@@ -43,4 +43,3 @@ export function maxDate() {
   setMaxDate(maxDate);
   return maxDate;
 }
-
