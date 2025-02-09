@@ -4,7 +4,7 @@ import { createWriteStream, readFileSync } from 'fs';
 import { Simulations, Variables } from '../simulation/types';
 import { loadVariableValue } from '../simulation/loadVariableValue';
 import { formatDate } from '../date/date';
-import { BASE_DATA_DIR } from './io';
+import { backup, BASE_DATA_DIR, shouldBackup } from './io';
 import path from 'path';
 
 const FILE_PATH = 'variables.csv';
@@ -24,6 +24,9 @@ export function loadVariables(simulation: string): Variables {
 }
 
 export function saveVariables(simulations: Simulations) {
+  if (shouldBackup(FILE_PATH)) {
+    backup(FILE_PATH);
+  }
   const stream = csv.format({ headers: true });
   stream.pipe(createWriteStream(path.join(BASE_DATA_DIR, FILE_PATH)));
   stream.write(['variable', ...simulations.map((simulation) => simulation.name)]);
