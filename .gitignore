@@ -8,3 +8,4 @@ src/utils/io/data/pension_and_social_security.json
 src/utils/io/data/variables.csv
 src/utils/io/data/*_backup*
 src/utils/io/data/simulations/*
+src/utils/io/data/backup/
