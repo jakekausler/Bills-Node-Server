@@ -34,7 +34,7 @@ export function pushIfNeeded(
       const pushActivity = new ConsolidatedActivity({
         id: 'AUTO-PUSH',
         name: `Auto Push to ${pushAccount.name}`,
-        amount: pushAmount,
+        amount: -pushAmount,
         amountIsVariable: false,
         amountVariable: null,
         date: formatDate(currDate),
@@ -53,7 +53,7 @@ export function pushIfNeeded(
 
       const pushActivityPushAccount = new ConsolidatedActivity({
         ...pushActivity.serialize(),
-        amount: -pushAmount,
+        amount: pushAmount,
       });
       pushActivityPushAccount.balance = balanceMap[pushAccount.id];
       pushAccount.consolidatedActivity.splice(idxMap[pushAccount.id], 0, pushActivityPushAccount);
