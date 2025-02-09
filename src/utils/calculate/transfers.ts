@@ -134,10 +134,6 @@ export function dealWithSpecialFractions(
       // If the amount is 0, we don't want to show it. Remove the activity from both sides
       account.consolidatedActivity.splice(idxMap[account.id], 1);
       otherAccount.consolidatedActivity.splice(otherActivityIdx, 1);
-      // Decrement the index of the other account
-      idxMap[otherAccount.id]--;
-      // Decrement the index of this account
-      idxMap[account.id]--;
     } else {
       // Update the amount of the activity on the other side
       otherAccount.consolidatedActivity[otherActivityIdx].amount = -amount;
