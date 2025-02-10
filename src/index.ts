@@ -39,6 +39,7 @@ import mysql from 'mysql';
 import 'dotenv/config';
 import jwt from 'jsonwebtoken';
 import { promisify } from 'util';
+import { getMoneyMovementChart } from './api/moneyMovement/movement';
 
 declare global {
   namespace Express {
@@ -334,6 +335,10 @@ app.post('/api/auth/register', async (_req: Request, res: Response) => {
   //     connection.end();
   //   }
   // }
+});
+
+app.get('/api/moneyMovement', verifyToken, (req: Request, res: Response) => {
+  res.json(getMoneyMovementChart(req));
 });
 
 // Start server
