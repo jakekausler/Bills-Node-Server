@@ -19,10 +19,12 @@ export function retrieveBalances(
     if (!isSame(account.consolidatedActivity[idxMap[account.id]]?.date, currDate)) {
       break;
     }
-    dealWithSpecialFractions(account, accounts, idxMap, balanceMap);
+    const removed = dealWithSpecialFractions(account, accounts, idxMap, balanceMap);
     dealWithOtherTransfers(account, accounts, idxMap, balanceMap);
-    updateBalanceMap(account, balanceMap, idxMap);
-    idxMap[account.id] += 1;
+    if (!removed) {
+      updateBalanceMap(account, balanceMap, idxMap);
+      idxMap[account.id] += 1;
+    }
   }
 }
 

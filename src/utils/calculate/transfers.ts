@@ -83,6 +83,7 @@ export function dealWithOtherTransfers(
   }
 }
 
+// Return false if the activity was removed
 export function dealWithSpecialFractions(
   account: Account,
   accounts: Account[],
@@ -134,6 +135,7 @@ export function dealWithSpecialFractions(
       // If the amount is 0, we don't want to show it. Remove the activity from both sides
       account.consolidatedActivity.splice(idxMap[account.id], 1);
       otherAccount.consolidatedActivity.splice(otherActivityIdx, 1);
+      return true;
     } else {
       // Update the amount of the activity on the other side
       otherAccount.consolidatedActivity[otherActivityIdx].amount = -amount;
@@ -141,4 +143,5 @@ export function dealWithSpecialFractions(
       account.consolidatedActivity[idxMap[account.id]].amount = amount;
     }
   }
+  return false;
 }
