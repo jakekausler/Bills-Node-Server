@@ -20,8 +20,8 @@ export function retrieveBalances(
       break;
     }
     const removed = dealWithSpecialFractions(account, accounts, idxMap, balanceMap);
-    dealWithOtherTransfers(account, accounts, idxMap, balanceMap);
     if (!removed) {
+      dealWithOtherTransfers(account, accounts, idxMap, balanceMap);
       updateBalanceMap(account, balanceMap, idxMap);
       idxMap[account.id] += 1;
     }
