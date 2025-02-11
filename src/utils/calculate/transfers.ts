@@ -83,7 +83,7 @@ export function dealWithOtherTransfers(
   }
 }
 
-// Return false if the activity was removed
+// Return true if the activity was removed
 export function dealWithSpecialFractions(
   account: Account,
   accounts: Account[],
