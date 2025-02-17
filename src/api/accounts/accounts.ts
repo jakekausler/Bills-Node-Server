@@ -3,6 +3,8 @@ import { Account } from '../../data/account/account';
 import { AccountData } from '../../data/account/types';
 import { saveData } from '../../utils/io/accountsAndTransfers';
 import { getData } from '../../utils/net/request';
+import { parseDate } from '../../utils/date/date';
+import { DateString } from '../../utils/date/types';
 
 export function getSimpleAccounts(request: Request) {
   const data = getData(request);
@@ -52,7 +54,7 @@ export function updateAccounts(request: Request) {
         account.usesRMD = newAccount.usesRMD || false;
       }
       if (newAccount.accountOwnerDOB !== account.accountOwnerDOB) {
-        account.accountOwnerDOB = newAccount.accountOwnerDOB || null;
+        account.accountOwnerDOB = parseDate(newAccount.accountOwnerDOB as DateString) || null;
       }
       if (newAccount.rmdAccount !== account.rmdAccount) {
         account.rmdAccount = newAccount.rmdAccount || null;
@@ -67,10 +69,10 @@ export function updateAccounts(request: Request) {
         account.performsPullsAndPushes = newAccount.performsPullsAndPushes || false;
       }
       if (newAccount.pushStart !== account.pushStart) {
-        account.pushStart = newAccount.pushStart || null;
+        account.pushStart = parseDate(newAccount.pushStart as DateString) || null;
       }
       if (newAccount.pushEnd !== account.pushEnd) {
-        account.pushEnd = newAccount.pushEnd || null;
+        account.pushEnd = parseDate(newAccount.pushEnd as DateString) || null;
       }
       if (newAccount.pushAccount !== account.pushAccount) {
         account.pushAccount = newAccount.pushAccount || null;
