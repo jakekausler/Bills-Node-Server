@@ -6,6 +6,8 @@ import { isBefore } from '../date/date';
 import dayjs from 'dayjs';
 import { getById } from '../array/array';
 import { Account } from '../../data/account/account';
+import { Interest } from '../../data/interest/interest';
+import { calculateActivitiesForDates } from './calculateForDates';
 
 export function pushIfNeeded(
   accountsAndTransfers: AccountsAndTransfers,
@@ -207,4 +209,252 @@ export function payPullTaxes(
       }
     });
   }
+}
+
+export function handleMonthlyPushesAndPulls(
+  accountsAndTransfers: AccountsAndTransfers,
+  currDate: Date,
+  balanceMap: Record<string, number>,
+  idxMap: Record<string, number>,
+  interestIdxMap: Record<string, number>,
+  interestMap: Record<string, Interest | null>,
+  nextInterestMap: Record<string, Date | null>,
+  simulation: string,
+  monteCarlo: boolean,
+) {
+  // Create deep copies of all maps
+  const balanceMapCopy: Record<string, number> = { ...balanceMap };
+  const idxMapCopy: Record<string, number> = { ...idxMap };
+  const interestIdxMapCopy: Record<string, number> = { ...interestIdxMap };
+  const interestMapCopy: Record<string, Interest | null> = {};
+  const nextInterestMapCopy: Record<string, Date | null> = {};
+
+  // Deep copy interest map
+  Object.entries(interestMap).forEach(([key, interest]) => {
+    if (interest) {
+      interestMapCopy[key] = Object.assign(Object.create(Object.getPrototypeOf(interest)), interest);
+    } else {
+      interestMapCopy[key] = null;
+    }
+  });
+
+  // Deep copy next interest map
+  Object.entries(nextInterestMap).forEach(([key, date]) => {
+    nextInterestMapCopy[key] = date ? new Date(date) : null;
+  });
+
+  // Deep copy accounts and transfers
+  const accountsAndTransfersCopy: AccountsAndTransfers = {
+    accounts: accountsAndTransfers.accounts.map((account) => ({
+      ...account,
+      activity: account.activity.map((act) => Object.assign(Object.create(Object.getPrototypeOf(act)), act)),
+      consolidatedActivity: account.consolidatedActivity.map((act) =>
+        Object.assign(Object.create(Object.getPrototypeOf(act)), act),
+      ),
+      bills: account.bills.map((bill) => Object.assign(Object.create(Object.getPrototypeOf(bill)), bill)),
+      interests: account.interests.map((interest) =>
+        Object.assign(Object.create(Object.getPrototypeOf(interest)), interest),
+      ),
+    })) as Account[],
+    transfers: {
+      activity: accountsAndTransfers.transfers.activity.map((transfer) =>
+        Object.assign(Object.create(Object.getPrototypeOf(transfer)), transfer),
+      ),
+      bills: accountsAndTransfers.transfers.bills.map((transfer) =>
+        Object.assign(Object.create(Object.getPrototypeOf(transfer)), transfer),
+      ),
+    },
+  };
+
+  // Mock the calculations for the current month
+  calculateActivitiesForDates(
+    accountsAndTransfersCopy,
+    currDate,
+    dayjs(currDate).endOf('month').toDate(),
+    simulation,
+    monteCarlo,
+    true,
+    balanceMapCopy,
+    idxMapCopy,
+    interestIdxMapCopy,
+    interestMapCopy,
+    nextInterestMapCopy,
+  );
+
+  for (const account of accountsAndTransfersCopy.accounts) {
+    if (account.type === 'Checking' && account.pushAccount && account.performsPullsAndPushes) {
+      if (account.pushStart && isBefore(currDate, account.pushStart)) {
+        return;
+      }
+      if (account.pushEnd && isAfter(currDate, account.pushEnd)) {
+        return;
+      }
+      const endOfMonthDate = dayjs(currDate).endOf('month').toDate();
+      // Indices are the zero-indexed day of the month
+      const dailyBalances: number[] = [];
+
+      let previousBalance = 0;
+      for (let i = 0; i < account.consolidatedActivity.length; i++) {
+        const activity = account.consolidatedActivity[i];
+        if (isBefore(activity.date, currDate)) {
+          previousBalance = activity.balance;
+          continue;
+        }
+        if (isAfter(activity.date, endOfMonthDate)) {
+          break;
+        }
+        const dayOfMonth = dayjs(activity.date).date() - 1;
+        const balance = activity.balance;
+        dailyBalances[dayOfMonth] = balance;
+      }
+      for (let i = 0; i < dailyBalances.length; i++) {
+        if (dailyBalances[i] === undefined) {
+          dailyBalances[i] = previousBalance;
+        } else {
+          previousBalance = dailyBalances[i];
+        }
+      }
+      const minimumBalance = dailyBalances.reduce((min, balance) => Math.min(min, balance), Infinity);
+      // console.log(
+      //   'Getting activity from',
+      //   formatDate(currDate),
+      //   'to',
+      //   formatDate(dayjs(currDate).endOf('month').toDate()),
+      //   'account',
+      //   account.name,
+      //   'minimum balance',
+      //   minimumBalance,
+      // );
+      const originalAccount = accountsAndTransfers.accounts.find((a) => a.name === account.name);
+      if (!originalAccount) {
+        throw new Error(`Original account ${account.name} not found`);
+      }
+      if (minimumBalance < (account.minimumBalance ?? 0)) {
+        performPull(accountsAndTransfers, originalAccount, currDate, balanceMap, idxMap, minimumBalance);
+      }
+      if (minimumBalance > (account.minimumBalance ?? 0) + (account.minimumPullAmount ?? 0) * 4) {
+        performPush(accountsAndTransfers, originalAccount, currDate, balanceMap, idxMap, minimumBalance);
+      }
+    }
+  }
+}
+
+function performPull(
+  accountsAndTransfers: AccountsAndTransfers,
+  account: Account,
+  currDate: Date,
+  balanceMap: Record<string, number>,
+  idxMap: Record<string, number>,
+  minimumBalance: number,
+) {
+  while (minimumBalance < (account.minimumBalance ?? 0)) {
+    const pullableAccount = getNextPullableAccount(accountsAndTransfers, balanceMap);
+    if (!pullableAccount) {
+      return;
+    }
+
+    // Calculate amount needed to cover negative balance, plus a margin to limit future pull amounts
+    const amountNeeded = Math.abs(minimumBalance - (account.minimumBalance ?? 0)) + (account.minimumPullAmount ?? 0);
+    const availableAmount = Math.min(
+      amountNeeded,
+      balanceMap[pullableAccount.id] - (pullableAccount.minimumBalance ?? 0),
+    );
+
+    if (availableAmount <= 0) {
+      return;
+    }
+
+    // Update balances
+    minimumBalance += availableAmount;
+    // balanceMap[account.id] += availableAmount;
+    // balanceMap[pullableAccount.id] -= availableAmount;
+
+    // Create transfer activity for the pull
+    const pullActivityAccount = new ConsolidatedActivity({
+      id: 'AUTO-PULL',
+      name: `Auto Pull from ${pullableAccount.name}`,
+      amount: availableAmount,
+      amountIsVariable: false,
+      amountVariable: null,
+      date: formatDate(currDate),
+      dateIsVariable: false,
+      dateVariable: null,
+      from: pullableAccount.name,
+      to: account.name,
+      isTransfer: true,
+      category: 'Ignore.Transfer',
+      flag: true,
+      flagColor: 'violet',
+    });
+    // pullActivityAccount.balance = balanceMap[account.id];
+
+    const pullActivityPullable = new ConsolidatedActivity({
+      ...pullActivityAccount.serialize(),
+      amount: -availableAmount,
+    });
+    // pullActivityPullable.balance = balanceMap[pullableAccount.id];
+
+    // Add transfer activities to both accounts
+    account.consolidatedActivity.splice(idxMap[account.id], 0, pullActivityAccount);
+    pullableAccount.consolidatedActivity.splice(idxMap[pullableAccount.id], 0, pullActivityPullable);
+
+    // Increment indices
+    // idxMap[account.id]++;
+    // idxMap[pullableAccount.id]++;
+  }
+}
+
+function performPush(
+  accountsAndTransfers: AccountsAndTransfers,
+  account: Account,
+  currDate: Date,
+  balanceMap: Record<string, number>,
+  idxMap: Record<string, number>,
+  minimumBalance: number,
+) {
+  console.log(
+    'Pushing',
+    minimumBalance - ((account.minimumBalance ?? 0) + (account.minimumPullAmount ?? 0) * 4),
+    'from',
+    account.name,
+    'to',
+    account.pushAccount,
+    'on',
+    formatDate(currDate),
+    'minimum balance',
+    minimumBalance,
+  );
+
+  const pushAccount = accountsAndTransfers.accounts.find((a) => a.name === account.pushAccount);
+  if (!pushAccount) {
+    throw new Error(`Push account ${account.pushAccount} not found`);
+  }
+  const pushAmount = minimumBalance - (account.minimumBalance ?? 0) - (account.minimumPullAmount ?? 0) * 4;
+  if (pushAmount <= 0) {
+    return;
+  }
+  minimumBalance -= pushAmount;
+  const pushActivity = new ConsolidatedActivity({
+    id: 'AUTO-PUSH',
+    name: `Auto Push to ${pushAccount.name}`,
+    amount: -pushAmount,
+    amountIsVariable: false,
+    amountVariable: null,
+    date: formatDate(currDate),
+    dateIsVariable: false,
+    dateVariable: null,
+    from: account.name,
+    to: pushAccount.name,
+    isTransfer: true,
+    category: 'Ignore.Transfer',
+    flag: true,
+    flagColor: 'indigo',
+  });
+  account.consolidatedActivity.splice(idxMap[account.id], 0, pushActivity);
+
+  const pushActivityPushAccount = new ConsolidatedActivity({
+    ...pushActivity.serialize(),
+    amount: pushAmount,
+  });
+  pushAccount.consolidatedActivity.splice(idxMap[pushAccount.id], 0, pushActivityPushAccount);
 }

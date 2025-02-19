@@ -21,11 +21,12 @@ export function nextDate(date: Date, period: string, nPeriods: number) {
   }
 }
 
-export function setupCalculation(accountsAndTransfers: AccountsAndTransfers) {
-  // The earliest date that any activity, bill, or interest starts
-  const minDate = getMinDate(accountsAndTransfers);
-  // The date used to progress through the data
-  const currDate = minDate;
+export function setupCalculation(accountsAndTransfers: AccountsAndTransfers, startDate: Date | null = null) {
+  let currDate = startDate;
+  if (!currDate) {
+    // The earliest date that any activity, bill, or interest starts
+    currDate = getMinDate(accountsAndTransfers);
+  }
   // A map of account ids to their current index in their consolidated activity array
   const idxMap: Record<string, number> = {};
   // A map of account ids to their current balance
@@ -48,7 +49,6 @@ export function setupCalculation(accountsAndTransfers: AccountsAndTransfers) {
     }
   }
   return {
-    minDate,
     currDate,
     idxMap,
     balanceMap,
