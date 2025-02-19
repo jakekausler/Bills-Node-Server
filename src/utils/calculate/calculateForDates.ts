@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { setupCalculation } from './helpers';
 import { loadPensionsAndSocialSecurity } from '../io/retirement';
-import { isBeforeOrSame, isAfter, formatDate } from '../date/date';
+import { isBeforeOrSame, isAfter } from '../date/date';
 import { handleInterest, payInterestTaxes } from './interest';
 import { retrieveBalances } from './balances';
 import { handlePension } from './pension';
@@ -10,6 +10,7 @@ import { handleSocialSecurity } from './socialSecurity';
 import { handleMonthlyPushesAndPulls, payPullTaxes } from './pullsAndPushes';
 import { performRMD } from './rmd';
 import { Interest } from '../../data/interest/interest';
+import { startTiming, endTiming, initProgressBar, stopProgressBar, incrementProgressBar } from '../log';
 
 export function calculateActivitiesForDates(
   accountsAndTransfers: AccountsAndTransfers,
@@ -17,6 +18,8 @@ export function calculateActivitiesForDates(
   endDate: Date,
   simulation: string,
   monteCarlo: boolean,
+  simulationNumber: number,
+  nSimulations: number,
   subCalculation: boolean = false,
   balanceMap: Record<string, number> | null = null,
   idxMap: Record<string, number> | null = null,
@@ -24,12 +27,17 @@ export function calculateActivitiesForDates(
   interestMap: Record<string, Interest | null> | null = null,
   nextInterestMap: Record<string, Date | null> | null = null,
 ) {
+  startTiming(calculateActivitiesForDates);
   let currDate = startDate;
   if (!subCalculation) {
     ({ currDate, idxMap, balanceMap, interestIdxMap, interestMap, nextInterestMap } = setupCalculation(
       accountsAndTransfers,
       startDate,
     ));
+  }
+  if (!subCalculation) {
+    console.log(dayjs(endDate).diff(dayjs(currDate), 'day'));
+    initProgressBar(dayjs(endDate).diff(dayjs(currDate), 'day'), simulationNumber - 1, nSimulations);
   }
   if (!currDate) {
     throw new Error('currDate is null');
@@ -51,6 +59,9 @@ export function calculateActivitiesForDates(
   }
   const { pensions, socialSecurities } = loadPensionsAndSocialSecurity(simulation);
   while (isBeforeOrSame(currDate, endDate)) {
+    if (!subCalculation) {
+      incrementProgressBar();
+    }
     if (!subCalculation && currDate.getDate() === 1) {
       handleMonthlyPushesAndPulls(
         accountsAndTransfers,
@@ -62,6 +73,8 @@ export function calculateActivitiesForDates(
         nextInterestMap,
         simulation,
         monteCarlo,
+        simulationNumber,
+        nSimulations,
       );
     }
 
@@ -94,4 +107,8 @@ export function calculateActivitiesForDates(
 
     currDate = dayjs(currDate).add(1, 'day').toDate();
   }
+  if (!subCalculation) {
+    stopProgressBar();
+  }
+  endTiming(calculateActivitiesForDates);
 }

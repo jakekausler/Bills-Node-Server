@@ -14,12 +14,14 @@ export function calculateAllActivity(
   endDate: Date,
   simulation: string,
   monteCarlo: boolean = false,
+  simulationNumber: number = 1,
+  nSimulations: number = 1,
 ) {
   startTiming(calculateAllActivity);
   loadBillRatesToYears(startDate.getFullYear(), endDate.getFullYear());
   loadInterestRatesToYears(startDate.getFullYear(), endDate.getFullYear());
   addActivities(accountsAndTransfers, endDate, simulation, monteCarlo);
-  calculateActivities(accountsAndTransfers, startDate, endDate, simulation, monteCarlo);
+  calculateActivities(accountsAndTransfers, startDate, endDate, simulation, monteCarlo, simulationNumber, nSimulations);
   endTiming(calculateAllActivity);
 }
 
@@ -53,7 +55,25 @@ function calculateActivities(
   endDate: Date,
   simulation: string,
   monteCarlo: boolean = false,
+  simulationNumber: number = 1,
+  nSimulations: number = 1,
 ) {
-  calculateActivitiesForDates(accountsAndTransfers, null, endDate, simulation, monteCarlo);
+  startTiming(calculateActivities);
+  calculateActivitiesForDates(
+    accountsAndTransfers,
+    null,
+    endDate,
+    simulation,
+    monteCarlo,
+    simulationNumber,
+    nSimulations,
+    false,
+    null,
+    null,
+    null,
+    null,
+    null,
+  );
   retrieveTodayBalances(accountsAndTransfers, startDate, endDate);
+  endTiming(calculateActivities);
 }

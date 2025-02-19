@@ -15,6 +15,7 @@ function getIndent() {
   return '|  '.repeat(Object.keys(functionTimings).length);
 }
 
+// TODO: Needs to handle recursive calls
 export function startTiming(fn: Function | string) {
   // const name = fn instanceof Function ? fn.name : fn;
   // functionTimings[name] = Date.now();
@@ -29,9 +30,13 @@ export function endTiming(fn: Function | string) {
   // delete functionTimings[name];
 }
 
+const SHOW_PROGRESS_BAR = false;
 let progressBar: cliProgress.SingleBar;
 
 export function initProgressBar(nDays: number, nSimulation: number = -1, nSimulations: number = -1) {
+  if (!SHOW_PROGRESS_BAR) {
+    return;
+  }
   progressBar = new cliProgress.SingleBar({
     format: `Progress |{bar}| {percentage}% | ${nSimulation > 0 ? nSimulation + 1 : 1} / ${
       nSimulations > 0 ? nSimulations : 1
@@ -43,10 +48,16 @@ export function initProgressBar(nDays: number, nSimulation: number = -1, nSimula
 }
 
 export function incrementProgressBar() {
+  if (!SHOW_PROGRESS_BAR) {
+    return;
+  }
   progressBar.increment();
 }
 
 export function stopProgressBar() {
+  if (!SHOW_PROGRESS_BAR) {
+    return;
+  }
   progressBar.stop();
 }
 

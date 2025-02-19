@@ -8,6 +8,7 @@ import { getById } from '../array/array';
 import { Account } from '../../data/account/account';
 import { Interest } from '../../data/interest/interest';
 import { calculateActivitiesForDates } from './calculateForDates';
+import { startTiming, endTiming } from '../log';
 
 export function pushIfNeeded(
   accountsAndTransfers: AccountsAndTransfers,
@@ -221,7 +222,10 @@ export function handleMonthlyPushesAndPulls(
   nextInterestMap: Record<string, Date | null>,
   simulation: string,
   monteCarlo: boolean,
+  simulationNumber: number,
+  nSimulations: number,
 ) {
+  startTiming(handleMonthlyPushesAndPulls);
   // Create deep copies of all maps
   const balanceMapCopy: Record<string, number> = { ...balanceMap };
   const idxMapCopy: Record<string, number> = { ...idxMap };
@@ -273,6 +277,8 @@ export function handleMonthlyPushesAndPulls(
     dayjs(currDate).endOf('month').toDate(),
     simulation,
     monteCarlo,
+    simulationNumber,
+    nSimulations,
     true,
     balanceMapCopy,
     idxMapCopy,
@@ -289,54 +295,49 @@ export function handleMonthlyPushesAndPulls(
       if (account.pushEnd && isAfter(currDate, account.pushEnd)) {
         return;
       }
-      const endOfMonthDate = dayjs(currDate).endOf('month').toDate();
-      // Indices are the zero-indexed day of the month
-      const dailyBalances: number[] = [];
-
-      let previousBalance = 0;
-      for (let i = 0; i < account.consolidatedActivity.length; i++) {
-        const activity = account.consolidatedActivity[i];
-        if (isBefore(activity.date, currDate)) {
-          previousBalance = activity.balance;
-          continue;
-        }
-        if (isAfter(activity.date, endOfMonthDate)) {
-          break;
-        }
-        const dayOfMonth = dayjs(activity.date).date() - 1;
-        const balance = activity.balance;
-        dailyBalances[dayOfMonth] = balance;
-      }
-      for (let i = 0; i < dailyBalances.length; i++) {
-        if (dailyBalances[i] === undefined) {
-          dailyBalances[i] = previousBalance;
-        } else {
-          previousBalance = dailyBalances[i];
-        }
-      }
-      const minimumBalance = dailyBalances.reduce((min, balance) => Math.min(min, balance), Infinity);
-      // console.log(
-      //   'Getting activity from',
-      //   formatDate(currDate),
-      //   'to',
-      //   formatDate(dayjs(currDate).endOf('month').toDate()),
-      //   'account',
-      //   account.name,
-      //   'minimum balance',
-      //   minimumBalance,
-      // );
+      const minimumBalance = getMinimumBalance(account, currDate);
       const originalAccount = accountsAndTransfers.accounts.find((a) => a.name === account.name);
       if (!originalAccount) {
         throw new Error(`Original account ${account.name} not found`);
       }
       if (minimumBalance < (account.minimumBalance ?? 0)) {
-        performPull(accountsAndTransfers, originalAccount, currDate, balanceMap, idxMap, minimumBalance);
+        performPull(accountsAndTransfers, originalAccount, currDate, balanceMapCopy, idxMap, minimumBalance);
       }
       if (minimumBalance > (account.minimumBalance ?? 0) + (account.minimumPullAmount ?? 0) * 4) {
-        performPush(accountsAndTransfers, originalAccount, currDate, balanceMap, idxMap, minimumBalance);
+        performPush(accountsAndTransfers, originalAccount, currDate, balanceMapCopy, idxMap, minimumBalance);
       }
     }
   }
+  endTiming(handleMonthlyPushesAndPulls);
+}
+
+function getMinimumBalance(account: Account, currDate: Date) {
+  const endOfMonthDate = dayjs(currDate).endOf('month').toDate();
+  // Indices are the zero-indexed day of the month
+  const dailyBalances: number[] = [];
+
+  let previousBalance = 0;
+  for (let i = 0; i < account.consolidatedActivity.length; i++) {
+    const activity = account.consolidatedActivity[i];
+    if (isBefore(activity.date, currDate)) {
+      previousBalance = activity.balance;
+      continue;
+    }
+    if (isAfter(activity.date, endOfMonthDate)) {
+      break;
+    }
+    const dayOfMonth = dayjs(activity.date).date() - 1;
+    const balance = activity.balance;
+    dailyBalances[dayOfMonth] = balance;
+  }
+  for (let i = 0; i < dailyBalances.length; i++) {
+    if (dailyBalances[i] === undefined) {
+      dailyBalances[i] = previousBalance;
+    } else {
+      previousBalance = dailyBalances[i];
+    }
+  }
+  return dailyBalances.reduce((min, balance) => Math.min(min, balance), Infinity);
 }
 
 function performPull(
@@ -347,6 +348,7 @@ function performPull(
   idxMap: Record<string, number>,
   minimumBalance: number,
 ) {
+  startTiming(performPull);
   while (minimumBalance < (account.minimumBalance ?? 0)) {
     const pullableAccount = getNextPullableAccount(accountsAndTransfers, balanceMap);
     if (!pullableAccount) {
@@ -359,15 +361,25 @@ function performPull(
       amountNeeded,
       balanceMap[pullableAccount.id] - (pullableAccount.minimumBalance ?? 0),
     );
-
+    console.log(
+      formatDate(currDate),
+      'Amount to pull',
+      availableAmount.toFixed(2),
+      'amount in pullable account (',
+      pullableAccount.name,
+      ')',
+      balanceMap[pullableAccount.id].toFixed(2),
+      'remaining balance',
+      (balanceMap[pullableAccount.id] - availableAmount).toFixed(2),
+      'going to account',
+      account.name,
+    );
     if (availableAmount <= 0) {
       return;
     }
 
     // Update balances
     minimumBalance += availableAmount;
-    // balanceMap[account.id] += availableAmount;
-    // balanceMap[pullableAccount.id] -= availableAmount;
 
     // Create transfer activity for the pull
     const pullActivityAccount = new ConsolidatedActivity({
@@ -386,22 +398,21 @@ function performPull(
       flag: true,
       flagColor: 'violet',
     });
-    // pullActivityAccount.balance = balanceMap[account.id];
 
     const pullActivityPullable = new ConsolidatedActivity({
       ...pullActivityAccount.serialize(),
       amount: -availableAmount,
     });
-    // pullActivityPullable.balance = balanceMap[pullableAccount.id];
 
     // Add transfer activities to both accounts
     account.consolidatedActivity.splice(idxMap[account.id], 0, pullActivityAccount);
     pullableAccount.consolidatedActivity.splice(idxMap[pullableAccount.id], 0, pullActivityPullable);
 
-    // Increment indices
-    // idxMap[account.id]++;
-    // idxMap[pullableAccount.id]++;
+    // Update balance copies, so that other accounts get the correct balances
+    balanceMap[account.id] += availableAmount;
+    balanceMap[pullableAccount.id] -= availableAmount;
   }
+  endTiming(performPull);
 }
 
 function performPush(
@@ -412,19 +423,7 @@ function performPush(
   idxMap: Record<string, number>,
   minimumBalance: number,
 ) {
-  console.log(
-    'Pushing',
-    minimumBalance - ((account.minimumBalance ?? 0) + (account.minimumPullAmount ?? 0) * 4),
-    'from',
-    account.name,
-    'to',
-    account.pushAccount,
-    'on',
-    formatDate(currDate),
-    'minimum balance',
-    minimumBalance,
-  );
-
+  startTiming(performPush);
   const pushAccount = accountsAndTransfers.accounts.find((a) => a.name === account.pushAccount);
   if (!pushAccount) {
     throw new Error(`Push account ${account.pushAccount} not found`);
@@ -452,9 +451,14 @@ function performPush(
   });
   account.consolidatedActivity.splice(idxMap[account.id], 0, pushActivity);
 
+  // Update balance copies, so that other accounts get the correct balances
+  balanceMap[account.id] -= pushAmount;
+  balanceMap[pushAccount.id] += pushAmount;
+
   const pushActivityPushAccount = new ConsolidatedActivity({
     ...pushActivity.serialize(),
     amount: pushAmount,
   });
   pushAccount.consolidatedActivity.splice(idxMap[pushAccount.id], 0, pushActivityPushAccount);
+  endTiming(performPush);
 }
