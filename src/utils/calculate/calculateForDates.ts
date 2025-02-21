@@ -125,6 +125,7 @@ export async function calculateActivitiesForDates(
           historicalPrices,
           stockAmounts,
           investmentActivityIdxMap,
+          subCalculation,
         );
       }
       handleInterest(

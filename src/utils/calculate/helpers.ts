@@ -6,6 +6,7 @@ import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
 import { InvestmentAccount } from '../../data/investment/investment';
 import { getHistory } from '../stocks/stocks';
+import cliProgress from 'cli-progress';
 
 export function nextDate(date: Date, period: string, nPeriods: number) {
   if (period.startsWith('day')) {
@@ -109,8 +110,15 @@ const START_FOR_HISTORICAL_PRICES = dayjs('2022-01-01');
 export async function getHistoricalPrices(tickers: string[], startDate: Date) {
   const historicalPrices: Record<string, Record<string, number>> = {};
   const expectedGrowths: Record<string, number> = {};
+  const progress = new cliProgress.SingleBar({
+    format: `Progress |{bar}| {percentage}% | {ticker}`,
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+  });
+  progress.start(tickers.length, 0, { ticker: '' });
   for (const ticker of tickers) {
-    console.log(ticker);
+    progress.increment();
+    progress.update({ ticker });
     historicalPrices[ticker] = {};
     const history = await getHistory(ticker, START_FOR_HISTORICAL_PRICES.toDate(), new Date());
     let sumOfDailyChanges = 0;
@@ -147,9 +155,9 @@ export async function getHistoricalPrices(tickers: string[], startDate: Date) {
       }
     }
     const averageDailyChange = sumOfDailyChanges / count || 0;
-    expectedGrowths[ticker] = Math.exp(averageDailyChange) - 1;
+    expectedGrowths[ticker] = Math.exp((averageDailyChange * 252) / 365.24) - 1;
   }
-
+  progress.stop();
   return { historicalPrices, expectedGrowths };
 }
 

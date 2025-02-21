@@ -27,10 +27,43 @@ export function retrieveBalances(
     if (!removed) {
       dealWithOtherTransfers(account, accounts, idxMap, balanceMap);
       updateBalanceMap(account, balanceMap, idxMap, historicalPrices, stockAmounts, currDate);
+      updateInvestmentActivityValues(account, idxMap, historicalPrices, stockAmounts, currDate);
       idxMap[account.id] += 1;
     }
   }
   endTiming(retrieveBalances);
+}
+
+function updateInvestmentActivityValues(
+  account: Account,
+  idxMap: Record<string, number>,
+  historicalPrices: Record<string, Record<string, number>>,
+  stockAmounts: Record<string, Record<string, number>>,
+  currDate: Date,
+) {
+  const activity = account.consolidatedActivity[idxMap[account.id]];
+  const previousActivity = account.consolidatedActivity[idxMap[account.id] - 1];
+  if (!activity.investmentValue && previousActivity && previousActivity.investmentValue) {
+    if (account.name === 'Fidelity Money Market') {
+      // console.log('Updating investment value for ', account.name, 'on ', formatDate(currDate));
+      // console.log('Previous ', previousActivity.investmentValue, previousActivity.name);
+      // console.log('Old ', activity.investmentValue, activity.name);
+    }
+    activity.stockAmounts = previousActivity.stockAmounts;
+    activity.stockValues = Object.fromEntries(
+      Object.entries(activity.stockAmounts).map(([symbol, amount]) => [
+        symbol,
+        historicalPrices[symbol][formatDate(currDate)] * amount,
+      ]),
+    );
+    activity.investmentValue = Object.values(activity.stockValues).reduce((a, b) => a + b, 0);
+    if (account.name === 'Fidelity Money Market') {
+      // console.log('New ', activity.investmentValue, activity.name);
+    }
+  } else if (activity.investmentValue && account.name === 'Fidelity Money Market') {
+    // console.log('No update needed for ', account.name, 'on ', formatDate(currDate));
+    // console.log('Current ', activity.investmentValue, activity.name);
+  }
 }
 
 function updateBalanceMap(
@@ -44,17 +77,6 @@ function updateBalanceMap(
   const activity = account.consolidatedActivity[idxMap[account.id]];
   balanceMap[account.id] += activity.amount as number;
   activity.balance = balanceMap[account.id];
-  const previousActivity = account.consolidatedActivity[idxMap[account.id] - 1];
-  if (!activity.investmentValue && previousActivity && previousActivity.investmentValue) {
-    activity.stockAmounts = previousActivity.stockAmounts;
-    activity.stockValues = Object.fromEntries(
-      Object.entries(activity.stockAmounts).map(([symbol, amount]) => [
-        symbol,
-        historicalPrices[symbol][formatDate(currDate)] * amount,
-      ]),
-    );
-    activity.investmentValue = Object.values(activity.stockValues).reduce((a, b) => a + b, 0);
-  }
 }
 
 export function retrieveTodayBalances(accountsAndTransfers: AccountsAndTransfers, startDate: Date, endDate: Date) {

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import cliProgress from 'cli-progress';
 import { formatDate } from './date/date';
+import { Account } from '../data/account/account';
 
 const LOG_FILE = '/home/jakekausler/programs/billsV2/log.txt';
 
@@ -31,7 +32,7 @@ export function endTiming(fn: Function | string) {
   // delete functionTimings[name];
 }
 
-const SHOW_PROGRESS_BAR = true;
+const SHOW_PROGRESS_BAR = false;
 let progressBar: cliProgress.SingleBar;
 
 export function initProgressBar(nDays: number, startDate: Date, nSimulation: number = -1, nSimulations: number = -1) {
@@ -65,6 +66,12 @@ export function stopProgressBar() {
     return;
   }
   progressBar.stop();
+}
+
+export function logConditional(condition: boolean, date: Date, account: Account, ...message: any[]) {
+  if (condition) {
+    console.log(formatDate(date), account.name, ...message);
+  }
 }
 
 // export function logProgressDate(

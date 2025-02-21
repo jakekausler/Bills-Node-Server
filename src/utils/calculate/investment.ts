@@ -3,7 +3,7 @@ import { Account } from '../../data/account/account';
 import { InvestmentAccount, InvestmentActivity } from '../../data/investment/investment';
 import { formatDate, isAfter, isSame } from '../date/date';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
-import { v4 as uuidv4 } from 'uuid';
+import { logConditional } from '../log';
 
 export function handleInvestment(
   account: Account,
@@ -14,6 +14,7 @@ export function handleInvestment(
   historicalPrices: Record<string, Record<string, number>>,
   stockAmounts: Record<string, Record<string, number>>,
   investmentActivityIdxMap: Record<string, number>,
+  subCalculation: boolean,
 ) {
   const investmentAccount = investmentAccounts.find((investmentAccount) => investmentAccount.name === account.name);
   if (!investmentAccount) {
@@ -28,6 +29,15 @@ export function handleInvestment(
     const excessCash = balanceMap[account.id] - investmentAccount.cashTarget;
     //console.log(`\nExcess cash: ${excessCash} for ${account.name}`);
     if (excessCash > 0) {
+      logConditional(
+        account.name === 'Fidelity Money Market',
+        currDate,
+        account,
+        'excess cash: ',
+        excessCash,
+        'subCalculation: ',
+        subCalculation,
+      );
       investmentAccount.targets.forEach((target) => {
         const topRatio = target.nonCashPortfolioTarget;
         if (target.isCustomFund) {
@@ -84,6 +94,15 @@ export function handleInvestment(
       shareChange *= -1;
     }
     stockAmounts[investmentAccount.id][investmentActivity.symbol] += shareChange;
+    logConditional(
+      account.name === 'Fidelity Money Market',
+      currDate,
+      account,
+      'adding ',
+      shareChange,
+      'shares of ',
+      investmentActivity.symbol,
+    );
 
     let accountActivity;
     try {

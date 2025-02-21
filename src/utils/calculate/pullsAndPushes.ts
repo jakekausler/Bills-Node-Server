@@ -271,6 +271,9 @@ export async function handleMonthlyPushesAndPulls(
   const interestMapCopy: Record<string, Interest | null> = {};
   const nextInterestMapCopy: Record<string, Date | null> = {};
   const investmentActivityIdxMapCopy: Record<string, number> = { ...investmentActivityIdxMap };
+  const historicalPricesCopy: Record<string, Record<string, number>> = { ...historicalPrices };
+  const stockAmountsCopy: Record<string, Record<string, number>> = { ...stockAmounts };
+  const stockExpectedGrowthsCopy: Record<string, number> = { ...stockExpectedGrowths };
 
   // Deep copy interest map
   Object.entries(interestMap).forEach(([key, interest]) => {
@@ -284,6 +287,16 @@ export async function handleMonthlyPushesAndPulls(
   // Deep copy next interest map
   Object.entries(nextInterestMap).forEach(([key, date]) => {
     nextInterestMapCopy[key] = date ? new Date(date) : null;
+  });
+
+  // Deep copy historical prices
+  Object.entries(historicalPrices).forEach(([key, value]) => {
+    historicalPricesCopy[key] = { ...value };
+  });
+
+  // Deep copy stock amounts
+  Object.entries(stockAmounts).forEach(([key, value]) => {
+    stockAmountsCopy[key] = { ...value };
   });
 
   // Deep copy accounts and transfers
@@ -333,9 +346,9 @@ export async function handleMonthlyPushesAndPulls(
     interestIdxMapCopy,
     interestMapCopy,
     nextInterestMapCopy,
-    historicalPrices,
-    stockAmounts,
-    stockExpectedGrowths,
+    historicalPricesCopy,
+    stockAmountsCopy,
+    stockExpectedGrowthsCopy,
     investmentActivityIdxMapCopy,
   );
 
