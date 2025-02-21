@@ -1,9 +1,11 @@
 import dayjs from 'dayjs';
 import { AccountsAndTransfers } from '../../data/account/types';
-import { getMinDate } from '../date/date';
+import { formatDate, getMinDate, isAfter, isBeforeOrSame } from '../date/date';
 import { Interest } from '../../data/interest/interest';
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
+import { InvestmentAccount } from '../../data/investment/investment';
+import { getHistory } from '../stocks/stocks';
 
 export function nextDate(date: Date, period: string, nPeriods: number) {
   if (period.startsWith('day')) {
@@ -21,11 +23,15 @@ export function nextDate(date: Date, period: string, nPeriods: number) {
   }
 }
 
-export function setupCalculation(accountsAndTransfers: AccountsAndTransfers, startDate: Date | null = null) {
+export async function setupCalculation(
+  accountsAndTransfers: AccountsAndTransfers,
+  investmentAccounts: InvestmentAccount[],
+  startDate: Date | null = null,
+) {
   let currDate = startDate;
   if (!currDate) {
     // The earliest date that any activity, bill, or interest starts
-    currDate = getMinDate(accountsAndTransfers);
+    currDate = getMinDate(accountsAndTransfers, investmentAccounts);
   }
   // A map of account ids to their current index in their consolidated activity array
   const idxMap: Record<string, number> = {};
@@ -37,6 +43,17 @@ export function setupCalculation(accountsAndTransfers: AccountsAndTransfers, sta
   const interestMap: Record<string, Interest | null> = {};
   // A map of account ids to their next date interest will be applied
   const nextInterestMap: Record<string, Date | null> = {};
+  // A map of investment account id to index of activity in investment account
+  const investmentActivityIdxMap: Record<string, number> = {};
+  const tickers = getTickers(investmentAccounts);
+  const { historicalPrices, expectedGrowths } = await getHistoricalPrices(tickers, currDate);
+  const stockAmounts: Record<string, Record<string, number>> = {};
+  investmentAccounts.forEach((account) => {
+    stockAmounts[account.id] = {};
+    for (const ticker of tickers) {
+      stockAmounts[account.id][ticker] = 0;
+    }
+  });
   for (const account of accountsAndTransfers.accounts) {
     idxMap[account.id] = 0;
     balanceMap[account.id] = 0;
@@ -48,6 +65,9 @@ export function setupCalculation(accountsAndTransfers: AccountsAndTransfers, sta
       nextInterestMap[account.id] = interestMap[account.id]?.applicableDate ?? null;
     }
   }
+  for (const account of investmentAccounts) {
+    investmentActivityIdxMap[account.id] = 0;
+  }
   return {
     currDate,
     idxMap,
@@ -55,7 +75,82 @@ export function setupCalculation(accountsAndTransfers: AccountsAndTransfers, sta
     interestIdxMap,
     interestMap,
     nextInterestMap,
+    historicalPrices,
+    stockAmounts,
+    stockExpectedGrowths: expectedGrowths,
+    investmentActivityIdxMap,
   };
+}
+
+export function getTickers(investmentAccounts: InvestmentAccount[]) {
+  const tickers = new Set<string>();
+  for (const account of investmentAccounts) {
+    for (const share of account.shares) {
+      tickers.add(share.symbol);
+    }
+    for (const target of account.targets) {
+      if (!target.isCustomFund) {
+        tickers.add(target.symbol);
+      } else {
+        target.customMakeup.forEach((fund) => {
+          tickers.add(fund.symbol);
+        });
+      }
+    }
+    for (const activity of account.activity) {
+      tickers.add(activity.symbol);
+    }
+  }
+  return Array.from(tickers);
+}
+
+const START_FOR_HISTORICAL_PRICES = dayjs('2022-01-01');
+
+export async function getHistoricalPrices(tickers: string[], startDate: Date) {
+  const historicalPrices: Record<string, Record<string, number>> = {};
+  const expectedGrowths: Record<string, number> = {};
+  for (const ticker of tickers) {
+    console.log(ticker);
+    historicalPrices[ticker] = {};
+    const history = await getHistory(ticker, START_FOR_HISTORICAL_PRICES.toDate(), new Date());
+    let sumOfDailyChanges = 0;
+    let count = 0;
+    let lastPrice: number | null = null;
+    let lastDate: Date | null = startDate;
+    for (const quote of history.quotes) {
+      // Get the average gain/loss percentage over the last 20 years, but only keep a cache
+      // of the actual historical prices since the start date.
+      if (isAfter(quote.date, startDate)) {
+        // Fill in any skipped days between lastDate and current quote date with the last known price
+        if (lastDate) {
+          let currDate = dayjs(lastDate).add(1, 'day').toDate();
+          while (isBeforeOrSame(currDate, quote.date)) {
+            historicalPrices[ticker][formatDate(currDate)] = lastPrice ?? 0;
+            currDate = dayjs(currDate).add(1, 'day').toDate();
+          }
+        }
+      }
+      if (lastPrice !== null && quote.adjclose) {
+        sumOfDailyChanges += Math.log(quote.adjclose / lastPrice);
+        count++;
+      }
+      lastPrice = quote.adjclose ?? lastPrice;
+      lastDate = quote.date;
+    }
+    // Fill in any remaining days up to today with the last known price
+    if (lastDate && lastPrice !== null) {
+      let currDate = dayjs(lastDate).add(1, 'day').toDate();
+      const today = new Date();
+      while (isBeforeOrSame(currDate, today)) {
+        historicalPrices[ticker][formatDate(currDate)] = lastPrice;
+        currDate = dayjs(currDate).add(1, 'day').toDate();
+      }
+    }
+    const averageDailyChange = sumOfDailyChanges / count || 0;
+    expectedGrowths[ticker] = Math.exp(averageDailyChange) - 1;
+  }
+
+  return { historicalPrices, expectedGrowths };
 }
 
 export function getYearlyIncomes(accountsAndTransfers: AccountsAndTransfers, retirement: SocialSecurity | Pension) {

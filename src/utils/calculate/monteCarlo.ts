@@ -26,7 +26,7 @@ function cloneAccountsAndTransfers(accountsAndTransfers: AccountsAndTransfers): 
   return clone;
 }
 
-function runSimulations(
+async function runSimulations(
   accountsAndTransfers: AccountsAndTransfers,
   nSimulations: number,
   startDate: Date,
@@ -40,7 +40,7 @@ function runSimulations(
   startTiming(runSimulations);
   for (let i = 0; i < nSimulations; i++) {
     const accountsAndTransfersClone = cloneAccountsAndTransfers(accountsAndTransfers);
-    calculateAllActivity(accountsAndTransfersClone, startDate, endDate, simulation, true, i, nSimulations);
+    await calculateAllActivity(accountsAndTransfersClone, startDate, endDate, simulation, true, i, nSimulations);
     const yearlyGraph = loadYearlyGraph(accountsAndTransfersClone, startDate, endDate, minDate);
     yearlyGraph.labels.forEach((year, idx) => {
       for (const dataset of yearlyGraph.datasets) {
@@ -235,17 +235,6 @@ function formBarChartDatasets(results: SimulationResults, nSimulations: number) 
         });
       }
     });
-    console.log('Balances and Sums for ', year);
-    for (let i = 0; i < checkingSums.length; i++) {
-      console.log(
-        `Simulation ${i}: ${Object.keys(yearData)
-          .filter((account) => yearData[account].type === 'Checking')
-          .map((account) => {
-            return `${account}: ${yearData[account].results[i].toFixed(2)}`;
-          })
-          .join(', ')} -> ${checkingSums[i].toFixed(2)}`,
-      );
-    }
   });
   const thresholds = [0];
   const datasets: BarChartDataset[] = [];
@@ -281,7 +270,7 @@ function createBarChart(results: SimulationResults, nSimulations: number) {
   return barChart;
 }
 
-export function monteCarlo(
+export async function monteCarlo(
   accountsAndTransfers: AccountsAndTransfers,
   nSimulations: number,
   // startDate: Date,
@@ -331,7 +320,7 @@ export function monteCarlo(
     }
   } else {
     const id = uuidv4();
-    results = runSimulations(accountsAndTransfers, nSimulations, startDate, endDate, simulation);
+    results = await runSimulations(accountsAndTransfers, nSimulations, startDate, endDate, simulation);
     save({ results, date: new Date().toISOString() }, `simulations/${id}.json`);
   }
   // const percentileData = calculatePercentiles(results);

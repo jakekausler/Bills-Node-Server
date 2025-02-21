@@ -28,6 +28,8 @@ export type InvestmentRates = {
       };
 };
 
+export type RMDTableType = Record<number, number>;
+
 export type Rates = {
   inflation: number[];
   raise: number[];

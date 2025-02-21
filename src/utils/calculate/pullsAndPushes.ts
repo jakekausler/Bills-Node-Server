@@ -9,6 +9,8 @@ import { Account } from '../../data/account/account';
 import { Interest } from '../../data/interest/interest';
 import { calculateActivitiesForDates } from './calculateForDates';
 import { startTiming, endTiming } from '../log';
+import { InvestmentAccount, InvestmentActivity } from '../../data/investment/investment';
+import historical from 'yahoo-finance2/dist/esm/src/modules/historical';
 
 export function pushIfNeeded(
   accountsAndTransfers: AccountsAndTransfers,
@@ -65,10 +67,41 @@ export function pushIfNeeded(
   }
 }
 
-function getNextPullableAccount(accountsAndTransfers: AccountsAndTransfers, balanceMap: Record<string, number>) {
+function getInvestedValue(
+  account: Account,
+  investedAccounts: InvestmentAccount[],
+  historicalPrices: Record<string, Record<string, number>>,
+  stockAmounts: Record<string, Record<string, number>>,
+  currDate: Date,
+) {
+  let investedValue = 0;
+  const investmentAccount = investedAccounts.find((acc) => acc.name === account.name);
+  if (!investmentAccount) {
+    return 0;
+  }
+  for (const share of investmentAccount.shares) {
+    const price = historicalPrices[share.symbol][formatDate(currDate)];
+    investedValue += price * stockAmounts[investmentAccount.id][share.symbol];
+  }
+  return investedValue;
+}
+
+function getNextPullableAccount(
+  accountsAndTransfers: AccountsAndTransfers,
+  balanceMap: Record<string, number>,
+  investedAccounts: InvestmentAccount[],
+  historicalPrices: Record<string, Record<string, number>>,
+  stockAmounts: Record<string, Record<string, number>>,
+  currDate: Date,
+) {
   return (
     accountsAndTransfers.accounts
-      .filter((acc) => acc.pullPriority !== -1 && balanceMap[acc.id] > (acc.minimumBalance ?? 0))
+      .filter(
+        (acc) =>
+          acc.pullPriority !== -1 &&
+          balanceMap[acc.id] + getInvestedValue(acc, investedAccounts, historicalPrices, stockAmounts, currDate) >
+            (acc.minimumBalance ?? 0),
+      )
       .sort((a, b) => a.pullPriority - b.pullPriority)[0] ?? null
   );
 }
@@ -212,14 +245,19 @@ export function payPullTaxes(
   }
 }
 
-export function handleMonthlyPushesAndPulls(
+export async function handleMonthlyPushesAndPulls(
   accountsAndTransfers: AccountsAndTransfers,
+  investmentAccounts: InvestmentAccount[],
   currDate: Date,
   balanceMap: Record<string, number>,
   idxMap: Record<string, number>,
   interestIdxMap: Record<string, number>,
   interestMap: Record<string, Interest | null>,
   nextInterestMap: Record<string, Date | null>,
+  historicalPrices: Record<string, Record<string, number>>,
+  stockAmounts: Record<string, Record<string, number>>,
+  stockExpectedGrowths: Record<string, number>,
+  investmentActivityIdxMap: Record<string, number>,
   simulation: string,
   monteCarlo: boolean,
   simulationNumber: number,
@@ -232,6 +270,7 @@ export function handleMonthlyPushesAndPulls(
   const interestIdxMapCopy: Record<string, number> = { ...interestIdxMap };
   const interestMapCopy: Record<string, Interest | null> = {};
   const nextInterestMapCopy: Record<string, Date | null> = {};
+  const investmentActivityIdxMapCopy: Record<string, number> = { ...investmentActivityIdxMap };
 
   // Deep copy interest map
   Object.entries(interestMap).forEach(([key, interest]) => {
@@ -270,9 +309,18 @@ export function handleMonthlyPushesAndPulls(
     },
   };
 
+  // Deep copy investment accounts
+  const investmentAccountsCopy: InvestmentAccount[] = investmentAccounts.map((account) =>
+    Object.assign(Object.create(Object.getPrototypeOf(account)), {
+      ...account,
+      activity: account.activity.map((act) => Object.assign(Object.create(Object.getPrototypeOf(act)), act)),
+    }),
+  );
+
   // Mock the calculations for the current month
-  calculateActivitiesForDates(
+  await calculateActivitiesForDates(
     accountsAndTransfersCopy,
+    investmentAccountsCopy,
     currDate,
     dayjs(currDate).endOf('month').toDate(),
     simulation,
@@ -285,6 +333,10 @@ export function handleMonthlyPushesAndPulls(
     interestIdxMapCopy,
     interestMapCopy,
     nextInterestMapCopy,
+    historicalPrices,
+    stockAmounts,
+    stockExpectedGrowths,
+    investmentActivityIdxMapCopy,
   );
 
   for (const account of accountsAndTransfersCopy.accounts) {
@@ -301,7 +353,17 @@ export function handleMonthlyPushesAndPulls(
         throw new Error(`Original account ${account.name} not found`);
       }
       if (minimumBalance < (account.minimumBalance ?? 0)) {
-        performPull(accountsAndTransfers, originalAccount, currDate, balanceMapCopy, idxMap, minimumBalance);
+        performPull(
+          accountsAndTransfers,
+          originalAccount,
+          currDate,
+          balanceMapCopy,
+          idxMap,
+          minimumBalance,
+          investmentAccounts,
+          historicalPrices,
+          stockAmounts,
+        );
       }
       if (minimumBalance > (account.minimumBalance ?? 0) + (account.minimumPullAmount ?? 0) * 4) {
         performPush(accountsAndTransfers, originalAccount, currDate, balanceMapCopy, idxMap, minimumBalance);
@@ -340,6 +402,57 @@ function getMinimumBalance(account: Account, currDate: Date) {
   return dailyBalances.reduce((min, balance) => Math.min(min, balance), Infinity);
 }
 
+function createShareSale(
+  account: Account,
+  investedAccounts: InvestmentAccount[],
+  historicalPrices: Record<string, Record<string, number>>,
+  investmentActivityIdxMap: Record<string, number>,
+  amount: number,
+  currDate: Date,
+) {
+  const investmentAccount = investedAccounts.find((acc) => acc.name === account.name);
+  if (!investmentAccount) {
+    throw new Error(`Investment account ${account.name} not found`);
+  }
+  for (const target of investmentAccount.targets) {
+    const topRatio = target.nonCashPortfolioTarget;
+    if (target.isCustomFund) {
+      target.customMakeup.forEach((custom) => {
+        const price = historicalPrices[custom.symbol][formatDate(currDate)];
+        //console.log(price);
+        const neededPricePerTicker = amount * topRatio * custom.makeup;
+        const sharesToSell = neededPricePerTicker / price;
+        const activity = new InvestmentActivity({
+          date: formatDate(dayjs(currDate).add(1, 'day').toDate()),
+          type: 'sell',
+          symbol: custom.symbol,
+          shares: sharesToSell,
+          price: price,
+          newShares: 0,
+          usesCash: true,
+          memo: `Auto sell to cover negative balance in ${account.name}`,
+        });
+        investmentAccount.activity.splice(investmentActivityIdxMap[investmentAccount.id], 0, activity);
+      });
+    } else {
+      const price = historicalPrices[target.symbol][formatDate(currDate)];
+      const neededPricePerTicker = amount * topRatio;
+      const sharesToSell = neededPricePerTicker / price;
+      const activity = new InvestmentActivity({
+        date: formatDate(dayjs(currDate).add(1, 'day').toDate()),
+        type: 'sell',
+        symbol: target.symbol,
+        shares: sharesToSell,
+        price: price,
+        newShares: 0,
+        usesCash: true,
+        memo: `Auto sell to cover negative balance in ${account.name}`,
+      });
+      investmentAccount.activity.splice(investmentActivityIdxMap[investmentAccount.id], 0, activity);
+    }
+  }
+}
+
 function performPull(
   accountsAndTransfers: AccountsAndTransfers,
   account: Account,
@@ -347,10 +460,20 @@ function performPull(
   balanceMap: Record<string, number>,
   idxMap: Record<string, number>,
   minimumBalance: number,
+  investedAccounts: InvestmentAccount[],
+  historicalPrices: Record<string, Record<string, number>>,
+  stockAmounts: Record<string, Record<string, number>>,
 ) {
   startTiming(performPull);
   while (minimumBalance < (account.minimumBalance ?? 0)) {
-    const pullableAccount = getNextPullableAccount(accountsAndTransfers, balanceMap);
+    const pullableAccount = getNextPullableAccount(
+      accountsAndTransfers,
+      balanceMap,
+      investedAccounts,
+      historicalPrices,
+      stockAmounts,
+      currDate,
+    );
     if (!pullableAccount) {
       return;
     }
@@ -359,23 +482,22 @@ function performPull(
     const amountNeeded = Math.abs(minimumBalance - (account.minimumBalance ?? 0)) + (account.minimumPullAmount ?? 0);
     const availableAmount = Math.min(
       amountNeeded,
-      balanceMap[pullableAccount.id] - (pullableAccount.minimumBalance ?? 0),
-    );
-    console.log(
-      formatDate(currDate),
-      'Amount to pull',
-      availableAmount.toFixed(2),
-      'amount in pullable account (',
-      pullableAccount.name,
-      ')',
-      balanceMap[pullableAccount.id].toFixed(2),
-      'remaining balance',
-      (balanceMap[pullableAccount.id] - availableAmount).toFixed(2),
-      'going to account',
-      account.name,
+      balanceMap[pullableAccount.id] +
+        getInvestedValue(account, investedAccounts, historicalPrices, stockAmounts, currDate) -
+        (pullableAccount.minimumBalance ?? 0),
     );
     if (availableAmount <= 0) {
       return;
+    }
+
+    if (availableAmount > balanceMap[pullableAccount.id]) {
+      createShareSale(
+        account,
+        investedAccounts,
+        historicalPrices,
+        availableAmount - balanceMap[pullableAccount.id],
+        currDate,
+      );
     }
 
     // Update balances

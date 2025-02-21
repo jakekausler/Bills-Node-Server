@@ -7,8 +7,9 @@ import { loadRatesToYears as loadInterestRatesToYears } from './interest';
 import { retrieveTodayBalances } from './balances';
 import { endTiming, startTiming } from '../log';
 import { calculateActivitiesForDates } from './calculateForDates';
+import { loadData } from '../io/portfolio';
 
-export function calculateAllActivity(
+export async function calculateAllActivity(
   accountsAndTransfers: AccountsAndTransfers,
   startDate: Date,
   endDate: Date,
@@ -21,10 +22,17 @@ export function calculateAllActivity(
   loadBillRatesToYears(startDate.getFullYear(), endDate.getFullYear());
   loadInterestRatesToYears(startDate.getFullYear(), endDate.getFullYear());
   addActivities(accountsAndTransfers, endDate, simulation, monteCarlo);
-  calculateActivities(accountsAndTransfers, startDate, endDate, simulation, monteCarlo, simulationNumber, nSimulations);
+  await calculateActivities(
+    accountsAndTransfers,
+    startDate,
+    endDate,
+    simulation,
+    monteCarlo,
+    simulationNumber,
+    nSimulations,
+  );
   endTiming(calculateAllActivity);
 }
-
 function addActivities(
   accountsAndTransfers: AccountsAndTransfers,
   endDate: Date,
@@ -49,7 +57,7 @@ function addActivities(
   endTiming(addActivities);
 }
 
-function calculateActivities(
+async function calculateActivities(
   accountsAndTransfers: AccountsAndTransfers,
   startDate: Date,
   endDate: Date,
@@ -59,8 +67,10 @@ function calculateActivities(
   nSimulations: number = 1,
 ) {
   startTiming(calculateActivities);
-  calculateActivitiesForDates(
+  const investmentAccounts = loadData();
+  await calculateActivitiesForDates(
     accountsAndTransfers,
+    investmentAccounts,
     null,
     endDate,
     simulation,

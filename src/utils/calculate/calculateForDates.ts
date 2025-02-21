@@ -11,9 +11,12 @@ import { handleMonthlyPushesAndPulls, payPullTaxes } from './pullsAndPushes';
 import { performRMD } from './rmd';
 import { Interest } from '../../data/interest/interest';
 import { startTiming, endTiming, initProgressBar, stopProgressBar, incrementProgressBar } from '../log';
+import { InvestmentAccount } from '../../data/investment/investment';
+import { setFuturePrices, handleInvestment } from './investment';
 
-export function calculateActivitiesForDates(
+export async function calculateActivitiesForDates(
   accountsAndTransfers: AccountsAndTransfers,
+  investmentAccounts: InvestmentAccount[],
   startDate: Date | null,
   endDate: Date,
   simulation: string,
@@ -26,18 +29,33 @@ export function calculateActivitiesForDates(
   interestIdxMap: Record<string, number> | null = null,
   interestMap: Record<string, Interest | null> | null = null,
   nextInterestMap: Record<string, Date | null> | null = null,
+  // Map of symbols to date to price
+  historicalPrices: Record<string, Record<string, number>> | null = null,
+  // Map of account ids to map of current share amount of each stock
+  stockAmounts: Record<string, Record<string, number>> | null = null,
+  // Map of symbols to expected growth
+  stockExpectedGrowths: Record<string, number> | null = null,
+  // Map of investment account id to index of activity in investment account
+  investmentActivityIdxMap: Record<string, number> | null = null,
 ) {
   startTiming(calculateActivitiesForDates);
   let currDate = startDate;
   if (!subCalculation) {
-    ({ currDate, idxMap, balanceMap, interestIdxMap, interestMap, nextInterestMap } = setupCalculation(
-      accountsAndTransfers,
-      startDate,
-    ));
+    ({
+      currDate,
+      idxMap,
+      balanceMap,
+      interestIdxMap,
+      interestMap,
+      nextInterestMap,
+      historicalPrices,
+      stockAmounts,
+      stockExpectedGrowths,
+      investmentActivityIdxMap,
+    } = await setupCalculation(accountsAndTransfers, investmentAccounts, startDate));
   }
   if (!subCalculation) {
-    console.log(dayjs(endDate).diff(dayjs(currDate), 'day'));
-    initProgressBar(dayjs(endDate).diff(dayjs(currDate), 'day'), simulationNumber - 1, nSimulations);
+    initProgressBar(dayjs(endDate).diff(dayjs(currDate), 'day'), currDate, simulationNumber - 1, nSimulations);
   }
   if (!currDate) {
     throw new Error('currDate is null');
@@ -57,20 +75,38 @@ export function calculateActivitiesForDates(
   if (!nextInterestMap) {
     throw new Error('nextInterestMap is null');
   }
+  if (!historicalPrices) {
+    throw new Error('historicalPrices is null');
+  }
+  if (!stockAmounts) {
+    throw new Error('stockAmounts is null');
+  }
+  if (!stockExpectedGrowths) {
+    throw new Error('stockExpectedGrowths is null');
+  }
+  if (!investmentActivityIdxMap) {
+    throw new Error('investmentActivityIdxMap is null');
+  }
   const { pensions, socialSecurities } = loadPensionsAndSocialSecurity(simulation);
   while (isBeforeOrSame(currDate, endDate)) {
+    setFuturePrices(currDate, historicalPrices, stockExpectedGrowths);
     if (!subCalculation) {
-      incrementProgressBar();
+      incrementProgressBar(currDate);
     }
     if (!subCalculation && currDate.getDate() === 1) {
-      handleMonthlyPushesAndPulls(
+      await handleMonthlyPushesAndPulls(
         accountsAndTransfers,
+        investmentAccounts,
         currDate,
         balanceMap,
         idxMap,
         interestIdxMap,
         interestMap,
         nextInterestMap,
+        historicalPrices,
+        stockAmounts,
+        stockExpectedGrowths,
+        investmentActivityIdxMap,
         simulation,
         monteCarlo,
         simulationNumber,
@@ -79,6 +115,18 @@ export function calculateActivitiesForDates(
     }
 
     for (const account of accountsAndTransfers.accounts) {
+      if (account.type === 'Investment') {
+        handleInvestment(
+          account,
+          investmentAccounts,
+          currDate,
+          balanceMap,
+          idxMap,
+          historicalPrices,
+          stockAmounts,
+          investmentActivityIdxMap,
+        );
+      }
       handleInterest(
         account,
         currDate,
@@ -90,7 +138,15 @@ export function calculateActivitiesForDates(
         idxMap,
         monteCarlo,
       );
-      retrieveBalances(account, accountsAndTransfers.accounts, currDate, idxMap, balanceMap);
+      retrieveBalances(
+        account,
+        accountsAndTransfers.accounts,
+        currDate,
+        idxMap,
+        balanceMap,
+        historicalPrices,
+        stockAmounts,
+      );
     }
 
     handlePension(accountsAndTransfers, pensions, currDate, balanceMap, idxMap);
