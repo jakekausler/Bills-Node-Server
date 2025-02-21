@@ -65,8 +65,11 @@ export function updateAccounts(request: Request) {
       if (newAccount.minimumPullAmount !== account.minimumPullAmount) {
         account.minimumPullAmount = newAccount.minimumPullAmount || null;
       }
-      if (newAccount.performsPullsAndPushes !== account.performsPullsAndPushes) {
-        account.performsPullsAndPushes = newAccount.performsPullsAndPushes || false;
+      if (newAccount.performsPulls !== account.performsPulls) {
+        account.performsPulls = newAccount.performsPulls || false;
+      }
+      if (newAccount.performsPushes !== account.performsPushes) {
+        account.performsPushes = newAccount.performsPushes || false;
       }
       if (newAccount.pushStart !== account.pushStart) {
         account.pushStart = parseDate(newAccount.pushStart as DateString) || null;

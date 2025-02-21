@@ -39,7 +39,8 @@ export type AccountData = {
   rmdAccount?: string | null;
   minimumBalance?: number | null;
   minimumPullAmount?: number | null;
-  performsPullsAndPushes?: boolean;
+  performsPulls?: boolean;
+  performsPushes?: boolean;
   pushStart?: string | null;
   pushEnd?: string | null;
   pushAccount?: string | null;

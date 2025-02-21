@@ -17,7 +17,7 @@ export function pushIfNeeded(
   idxMap: Record<string, number>,
 ) {
   for (const account of accountsAndTransfers.accounts) {
-    if (account.type === 'Checking' && account.pushAccount && account.performsPullsAndPushes) {
+    if (account.type === 'Checking' && account.pushAccount && account.performsPushes) {
       if (account.pushStart && isBefore(currDate, account.pushStart)) {
         return;
       }
@@ -80,7 +80,7 @@ export function pullIfNeeded(
   idxMap: Record<string, number>,
 ) {
   for (const account of accountsAndTransfers.accounts) {
-    if (account.type === 'Checking' && account.pushAccount && account.performsPullsAndPushes) {
+    if (account.type === 'Checking' && account.pushAccount && account.performsPulls) {
       if (account.pushStart && isBefore(currDate, account.pushStart)) {
         return;
       }
@@ -288,7 +288,7 @@ export function handleMonthlyPushesAndPulls(
   );
 
   for (const account of accountsAndTransfersCopy.accounts) {
-    if (account.type === 'Checking' && account.pushAccount && account.performsPullsAndPushes) {
+    if (account.type === 'Checking' && account.pushAccount && (account.performsPulls || account.performsPushes)) {
       if (account.pushStart && isBefore(currDate, account.pushStart)) {
         return;
       }
@@ -300,10 +300,13 @@ export function handleMonthlyPushesAndPulls(
       if (!originalAccount) {
         throw new Error(`Original account ${account.name} not found`);
       }
-      if (minimumBalance < (account.minimumBalance ?? 0)) {
+      if (account.performsPulls && minimumBalance < (account.minimumBalance ?? 0)) {
         performPull(accountsAndTransfers, originalAccount, currDate, balanceMapCopy, idxMap, minimumBalance);
       }
-      if (minimumBalance > (account.minimumBalance ?? 0) + (account.minimumPullAmount ?? 0) * 4) {
+      if (
+        account.performsPushes &&
+        minimumBalance > (account.minimumBalance ?? 0) + (account.minimumPullAmount ?? 0) * 4
+      ) {
         performPush(accountsAndTransfers, originalAccount, currDate, balanceMapCopy, idxMap, minimumBalance);
       }
     }
