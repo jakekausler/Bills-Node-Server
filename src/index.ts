@@ -342,6 +342,6 @@ app.get('/api/moneyMovement', verifyToken, (req: Request, res: Response) => {
 });
 
 // Start server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+app.listen(process.env.PORT, () => {
+  console.log(`Server is running on port ${process.env.PORT}`);
 });
