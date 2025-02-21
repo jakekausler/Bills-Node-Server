@@ -1,4 +1,5 @@
 import { DateString } from '../../utils/date/types';
+import { InvestmentActivityData } from '../investment/types';
 
 export type ActivityData = {
   id: string;
@@ -23,4 +24,8 @@ export type ConsolidatedActivityData = ActivityData & {
   interestId: string | null;
   firstInterest: boolean;
   balance: number;
+  investmentValue: number;
+  investmentActivity: InvestmentActivityData | null;
+  stockValues: Record<string, number>;
+  stockAmounts: Record<string, number>;
 };

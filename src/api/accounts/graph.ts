@@ -4,14 +4,14 @@ import { getById } from '../../utils/array/array';
 import { Account } from '../../data/account/account';
 import { loadGraph } from '../../utils/graph/graph';
 
-export function getAccountGraph(request: Request) {
-  const data = getData(request);
+export async function getAccountGraph(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   return loadGraph({ accounts: [account], transfers: { activity: [], bills: [] } }, data.startDate, data.endDate);
 }
 
-export function getGraphForAccounts(request: Request) {
-  const data = getData(request);
+export async function getGraphForAccounts(request: Request) {
+  const data = await getData(request);
   const selectedAccounts = data.selectedAccounts;
   const accounts =
     selectedAccounts.length > 0

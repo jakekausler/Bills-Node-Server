@@ -2,8 +2,8 @@ import { Request } from 'express';
 import { getData } from '../../../utils/net/request';
 import { Activity } from '../../../data/activity/activity';
 
-export function getCategorySectionTransactions(request: Request) {
-  const data = getData(request);
+export async function getCategorySectionTransactions(request: Request) {
+  const data = await getData(request);
   const section = request.params.section as string;
   const accounts = data.accountsAndTransfers.accounts;
 

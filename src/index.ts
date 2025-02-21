@@ -40,6 +40,30 @@ import 'dotenv/config';
 import jwt from 'jsonwebtoken';
 import { promisify } from 'util';
 import { getMoneyMovementChart } from './api/moneyMovement/movement';
+import { averageOverTime } from './api/averageOverTime';
+import { getSymbolHistory, getSymbolQuote } from './api/stocks/stocks';
+import {
+  addInvestmentAccount,
+  deleteInvestmentAccount,
+  getInvestmentAccounts,
+  updateInvestmentAccount,
+} from './api/investment/investment';
+import { getInvestmentAccount } from './api/investment/investment';
+import {
+  addInvestmentAccountActivity,
+  deleteInvestmentAccountSpecificActivity,
+  getInvestmentAccountActivity,
+  getInvestmentAccountSpecificActivity,
+  updateInvestmentAccountSpecificActivity,
+} from './api/investment/activity/activity';
+import {
+  deleteInvestmentShare,
+  getInvestmentShare,
+  updateInvestmentShare,
+  addInvestmentShare,
+  getInvestmentShares,
+} from './api/investment/shares/shares';
+import { addFromCSV } from './api/investment/activity/addFromCSV';
 
 declare global {
   namespace Express {
@@ -53,7 +77,16 @@ const app: Express = express();
 const port = process.env.PORT || 5002;
 
 // Middleware
-app.use(express.json());
+app.use(
+  express.text({
+    limit: '50mb',
+  }),
+);
+app.use(
+  express.json({
+    limit: '50mb',
+  }),
+);
 app.use(bodyParser.urlencoded({ extended: true }));
 
 interface DecodedToken {
@@ -77,193 +110,276 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
 // Account routes
 app
   .route('/api/accounts')
-  .get(verifyToken, (req: Request, res: Response) => {
-    res.json(getSimpleAccounts(req));
+  .get(verifyToken, async (req: Request, res: Response) => {
+    res.json(await getSimpleAccounts(req));
   })
-  .put(verifyToken, (req: Request, res: Response) => {
-    res.json(addAccount(req));
+  .put(verifyToken, async (req: Request, res: Response) => {
+    res.json(await addAccount(req));
   })
-  .post(verifyToken, (req: Request, res: Response) => {
-    res.json(updateAccounts(req));
+  .post(verifyToken, async (req: Request, res: Response) => {
+    res.json(await updateAccounts(req));
   });
 
 // Account graph routes
-app.get('/api/accounts/:accountId/graph', verifyToken, (req: Request, res: Response) => {
-  res.json(getAccountGraph(req));
+app.get('/api/accounts/:accountId/graph', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getAccountGraph(req));
 });
 
-app.get('/api/accounts/graph', verifyToken, (req: Request, res: Response) => {
-  res.json(getGraphForAccounts(req));
+app.get('/api/accounts/graph', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getGraphForAccounts(req));
 });
 
 app
   .route('/api/accounts/:accountId')
-  .get(verifyToken, (req: Request, res: Response) => {
-    res.json(getAccount(req));
+  .get(verifyToken, async (req: Request, res: Response) => {
+    res.json(await getAccount(req));
   })
-  .post(verifyToken, (req: Request, res: Response) => {
-    res.json(updateAccount(req));
+  .post(verifyToken, async (req: Request, res: Response) => {
+    res.json(await updateAccount(req));
   })
-  .delete(verifyToken, (req: Request, res: Response) => {
-    res.json(removeAccount(req));
+  .delete(verifyToken, async (req: Request, res: Response) => {
+    res.json(await removeAccount(req));
   });
 
 // Account balance route
-app.get('/api/accounts/:accountId/today_balance', verifyToken, (req: Request, res: Response) => {
-  res.json(getTodayBalance(req));
+app.get('/api/accounts/:accountId/today_balance', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getTodayBalance(req));
 });
 
 // Activity routes
 app
   .route('/api/accounts/:accountId/activity')
-  .get(verifyToken, (req: Request, res: Response) => {
-    res.json(getAccountActivity(req));
+  .get(verifyToken, async (req: Request, res: Response) => {
+    res.json(await getAccountActivity(req));
   })
-  .put(verifyToken, (req: Request, res: Response) => {
-    res.json(addActivity(req));
+  .put(verifyToken, async (req: Request, res: Response) => {
+    res.json(await addActivity(req));
   });
 
 app
   .route('/api/accounts/:accountId/activity/:activityId')
-  .get(verifyToken, (req: Request, res: Response) => {
-    res.json(getSpecificActivity(req));
+  .get(verifyToken, async (req: Request, res: Response) => {
+    res.json(await getSpecificActivity(req));
   })
-  .post(verifyToken, (req: Request, res: Response) => {
-    res.json(updateSpecificActivity(req));
+  .post(verifyToken, async (req: Request, res: Response) => {
+    res.json(await updateSpecificActivity(req));
   })
-  .delete(verifyToken, (req: Request, res: Response) => {
-    res.json(deleteSpecificActivity(req));
+  .delete(verifyToken, async (req: Request, res: Response) => {
+    res.json(await deleteSpecificActivity(req));
   });
 
 app
   .route('/api/accounts/:accountId/activity/:activityId/change_account/:newAccountId')
-  .post(verifyToken, (req: Request, res: Response) => {
-    res.json(changeAccountForActivity(req));
+  .post(verifyToken, async (req: Request, res: Response) => {
+    res.json(await changeAccountForActivity(req));
   });
 
 // Bill routes
 app
   .route('/api/accounts/:accountId/bills')
-  .get(verifyToken, (req: Request, res: Response) => {
-    res.json(getAccountBills(req));
+  .get(verifyToken, async (req: Request, res: Response) => {
+    res.json(await getAccountBills(req));
   })
-  .put(verifyToken, (req: Request, res: Response) => {
-    res.json(addBill(req));
+  .put(verifyToken, async (req: Request, res: Response) => {
+    res.json(await addBill(req));
   });
 
 app
   .route('/api/accounts/:accountId/bills/:billId')
-  .get(verifyToken, (req: Request, res: Response) => {
-    res.json(getSpecificBill(req));
+  .get(verifyToken, async (req: Request, res: Response) => {
+    res.json(await getSpecificBill(req));
   })
-  .post(verifyToken, (req: Request, res: Response) => {
-    res.json(updateSpecificBill(req));
+  .post(verifyToken, async (req: Request, res: Response) => {
+    res.json(await updateSpecificBill(req));
   })
-  .delete(verifyToken, (req: Request, res: Response) => {
-    res.json(deleteSpecificBill(req));
+  .delete(verifyToken, async (req: Request, res: Response) => {
+    res.json(await deleteSpecificBill(req));
   });
 
 app
   .route('/api/accounts/:accountId/bills/:billId/change_account/:newAccountId')
-  .post(verifyToken, (req: Request, res: Response) => {
-    res.json(changeAccountForBill(req));
+  .post(verifyToken, async (req: Request, res: Response) => {
+    res.json(await changeAccountForBill(req));
   });
 
 // Calendar routes
-app.get('/api/calendar/bills', verifyToken, (req: Request, res: Response) => {
-  res.json(getCalendarBills(req));
+app.get('/api/calendar/bills', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getCalendarBills(req));
 });
 
 // Interest routes
 app
   .route('/api/accounts/:accountId/interests')
-  .get(verifyToken, (req: Request, res: Response) => {
-    res.json(getAccountInterests(req));
+  .get(verifyToken, async (req: Request, res: Response) => {
+    res.json(await getAccountInterests(req));
   })
-  .put(verifyToken, (req: Request, res: Response) => {
-    res.json(addInterest(req));
+  .put(verifyToken, async (req: Request, res: Response) => {
+    res.json(await addInterest(req));
   })
-  .post(verifyToken, (req: Request, res: Response) => {
-    res.json(updateInterest(req));
+  .post(verifyToken, async (req: Request, res: Response) => {
+    res.json(await updateInterest(req));
   });
 
 app
   .route('/api/accounts/:accountId/interests/:interestId')
-  .get(verifyToken, (req: Request, res: Response) => {
-    res.json(getSpecificInterest(req));
+  .get(verifyToken, async (req: Request, res: Response) => {
+    res.json(await getSpecificInterest(req));
   })
-  .post(verifyToken, (req: Request, res: Response) => {
-    res.json(updateSpecificInterest(req));
+  .post(verifyToken, async (req: Request, res: Response) => {
+    res.json(await updateSpecificInterest(req));
   })
-  .delete(verifyToken, (req: Request, res: Response) => {
-    res.json(deleteSpecificInterest(req));
+  .delete(verifyToken, async (req: Request, res: Response) => {
+    res.json(await deleteSpecificInterest(req));
   });
 
 // Consolidated activity routes
-app.get('/api/accounts/:accountId/consolidated_activity', verifyToken, (req: Request, res: Response) => {
-  res.json(getConsolidatedActivity(req));
+app.get('/api/accounts/:accountId/consolidated_activity', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getConsolidatedActivity(req));
 });
 
-app.get('/api/accounts/:accountId/consolidated_activity/:activityId', verifyToken, (req: Request, res: Response) => {
-  res.json(getSpecificConsolidatedActivity(req));
-});
+app.get(
+  '/api/accounts/:accountId/consolidated_activity/:activityId',
+  verifyToken,
+  async (req: Request, res: Response) => {
+    res.json(await getSpecificConsolidatedActivity(req));
+  },
+);
 
 // Category routes
 app
   .route('/api/categories')
-  .get(verifyToken, (req: Request, res: Response) => {
-    res.json(getCategories(req));
+  .get(verifyToken, async (req: Request, res: Response) => {
+    res.json(await getCategories(req));
   })
-  .put(verifyToken, (req: Request, res: Response) => {
-    res.json(addCategory(req));
+  .put(verifyToken, async (req: Request, res: Response) => {
+    res.json(await addCategory(req));
   })
-  .delete(verifyToken, (req: Request, res: Response) => {
-    res.json(deleteCategory(req));
+  .delete(verifyToken, async (req: Request, res: Response) => {
+    res.json(await deleteCategory(req));
   });
 
-app.get('/api/categories/breakdown', verifyToken, (req: Request, res: Response) => {
-  res.json(getCategoryBreakdown(req));
+app.get('/api/categories/breakdown', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getCategoryBreakdown(req));
 });
 
-app.get('/api/categories/:section/transactions', verifyToken, (req: Request, res: Response) => {
-  res.json(getCategorySectionTransactions(req));
+app.get('/api/categories/:section/transactions', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getCategorySectionTransactions(req));
 });
 
-app.get('/api/categories/:section/breakdown', verifyToken, (req: Request, res: Response) => {
-  res.json(getCategorySectionBreakdown(req));
+app.get('/api/categories/:section/breakdown', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getCategorySectionBreakdown(req));
 });
 
-app.get('/api/categories/:section/:item/transactions', verifyToken, (req: Request, res: Response) => {
-  res.json(getCategorySectionItemTransactions(req));
+app.get('/api/categories/:section/:item/transactions', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getCategorySectionItemTransactions(req));
 });
 
 // Simulation routes
 app
   .route('/api/simulations')
-  .get(verifyToken, (req: Request, res: Response) => {
-    res.json(getSimulations(req));
+  .get(verifyToken, async (req: Request, res: Response) => {
+    res.json(await getSimulations(req));
   })
-  .post(verifyToken, (req: Request, res: Response) => {
-    res.json(updateSimulations(req));
+  .post(verifyToken, async (req: Request, res: Response) => {
+    res.json(await updateSimulations(req));
   });
 
-app.get('/api/simulations/used_variables', verifyToken, (req: Request, res: Response) => {
-  res.json(getUsedVariables(req));
+app.get('/api/simulations/used_variables', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getUsedVariables(req));
 });
 
 // Name categories route
-app.get('/api/names', verifyToken, (req: Request, res: Response) => {
-  res.json(getNameCategories(req));
+app.get('/api/names', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getNameCategories(req));
 });
 
 // Flow route
-app.get('/api/flow', verifyToken, (req: Request, res: Response) => {
-  res.json(getFlow(req));
+app.get('/api/flow', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getFlow(req));
 });
 
 // Monte Carlo route
-app.get('/api/monte_carlo', verifyToken, (req: Request, res: Response) => {
-  res.json(monteCarlo(req));
+app.get('/api/monte_carlo', verifyToken, async (req: Request, res: Response) => {
+  res.json(await monteCarlo(req));
+});
+
+// Average over time route
+app.get('/api/average_over_time', verifyToken, async (req: Request, res: Response) => {
+  res.json(await averageOverTime(req));
+});
+
+// Stocks routes
+app.get('/api/stocks/:symbol/history', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getSymbolHistory(req));
+});
+app.get('/api/stocks/:symbol/quote', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getSymbolQuote(req));
+});
+
+// Investment accounts routes
+app.get('/api/investment/accounts', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getInvestmentAccounts(req));
+});
+app.put('/api/investment/accounts', verifyToken, async (req: Request, res: Response) => {
+  res.json(await addInvestmentAccount(req));
+});
+app.get('/api/investment/accounts/:accountId', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getInvestmentAccount(req));
+});
+app.post('/api/investment/accounts/:accountId', verifyToken, async (req: Request, res: Response) => {
+  res.json(await updateInvestmentAccount(req));
+});
+app.delete('/api/investment/accounts/:accountId', verifyToken, async (req: Request, res: Response) => {
+  res.json(await deleteInvestmentAccount(req));
+});
+
+// Investment activity routes
+app.get('/api/investment/accounts/:accountId/activity', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getInvestmentAccountActivity(req));
+});
+app.put('/api/investment/accounts/:accountId/activity', verifyToken, async (req: Request, res: Response) => {
+  res.json(await addInvestmentAccountActivity(req));
+});
+app.post('/api/investment/accounts/:accountId/activity/from_csv', verifyToken, async (req: Request, res: Response) => {
+  res.json(await addFromCSV(req));
+});
+app.get(
+  '/api/investment/accounts/:accountId/activity/:activityId',
+  verifyToken,
+  async (req: Request, res: Response) => {
+    res.json(await getInvestmentAccountSpecificActivity(req));
+  },
+);
+app.post(
+  '/api/investment/accounts/:accountId/activity/:activityId',
+  verifyToken,
+  async (req: Request, res: Response) => {
+    res.json(await updateInvestmentAccountSpecificActivity(req));
+  },
+);
+app.delete(
+  '/api/investment/accounts/:accountId/activity/:activityId',
+  verifyToken,
+  async (req: Request, res: Response) => {
+    res.json(await deleteInvestmentAccountSpecificActivity(req));
+  },
+);
+
+// Investment shares routes
+app.get('/api/investment/:accountId/shares', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getInvestmentShares(req));
+});
+app.put('/api/investment/:accountId/shares', verifyToken, async (req: Request, res: Response) => {
+  res.json(await addInvestmentShare(req));
+});
+app.get('/api/investment/:accountId/shares/:symbol', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getInvestmentShare(req));
+});
+app.post('/api/investment/:accountId/shares/:symbol', verifyToken, async (req: Request, res: Response) => {
+  res.json(await updateInvestmentShare(req));
+});
+app.delete('/api/investment/:accountId/shares/:symbol', verifyToken, async (req: Request, res: Response) => {
+  res.json(await deleteInvestmentShare(req));
 });
 
 interface User {
@@ -337,8 +453,8 @@ app.post('/api/auth/register', async (_req: Request, res: Response) => {
   // }
 });
 
-app.get('/api/moneyMovement', verifyToken, (req: Request, res: Response) => {
-  res.json(getMoneyMovementChart(req));
+app.get('/api/moneyMovement', verifyToken, async (req: Request, res: Response) => {
+  res.json(await getMoneyMovementChart(req));
 });
 
 // Start server

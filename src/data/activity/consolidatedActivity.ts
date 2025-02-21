@@ -1,5 +1,6 @@
 import { Activity } from './activity';
 import { ActivityData, ConsolidatedActivityData } from './types';
+import { InvestmentActivity } from '../investment/investment';
 
 export class ConsolidatedActivity extends Activity {
   billId: string | null;
@@ -7,6 +8,10 @@ export class ConsolidatedActivity extends Activity {
   interestId: string | null;
   firstInterest: boolean;
   balance: number;
+  investmentValue: number;
+  investmentActivity: InvestmentActivity | null;
+  stockValues: Record<string, number>;
+  stockAmounts: Record<string, number>;
 
   constructor(
     activity: ActivityData,
@@ -26,6 +31,10 @@ export class ConsolidatedActivity extends Activity {
     this.interestId = interestId;
     this.firstInterest = false;
     this.balance = 0;
+    this.investmentValue = 0;
+    this.investmentActivity = null;
+    this.stockValues = {};
+    this.stockAmounts = {};
     if (reverseAmount && typeof this.amount === 'number') {
       this.amount *= -1;
     }
@@ -39,6 +48,10 @@ export class ConsolidatedActivity extends Activity {
       firstBill: this.firstBill,
       interestId: this.interestId,
       firstInterest: this.firstInterest,
+      investmentValue: this.investmentValue,
+      investmentActivity: this.investmentActivity?.serialize() || null,
+      stockValues: this.stockValues,
+      stockAmounts: this.stockAmounts,
     };
   }
 }

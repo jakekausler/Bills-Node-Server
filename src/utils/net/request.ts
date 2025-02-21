@@ -51,7 +51,7 @@ function getPath(request: Request, defaultPath: string[]): string[] {
   return (request.query.path as string).split('.');
 }
 
-export function getData<T>(
+export async function getData<T>(
   request: Request,
   defaults: DefaultData = {
     defaultSimulation: 'Default',
@@ -66,14 +66,14 @@ export function getData<T>(
   options: Options = {
     updateCache: false,
   },
-): RequestData<T> {
+): Promise<RequestData<T>> {
   const simulation = getSimulation(request, defaults.defaultSimulation);
   const startDate = getStartDate(request, defaults.defaultStartDate);
   const endDate = getEndDate(request, defaults.defaultEndDate);
   const selectedAccounts = getSelectedAccounts(request, defaults.defaultSelectedAccounts);
   const isTransfer = getIsTransfer(request, defaults.defaultIsTransfer);
   const skip = getSkip(request, defaults.defaultSkip);
-  const accountsAndTransfers = loadData(
+  const accountsAndTransfers = await loadData(
     options.overrideStartDateForCalculations || startDate,
     endDate,
     simulation,
@@ -81,12 +81,15 @@ export function getData<T>(
   );
   const { socialSecurities, pensions } = loadPensionsAndSocialSecurity(simulation);
   const asActivity = getAsActivity(request, defaults.defaultAsActivity);
-  // Parse the value to JSON if possible
   let data = request.body;
-  try {
-    data = JSON.parse(data);
-  } catch (_) {
-    // Pass the raw value if it's not JSON
+  if (typeof data === 'string') {
+    // do nothing, keep as is
+  } else {
+    try {
+      data = JSON.parse(data);
+    } catch (_) {
+      // Pass the raw value if it's not JSON
+    }
   }
   const path = getPath(request, defaults.defaultPath);
 

@@ -9,8 +9,8 @@ import { ActivityData } from '../../../data/activity/types';
 import { parseDate } from '../../../utils/date/date';
 import { loadVariable } from '../../../utils/simulation/variable';
 
-export function getSpecificBill(request: Request) {
-  const data = getData(request);
+export async function getSpecificBill(request: Request) {
+  const data = await getData(request);
   if (data.asActivity) {
     return getBillAsActivity(request);
   } else {
@@ -18,8 +18,8 @@ export function getSpecificBill(request: Request) {
   }
 }
 
-function getBillAsActivity(request: Request) {
-  const data = getData(request);
+async function getBillAsActivity(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   for (const a of account.consolidatedActivity) {
     if (a.billId === request.params.billId) {
@@ -31,8 +31,8 @@ function getBillAsActivity(request: Request) {
   return null;
 }
 
-function getBillAsBill(request: Request) {
-  const data = getData(request);
+async function getBillAsBill(request: Request) {
+  const data = await getData(request);
   if (data.isTransfer) {
     return getById<Bill>(data.accountsAndTransfers.transfers.bills, request.params.billId).serialize();
   } else {
@@ -43,8 +43,8 @@ function getBillAsBill(request: Request) {
   }
 }
 
-export function updateSpecificBill(request: Request) {
-  const data = getData(request);
+export async function updateSpecificBill(request: Request) {
+  const data = await getData(request);
   if (data.asActivity) {
     return updateBillAsActivity(request);
   } else if (data.skip) {
@@ -54,8 +54,8 @@ export function updateSpecificBill(request: Request) {
   }
 }
 
-function updateBillAsActivity(request: Request) {
-  const data = getData<ActivityData>(request);
+async function updateBillAsActivity(request: Request) {
+  const data = await getData<ActivityData>(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   let bill: Bill;
   if (data.isTransfer) {
@@ -70,8 +70,8 @@ function updateBillAsActivity(request: Request) {
   return bill.id;
 }
 
-function skipBill(request: Request) {
-  const data = getData(request);
+async function skipBill(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   let bill: Bill;
   if (data.isTransfer) {
@@ -86,8 +86,8 @@ function skipBill(request: Request) {
   return bill.id;
 }
 
-export function changeAccountForBill(request: Request) {
-  const data = getData(request);
+export async function changeAccountForBill(request: Request) {
+  const data = await getData(request);
   const oldAccount = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   let bill: Bill;
   if (data.isTransfer) {
@@ -107,8 +107,8 @@ export function changeAccountForBill(request: Request) {
   return bill.id;
 }
 
-function updateBillAsBill(request: Request) {
-  const data = getData<BillData>(request);
+async function updateBillAsBill(request: Request) {
+  const data = await getData<BillData>(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   let bill: Bill;
   let billIdx: number;
@@ -180,8 +180,8 @@ function updateBillAsBill(request: Request) {
   return bill.id;
 }
 
-export function deleteSpecificBill(request: Request) {
-  const data = getData(request);
+export async function deleteSpecificBill(request: Request) {
+  const data = await getData(request);
   let bill: Bill;
   let billIdx: number;
   if (data.isTransfer) {

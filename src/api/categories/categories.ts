@@ -2,12 +2,12 @@ import { Request } from 'express';
 import { getData } from '../../utils/net/request';
 import { loadCategories, saveCategories } from '../../utils/io/categories';
 
-export function getCategories(_request: Request) {
+export async function getCategories(_request: Request) {
   return loadCategories();
 }
 
-export function addCategory(request: Request) {
-  const data = getData(request);
+export async function addCategory(request: Request) {
+  const data = await getData(request);
   const categories = loadCategories();
   const path = data.path;
 
@@ -37,8 +37,8 @@ export function addCategory(request: Request) {
   return categories;
 }
 
-export function deleteCategory(request: Request) {
-  const data = getData(request);
+export async function deleteCategory(request: Request) {
+  const data = await getData(request);
   const categories = loadCategories();
   const path = data.path;
 

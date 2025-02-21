@@ -8,7 +8,12 @@ import { CACHE_ACCOUNTS_AND_TRANSFERS, getCacheKey, updateCache as doUpdateCache
 
 export const FILE_NAME = 'data';
 
-export function loadData(startDate: Date, endDate: Date, simulation: string = 'Default', updateCache: boolean = true) {
+export async function loadData(
+  startDate: Date,
+  endDate: Date,
+  simulation: string = 'Default',
+  updateCache: boolean = true,
+) {
   const key = getCacheKey(startDate, endDate, simulation);
   if (updateCache) {
     console.log('Resetting cache - ', key);
@@ -16,12 +21,16 @@ export function loadData(startDate: Date, endDate: Date, simulation: string = 'D
   }
   if (!getCache(CACHE_ACCOUNTS_AND_TRANSFERS, key)) {
     console.log('Updating cache - ', key);
-    doUpdateCache(CACHE_ACCOUNTS_AND_TRANSFERS, key, getAccountsAndTransfers(startDate, endDate, simulation));
+    doUpdateCache(CACHE_ACCOUNTS_AND_TRANSFERS, key, await getAccountsAndTransfers(startDate, endDate, simulation));
   }
   return getCache(CACHE_ACCOUNTS_AND_TRANSFERS, key);
 }
 
-function getAccountsAndTransfers(startDate: Date, endDate: Date, simulation: string): AccountsAndTransfers {
+async function getAccountsAndTransfers(
+  startDate: Date,
+  endDate: Date,
+  simulation: string,
+): Promise<AccountsAndTransfers> {
   const data = load<AccountsAndTransfersData>(`${FILE_NAME}.json`);
 
   const accountsAndTransfers: AccountsAndTransfers = { accounts: [], transfers: { activity: [], bills: [] } };
@@ -36,7 +45,7 @@ function getAccountsAndTransfers(startDate: Date, endDate: Date, simulation: str
     accountsAndTransfers.transfers.bills.push(new Bill(transfer, simulation));
   }
 
-  calculateAllActivity(accountsAndTransfers, startDate, endDate, simulation);
+  await calculateAllActivity(accountsAndTransfers, startDate, endDate, simulation);
 
   return accountsAndTransfers;
 }

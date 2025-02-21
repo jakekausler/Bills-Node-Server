@@ -6,14 +6,14 @@ import { Activity } from '../../../data/activity/activity';
 import { ActivityData } from '../../../data/activity/types';
 import { saveData } from '../../../utils/io/accountsAndTransfers';
 
-export function getAccountActivity(request: Request) {
-  const data = getData(request);
+export async function getAccountActivity(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   return account.activity.map((activity) => activity.serialize());
 }
 
-export function addActivity(request: Request) {
-  const data = getData<ActivityData>(request);
+export async function addActivity(request: Request) {
+  const data = await getData<ActivityData>(request);
   const activity = new Activity(data.data, data.simulation);
   if (data.data.isTransfer) {
     data.accountsAndTransfers.transfers.activity.push(activity);

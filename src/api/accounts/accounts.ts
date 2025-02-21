@@ -6,20 +6,20 @@ import { getData } from '../../utils/net/request';
 import { parseDate } from '../../utils/date/date';
 import { DateString } from '../../utils/date/types';
 
-export function getSimpleAccounts(request: Request) {
-  const data = getData(request);
+export async function getSimpleAccounts(request: Request) {
+  const data = await getData(request);
   return data.accountsAndTransfers.accounts.map((account) => account.simpleAccount());
 }
 
-export function addAccount(request: Request) {
-  const data = getData<AccountData>(request);
+export async function addAccount(request: Request) {
+  const data = await getData<AccountData>(request);
   data.accountsAndTransfers.accounts.push(new Account(data.data, data.simulation));
   saveData(data.accountsAndTransfers);
   return data.accountsAndTransfers.accounts[data.accountsAndTransfers.accounts.length - 1].id;
 }
 
-export function updateAccounts(request: Request) {
-  const data = getData<AccountData[]>(request);
+export async function updateAccounts(request: Request) {
+  const data = await getData<AccountData[]>(request);
   data.accountsAndTransfers.accounts.forEach((account) => {
     const newAccount = data.data.find((a) => a.id === account.id);
     if (newAccount) {

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import cliProgress from 'cli-progress';
+import { formatDate } from './date/date';
 
 const LOG_FILE = '/home/jakekausler/programs/billsV2/log.txt';
 
@@ -30,28 +31,33 @@ export function endTiming(fn: Function | string) {
   // delete functionTimings[name];
 }
 
-const SHOW_PROGRESS_BAR = false;
+const SHOW_PROGRESS_BAR = true;
 let progressBar: cliProgress.SingleBar;
 
-export function initProgressBar(nDays: number, nSimulation: number = -1, nSimulations: number = -1) {
+export function initProgressBar(nDays: number, startDate: Date, nSimulation: number = -1, nSimulations: number = -1) {
   if (!SHOW_PROGRESS_BAR) {
     return;
   }
   progressBar = new cliProgress.SingleBar({
     format: `Progress |{bar}| {percentage}% | ${nSimulation > 0 ? nSimulation + 1 : 1} / ${
       nSimulations > 0 ? nSimulations : 1
-    }`,
+    } {date}`,
     barCompleteChar: '\u2588',
     barIncompleteChar: '\u2591',
   });
-  progressBar.start(nDays, 0);
+  progressBar.start(nDays, 0, {
+    date: formatDate(startDate),
+  });
 }
 
-export function incrementProgressBar() {
+export function incrementProgressBar(currentDate: Date) {
   if (!SHOW_PROGRESS_BAR) {
     return;
   }
   progressBar.increment();
+  progressBar.update({
+    date: formatDate(currentDate),
+  });
 }
 
 export function stopProgressBar() {

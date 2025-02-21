@@ -4,7 +4,7 @@ import { loadSimulations, saveSimulations } from '../../utils/io/simulation';
 import { Simulations } from '../../utils/simulation/types';
 import { formatDate } from '../../utils/date/date';
 
-export function getSimulations(_request: Request) {
+export async function getSimulations(_request: Request) {
   return loadSimulations().map((simulation) => ({
     name: simulation.name,
     enabled: simulation.enabled,
@@ -21,8 +21,8 @@ export function getSimulations(_request: Request) {
   }));
 }
 
-export function updateSimulations(request: Request) {
-  const data = getData<Simulations>(request);
+export async function updateSimulations(request: Request) {
+  const data = await getData<Simulations>(request);
   saveSimulations(data.data);
   return data.data;
 }

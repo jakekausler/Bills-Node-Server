@@ -72,7 +72,9 @@ export function loadYearlyGraph(
         isSame(acc.consolidatedActivity[idxMap[acc.id]].date, currDate)
       ) {
         // Add the activity to the list
-        activity.push(acc.consolidatedActivity[idxMap[acc.id]].balance);
+        activity.push(
+          acc.consolidatedActivity[idxMap[acc.id]].balance + acc.consolidatedActivity[idxMap[acc.id]].investmentValue,
+        );
         // Move to the next activity
         idxMap[acc.id]++;
       }
@@ -144,7 +146,12 @@ function loadActivityGraph(
           name: acc.consolidatedActivity[idxMap[acc.id]].name,
           amount: acc.consolidatedActivity[idxMap[acc.id]].amount as number,
         });
-        balanceMap[acc.id] = Math.round(acc.consolidatedActivity[idxMap[acc.id]].balance * 100) / 100;
+        balanceMap[acc.id] =
+          Math.round(
+            (acc.consolidatedActivity[idxMap[acc.id]].balance +
+              acc.consolidatedActivity[idxMap[acc.id]].investmentValue) *
+              100,
+          ) / 100;
         // Move to the next activity
         idxMap[acc.id]++;
       }

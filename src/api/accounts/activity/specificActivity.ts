@@ -7,8 +7,8 @@ import { ActivityData } from '../../../data/activity/types';
 import { parseDate } from '../../../utils/date/date';
 import { saveData } from '../../../utils/io/accountsAndTransfers';
 
-export function getSpecificActivity(request: Request) {
-  const data = getData(request);
+export async function getSpecificActivity(request: Request) {
+  const data = await getData(request);
   if (data.isTransfer) {
     return getById<Activity>(data.accountsAndTransfers.transfers.activity, request.params.activityId);
   } else {
@@ -17,8 +17,8 @@ export function getSpecificActivity(request: Request) {
   }
 }
 
-export function updateSpecificActivity(request: Request) {
-  const data = getData<ActivityData>(request);
+export async function updateSpecificActivity(request: Request) {
+  const data = await getData<ActivityData>(request);
   let activity: Activity;
   let activityIdx: number;
   let originalIsTransfer = false;
@@ -83,8 +83,8 @@ export function updateSpecificActivity(request: Request) {
   return activity.id;
 }
 
-export function deleteSpecificActivity(request: Request) {
-  const data = getData(request);
+export async function deleteSpecificActivity(request: Request) {
+  const data = await getData(request);
   let activity: Activity;
   let activityIdx: number;
   if (data.isTransfer) {
@@ -108,8 +108,8 @@ export function deleteSpecificActivity(request: Request) {
   return activity.id;
 }
 
-export function changeAccountForActivity(request: Request) {
-  const data = getData(request);
+export async function changeAccountForActivity(request: Request) {
+  const data = await getData(request);
   const oldAccount = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   let activity: Activity;
 
@@ -125,7 +125,6 @@ export function changeAccountForActivity(request: Request) {
   } else {
     oldAccount.activity = oldAccount.activity.filter((a) => a.id !== activity.id);
     newAccount.activity.push(activity);
-    console.log(oldAccount.name, newAccount.name, activity.name);
   }
   saveData(data.accountsAndTransfers);
   return activity.id;

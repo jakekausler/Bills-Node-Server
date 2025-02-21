@@ -5,8 +5,8 @@ import { getById } from '../../utils/array/array';
 import { Bill } from '../../data/bill/bill';
 import { formatDate } from '../../utils/date/date';
 
-export function getCalendarBills(request: Request) {
-  const data = getData(request);
+export async function getCalendarBills(request: Request) {
+  const data = await getData(request);
 
   const ret: CalendarBill[] = [];
   for (const account of data.accountsAndTransfers.accounts) {

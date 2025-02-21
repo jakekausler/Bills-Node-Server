@@ -23,9 +23,12 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "fast-csv": "^5.0.2",
+    "fast-xml-parser": "^5.0.6",
     "jsonwebtoken": "^9.0.2",
     "mysql": "^2.18.1",
-    "uuid": "^11.0.5"
+    "ofx-data-extractor": "^1.4.7",
+    "uuid": "^11.0.5",
+    "yahoo-finance2": "^2.13.3"
   },
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",

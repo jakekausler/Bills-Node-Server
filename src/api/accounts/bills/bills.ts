@@ -6,14 +6,14 @@ import { Bill } from '../../../data/bill/bill';
 import { BillData } from '../../../data/bill/types';
 import { saveData } from '../../../utils/io/accountsAndTransfers';
 
-export function getAccountBills(request: Request) {
-  const data = getData(request);
+export async function getAccountBills(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   return account.bills.map((bill) => bill.serialize());
 }
 
-export function addBill(request: Request) {
-  const data = getData<BillData>(request);
+export async function addBill(request: Request) {
+  const data = await getData<BillData>(request);
   const bill = new Bill(data.data, data.simulation);
   if (data.data.isTransfer) {
     data.accountsAndTransfers.transfers.bills.push(bill);

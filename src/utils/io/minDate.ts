@@ -1,12 +1,12 @@
 import { loadData } from './accountsAndTransfers';
 import { MIN_DATE, setMinDate } from './cache';
 
-export function minDate() {
+export async function minDate() {
   if (MIN_DATE) {
     return MIN_DATE;
   }
   let minDate = new Date();
-  const { accounts, transfers } = loadData(new Date(), new Date());
+  const { accounts, transfers } = await loadData(new Date(), new Date());
   for (const account of accounts) {
     for (const activity of account.activity) {
       if (minDate > activity.date) {

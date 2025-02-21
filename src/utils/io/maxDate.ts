@@ -1,12 +1,12 @@
 import { loadData } from './accountsAndTransfers';
 import { MAX_DATE, setMaxDate } from './cache';
 
-export function maxDate() {
+export async function maxDate() {
   if (MAX_DATE) {
     return MAX_DATE;
   }
   let maxDate = new Date();
-  const { accounts, transfers } = loadData(new Date(), new Date());
+  const { accounts, transfers } = await loadData(new Date(), new Date());
   for (const account of accounts) {
     for (const activity of account.activity) {
       if (maxDate < activity.date) {

@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { DateString } from './types';
+import { InvestmentAccount } from '../../data/investment/investment';
 
 export function formatDate(date: Date): DateString {
   return date.toISOString().split('T')[0] as DateString;
@@ -14,7 +15,7 @@ export function parseDate(date: DateString): Date {
   return d;
 }
 
-export function getMinDate(accountsAndTransfers: AccountsAndTransfers): Date {
+export function getMinDate(accountsAndTransfers: AccountsAndTransfers, investmentAccounts?: InvestmentAccount[]): Date {
   let minDate = new Date();
   for (const account of accountsAndTransfers.accounts) {
     if (account.activity.length > 0 && account.activity[0].date < minDate) {
@@ -35,6 +36,15 @@ export function getMinDate(accountsAndTransfers: AccountsAndTransfers): Date {
   for (const bill of accountsAndTransfers.transfers.bills) {
     if (bill.startDate < minDate) {
       minDate = bill.startDate;
+    }
+  }
+  if (investmentAccounts) {
+    for (const investmentAccount of investmentAccounts) {
+      for (const activity of investmentAccount.activity) {
+        if (activity.date < minDate) {
+          minDate = activity.date;
+        }
+      }
     }
   }
   return minDate;

@@ -8,8 +8,8 @@ import { parseDate } from '../../../utils/date/date';
 import { ActivityData } from '../../../data/activity/types';
 import { InterestData } from '../../../data/interest/types';
 
-export function getSpecificInterest(request: Request) {
-  const data = getData(request);
+export async function getSpecificInterest(request: Request) {
+  const data = await getData(request);
 
   if (data.asActivity) {
     return getInterestAsActivity(request);
@@ -18,8 +18,8 @@ export function getSpecificInterest(request: Request) {
   }
 }
 
-function getInterestAsActivity(request: Request) {
-  const data = getData(request);
+async function getInterestAsActivity(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   for (const a of account.consolidatedActivity) {
     if (a.interestId === request.params.interestId) {
@@ -31,15 +31,15 @@ function getInterestAsActivity(request: Request) {
   return null;
 }
 
-function getInterestAsInterest(request: Request) {
-  const data = getData(request);
+async function getInterestAsInterest(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   const interest = getById<Interest>(account.interests, request.params.interestId);
   return interest.serialize();
 }
 
-export function updateSpecificInterest(request: Request) {
-  const data = getData(request);
+export async function updateSpecificInterest(request: Request) {
+  const data = await getData(request);
   if (data.asActivity) {
     return updateInterestAsActivity(request);
   } else {
@@ -47,8 +47,8 @@ export function updateSpecificInterest(request: Request) {
   }
 }
 
-function updateInterestAsActivity(request: Request) {
-  const data = getData<ActivityData>(request);
+async function updateInterestAsActivity(request: Request) {
+  const data = await getData<ActivityData>(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   const interest = getById<Interest>(account.interests, request.params.interestId);
   insertInterest(account, interest, data.data, data.simulation);
@@ -56,8 +56,8 @@ function updateInterestAsActivity(request: Request) {
   return interest.id;
 }
 
-function updateInterestAsInterest(request: Request) {
-  const data = getData<InterestData>(request);
+async function updateInterestAsInterest(request: Request) {
+  const data = await getData<InterestData>(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   const interest = getById<Interest>(account.interests, request.params.interestId);
   interest.apr = data.data.apr;
@@ -68,8 +68,8 @@ function updateInterestAsInterest(request: Request) {
   return interest.id;
 }
 
-export function deleteSpecificInterest(request: Request) {
-  const data = getData(request);
+export async function deleteSpecificInterest(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   const interest = getById<Interest>(account.interests, request.params.interestId);
   account.interests = account.interests.filter((i) => i.id !== interest.id);

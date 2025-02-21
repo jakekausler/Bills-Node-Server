@@ -5,22 +5,22 @@ import { Account } from '../../data/account/account';
 import { saveData } from '../../utils/io/accountsAndTransfers';
 import { AccountData } from '../../data/account/types';
 
-export function getAccount(request: Request) {
-  const data = getData(request);
+export async function getAccount(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   return account.simpleAccount();
 }
 
-export function updateAccount(request: Request) {
-  const data = getData<AccountData>(request);
+export async function updateAccount(request: Request) {
+  const data = await getData<AccountData>(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   account.name = data.data.name;
   saveData(data.accountsAndTransfers);
   return account.simpleAccount();
 }
 
-export function removeAccount(request: Request) {
-  const data = getData<AccountData>(request);
+export async function removeAccount(request: Request) {
+  const data = await getData<AccountData>(request);
   data.accountsAndTransfers.accounts = data.accountsAndTransfers.accounts.filter(
     (a) => a.id !== request.params.accountId,
   );
