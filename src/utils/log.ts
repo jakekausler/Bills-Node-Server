@@ -30,7 +30,7 @@ export function endTiming(fn: Function | string) {
   // delete functionTimings[name];
 }
 
-const SHOW_PROGRESS_BAR = false;
+const SHOW_PROGRESS_BAR = true;
 let progressBar: cliProgress.SingleBar;
 
 export function initProgressBar(nDays: number, nSimulation: number = -1, nSimulations: number = -1) {

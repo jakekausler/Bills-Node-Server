@@ -235,17 +235,6 @@ function formBarChartDatasets(results: SimulationResults, nSimulations: number) 
         });
       }
     });
-    console.log('Balances and Sums for ', year);
-    for (let i = 0; i < checkingSums.length; i++) {
-      console.log(
-        `Simulation ${i}: ${Object.keys(yearData)
-          .filter((account) => yearData[account].type === 'Checking')
-          .map((account) => {
-            return `${account}: ${yearData[account].results[i].toFixed(2)}`;
-          })
-          .join(', ')} -> ${checkingSums[i].toFixed(2)}`,
-      );
-    }
   });
   const thresholds = [0];
   const datasets: BarChartDataset[] = [];

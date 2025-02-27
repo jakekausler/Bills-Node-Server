@@ -364,19 +364,6 @@ function performPull(
       amountNeeded,
       balanceMap[pullableAccount.id] - (pullableAccount.minimumBalance ?? 0),
     );
-    console.log(
-      formatDate(currDate),
-      'Amount to pull',
-      availableAmount.toFixed(2),
-      'amount in pullable account (',
-      pullableAccount.name,
-      ')',
-      balanceMap[pullableAccount.id].toFixed(2),
-      'remaining balance',
-      (balanceMap[pullableAccount.id] - availableAmount).toFixed(2),
-      'going to account',
-      account.name,
-    );
     if (availableAmount <= 0) {
       return;
     }

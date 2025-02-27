@@ -36,7 +36,6 @@ export function calculateActivitiesForDates(
     ));
   }
   if (!subCalculation) {
-    console.log(dayjs(endDate).diff(dayjs(currDate), 'day'));
     initProgressBar(dayjs(endDate).diff(dayjs(currDate), 'day'), simulationNumber - 1, nSimulations);
   }
   if (!currDate) {
@@ -96,7 +95,7 @@ export function calculateActivitiesForDates(
     handlePension(accountsAndTransfers, pensions, currDate, balanceMap, idxMap);
     handleSocialSecurity(accountsAndTransfers, socialSecurities, currDate, balanceMap, idxMap);
 
-    if (currDate.getMonth() === 3 && currDate.getDate() === 1 && isAfter(currDate, new Date())) {
+    if (currDate.getMonth() === 3 && currDate.getDate() === 1 && isAfter(currDate, new Date('2026-01-01'))) {
       payPullTaxes(accountsAndTransfers, currDate, balanceMap, idxMap);
       payInterestTaxes(accountsAndTransfers, currDate, balanceMap, idxMap);
     }

@@ -125,7 +125,6 @@ export function changeAccountForActivity(request: Request) {
   } else {
     oldAccount.activity = oldAccount.activity.filter((a) => a.id !== activity.id);
     newAccount.activity.push(activity);
-    console.log(oldAccount.name, newAccount.name, activity.name);
   }
   saveData(data.accountsAndTransfers);
   return activity.id;
