@@ -13,7 +13,7 @@ export function handlePension(
 ) {
   pensions.forEach((pension) => {
     // Add the pension pay once per month starting when the pension begins
-    if (isAfterOrSame(currDate, pension.startDate) && currDate.getDate() === pension.startDate.getDate()) {
+    if (isAfterOrSame(currDate, pension.startDate) && currDate.getUTCDate() === pension.startDate.getUTCDate()) {
       const payToAccount = accountsAndTransfers.accounts.find((acc) => acc.name === pension.payToAcccount);
       if (!payToAccount) {
         throw new Error(`Pay to account ${pension.payToAcccount} not found`);

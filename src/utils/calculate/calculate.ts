@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { addBills, loadRatesToYears as loadBillRatesToYears } from './bills';
@@ -7,6 +8,8 @@ import { loadRatesToYears as loadInterestRatesToYears } from './interest';
 import { retrieveTodayBalances } from './balances';
 import { endTiming, startTiming } from '../log';
 import { calculateActivitiesForDates } from './calculateForDates';
+
+dayjs.extend(utc);
 
 export function calculateAllActivity(
   accountsAndTransfers: AccountsAndTransfers,
@@ -42,7 +45,7 @@ function addActivities(
     account.consolidatedActivity.sort((a, b) => {
       if (a.name === 'Opening Balance') return -1;
       if (b.name === 'Opening Balance') return 1;
-      return dayjs(a.date).diff(dayjs(b.date));
+      return dayjs.utc(a.date).diff(dayjs.utc(b.date));
     });
     endTiming('addActivitiesForAccount');
   }

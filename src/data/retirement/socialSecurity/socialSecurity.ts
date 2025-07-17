@@ -1,6 +1,9 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { loadVariable } from '../../../utils/simulation/variable';
 import { SocialSecurityData } from './types';
+
+dayjs.extend(utc);
 
 export class SocialSecurity {
   name: string;
@@ -32,11 +35,11 @@ export class SocialSecurity {
     this.birthDate = loadVariable(data.birthDateVariable, simulation) as Date;
     this.priorAnnualNetIncomes = data.priorAnnualNetIncomes;
     this.priorAnnualNetIncomeYears = data.priorAnnualNetIncomeYears;
-    this.startAge = dayjs(this.birthDate).diff(this.startDate, 'year', true);
+    this.startAge = dayjs.utc(this.birthDate).diff(this.startDate, 'year', true);
     this.average35YearPayInflationAdjusted = null;
     this.monthlyPay = null;
-    this.yearTurn60 = dayjs(this.birthDate).add(60, 'year').year();
-    this.collectionAge = dayjs(this.startDate).diff(this.birthDate, 'year', false);
+    this.yearTurn60 = dayjs.utc(this.birthDate).add(60, 'year').year();
+    this.collectionAge = dayjs.utc(this.startDate).diff(this.birthDate, 'year', false);
   }
 
   serialize(): SocialSecurityData {

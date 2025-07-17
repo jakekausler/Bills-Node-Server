@@ -5,6 +5,9 @@ import { AccountsAndTransfers } from '../../data/account/types';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { formatDate } from '../date/date';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
 
 export function performRMD(
   accountsAndTransfers: AccountsAndTransfers,
@@ -18,7 +21,7 @@ export function performRMD(
       if (!ownerDob) {
         throw new Error(`Account ${account.name} has no account owner DOB`);
       }
-      const age = dayjs(currDate).diff(ownerDob, 'year');
+      const age = dayjs.utc(currDate).diff(ownerDob, 'year');
       const rmdAmount = rmd(balanceMap[account.id], age);
       if (rmdAmount <= 0) {
         continue;

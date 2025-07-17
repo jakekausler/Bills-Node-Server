@@ -17,7 +17,7 @@ export function handleSocialSecurity(
     // Add the social security pay once per month starting when the social security begins
     if (
       isAfterOrSame(currDate, socialSecurity.startDate) &&
-      currDate.getDate() === socialSecurity.startDate.getDate()
+      currDate.getUTCDate() === socialSecurity.startDate.getUTCDate()
     ) {
       const payToAccount = accountsAndTransfers.accounts.find((acc) => acc.name === socialSecurity.payToAcccount);
       if (!payToAccount) {

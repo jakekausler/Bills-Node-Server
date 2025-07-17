@@ -4,11 +4,14 @@ import { AccountsAndTransfers } from '../../data/account/types';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { isBefore } from '../date/date';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { getById } from '../array/array';
 import { Account } from '../../data/account/account';
 import { Interest } from '../../data/interest/interest';
 import { calculateActivitiesForDates } from './calculateForDates';
 import { startTiming, endTiming } from '../log';
+
+dayjs.extend(utc);
 
 export function pushIfNeeded(
   accountsAndTransfers: AccountsAndTransfers,
@@ -156,8 +159,8 @@ export function payPullTaxes(
   for (const account of accountsAndTransfers.accounts) {
     // Create a map of source account ids to their taxable amounts
     const taxableMap: Record<string, number> = {};
-    const priorNewYear = dayjs(currDate).subtract(1, 'year').set('month', 0).set('date', 1).toDate();
-    const priorEndOfYear = dayjs(currDate).subtract(1, 'year').set('month', 11).set('date', 31).toDate();
+    const priorNewYear = dayjs.utc(currDate).subtract(1, 'year').set('month', 0).set('date', 1).toDate();
+    const priorEndOfYear = dayjs.utc(currDate).subtract(1, 'year').set('month', 11).set('date', 31).toDate();
     // Loop backward through the account's consolidated activity array until we are before the prior year
     for (let i = account.consolidatedActivity.length - 1; i >= 0; i--) {
       const activity = account.consolidatedActivity[i];
@@ -274,7 +277,7 @@ export function handleMonthlyPushesAndPulls(
   calculateActivitiesForDates(
     accountsAndTransfersCopy,
     currDate,
-    dayjs(currDate).endOf('month').toDate(),
+    dayjs.utc(currDate).endOf('month').toDate(),
     simulation,
     monteCarlo,
     simulationNumber,
@@ -315,7 +318,7 @@ export function handleMonthlyPushesAndPulls(
 }
 
 function getMinimumBalance(account: Account, currDate: Date) {
-  const endOfMonthDate = dayjs(currDate).endOf('month').toDate();
+  const endOfMonthDate = dayjs.utc(currDate).endOf('month').toDate();
   // Indices are the zero-indexed day of the month
   const dailyBalances: number[] = [];
 
@@ -329,7 +332,7 @@ function getMinimumBalance(account: Account, currDate: Date) {
     if (isAfter(activity.date, endOfMonthDate)) {
       break;
     }
-    const dayOfMonth = dayjs(activity.date).date() - 1;
+    const dayOfMonth = dayjs.utc(activity.date).date() - 1;
     const balance = activity.balance;
     dailyBalances[dayOfMonth] = balance;
   }

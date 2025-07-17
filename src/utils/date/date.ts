@@ -1,6 +1,9 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { DateString } from './types';
+
+dayjs.extend(utc);
 
 export function formatDate(date: Date): DateString {
   return date.toISOString().split('T')[0] as DateString;
@@ -41,11 +44,11 @@ export function getMinDate(accountsAndTransfers: AccountsAndTransfers): Date {
 }
 
 export function isBefore(date1: Date, date2: Date): boolean {
-  return dayjs(date1).isBefore(dayjs(date2), 'day');
+  return dayjs.utc(date1).isBefore(dayjs.utc(date2), 'day');
 }
 
 export function isSame(date1: Date, date2: Date): boolean {
-  return dayjs(date1).isSame(dayjs(date2), 'day');
+  return dayjs.utc(date1).isSame(dayjs.utc(date2), 'day');
 }
 
 export function isBeforeOrSame(date1: Date, date2: Date): boolean {
@@ -53,7 +56,7 @@ export function isBeforeOrSame(date1: Date, date2: Date): boolean {
 }
 
 export function isAfter(date1: Date, date2: Date): boolean {
-  return dayjs(date1).isAfter(dayjs(date2), 'day');
+  return dayjs.utc(date1).isAfter(dayjs.utc(date2), 'day');
 }
 
 export function isAfterOrSame(date1: Date, date2: Date): boolean {

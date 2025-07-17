@@ -24,6 +24,7 @@ import { getSpecificInterest, updateSpecificInterest, deleteSpecificInterest } f
 import { getCalendarBills } from './api/calendar/bills';
 import { getConsolidatedActivity } from './api/accounts/consolidatedActivity/consolidatedActivity';
 import { getSpecificConsolidatedActivity } from './api/accounts/consolidatedActivity/specificConsolidatedActivity';
+import { getSharedSpending } from './api/accounts/consolidatedActivity/sharedSpending';
 import { getCategories, addCategory, deleteCategory } from './api/categories/categories';
 import { getCategoryBreakdown } from './api/categories/breakdown';
 import { getCategorySectionItemTransactions } from './api/categories/section/item/transactions';
@@ -60,18 +61,27 @@ interface DecodedToken {
   userId: number;
 }
 
-const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization;
+const isTokenValid = (token?: string) => {
   if (!token) {
-    return res.status(401).json({ message: 'No token provided' });
+    return false;
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as DecodedToken;
-    req.userId = decoded.userId;
-    next();
+    return decoded.userId;
   } catch {
-    res.status(401).json({ message: 'Invalid token' });
+    return false;
   }
+};
+
+const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization;
+  const userId = isTokenValid(token);
+  if (!userId) {
+    res.status(401).json({ message: 'Invalid token' });
+    return;
+  }
+  req.userId = userId;
+  next();
 };
 
 // Account routes
@@ -337,11 +347,26 @@ app.post('/api/auth/register', async (_req: Request, res: Response) => {
   // }
 });
 
+app.get('/api/auth/validate', (req: Request, res: Response) => {
+  const token = req.headers.authorization;
+  const userId = isTokenValid(token);
+  if (!userId) {
+    res.status(401).json({ message: 'Invalid token' });
+    return;
+  }
+  res.json({ token: userId });
+});
+
 app.get('/api/moneyMovement', verifyToken, (req: Request, res: Response) => {
   res.json(getMoneyMovementChart(req));
 });
 
+app.get('/api/sharedSpending', (req: Request, res: Response) => {
+  console.log('Request:', req);
+  res.send(getSharedSpending(req));
+});
+
 // Start server
-app.listen(process.env.PORT, () => {
-  console.log(`Server is running on port ${process.env.PORT}`);
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });

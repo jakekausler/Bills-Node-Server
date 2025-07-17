@@ -44,12 +44,12 @@ export class Account {
     this.activity = data.activity
       ? data.activity
           .map((activity) => new Activity(activity, simulation))
-          .sort((a, b) => a.date.getDate() - b.date.getDate())
+          .sort((a, b) => a.date.getUTCDate() - b.date.getUTCDate())
       : [];
     this.bills = data.bills
       ? data.bills
           .map((bill) => new Bill(bill, simulation))
-          .sort((a, b) => a.startDate.getDate() - b.startDate.getDate())
+          .sort((a, b) => a.startDate.getUTCDate() - b.startDate.getUTCDate())
       : [];
     this.consolidatedActivity = [];
     this.todayBalance = 0;

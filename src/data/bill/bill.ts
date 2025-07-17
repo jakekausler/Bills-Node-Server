@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { loadDateOrVariable, loadNumberOrVariable } from '../../utils/simulation/loadVariableValue';
 import { BillData } from './types';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,6 +8,8 @@ import { AccountsAndTransfers } from '../account/types';
 import { ActivityData } from '../activity/types';
 import { Activity } from '../activity/activity';
 import { formatDate } from '../../utils/date/date';
+
+dayjs.extend(utc);
 
 export class Bill {
   id: string;
@@ -24,6 +27,7 @@ export class Bill {
   increaseByIsVariable: boolean;
   increaseByVariable: string | null;
   increaseByDate: { day: number; month: number };
+  ceilingMultiple: number;
 
   annualStartDate: string | null;
   annualEndDate: string | null;
@@ -78,6 +82,7 @@ export class Bill {
     }
 
     this.increaseByDate = this.setIncreaseByDate(data.increaseByDate);
+    this.ceilingMultiple = data.ceilingMultiple || 0;
 
     this.annualStartDate = data.annualStartDate || null;
     this.annualEndDate = data.annualEndDate || null;
@@ -144,6 +149,7 @@ export class Bill {
       increaseByDate: `${(this.increaseByDate.month + 1).toString().padStart(2, '0')}/${this.increaseByDate.day.toString().padStart(2, '0')}`,
       annualStartDate: this.annualStartDate,
       annualEndDate: this.annualEndDate,
+      ceilingMultiple: this.ceilingMultiple,
       isAutomatic: this.isAutomatic,
       startDate: formatDate(this.startDate),
       startDateIsVariable: this.startDateIsVariable,
@@ -171,7 +177,7 @@ export class Bill {
         name: this.name,
         category: this.category,
         amount: amount,
-        amountIsVariable: this.amountIsVariable,
+        amountIsVariable: false,
         amountVariable: this.amountVariable,
         date: formatDate(date),
         dateIsVariable: false,
@@ -186,16 +192,16 @@ export class Bill {
     );
   }
 
-  getMonthAndDay(annualDate: string) {
+  getUTCMonthAndDay(annualDate: string) {
     return [parseInt(annualDate.split('/')[0]), parseInt(annualDate.split('/')[1])];
   }
 
   checkAnnualDates(date: Date) {
-    const dateMonth = date.getMonth() + 1;
-    const dateDay = date.getDate() + 1;
+    const dateMonth = date.getUTCMonth() + 1;
+    const dateDay = date.getUTCDate() + 1;
     if (this.annualStartDate && this.annualEndDate) {
-      const [annualStartMonth, annualStartDay] = this.getMonthAndDay(this.annualStartDate);
-      const [annualEndMonth, annualEndDay] = this.getMonthAndDay(this.annualEndDate);
+      const [annualStartMonth, annualStartDay] = this.getUTCMonthAndDay(this.annualStartDate);
+      const [annualEndMonth, annualEndDay] = this.getUTCMonthAndDay(this.annualEndDate);
 
       if (this.annualStartDate < this.annualEndDate) {
         // Handle normal annual dates (start date is before end date, meaning the range is within a single year)
@@ -233,7 +239,7 @@ export class Bill {
         return new Date(date.getFullYear(), annualStartMonth, annualStartDay);
       }
     } else if (this.annualStartDate) {
-      const [annualStartMonth, annualStartDay] = this.getMonthAndDay(this.annualStartDate);
+      const [annualStartMonth, annualStartDay] = this.getUTCMonthAndDay(this.annualStartDate);
       // If we are after the start date
       if (dateMonth > annualStartMonth || (dateMonth === annualStartMonth && dateDay >= annualStartDay)) {
         // We are within the range
@@ -242,7 +248,7 @@ export class Bill {
       // Otherwise, we are before the start date, advance to the start date of the current year
       return new Date(date.getFullYear(), annualStartMonth, annualStartDay);
     } else if (this.annualEndDate) {
-      const [annualEndMonth, annualEndDay] = this.getMonthAndDay(this.annualEndDate);
+      const [annualEndMonth, annualEndDay] = this.getUTCMonthAndDay(this.annualEndDate);
       // If we are before the end date
       if (dateMonth < annualEndMonth || (dateMonth === annualEndMonth && dateDay <= annualEndDay)) {
         // We are within the range
@@ -258,13 +264,13 @@ export class Bill {
 
   advance() {
     if (this.periods === 'day') {
-      this.startDate = dayjs(this.startDate).add(this.everyN, 'day').toDate();
+      this.startDate = dayjs.utc(this.startDate).add(this.everyN, 'day').toDate();
     } else if (this.periods === 'week') {
-      this.startDate = dayjs(this.startDate).add(this.everyN, 'week').toDate();
+      this.startDate = dayjs.utc(this.startDate).add(this.everyN, 'week').toDate();
     } else if (this.periods === 'month') {
-      this.startDate = dayjs(this.startDate).add(this.everyN, 'month').toDate();
+      this.startDate = dayjs.utc(this.startDate).add(this.everyN, 'month').toDate();
     } else if (this.periods === 'year') {
-      this.startDate = dayjs(this.startDate).add(this.everyN, 'year').toDate();
+      this.startDate = dayjs.utc(this.startDate).add(this.everyN, 'year').toDate();
     }
     this.startDate = this.checkAnnualDates(this.startDate);
   }

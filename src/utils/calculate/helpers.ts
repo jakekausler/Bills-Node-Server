@@ -1,21 +1,25 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { getMinDate } from '../date/date';
 import { Interest } from '../../data/interest/interest';
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
 
+dayjs.extend(utc);
+
 export function nextDate(date: Date, period: string, nPeriods: number) {
   if (period.startsWith('day')) {
-    return dayjs(date).add(nPeriods, 'day').toDate();
+    return dayjs.utc(date).add(nPeriods, 'day').toDate();
   } else if (period.startsWith('week')) {
-    return dayjs(date)
+    return dayjs
+      .utc(date)
       .add(nPeriods * 7, 'day')
       .toDate();
   } else if (period.startsWith('month')) {
-    return dayjs(date).add(nPeriods, 'month').toDate();
+    return dayjs.utc(date).add(nPeriods, 'month').toDate();
   } else if (period.startsWith('year')) {
-    return dayjs(date).add(nPeriods, 'year').toDate();
+    return dayjs.utc(date).add(nPeriods, 'year').toDate();
   } else {
     throw new Error(`Invalid period: ${period}`);
   }
@@ -89,7 +93,7 @@ export function getYearlyIncomes(accountsAndTransfers: AccountsAndTransfers, ret
             retirement.paycheckNames.some((name) => activity.name?.includes(name)),
         )
         .forEach((activity) => {
-          const year = dayjs(activity.date).year();
+          const year = dayjs.utc(activity.date).year();
           annualIncomes[year] = (annualIncomes[year] || 0) + (activity.amount as number);
         });
     });

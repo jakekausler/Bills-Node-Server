@@ -7,6 +7,7 @@ export type DefaultData = {
   defaultStartDate: Date;
   defaultEndDate: Date;
   defaultSelectedAccounts: string[];
+  defaultSelectedSimulations: string[];
   defaultIsTransfer: boolean;
   defaultAsActivity: boolean;
   defaultSkip: boolean;
@@ -23,6 +24,7 @@ export type RequestData<T = undefined> = {
   startDate: Date;
   endDate: Date;
   selectedAccounts: string[];
+  selectedSimulations: string[];
   isTransfer: boolean;
   skip: boolean;
   accountsAndTransfers: AccountsAndTransfers;
@@ -31,4 +33,5 @@ export type RequestData<T = undefined> = {
   path: string[];
   socialSecurities: SocialSecurity[];
   pensions: Pension[];
+  options: Options;
 };

@@ -1,6 +1,9 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { loadVariable } from '../../../utils/simulation/variable';
 import { BenefitRequirement, PensionData } from './types';
+
+dayjs.extend(utc);
 
 export class Pension {
   name: string;
@@ -55,8 +58,8 @@ export class Pension {
         Object.fromEntries(Object.entries(years).map(([yearsWorked, rate]) => [Number(yearsWorked), Number(rate)])),
       ]),
     );
-    this.startAge = dayjs(this.startDate).diff(this.birthDate, 'year', true);
-    this.yearsWorked = dayjs(this.startDate).diff(this.workStartDate, 'year', true);
+    this.startAge = dayjs.utc(this.startDate).diff(this.birthDate, 'year', true);
+    this.yearsWorked = dayjs.utc(this.startDate).diff(this.workStartDate, 'year', true);
     this.highestCompensationAverage = null;
     this.reductionFactor = this.calculateReductionFactor();
     this.monthlyPay = null;

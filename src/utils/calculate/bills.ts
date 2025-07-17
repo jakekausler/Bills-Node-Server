@@ -5,11 +5,14 @@ import { Bill } from '../../data/bill/bill';
 import { isBeforeOrSame } from '../date/date';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { v4 as uuidv4 } from 'uuid';
 import { nextDate } from './helpers';
 import { load } from '../io/io';
 import { Rates } from './types';
 import { endTiming, startTiming } from '../log';
+
+dayjs.extend(utc);
 
 export function addBills(account: Account, bills: Bill[], endDate: Date, simulation: string, monteCarlo: boolean) {
   startTiming('addBills');
@@ -83,18 +86,23 @@ function getBillIncreasedAmountAndNextIncreaseDate(
   const { day, month } = bill.increaseByDate;
 
   // Get the target date in the current year
-  const currentYearTarget = dayjs(prevBillNextIncreaseDate).set('month', month).set('date', day);
+  const currentYearTarget = dayjs.utc(prevBillNextIncreaseDate).set('month', month).set('date', day);
 
   // If the target date in current year is after the previous date, use current year
   // Otherwise, add a year
   billNextIncreaseDate = (
-    currentYearTarget.isAfter(dayjs(prevBillNextIncreaseDate)) ? currentYearTarget : currentYearTarget.add(1, 'year')
+    currentYearTarget.isAfter(dayjs.utc(prevBillNextIncreaseDate))
+      ? currentYearTarget
+      : currentYearTarget.add(1, 'year')
   ).toDate();
 
-  const billIncreasedAmount =
+  let billIncreasedAmount =
     typeof prevBillIncreasedAmount === 'number' && !isFirst
-      ? prevBillIncreasedAmount * (1 + getIncreaseBy(bill, dayjs(billNextIncreaseDate).year(), monteCarlo))
+      ? prevBillIncreasedAmount * (1 + getIncreaseBy(bill, dayjs.utc(billNextIncreaseDate).year(), monteCarlo))
       : prevBillIncreasedAmount;
+  if (typeof billIncreasedAmount === 'number' && bill.ceilingMultiple > 0) {
+    billIncreasedAmount = Math.ceil(billIncreasedAmount / bill.ceilingMultiple) * bill.ceilingMultiple;
+  }
   return { billIncreasedAmount, billNextIncreaseDate };
 }
 

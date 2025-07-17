@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { formatDate } from '../../utils/date/date';
 import { loadDateOrVariable } from '../../utils/simulation/loadVariableValue';
 import { loadNumberOrVariable } from '../../utils/simulation/loadVariableValue';
@@ -7,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { Account } from '../account/account';
 import { Activity } from '../activity/activity';
 import { ActivityData } from '../activity/types';
+
+dayjs.extend(utc);
 
 export class Interest {
   id: string;
@@ -76,13 +79,13 @@ export class Interest {
 
   advance() {
     if (this.compounded === 'day') {
-      this.applicableDate = dayjs(this.applicableDate).add(1, 'day').toDate();
+      this.applicableDate = dayjs.utc(this.applicableDate).add(1, 'day').toDate();
     } else if (this.compounded === 'week') {
-      this.applicableDate = dayjs(this.applicableDate).add(1, 'week').toDate();
+      this.applicableDate = dayjs.utc(this.applicableDate).add(1, 'week').toDate();
     } else if (this.compounded === 'month') {
-      this.applicableDate = dayjs(this.applicableDate).add(1, 'month').toDate();
+      this.applicableDate = dayjs.utc(this.applicableDate).add(1, 'month').toDate();
     } else if (this.compounded === 'year') {
-      this.applicableDate = dayjs(this.applicableDate).add(1, 'year').toDate();
+      this.applicableDate = dayjs.utc(this.applicableDate).add(1, 'year').toDate();
     }
   }
 }

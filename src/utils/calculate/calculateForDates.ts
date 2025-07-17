@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { setupCalculation } from './helpers';
 import { loadPensionsAndSocialSecurity } from '../io/retirement';
@@ -11,6 +12,8 @@ import { handleMonthlyPushesAndPulls, payPullTaxes } from './pullsAndPushes';
 import { performRMD } from './rmd';
 import { Interest } from '../../data/interest/interest';
 import { startTiming, endTiming, initProgressBar, stopProgressBar, incrementProgressBar } from '../log';
+
+dayjs.extend(utc);
 
 export function calculateActivitiesForDates(
   accountsAndTransfers: AccountsAndTransfers,
@@ -36,7 +39,7 @@ export function calculateActivitiesForDates(
     ));
   }
   if (!subCalculation) {
-    initProgressBar(dayjs(endDate).diff(dayjs(currDate), 'day'), simulationNumber - 1, nSimulations);
+    initProgressBar(dayjs.utc(endDate).diff(dayjs.utc(currDate), 'day'), simulationNumber - 1, nSimulations);
   }
   if (!currDate) {
     throw new Error('currDate is null');
@@ -61,7 +64,7 @@ export function calculateActivitiesForDates(
     if (!subCalculation) {
       incrementProgressBar();
     }
-    if (!subCalculation && currDate.getDate() === 1) {
+    if (!subCalculation && currDate.getUTCDate() === 1) {
       handleMonthlyPushesAndPulls(
         accountsAndTransfers,
         currDate,
@@ -95,16 +98,16 @@ export function calculateActivitiesForDates(
     handlePension(accountsAndTransfers, pensions, currDate, balanceMap, idxMap);
     handleSocialSecurity(accountsAndTransfers, socialSecurities, currDate, balanceMap, idxMap);
 
-    if (currDate.getMonth() === 3 && currDate.getDate() === 1 && isAfter(currDate, new Date('2026-01-01'))) {
+    if (currDate.getUTCMonth() === 3 && currDate.getUTCDate() === 1 && isAfter(currDate, new Date('2026-01-01'))) {
       payPullTaxes(accountsAndTransfers, currDate, balanceMap, idxMap);
       payInterestTaxes(accountsAndTransfers, currDate, balanceMap, idxMap);
     }
 
-    if (currDate.getMonth() === 11 && currDate.getDate() === 31) {
+    if (currDate.getUTCMonth() === 11 && currDate.getUTCDate() === 31) {
       performRMD(accountsAndTransfers, currDate, balanceMap, idxMap);
     }
 
-    currDate = dayjs(currDate).add(1, 'day').toDate();
+    currDate = dayjs.utc(currDate).add(1, 'day').toDate();
   }
   if (!subCalculation) {
     stopProgressBar();

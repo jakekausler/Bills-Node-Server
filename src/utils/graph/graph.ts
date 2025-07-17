@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { formatDate, getMinDate, isSame } from '../date/date';
 import {
@@ -12,6 +13,8 @@ import {
   ActivityNameAndAmount,
 } from './types';
 import { endTiming, startTiming } from '../log';
+
+dayjs.extend(utc);
 
 const MAX_DAYS_FOR_ACTIVITY = 365 * 10;
 
@@ -49,7 +52,7 @@ export function loadYearlyGraph(
   while (currDate.getTime() <= endDate.getTime()) {
     if (currDate.getTime() < startDate.getTime()) {
       // Skip dates before start_date
-      currDate = dayjs(currDate).add(1, 'day').toDate();
+      currDate = dayjs.utc(currDate).add(1, 'day').toDate();
       continue;
     }
 
@@ -87,7 +90,7 @@ export function loadYearlyGraph(
         }
       }
     }
-    currDate = dayjs(currDate).add(1, 'day').toDate();
+    currDate = dayjs.utc(currDate).add(1, 'day').toDate();
   }
   const datasets: YearlyDataset[] = [];
   for (const acc of accountsAndTransfers.accounts) {
@@ -124,7 +127,7 @@ function loadActivityGraph(
 
   while (currDate.getTime() <= endDate.getTime()) {
     if (currDate.getTime() < startDate.getTime()) {
-      currDate = dayjs(currDate).add(1, 'day').toDate();
+      currDate = dayjs.utc(currDate).add(1, 'day').toDate();
       continue;
     }
 
@@ -151,7 +154,7 @@ function loadActivityGraph(
       datasets[a].data.push(balanceMap[acc.id]);
       datasets[a].activity.push(activity);
     }
-    currDate = dayjs(currDate).add(1, 'day').toDate();
+    currDate = dayjs.utc(currDate).add(1, 'day').toDate();
   }
 
   // Remove empty days

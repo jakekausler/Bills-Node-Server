@@ -1,19 +1,22 @@
 import { Request } from 'express';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { DefaultData, Options, RequestData } from './types';
 import { loadData } from '../io/accountsAndTransfers';
 import { loadPensionsAndSocialSecurity } from '../io/retirement';
+
+dayjs.extend(utc);
 
 function getSimulation(request: Request, defaultSimulation: string): string {
   return (request.query.simulation as string) || defaultSimulation;
 }
 
 function getStartDate(request: Request, defaultStartDate: Date): Date {
-  return dayjs((request.query.startDate as string) || defaultStartDate).toDate();
+  return dayjs.utc((request.query.startDate as string) || defaultStartDate).toDate();
 }
 
 function getEndDate(request: Request, defaultEndDate: Date): Date {
-  return dayjs((request.query.endDate as string) || defaultEndDate).toDate();
+  return dayjs.utc((request.query.endDate as string) || defaultEndDate).toDate();
 }
 
 function getSelectedAccounts(request: Request, defaultSelectedAccounts: string[]): string[] {
@@ -21,6 +24,13 @@ function getSelectedAccounts(request: Request, defaultSelectedAccounts: string[]
     return defaultSelectedAccounts;
   }
   return (request.query.selectedAccounts as string).split(',');
+}
+
+export function getSelectedSimulations(request: Request, defaultSelectedSimulations: string[]): string[] {
+  if (!request.query.selectedSimulations) {
+    return defaultSelectedSimulations;
+  }
+  return (request.query.selectedSimulations as string).split(',');
 }
 
 function getIsTransfer(request: Request, defaultIsTransfer: boolean): boolean {
@@ -56,8 +66,9 @@ export function getData<T>(
   defaults: DefaultData = {
     defaultSimulation: 'Default',
     defaultStartDate: new Date(),
-    defaultEndDate: dayjs().add(6, 'month').toDate(),
+    defaultEndDate: dayjs.utc().add(6, 'month').toDate(),
     defaultSelectedAccounts: [],
+    defaultSelectedSimulations: [],
     defaultIsTransfer: false,
     defaultAsActivity: false,
     defaultSkip: false,
@@ -71,6 +82,7 @@ export function getData<T>(
   const startDate = getStartDate(request, defaults.defaultStartDate);
   const endDate = getEndDate(request, defaults.defaultEndDate);
   const selectedAccounts = getSelectedAccounts(request, defaults.defaultSelectedAccounts);
+  const selectedSimulations = getSelectedSimulations(request, defaults.defaultSelectedSimulations);
   const isTransfer = getIsTransfer(request, defaults.defaultIsTransfer);
   const skip = getSkip(request, defaults.defaultSkip);
   const accountsAndTransfers = loadData(
@@ -95,6 +107,7 @@ export function getData<T>(
     startDate,
     endDate,
     selectedAccounts,
+    selectedSimulations,
     isTransfer,
     skip,
     accountsAndTransfers,
@@ -103,5 +116,6 @@ export function getData<T>(
     path,
     socialSecurities,
     pensions,
+    options,
   };
 }

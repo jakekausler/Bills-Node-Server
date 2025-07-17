@@ -3,5 +3,10 @@
     "name": "Default",
     "enabled": true,
     "selected": true
+  },
+  {
+    "name": "Kendall Low Pay",
+    "enabled": false,
+    "selected": false
   }
 ]

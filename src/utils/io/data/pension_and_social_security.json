@@ -1,127 +1,139 @@
 {
-    "pensions": [{
-        "name": "North Carolina Pension",
-        "payToAcccount": "Kendall",
-        "paycheckNames": ["Kendall Income"],
-        "paycheckAccounts": ["Kendall"],
-        "paycheckCategories": ["Income.Salary"],
-        "startDateVariable": "RETIRE_DATE",
-        "birthDateVariable": "KENDALL_BIRTH_DATE",
-        "workStartDateVariable": "KENDALL_CITY_START_DATE",
-        "priorAnnualNetIncomes": [40000, 42000],
-        "priorAnnualNetIncomeYears": [2022, 2023],
-        "unreducedRequirements": [{
-            "age": 65,
-            "yearsWorked": 5
-        }, {
-            "age": 60,
-            "yearsWorked": 25
-        }, {
-            "yearsWorked": 30
-        }],
-        "reducedRequirements": [{
-            "age": 60,
-            "yearsWorked": 5
-        }, {
-            "age": 50,
-            "yearsWorked": 20
-        }],
-        "highestCompensationConsecutiveYearsToAverage": 4,
-        "accrualFactor": 0.0185,
-        "reducedRateByAgeThenYearsOfService": {
-            "59": {
-                "29": 0.95,
-                "28": 0.9,
-                "27": 0.85,
-                "26": 0.8,
-                "25": 0.8,
-                "24": 0.8,
-                "23": 0.8
-            },
-            "58": {
-                "29": 0.95,
-                "28": 0.9,
-                "27": 0.85,
-                "26": 0.8,
-                "25": 0.75,
-                "24": 0.75,
-                "23": 0.75
-            },
-            "57": {
-                "29": 0.95,
-                "28": 0.9,
-                "27": 0.85,
-                "26": 0.8,
-                "25": 0.75,
-                "24": 0.7,
-                "23": 0.7
-            },
-            "56": {
-                "29": 0.95,
-                "28": 0.9,
-                "27": 0.85,
-                "26": 0.8,
-                "25": 0.75,
-                "24": 0.7,
-                "23": 0.65
-            },
-            "55": {
-                "29": 0.95,
-                "28": 0.9,
-                "27": 0.85,
-                "26": 0.8,
-                "25": 0.75,
-                "24": 0.7,
-                "23": 0.65
-            },
-            "54": {
-                "29": 0.95,
-                "28": 0.9,
-                "27": 0.85,
-                "26": 0.8,
-                "25": 0.75,
-                "24": 0.7,
-                "23": 0.65
-            },
-            "53": {
-                "29": 0.95,
-                "28": 0.9,
-                "27": 0.85,
-                "26": 0.8,
-                "25": 0.75,
-                "24": 0.7,
-                "23": 0.65
-            },
-            "52": {
-                "29": 0.95,
-                "28": 0.9,
-                "27": 0.85,
-                "26": 0.8,
-                "25": 0.75,
-                "24": 0.7,
-                "23": 0.65
-            }
+  "pensions": [
+    {
+      "name": "North Carolina Pension",
+      "payToAcccount": "Kendall",
+      "paycheckNames": ["Kendall Income"],
+      "paycheckAccounts": ["Kendall"],
+      "paycheckCategories": ["Income.Salary"],
+      "startDateVariable": "KENDALL_PENSION_START_DATE",
+      "birthDateVariable": "KENDALL_BIRTH_DATE",
+      "workStartDateVariable": "KENDALL_CITY_START_DATE",
+      "priorAnnualNetIncomes": [40000, 42000],
+      "priorAnnualNetIncomeYears": [2022, 2023],
+      "unreducedRequirements": [
+        {
+          "age": 65,
+          "yearsWorked": 5
+        },
+        {
+          "age": 60,
+          "yearsWorked": 25
+        },
+        {
+          "yearsWorked": 30
         }
-    }],
-    "socialSecurities": [{
-        "name": "Jake Social Security",
-        "payToAcccount": "Jake",
-        "paycheckNames": ["Nearpod", "Nearpod Bonus"],
-        "paycheckAccounts": ["Jake"],
-        "paycheckCategories": ["Income.Salary", "Income.Bonus"],
-        "startDateVariable": "JAKE_SOCIAL_SECURITY_START_DATE",
-        "birthDateVariable": "JAKE_BIRTH_DATE",
-        "priorAnnualNetIncomes": [50000, 50000, 50000, 50000, 50000, 50000, 75000, 75000],
-        "priorAnnualNetIncomeYears": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]
-    }, {
-        "name": "Kendall Social Security",
-        "payToAcccount": "Kendall",
-        "paycheckNames": ["Kendall Income"],
-        "paycheckAccounts": ["Kendall"],
-        "paycheckCategories": ["Income.Salary"],
-        "startDateVariable": "KENDALL_SOCIAL_SECURITY_START_DATE",
-        "birthDateVariable": "KENDALL_BIRTH_DATE",
-        "priorAnnualNetIncomes": [30000, 32000, 34000, 36000, 38000, 40000, 42000],
-        "priorAnnualNetIncomeYears": [2017, 2018, 2019, 2020, 2021, 2022, 2023]
-    }]
+      ],
+      "reducedRequirements": [
+        {
+          "age": 60,
+          "yearsWorked": 5
+        },
+        {
+          "age": 50,
+          "yearsWorked": 20
+        }
+      ],
+      "highestCompensationConsecutiveYearsToAverage": 4,
+      "accrualFactor": 0.0185,
+      "reducedRateByAgeThenYearsOfService": {
+        "59": {
+          "29": 0.95,
+          "28": 0.9,
+          "27": 0.85,
+          "26": 0.8,
+          "25": 0.8,
+          "24": 0.8,
+          "23": 0.8
+        },
+        "58": {
+          "29": 0.95,
+          "28": 0.9,
+          "27": 0.85,
+          "26": 0.8,
+          "25": 0.75,
+          "24": 0.75,
+          "23": 0.75
+        },
+        "57": {
+          "29": 0.95,
+          "28": 0.9,
+          "27": 0.85,
+          "26": 0.8,
+          "25": 0.75,
+          "24": 0.7,
+          "23": 0.7
+        },
+        "56": {
+          "29": 0.95,
+          "28": 0.9,
+          "27": 0.85,
+          "26": 0.8,
+          "25": 0.75,
+          "24": 0.7,
+          "23": 0.65
+        },
+        "55": {
+          "29": 0.95,
+          "28": 0.9,
+          "27": 0.85,
+          "26": 0.8,
+          "25": 0.75,
+          "24": 0.7,
+          "23": 0.65
+        },
+        "54": {
+          "29": 0.95,
+          "28": 0.9,
+          "27": 0.85,
+          "26": 0.8,
+          "25": 0.75,
+          "24": 0.7,
+          "23": 0.65
+        },
+        "53": {
+          "29": 0.95,
+          "28": 0.9,
+          "27": 0.85,
+          "26": 0.8,
+          "25": 0.75,
+          "24": 0.7,
+          "23": 0.65
+        },
+        "52": {
+          "29": 0.95,
+          "28": 0.9,
+          "27": 0.85,
+          "26": 0.8,
+          "25": 0.75,
+          "24": 0.7,
+          "23": 0.65
+        }
+      }
+    }
+  ],
+  "socialSecurities": [
+    {
+      "name": "Jake Social Security",
+      "payToAcccount": "Jake",
+      "paycheckNames": ["Nearpod", "Nearpod Bonus"],
+      "paycheckAccounts": ["Jake"],
+      "paycheckCategories": ["Income.Salary", "Income.Bonus"],
+      "startDateVariable": "JAKE_SOCIAL_SECURITY_START_DATE",
+      "birthDateVariable": "JAKE_BIRTH_DATE",
+      "priorAnnualNetIncomes": [50000, 50000, 50000, 50000, 50000, 50000, 75000, 75000],
+      "priorAnnualNetIncomeYears": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]
+    },
+    {
+      "name": "Kendall Social Security",
+      "payToAcccount": "Kendall",
+      "paycheckNames": ["Kendall Income"],
+      "paycheckAccounts": ["Kendall"],
+      "paycheckCategories": ["Income.Salary"],
+      "startDateVariable": "KENDALL_SOCIAL_SECURITY_START_DATE",
+      "birthDateVariable": "KENDALL_BIRTH_DATE",
+      "priorAnnualNetIncomes": [30000, 32000, 34000, 36000, 38000, 40000, 42000],
+      "priorAnnualNetIncomeYears": [2017, 2018, 2019, 2020, 2021, 2022, 2023]
+    }
+  ]
 }

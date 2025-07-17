@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { Account } from '../../data/account/account';
 import { getById } from '../array/array';
@@ -9,6 +10,8 @@ import { nextDate } from './helpers';
 import { v4 as uuidv4 } from 'uuid';
 import { Portfolio, Rates } from './types';
 import { load } from '../io/io';
+
+dayjs.extend(utc);
 
 export function payInterestTaxes(
   accountsAndTransfers: AccountsAndTransfers,
@@ -24,8 +27,8 @@ export function payInterestTaxes(
       if (!interestPayAccount) {
         throw new Error(`Interest pay account ${account.interestPayAccount} not found`);
       }
-      const priorNewYear = dayjs(currDate).subtract(1, 'year').set('date', 0).set('month', 0).toDate();
-      const priorEndOfYear = dayjs(currDate).subtract(1, 'year').set('date', 30).set('month', 11).toDate();
+      const priorNewYear = dayjs.utc(currDate).subtract(1, 'year').set('date', 0).set('month', 0).toDate();
+      const priorEndOfYear = dayjs.utc(currDate).subtract(1, 'year').set('date', 30).set('month', 11).toDate();
       // Loop backward through the account's consolidated activity array until we are before the prior year
       for (let i = account.consolidatedActivity.length - 1; i >= 0; i--) {
         const activity = account.consolidatedActivity[i];
@@ -105,6 +108,10 @@ export function handleInterest(
   }
   // If the next date interest will be applied is the current date, we need to add an interest activity
   if (isSame(nextInterestMap[account.id] as Date, currDate)) {
+    // if (account.name === 'Mortgage') {
+    //   console.log('currDate', currDate);
+    //   console.log('nextInterestMap[account.id]', nextInterestMap[account.id]);
+    // }
     // Create the interest activity
     const activity = (interestMap[account.id] as Interest).toActivity(
       uuidv4(),
@@ -139,13 +146,14 @@ export function handleInterest(
     // Check if the interest activity is not zero
     if (activity.amount !== 0) {
       // Insert the interest activity into the consolidated activity array at the current index
-      account.consolidatedActivity.splice(
-        idxMap[account.id],
-        0,
-        new ConsolidatedActivity(activity.serialize(), {
-          interestId: (interestMap[account.id] as Interest).id,
-        }),
-      );
+      const interest = new ConsolidatedActivity(activity.serialize(), {
+        interestId: (interestMap[account.id] as Interest).id,
+      });
+      // if (account.name === 'Mortgage') {
+      //   console.log('activity', activity.serialize());
+      //   console.log('consolidatedActivity', interest.serialize());
+      // }
+      account.consolidatedActivity.splice(idxMap[account.id], 0, interest);
 
       // Check if this is the first interest for the interest's applicable date
       if (isSame(interestMap[account.id]?.applicableDate as Date, currDate)) {

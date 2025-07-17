@@ -22,6 +22,7 @@ export type BillData = {
   increaseByIsVariable: boolean;
   increaseByVariable: string | null;
   increaseByDate: string;
+  ceilingMultiple: number;
   isTransfer: boolean;
   from: string | null;
   to: string | null;

@@ -21,6 +21,7 @@ export function addInterest(request: Request) {
 }
 
 export function updateInterest(request: Request) {
+  // TODO: Skip is not implemented
   const data = getData<InterestData[]>(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   account.interests = data.data.map((interest) => new Interest(interest));
