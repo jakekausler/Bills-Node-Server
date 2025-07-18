@@ -3,26 +3,42 @@ import cliProgress from 'cli-progress';
 
 const LOG_FILE = '/home/jakekausler/programs/billsV2/log.txt';
 
+/**
+ * Logs a message to a file with optional reset flag
+ * 
+ * @param message - The message to log to the file
+ * @param reset - If true, overwrites the file; if false, appends to the file
+ */
 export function logToFile(message: string, reset: boolean = false) {
   const logFile = fs.createWriteStream(LOG_FILE, { flags: reset ? 'w' : 'a' });
   logFile.write(message + '\n');
   logFile.end();
 }
 
-let functionTimings: Record<string, number> = {};
+const functionTimings: Record<string, number> = {};
 
-function getIndent() {
+function _getIndent() {
   return '|  '.repeat(Object.keys(functionTimings).length);
 }
 
-// TODO: Needs to handle recursive calls
-export function startTiming(fn: Function | string) {
+/**
+ * Starts timing for a function (currently disabled)
+ * 
+ * TODO: Needs to handle recursive calls
+ * @param _fn - Function or function name to start timing for
+ */
+export function startTiming(_fn: (() => void) | string) {
   // const name = fn instanceof Function ? fn.name : fn;
   // functionTimings[name] = Date.now();
   // console.log(`=== ${getIndent()}|  ${name} started`);
 }
 
-export function endTiming(fn: Function | string) {
+/**
+ * Ends timing for a function (currently disabled)
+ * 
+ * @param _fn - Function or function name to end timing for
+ */
+export function endTiming(_fn: (() => void) | string) {
   // const name = fn instanceof Function ? fn.name : fn;
   // const startTime = functionTimings[name];
   // const endTime = Date.now();
@@ -33,6 +49,13 @@ export function endTiming(fn: Function | string) {
 const SHOW_PROGRESS_BAR = true;
 let progressBar: cliProgress.SingleBar;
 
+/**
+ * Initializes a progress bar for tracking simulation progress
+ * 
+ * @param nDays - Total number of days to process
+ * @param nSimulation - Current simulation number (0-indexed, -1 for single simulation)
+ * @param nSimulations - Total number of simulations (-1 for single simulation)
+ */
 export function initProgressBar(nDays: number, nSimulation: number = -1, nSimulations: number = -1) {
   if (!SHOW_PROGRESS_BAR) {
     return;
@@ -47,6 +70,9 @@ export function initProgressBar(nDays: number, nSimulation: number = -1, nSimula
   progressBar.start(nDays, 0);
 }
 
+/**
+ * Increments the progress bar by one step
+ */
 export function incrementProgressBar() {
   if (!SHOW_PROGRESS_BAR) {
     return;
@@ -54,6 +80,9 @@ export function incrementProgressBar() {
   progressBar.increment();
 }
 
+/**
+ * Stops and cleans up the progress bar
+ */
 export function stopProgressBar() {
   if (!SHOW_PROGRESS_BAR) {
     return;

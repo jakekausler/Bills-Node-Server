@@ -8,7 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Build**: `npm run build` - Compiles TypeScript to JavaScript in the dist/ directory
 - **Production**: `npm start` - Runs the compiled JavaScript from dist/index.js
 - **Lint**: `npm run lint` - Runs ESLint on all TypeScript files in src/
-- **Test**: No test framework configured (exits with error)
+- **Test**: `npm test` - Runs Vitest in watch mode for development
+- **Test (run once)**: `npm run test:run` - Runs all tests once and exits
+- **Test UI**: `npm run test:ui` - Opens Vitest UI for interactive testing
+- **Test Coverage**: `npm run test:coverage` - Runs tests with coverage report
 
 ## Project Architecture
 
@@ -52,6 +55,14 @@ AccountsAndTransfers
 - Account model: `src/data/account/account.ts`
 - API route definitions: All routes defined in `src/index.ts`
 
+### Testing Structure
+
+- **Test Framework**: Vitest with coverage reporting via v8
+- **Test Files**: Located alongside source files with `.test.ts` extension
+- **Test Configuration**: `vitest.config.ts` - includes coverage settings and path aliases
+- **Coverage Exclusions**: `calculate` utility folder is excluded from coverage as it's being overhauled
+- **Mock Strategy**: Extensive use of vi.mock() for dependency isolation in unit tests
+
 ### Authentication & Security
 
 - JWT-based authentication with MySQL user storage
@@ -74,3 +85,10 @@ The system uses JSON files for data persistence in `src/utils/io/data/`:
 - `variables.csv` - Simulation variables
 - `pension_and_social_security.json` - Retirement data
 - Automatic backups created every 10 saves in `backup/` directory
+
+### Code Quality & Maintenance
+
+- **Documentation**: JSDoc comments added to all public functions, classes, and methods
+- **Refactoring**: Large functions broken down into smaller, testable units (e.g., `updateAccounts` function)
+- **Test Coverage**: Comprehensive unit tests for data models, API endpoints, and utility functions
+- **Type Safety**: Full TypeScript implementation with strict type checking

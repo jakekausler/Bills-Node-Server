@@ -5,12 +5,24 @@ import { Account } from '../../data/account/account';
 import { saveData } from '../../utils/io/accountsAndTransfers';
 import { AccountData } from '../../data/account/types';
 
+/**
+ * Retrieves a simplified account object by ID
+ * 
+ * @param request - Express request object with accountId parameter
+ * @returns Simplified account object containing basic account information
+ */
 export function getAccount(request: Request) {
   const data = getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   return account.simpleAccount();
 }
 
+/**
+ * Updates an account's name and saves the data
+ * 
+ * @param request - Express request object with accountId parameter and account data
+ * @returns Updated simplified account object
+ */
 export function updateAccount(request: Request) {
   const data = getData<AccountData>(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
@@ -19,6 +31,12 @@ export function updateAccount(request: Request) {
   return account.simpleAccount();
 }
 
+/**
+ * Removes an account from the system and saves the data
+ * 
+ * @param request - Express request object with accountId parameter
+ * @returns The ID of the removed account
+ */
 export function removeAccount(request: Request) {
   const data = getData<AccountData>(request);
   data.accountsAndTransfers.accounts = data.accountsAndTransfers.accounts.filter(

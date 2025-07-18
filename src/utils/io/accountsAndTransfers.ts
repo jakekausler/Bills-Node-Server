@@ -8,6 +8,19 @@ import { CACHE_ACCOUNTS_AND_TRANSFERS, getCacheKey, updateCache as doUpdateCache
 
 export const FILE_NAME = 'data';
 
+/**
+ * Loads accounts and transfers data with caching support
+ * 
+ * This function loads financial data from the data file, processes it through
+ * the calculation engine, and caches the results. It handles account objects,
+ * transfer activities, and bills with their associated calculations.
+ * 
+ * @param startDate - The start date for calculations
+ * @param endDate - The end date for calculations
+ * @param simulation - The simulation name to use (defaults to 'Default')
+ * @param updateCache - Whether to reset the cache before loading (defaults to true)
+ * @returns The loaded and processed accounts and transfers data
+ */
 export function loadData(startDate: Date, endDate: Date, simulation: string = 'Default', updateCache: boolean = true) {
   const key = getCacheKey(startDate, endDate, simulation);
   if (updateCache) {
@@ -21,6 +34,18 @@ export function loadData(startDate: Date, endDate: Date, simulation: string = 'D
   return getCache(CACHE_ACCOUNTS_AND_TRANSFERS, key);
 }
 
+/**
+ * Loads and processes raw accounts and transfers data from the data file
+ * 
+ * This private function handles the conversion of raw JSON data into typed objects
+ * (Account, Activity, Bill) and runs the calculation engine to compute all
+ * financial activities and balances for the specified date range.
+ * 
+ * @param startDate - The start date for calculations
+ * @param endDate - The end date for calculations
+ * @param simulation - The simulation name to use for variable resolution
+ * @returns Processed accounts and transfers data with calculated activities
+ */
 function getAccountsAndTransfers(startDate: Date, endDate: Date, simulation: string): AccountsAndTransfers {
   const data = load<AccountsAndTransfersData>(`${FILE_NAME}.json`);
 
@@ -41,6 +66,15 @@ function getAccountsAndTransfers(startDate: Date, endDate: Date, simulation: str
   return accountsAndTransfers;
 }
 
+/**
+ * Saves accounts and transfers data to the data file and resets cache
+ * 
+ * This function serializes all account objects, transfer activities, and bills
+ * back to their raw JSON format and saves them to the data file. It also
+ * resets the cache to ensure fresh data on next load.
+ * 
+ * @param data - The accounts and transfers data to save
+ */
 export function saveData(data: AccountsAndTransfers) {
   const accounts = data.accounts.map((account) => account.serialize());
   const transfers = {

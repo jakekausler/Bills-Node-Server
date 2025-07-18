@@ -11,6 +11,10 @@ import { ActivityData } from '../activity/types';
 
 dayjs.extend(utc);
 
+/**
+ * Represents an interest rate configuration for an account
+ * Supports variable rates and different compounding frequencies
+ */
 export class Interest {
   id: string;
   apr: number;
@@ -21,6 +25,11 @@ export class Interest {
   applicableDateIsVariable: boolean;
   applicableDateVariable: string | null;
 
+  /**
+   * Creates a new Interest instance
+   * @param data - Interest data object
+   * @param simulation - Simulation name for variable resolution (defaults to 'Default')
+   */
   constructor(data: InterestData, simulation: string = 'Default') {
     this.id = data.id || uuidv4();
     const {
@@ -42,6 +51,10 @@ export class Interest {
     this.applicableDateVariable = applicableDateVariable;
   }
 
+  /**
+   * Serializes the interest to a plain object for storage
+   * @returns Serialized interest data
+   */
   serialize(): InterestData {
     return {
       id: this.id,
@@ -55,6 +68,14 @@ export class Interest {
     };
   }
 
+  /**
+   * Converts the interest to an Activity instance for a specific amount and date
+   * @param id - Unique identifier for the activity
+   * @param simulation - Simulation name
+   * @param amount - Interest amount calculated
+   * @param date - Date for the interest activity
+   * @returns New Activity instance representing interest earned
+   */
   toActivity(id: string, simulation: string, amount: number, date: Date): Activity {
     return new Activity(
       {
@@ -77,6 +98,9 @@ export class Interest {
     );
   }
 
+  /**
+   * Advances the applicable date by the compounding period
+   */
   advance() {
     if (this.compounded === 'day') {
       this.applicableDate = dayjs.utc(this.applicableDate).add(1, 'day').toDate();
@@ -90,6 +114,13 @@ export class Interest {
   }
 }
 
+/**
+ * Inserts an interest activity into an account and manages interest rate transitions
+ * @param account - The account to add interest to
+ * @param interest - The interest configuration
+ * @param data - Activity data for the interest payment
+ * @param simulation - Simulation name (defaults to 'Default')
+ */
 export function insertInterest(
   account: Account,
   interest: Interest,
@@ -108,6 +139,14 @@ export function insertInterest(
   }
 }
 
+/**
+ * Calculates compound interest for a given balance and rate
+ * @param balance - Account balance to calculate interest on
+ * @param apr - Annual percentage rate
+ * @param compounded - Compounding frequency
+ * @returns Interest amount for the compounding period
+ * @throws Error if compounding frequency is invalid
+ */
 export function compoundInterest(balance: number, apr: number, compounded: 'day' | 'week' | 'month' | 'year') {
   if (compounded === 'day') {
     return (apr / 365) * balance;

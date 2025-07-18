@@ -5,6 +5,34 @@ import { getById } from '../../utils/array/array';
 import { Bill } from '../../data/bill/bill';
 import { formatDate } from '../../utils/date/date';
 
+/**
+ * Retrieves calendar bills for display in calendar view.
+ * 
+ * Filters bills from consolidated activity based on:
+ * - Date range (startDate to endDate)
+ * - Account selection (selectedAccounts)
+ * - Account visibility (hidden accounts excluded if no selection)
+ * - Transfer handling (only shows negative transfers to avoid double-counting)
+ * 
+ * @param request - Express request object containing query parameters and session data
+ * @returns Array of CalendarBill objects with account, date, and bill information
+ * 
+ * @example
+ * ```typescript
+ * // Get bills for calendar display
+ * const calendarBills = getCalendarBills(request);
+ * console.log(calendarBills[0]);
+ * // {
+ * //   account: "Checking Account",
+ * //   accountId: "account-1",
+ * //   date: "2024-01-15",
+ * //   id: "bill-1",
+ * //   name: "Rent",
+ * //   category: "Housing",
+ * //   amount: -1500
+ * // }
+ * ```
+ */
 export function getCalendarBills(request: Request) {
   const data = getData(request);
 

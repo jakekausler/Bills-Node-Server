@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DateString } from '../date/types';
 
 function cloneAccountsAndTransfers(accountsAndTransfers: AccountsAndTransfers): AccountsAndTransfers {
-  startTiming(cloneAccountsAndTransfers);
+  startTiming('cloneAccountsAndTransfers');
   const clone = {
     accounts: accountsAndTransfers.accounts.map((account) => new Account(account.serialize())),
     transfers: {
@@ -22,7 +22,7 @@ function cloneAccountsAndTransfers(accountsAndTransfers: AccountsAndTransfers): 
       bills: accountsAndTransfers.transfers.bills.map((bill) => new Bill(bill.serialize())),
     },
   };
-  endTiming(cloneAccountsAndTransfers);
+  endTiming('cloneAccountsAndTransfers');
   return clone;
 }
 
@@ -37,7 +37,7 @@ function runSimulations(
 
   // results[year][account] = [min for each simulation]
   const results: SimulationResults = {};
-  startTiming(runSimulations);
+  startTiming('runSimulations');
   for (let i = 0; i < nSimulations; i++) {
     const accountsAndTransfersClone = cloneAccountsAndTransfers(accountsAndTransfers);
     calculateAllActivity(accountsAndTransfersClone, startDate, endDate, simulation, true, i, nSimulations);
@@ -59,12 +59,12 @@ function runSimulations(
       }
     });
   }
-  endTiming(runSimulations);
+  endTiming('runSimulations');
   return results;
 }
 
 function calculatePercentiles(results: SimulationResults): PercentileData {
-  startTiming(calculatePercentiles);
+  startTiming('calculatePercentiles');
   const percentiles: PercentileData = Object.keys(results).reduce<PercentileData>((acc, year) => {
     acc[year] = Object.keys(results[year]).reduce<PercentileDataYearItem>((acc, account) => {
       const values = results[year][account].results;
@@ -82,7 +82,7 @@ function calculatePercentiles(results: SimulationResults): PercentileData {
     }, {});
     return acc;
   }, {});
-  endTiming(calculatePercentiles);
+  endTiming('calculatePercentiles');
   return percentiles;
 }
 
@@ -91,7 +91,7 @@ function createDatasets(
   accountsAndTransfers: AccountsAndTransfers,
   selectedAccounts: string[],
 ) {
-  startTiming(createDatasets);
+  startTiming('createDatasets');
   const colors = [
     '#FF0000',
     '#00FF00',
@@ -149,7 +149,7 @@ function createDatasets(
     colorsIdx += 1;
   });
 
-  endTiming(createDatasets);
+  endTiming('createDatasets');
   return datasets;
 }
 
@@ -159,13 +159,13 @@ function createGraph(
   percentileData: PercentileData,
   selectedAccounts: string[],
 ) {
-  startTiming(createGraph);
+  startTiming('createGraph');
   const datasets = createDatasets(percentileData, accountsAndTransfers, selectedAccounts);
   const graph = {
     labels: Object.keys(results),
     datasets,
   };
-  endTiming(createGraph);
+  endTiming('createGraph');
   return graph;
 }
 
@@ -176,7 +176,7 @@ function formBarChartDataset(
   color: string,
   nSimulations: number,
 ) {
-  startTiming(formBarChartDataset);
+  startTiming('formBarChartDataset');
   const dataset = {
     label: thresholdBottom ? `Between $ ${thresholdTop} and $ ${thresholdBottom}` : `Below $ ${thresholdTop}`,
     data: Object.keys(results)
@@ -206,12 +206,12 @@ function formBarChartDataset(
       }),
     backgroundColor: color,
   };
-  endTiming(formBarChartDataset);
+  endTiming('formBarChartDataset');
   return dataset;
 }
 
 function formBarChartDatasets(results: SimulationResults, nSimulations: number) {
-  startTiming(formBarChartDatasets);
+  startTiming('formBarChartDatasets');
   const colors = [
     '#FF0000',
     '#00FF00',
@@ -253,12 +253,12 @@ function formBarChartDatasets(results: SimulationResults, nSimulations: number) 
     }
     datasets.push(dataset);
   });
-  endTiming(formBarChartDatasets);
+  endTiming('formBarChartDatasets');
   return datasets;
 }
 
 function createBarChart(results: SimulationResults, nSimulations: number) {
-  startTiming(createBarChart);
+  startTiming('createBarChart');
   const years = Object.keys(results)
     .map((d) => parseDate(d as DateString).getFullYear())
     .filter((year) => year > new Date().getFullYear());
@@ -266,7 +266,7 @@ function createBarChart(results: SimulationResults, nSimulations: number) {
     labels: years,
     datasets: formBarChartDatasets(results, nSimulations),
   };
-  endTiming(createBarChart);
+  endTiming('createBarChart');
   return barChart;
 }
 
@@ -285,7 +285,7 @@ export function monteCarlo(
   //   'ddf04fa7-6a2b-4070-b06a-24c0af3285b1',
   // ],
 ) {
-  startTiming(monteCarlo);
+  startTiming('monteCarlo');
   const startDate = new Date('2025-01-01');
   const endDate = new Date('2083-12-31');
   // For each simulation, we need to:
@@ -325,7 +325,7 @@ export function monteCarlo(
   }
   // const percentileData = calculatePercentiles(results);
   // const graph = createGraph(accountsAndTransfers, results, percentileData, selectedAccounts);
-  // endTiming(monteCarlo);
+  // endTiming('monteCarlo');
   // return { graph, id };
   if (chartType === 'line') {
     const percentileData = calculatePercentiles(results);

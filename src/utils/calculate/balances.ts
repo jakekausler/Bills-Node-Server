@@ -12,7 +12,7 @@ export function retrieveBalances(
   idxMap: Record<string, number>,
   balanceMap: Record<string, number>,
 ) {
-  startTiming(retrieveBalances);
+  startTiming('retrieveBalances');
   while (
     // While we are still within the bounds of the consolidated activity array
     idxMap[account.id] < account.consolidatedActivity.length
@@ -28,7 +28,7 @@ export function retrieveBalances(
       idxMap[account.id] += 1;
     }
   }
-  endTiming(retrieveBalances);
+  endTiming('retrieveBalances');
 }
 
 function updateBalanceMap(account: Account, balanceMap: Record<string, number>, idxMap: Record<string, number>) {
@@ -37,12 +37,12 @@ function updateBalanceMap(account: Account, balanceMap: Record<string, number>, 
 }
 
 export function retrieveTodayBalances(accountsAndTransfers: AccountsAndTransfers, startDate: Date, endDate: Date) {
-  startTiming(retrieveTodayBalances);
+  startTiming('retrieveTodayBalances');
   for (const account of accountsAndTransfers.accounts) {
     account.todayBalance = todayBalance(account);
     account.consolidatedActivity = account.consolidatedActivity.filter(
       (activity) => activity.date >= startDate && activity.date <= endDate,
     );
   }
-  endTiming(retrieveTodayBalances);
+  endTiming('retrieveTodayBalances');
 }

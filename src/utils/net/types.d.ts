@@ -14,6 +14,8 @@ export type DefaultData = {
   defaultPath: string[];
 };
 
+export type PartialDefaultData = Partial<DefaultData>;
+
 export type Options = {
   overrideStartDateForCalculations?: Date;
   updateCache?: boolean;

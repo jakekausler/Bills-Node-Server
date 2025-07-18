@@ -1,6 +1,19 @@
 import { Request } from 'express';
 import { getData } from '../../../utils/net/request';
 
+/**
+ * Retrieves expense breakdown by subcategory within a specific category section
+ * 
+ * This endpoint analyzes consolidated activities to calculate spending amounts
+ * for each subcategory within a given category section. It handles:
+ * - Account filtering (selected accounts and hidden accounts)
+ * - Transfer activity adjustments (half amount for internal transfers)
+ * - Exclusion of positive amounts (credits/refunds)
+ * - Rounding to 2 decimal places
+ * 
+ * @param request - Express request object with section parameter
+ * @returns Object mapping subcategory names to their total spending amounts
+ */
 export function getCategorySectionBreakdown(request: Request) {
   const data = getData(request);
   const section = request.params.section as string;
@@ -32,11 +45,11 @@ export function getCategorySectionBreakdown(request: Request) {
         // If the other half of the transfer is not in the selected accounts,
         // Then subtract the full amount.
         if (activity.to && !data.selectedAccounts.includes(activity.to)) {
-          ret[item] -= Math.round((activity.amount as number) * 100) / 100;
+          ret[item] += Math.round((activity.amount as number) * 100) / 100;
         } else if (activity.fro && !data.selectedAccounts.includes(activity.fro)) {
-          ret[item] -= Math.round((activity.amount as number) * 100) / 100;
+          ret[item] += Math.round((activity.amount as number) * 100) / 100;
         } else {
-          ret[item] -= Math.round((activity.amount as number) * 50) / 100;
+          ret[item] += Math.round((activity.amount as number) * 0.5 * 100) / 100;
         }
       } else {
         // Add the amount (negative for debits, positive for credits) to the category

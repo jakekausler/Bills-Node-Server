@@ -30,7 +30,7 @@ export function calculateActivitiesForDates(
   interestMap: Record<string, Interest | null> | null = null,
   nextInterestMap: Record<string, Date | null> | null = null,
 ) {
-  startTiming(calculateActivitiesForDates);
+  startTiming('calculateActivitiesForDates');
   let currDate = startDate;
   if (!subCalculation) {
     ({ currDate, idxMap, balanceMap, interestIdxMap, interestMap, nextInterestMap } = setupCalculation(
@@ -112,5 +112,5 @@ export function calculateActivitiesForDates(
   if (!subCalculation) {
     stopProgressBar();
   }
-  endTiming(calculateActivitiesForDates);
+  endTiming('calculateActivitiesForDates');
 }

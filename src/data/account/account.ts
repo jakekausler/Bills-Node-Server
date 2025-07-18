@@ -6,6 +6,10 @@ import { Interest } from '../interest/interest';
 import { ConsolidatedActivity } from '../activity/consolidatedActivity';
 import { formatDate } from '../../utils/date/date';
 
+/**
+ * Represents a financial account with activities, bills, and interests
+ * Supports various account types including retirement accounts with RMD requirements
+ */
 export class Account {
   id: string;
   name: string;
@@ -33,6 +37,11 @@ export class Account {
   pushEnd: Date | null;
   pushAccount: string | null;
 
+  /**
+   * Creates a new Account instance
+   * @param data - Account data object
+   * @param simulation - Simulation name for variable resolution (defaults to 'Default')
+   */
   constructor(data: AccountData, simulation: string = 'Default') {
     this.id = data.id || uuidv4();
     this.name = data.name;
@@ -73,6 +82,10 @@ export class Account {
     this.pushAccount = data.pushAccount || null;
   }
 
+  /**
+   * Serializes the account to a plain object for storage
+   * @returns Serialized account data
+   */
   serialize(): AccountData {
     return {
       id: this.id,
@@ -101,6 +114,10 @@ export class Account {
     };
   }
 
+  /**
+   * Returns a simplified representation of the account for API responses
+   * @returns Simplified account object
+   */
   simpleAccount() {
     return {
       id: this.id,
@@ -127,11 +144,20 @@ export class Account {
     };
   }
 
+  /**
+   * Returns a string representation of the account
+   * @returns String representation in format "Account(name, id)"
+   */
   toString() {
     return `Account(${this.name}, ${this.id})`;
   }
 }
 
+/**
+ * Calculates the current balance of an account based on consolidated activity
+ * @param account - The account to calculate balance for
+ * @returns Current balance as of today
+ */
 export function todayBalance(account: Account) {
   const activities = account.consolidatedActivity;
   let lastBalance = 0;

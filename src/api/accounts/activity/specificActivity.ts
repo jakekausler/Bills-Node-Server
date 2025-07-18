@@ -7,6 +7,12 @@ import { ActivityData } from '../../../data/activity/types';
 import { parseDate } from '../../../utils/date/date';
 import { saveData } from '../../../utils/io/accountsAndTransfers';
 
+/**
+ * Retrieves a specific activity by ID, handling both transfer and regular activities
+ * 
+ * @param request - Express request object with activityId parameter and optional accountId
+ * @returns The specific activity object
+ */
 export function getSpecificActivity(request: Request) {
   const data = getData(request);
   if (data.isTransfer) {
@@ -17,6 +23,15 @@ export function getSpecificActivity(request: Request) {
   }
 }
 
+/**
+ * Updates a specific activity with new data, handling conversions between transfer and regular activities
+ * 
+ * This function handles complex scenarios where activities can be converted between transfer and regular types,
+ * moving them between the appropriate storage locations (transfers.activity vs account.activity).
+ * 
+ * @param request - Express request object with activityId parameter and activity data
+ * @returns The ID of the updated activity
+ */
 export function updateSpecificActivity(request: Request) {
   const data = getData<ActivityData>(request);
   let activity: Activity;
@@ -83,6 +98,12 @@ export function updateSpecificActivity(request: Request) {
   return activity.id;
 }
 
+/**
+ * Deletes a specific activity from the system
+ * 
+ * @param request - Express request object with activityId parameter and optional accountId
+ * @returns The ID of the deleted activity
+ */
 export function deleteSpecificActivity(request: Request) {
   const data = getData(request);
   let activity: Activity;
@@ -108,6 +129,15 @@ export function deleteSpecificActivity(request: Request) {
   return activity.id;
 }
 
+/**
+ * Changes the account association for a specific activity
+ * 
+ * For transfer activities, this updates the 'from' account reference.
+ * For regular activities, this moves the activity from one account to another.
+ * 
+ * @param request - Express request object with activityId, accountId, and newAccountId parameters
+ * @returns The ID of the activity that was moved
+ */
 export function changeAccountForActivity(request: Request) {
   const data = getData(request);
   const oldAccount = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);

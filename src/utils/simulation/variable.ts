@@ -2,6 +2,18 @@ import { parseDate } from '../date/date';
 import { DateString } from '../date/types';
 import { loadSimulations } from '../io/simulation';
 
+/**
+ * Loads and resolves a variable value from a simulation configuration
+ * 
+ * This function retrieves variable values from simulation configurations,
+ * handling both date and amount types. It also supports special fraction
+ * values for partial amounts ({HALF}, {FULL}, etc.).
+ * 
+ * @param variable - The variable name to load, including special fraction values
+ * @param simulation - The simulation name to load the variable from
+ * @returns The resolved variable value as a number, Date, or special fraction string
+ * @throws Error if the simulation or variable is not found, or if the variable type is invalid
+ */
 export function loadVariable(
   variable: string,
   simulation: string,

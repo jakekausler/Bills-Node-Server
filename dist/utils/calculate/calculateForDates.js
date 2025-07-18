@@ -1,0 +1,68 @@
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import { setupCalculation } from './helpers';
+import { loadPensionsAndSocialSecurity } from '../io/retirement';
+import { isBeforeOrSame, isAfter } from '../date/date';
+import { handleInterest, payInterestTaxes } from './interest';
+import { retrieveBalances } from './balances';
+import { handlePension } from './pension';
+import { handleSocialSecurity } from './socialSecurity';
+import { handleMonthlyPushesAndPulls, payPullTaxes } from './pullsAndPushes';
+import { performRMD } from './rmd';
+import { startTiming, endTiming, initProgressBar, stopProgressBar, incrementProgressBar } from '../log';
+dayjs.extend(utc);
+export function calculateActivitiesForDates(accountsAndTransfers, startDate, endDate, simulation, monteCarlo, simulationNumber, nSimulations, subCalculation = false, balanceMap = null, idxMap = null, interestIdxMap = null, interestMap = null, nextInterestMap = null) {
+    startTiming('calculateActivitiesForDates');
+    let currDate = startDate;
+    if (!subCalculation) {
+        ({ currDate, idxMap, balanceMap, interestIdxMap, interestMap, nextInterestMap } = setupCalculation(accountsAndTransfers, startDate));
+    }
+    if (!subCalculation) {
+        initProgressBar(dayjs.utc(endDate).diff(dayjs.utc(currDate), 'day'), simulationNumber - 1, nSimulations);
+    }
+    if (!currDate) {
+        throw new Error('currDate is null');
+    }
+    if (!balanceMap) {
+        throw new Error('balanceMap is null');
+    }
+    if (!idxMap) {
+        throw new Error('idxMap is null');
+    }
+    if (!interestIdxMap) {
+        throw new Error('interestIdxMap is null');
+    }
+    if (!interestMap) {
+        throw new Error('interestMap is null');
+    }
+    if (!nextInterestMap) {
+        throw new Error('nextInterestMap is null');
+    }
+    const { pensions, socialSecurities } = loadPensionsAndSocialSecurity(simulation);
+    while (isBeforeOrSame(currDate, endDate)) {
+        if (!subCalculation) {
+            incrementProgressBar();
+        }
+        if (!subCalculation && currDate.getUTCDate() === 1) {
+            handleMonthlyPushesAndPulls(accountsAndTransfers, currDate, balanceMap, idxMap, interestIdxMap, interestMap, nextInterestMap, simulation, monteCarlo, simulationNumber, nSimulations);
+        }
+        for (const account of accountsAndTransfers.accounts) {
+            handleInterest(account, currDate, simulation, interestIdxMap, interestMap, nextInterestMap, balanceMap, idxMap, monteCarlo);
+            retrieveBalances(account, accountsAndTransfers.accounts, currDate, idxMap, balanceMap);
+        }
+        handlePension(accountsAndTransfers, pensions, currDate, balanceMap, idxMap);
+        handleSocialSecurity(accountsAndTransfers, socialSecurities, currDate, balanceMap, idxMap);
+        if (currDate.getUTCMonth() === 3 && currDate.getUTCDate() === 1 && isAfter(currDate, new Date('2026-01-01'))) {
+            payPullTaxes(accountsAndTransfers, currDate, balanceMap, idxMap);
+            payInterestTaxes(accountsAndTransfers, currDate, balanceMap, idxMap);
+        }
+        if (currDate.getUTCMonth() === 11 && currDate.getUTCDate() === 31) {
+            performRMD(accountsAndTransfers, currDate, balanceMap, idxMap);
+        }
+        currDate = dayjs.utc(currDate).add(1, 'day').toDate();
+    }
+    if (!subCalculation) {
+        stopProgressBar();
+    }
+    endTiming('calculateActivitiesForDates');
+}

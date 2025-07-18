@@ -1,10 +1,26 @@
 import { AccountsAndTransfers } from '../../data/account/types';
 
+/**
+ * Mapping of names to category counts for statistical analysis
+ */
 type NamesWithCounts = Record<string, CategoriesWithCounts>;
+
+/**
+ * Mapping of categories to their usage counts
+ */
 type CategoriesWithCounts = Record<string, number>;
 
-type NamesWithCategories = Record<string, string[]>;
+/**
+ * Mapping of names to their most frequently used category
+ */
+type NamesWithCategories = Record<string, string>;
 
+/**
+ * Adds a name-category pair to the names tracking object, incrementing the count
+ * @param names - The names tracking object to update
+ * @param name - The name to add or update
+ * @param category - The category to associate with the name
+ */
 const addToNames = (names: NamesWithCounts, name: string, category: string) => {
   if (!names[name]) {
     names[name] = {};
@@ -16,6 +32,11 @@ const addToNames = (names: NamesWithCounts, name: string, category: string) => {
   nameWithCount[category]++;
 };
 
+/**
+ * Analyzes all activities and bills to determine the most frequently used category for each name
+ * @param accountsAndTransfers - The complete financial data structure
+ * @returns A mapping of names to their most frequently used category
+ */
 export function loadNameCategories(accountsAndTransfers: AccountsAndTransfers): NamesWithCategories {
   const names: NamesWithCounts = {};
   accountsAndTransfers.accounts.forEach((account) => {

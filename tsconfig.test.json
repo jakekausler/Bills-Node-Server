@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": false,
+    "skipLibCheck": true,
+    "noImplicitAny": false
+  },
+  "include": ["src/**/*.test.ts"],
+  "exclude": ["node_modules"]
+}

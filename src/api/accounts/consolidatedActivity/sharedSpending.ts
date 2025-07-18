@@ -1,6 +1,7 @@
 import { Request } from 'express';
 import { getData } from '../../../utils/net/request';
 import { Account } from '../../../data/account/account';
+import { ConsolidatedActivity } from '../../../data/activity/consolidatedActivity';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
@@ -15,7 +16,7 @@ export function getSharedSpending(request: Request) {
     throw new Error('Account not found');
   }
   const sharedSpending = account.consolidatedActivity.filter((a) => a.name.startsWith('Transfer from '));
-  const months = {};
+  const months: Record<string, ConsolidatedActivity[]> = {};
   sharedSpending.forEach((a) => {
     const month = a.date.toLocaleString('default', { month: 'long', year: 'numeric' });
     if (!months[month]) {
@@ -26,7 +27,7 @@ export function getSharedSpending(request: Request) {
   console.log('Shared spending:', months);
   const entries = Object.entries(months).map(([month, activities]) => ({
     month,
-    spending: Math.round((activities.reduce((sum, a) => sum + a.amount, 0) / activities.length) * 100) / 100,
+    spending: Math.round((activities.reduce((sum: number, a: ConsolidatedActivity) => sum + (a.amount as number), 0) / activities.length) * 100) / 100,
   }));
   console.log('Shared spending:', entries);
   const lines = entries.map(

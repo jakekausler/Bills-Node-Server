@@ -1,11 +1,25 @@
 import { loadData } from './accountsAndTransfers';
 import { MIN_DATE, setMinDate } from './cache';
 
+/**
+ * Finds the minimum date across all financial data (activities, bills, interests, and transfers)
+ * 
+ * This function scans through all accounts and transfers to find the earliest date from:
+ * - Account activities
+ * - Account bills (start and end dates)
+ * - Account interests (applicable dates)
+ * - Transfer activities
+ * - Transfer bills (start and end dates)
+ * 
+ * The result is cached for performance, so subsequent calls return the cached value.
+ * 
+ * @returns The minimum date found across all financial data, or current date if no data exists
+ */
 export function minDate() {
   if (MIN_DATE) {
     return MIN_DATE;
   }
-  let minDate = new Date();
+  let minDate = new Date(); // Start with current date as maximum possible
   const { accounts, transfers } = loadData(new Date(), new Date());
   for (const account of accounts) {
     for (const activity of account.activity) {
@@ -17,7 +31,7 @@ export function minDate() {
       if (minDate > bill.startDate) {
         minDate = bill.startDate;
       }
-      if (minDate > bill.endDate) {
+      if (bill.endDate && minDate > bill.endDate) {
         minDate = bill.endDate;
       }
     }
@@ -33,10 +47,10 @@ export function minDate() {
     }
   }
   for (const transfer of transfers.bills) {
-    if (minDate > transfer.date) {
-      minDate = transfer.date;
+    if (minDate > transfer.startDate) {
+      minDate = transfer.startDate;
     }
-    if (minDate > transfer.endDate) {
+    if (transfer.endDate && minDate > transfer.endDate) {
       minDate = transfer.endDate;
     }
   }

@@ -228,7 +228,7 @@ export function handleMonthlyPushesAndPulls(
   simulationNumber: number,
   nSimulations: number,
 ) {
-  startTiming(handleMonthlyPushesAndPulls);
+  startTiming('handleMonthlyPushesAndPulls');
   // Create deep copies of all maps
   const balanceMapCopy: Record<string, number> = { ...balanceMap };
   const idxMapCopy: Record<string, number> = { ...idxMap };
@@ -314,7 +314,7 @@ export function handleMonthlyPushesAndPulls(
       }
     }
   }
-  endTiming(handleMonthlyPushesAndPulls);
+  endTiming('handleMonthlyPushesAndPulls');
 }
 
 function getMinimumBalance(account: Account, currDate: Date) {
@@ -354,7 +354,7 @@ function performPull(
   idxMap: Record<string, number>,
   minimumBalance: number,
 ) {
-  startTiming(performPull);
+  startTiming('performPull');
   while (minimumBalance < (account.minimumBalance ?? 0)) {
     const pullableAccount = getNextPullableAccount(accountsAndTransfers, balanceMap);
     if (!pullableAccount) {
@@ -405,7 +405,7 @@ function performPull(
     balanceMap[account.id] += availableAmount;
     balanceMap[pullableAccount.id] -= availableAmount;
   }
-  endTiming(performPull);
+  endTiming('performPull');
 }
 
 function performPush(
@@ -416,7 +416,7 @@ function performPush(
   idxMap: Record<string, number>,
   minimumBalance: number,
 ) {
-  startTiming(performPush);
+  startTiming('performPush');
   const pushAccount = accountsAndTransfers.accounts.find((a) => a.name === account.pushAccount);
   if (!pushAccount) {
     throw new Error(`Push account ${account.pushAccount} not found`);
@@ -453,5 +453,5 @@ function performPush(
     amount: pushAmount,
   });
   pushAccount.consolidatedActivity.splice(idxMap[pushAccount.id], 0, pushActivityPushAccount);
-  endTiming(performPush);
+  endTiming('performPush');
 }

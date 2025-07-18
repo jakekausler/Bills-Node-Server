@@ -2,6 +2,18 @@ import { Request } from 'express';
 import { getData } from '../../../utils/net/request';
 import { Activity } from '../../../data/activity/activity';
 
+/**
+ * Retrieves all transactions within a specific category section
+ * 
+ * This endpoint returns a list of all consolidated activities that belong
+ * to the specified category section. It handles:
+ * - Account filtering (selected accounts and hidden accounts)
+ * - Transaction deduplication by ID
+ * - Serialization of activity objects for API response
+ * 
+ * @param request - Express request object with section parameter
+ * @returns Array of serialized activity objects within the category section
+ */
 export function getCategorySectionTransactions(request: Request) {
   const data = getData(request);
   const section = request.params.section as string;

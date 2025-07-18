@@ -3,6 +3,11 @@ import { loadDateOrVariable, loadNumberOrVariable } from '../../utils/simulation
 import { ActivityData } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Represents a financial activity (transaction) that can be applied to an account
+ * Supports both regular transactions and transfers between accounts
+ * Can use variables for dynamic amounts and dates in simulations
+ */
 export class Activity {
   id: string;
   name: string;
@@ -23,6 +28,11 @@ export class Activity {
   dateIsVariable: boolean;
   dateVariable: string | null;
 
+  /**
+   * Creates a new Activity instance
+   * @param data - Activity data object
+   * @param simulation - Simulation name for variable resolution (defaults to 'Default')
+   */
   constructor(data: ActivityData, simulation: string = 'Default') {
     this.id = data.id || uuidv4();
     this.name = data.name;
@@ -59,6 +69,10 @@ export class Activity {
     this.amountVariable = amountVariable;
   }
 
+  /**
+   * Serializes the activity to a plain object for storage
+   * @returns Serialized activity data
+   */
   serialize(): ActivityData {
     return {
       id: this.id,
