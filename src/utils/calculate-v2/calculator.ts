@@ -128,9 +128,8 @@ export class Calculator {
     // Calculate interest amount
     const interestAmount = this.calculateInterestAmount(currentBalance, event.rate, interest.compounded);
 
-    // Skip if interest amount is essentially zero (using threshold for floating point precision)
-    const EPSILON = 0.001; // One tenth of a cent
-    if (Math.abs(interestAmount) < EPSILON) {
+    // Only skip if interest amount is exactly zero (match original behavior)
+    if (interestAmount === 0) {
       return;
     }
     
@@ -503,11 +502,11 @@ export class Calculator {
         }
     }
 
-    const periodRate = annualRate / 100 / periodsPerYear;
+    const periodRate = annualRate / periodsPerYear;
     const interest = balance * periodRate;
     
-    // Round to cents to match original behavior
-    return Math.round(interest * 100) / 100;
+    // Return raw calculation without rounding to match original behavior exactly
+    return interest;
   }
 
   /**
