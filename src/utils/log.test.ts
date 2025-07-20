@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import fs from 'fs';
 import cliProgress from 'cli-progress';
 import { 
@@ -15,8 +15,15 @@ vi.mock('fs');
 vi.mock('cli-progress');
 
 describe('Log Utilities', () => {
-  let mockWriteStream: any;
-  let mockProgressBar: any;
+  let mockWriteStream: {
+    write: ReturnType<typeof vi.fn>;
+    end: ReturnType<typeof vi.fn>;
+  };
+  let mockProgressBar: {
+    start: ReturnType<typeof vi.fn>;
+    increment: ReturnType<typeof vi.fn>;
+    stop: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -26,7 +33,7 @@ describe('Log Utilities', () => {
       write: vi.fn(),
       end: vi.fn(),
     };
-    vi.mocked(fs.createWriteStream).mockReturnValue(mockWriteStream as any);
+    vi.mocked(fs.createWriteStream).mockReturnValue(mockWriteStream as fs.WriteStream);
 
     // Mock cli-progress.SingleBar
     mockProgressBar = {

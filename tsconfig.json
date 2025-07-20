@@ -13,5 +13,16 @@
     "moduleResolution": "Node"
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "src/**/*.test.ts"]
+  "exclude": [
+    "node_modules", 
+    "src/**/*.test.ts",
+    "src/utils/calculate-v2/*test*.ts",
+    "src/utils/calculate-v2/*debug*.ts",
+    "src/utils/calculate-v2/*diagnostic*.ts",
+    "src/utils/calculate-v2/accuracy-comparison.ts",
+    "src/utils/calculate-v2/analyze-failures.ts",
+    "src/utils/calculate-v2/comprehensive-tests.ts",
+    "src/utils/calculate-v2/mathematical-validation.ts",
+    "src/utils/calculate-v2/minimal-calc-test.ts"
+  ]
 } 
