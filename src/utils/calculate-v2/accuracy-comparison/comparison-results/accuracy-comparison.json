@@ -1,0 +1,5032 @@
+[
+  {
+    "accountId": "fbc8afbe-921d-4b9b-811a-7ca7eaa120ba",
+    "accountName": "Kendall",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 98,
+      "finalBalance": 4890.579999999995,
+      "lastActivity": {
+        "id": "0a9afe14-1609-426a-9aac-1dbff0a31a3f-2025-07-19",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Kendall Chase",
+        "amount": -885,
+        "amountIsVariable": true,
+        "amountVariable": "{FULL}",
+        "date": "2025-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 4890.579999999995,
+        "billId": "0a9afe14-1609-426a-9aac-1dbff0a31a3f",
+        "firstBill": true,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 98,
+      "finalBalance": 4890.579999999995,
+      "lastActivity": {
+        "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1752883200000-FROM",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Kendall Chase",
+        "amount": -885,
+        "amountIsVariable": false,
+        "amountVariable": "{FULL}",
+        "date": "2025-07-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 4890.579999999995
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "f2eba978-1ba4-40da-87eb-7671e73c0ad0",
+    "accountName": "Jake",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 591,
+      "finalBalance": 3012.819999999997,
+      "lastActivity": {
+        "id": "7c084918-650c-4ac1-9b87-0d4b7730b5df",
+        "name": "Nearpod Bonus",
+        "category": "Income.Bonus",
+        "flag": true,
+        "flagColor": "teal",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 2000,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-17",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 3012.819999999997,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 591,
+      "finalBalance": 3012.819999999997,
+      "lastActivity": {
+        "id": "7c084918-650c-4ac1-9b87-0d4b7730b5df",
+        "name": "Nearpod Bonus",
+        "category": "Income.Bonus",
+        "flagColor": "teal",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 2000,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-17T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 3012.819999999997
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "a458bdf3-8d66-4769-b40c-516b38028d75",
+    "accountName": "Spending",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 140,
+      "finalBalance": 300.23000000000025,
+      "lastActivity": {
+        "id": "6a6c2231-e245-4638-9eb8-e1a7e4110245",
+        "name": "Transfer from Jake to Spending",
+        "category": "Ignore.Transfer",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Spending",
+        "amount": 250,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-14",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 300.23000000000025,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 140,
+      "finalBalance": 300.23000000000025,
+      "lastActivity": {
+        "id": "6a6c2231-e245-4638-9eb8-e1a7e4110245",
+        "name": "Transfer from Jake to Spending",
+        "category": "Ignore.Transfer",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": true,
+        "fro": "Jake",
+        "to": "Spending",
+        "amount": 250,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-14T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 300.23000000000025
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "bd7f0645-b485-4c96-bcbb-10b390b9e8db",
+    "accountName": "Emergency",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 25,
+      "finalBalance": 2023.31,
+      "lastActivity": {
+        "id": "e3d859cd-b84e-4d04-8727-bdb805353153",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 5.31,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-06-28",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 2023.31,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 25,
+      "finalBalance": 2023.31,
+      "lastActivity": {
+        "id": "e3d859cd-b84e-4d04-8727-bdb805353153",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 5.31,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-06-28T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 2023.31
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "a9d6dfc1-493c-4b25-a734-dde33ee97b68",
+    "accountName": "Vacation",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 3,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "7fb4f76f-285b-4bb7-9de6-4e6a5274c965",
+        "name": "Transfer to Emergency",
+        "category": "Ignore.Transfer",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": true,
+        "from": "Vacation",
+        "to": "Emergency",
+        "amount": -70.77,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2024-02-27",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 3,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "7fb4f76f-285b-4bb7-9de6-4e6a5274c965",
+        "name": "Transfer to Emergency",
+        "category": "Ignore.Transfer",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": true,
+        "fro": "Vacation",
+        "to": "Emergency",
+        "amount": -70.77,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2024-02-27T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 0
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "2973daf0-6932-410e-8a27-a8647e54dffa",
+    "accountName": "Alaska",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 20,
+      "finalBalance": 4.547473508864641e-13,
+      "lastActivity": {
+        "id": "59f912e8-199b-45d7-a007-1da129781c5d",
+        "name": "Transfer from Jake to Alaska",
+        "category": "Ignore.Transfer",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Alaska",
+        "amount": 36.65,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-02-26",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 4.547473508864641e-13,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 20,
+      "finalBalance": 4.547473508864641e-13,
+      "lastActivity": {
+        "id": "59f912e8-199b-45d7-a007-1da129781c5d",
+        "name": "Transfer from Jake to Alaska",
+        "category": "Ignore.Transfer",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": true,
+        "fro": "Jake",
+        "to": "Alaska",
+        "amount": 36.65,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-02-26T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 4.547473508864641e-13
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "87586483-d4ae-40e2-816a-b58fec926faf",
+    "accountName": "Bathroom",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 15,
+      "finalBalance": 9.094947017729282e-13,
+      "lastActivity": {
+        "id": "44a4815a-f80b-44fa-a9d9-ea9b127dd566",
+        "name": "Transfer from Jake to Bathroom",
+        "category": "Ignore.Transfer",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Bathroom",
+        "amount": 4888.03,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-02-14",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 9.094947017729282e-13,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 15,
+      "finalBalance": 9.094947017729282e-13,
+      "lastActivity": {
+        "id": "44a4815a-f80b-44fa-a9d9-ea9b127dd566",
+        "name": "Transfer from Jake to Bathroom",
+        "category": "Ignore.Transfer",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": true,
+        "fro": "Jake",
+        "to": "Bathroom",
+        "amount": 4888.03,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-02-14T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 9.094947017729282e-13
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "5c9f1e09-ec97-4a40-8dac-3336ed466e8e",
+    "accountName": "Jake Chase",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 53,
+      "finalBalance": 4.547473508864641e-13,
+      "lastActivity": {
+        "id": "e2558082-c4b2-44c6-b223-a5e6746eb0d3",
+        "name": "Transfer from Jake to Chase",
+        "category": "Ignore.Transfer",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Jake Chase",
+        "amount": 2259.06,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-15",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 4.547473508864641e-13,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 53,
+      "finalBalance": 4.547473508864641e-13,
+      "lastActivity": {
+        "id": "e2558082-c4b2-44c6-b223-a5e6746eb0d3",
+        "name": "Transfer from Jake to Chase",
+        "category": "Ignore.Transfer",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": true,
+        "fro": "Jake",
+        "to": "Jake Chase",
+        "amount": 2259.06,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-15T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 4.547473508864641e-13
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "3dee3218-60c5-4ed8-b1e3-b728a2006471",
+    "accountName": "Costco",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 1160,
+      "finalBalance": -3785.3999999999996,
+      "lastActivity": {
+        "id": "5e63265b-9842-4158-a05b-9d372ba2cc55",
+        "name": "Hello Fresh",
+        "category": "Food.Groceries",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": -78.47,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-16",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -3785.3999999999996,
+        "billId": "dd5e4670-ec56-41e5-b72f-59962bf26d37",
+        "firstBill": true,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 1160,
+      "finalBalance": -3785.3999999999996,
+      "lastActivity": {
+        "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-1752624000000",
+        "name": "Hello Fresh",
+        "category": "Food.Groceries",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -78.47,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-16T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -3785.3999999999996
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "76e7786a-c89c-41ab-9e2b-e5c13a7d3b1d",
+    "accountName": "REI",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 328,
+      "finalBalance": -1.0913936421275139e-11,
+      "lastActivity": {
+        "id": "76316604-b786-4092-8ab5-1822ad94ec94",
+        "name": "Transfer from Jake to REI",
+        "category": "Ignore.Transfer",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "REI",
+        "amount": 321.11,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-15",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -1.0913936421275139e-11,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 328,
+      "finalBalance": -1.0913936421275139e-11,
+      "lastActivity": {
+        "id": "76316604-b786-4092-8ab5-1822ad94ec94",
+        "name": "Transfer from Jake to REI",
+        "category": "Ignore.Transfer",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": true,
+        "fro": "Jake",
+        "to": "REI",
+        "amount": 321.11,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-15T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -1.0913936421275139e-11
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "18754bfc-52fa-4cdb-82f3-327b6f251bb7",
+    "accountName": "WellsFargo",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 7,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "c719923a-e9aa-408d-ac7f-432be7323661",
+        "name": "WellsFargo",
+        "category": "Ignore.Transfer",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "WellsFargo",
+        "amount": 4352.82,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2024-06-15",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 7,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "c719923a-e9aa-408d-ac7f-432be7323661",
+        "name": "WellsFargo",
+        "category": "Ignore.Transfer",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": true,
+        "fro": "Jake",
+        "to": "WellsFargo",
+        "amount": 4352.82,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2024-06-15T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 0
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "141c272a-a655-4144-a2f2-56a1ff6f6172",
+    "accountName": "Kendall 401(k)",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 26,
+      "finalBalance": 16953.4,
+      "lastActivity": {
+        "id": "f2a03766-7121-4b64-a8af-0ecd1f26546c",
+        "name": "Employer Match",
+        "category": "Ignore.Other",
+        "flag": true,
+        "flagColor": "green",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 109,
+        "amountIsVariable": false,
+        "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
+        "date": "2025-07-17",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 16953.4,
+        "billId": "73981483-c208-4bc8-8128-c326d9825d59",
+        "firstBill": true,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 26,
+      "finalBalance": 16953.4,
+      "lastActivity": {
+        "id": "BILL-73981483-c208-4bc8-8128-c326d9825d59-1752710400000",
+        "name": "Employer Match",
+        "category": "Ignore.Other",
+        "flagColor": "green",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 109,
+        "amountIsVariable": true,
+        "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
+        "date": "2025-07-17T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 16953.4
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "9005ec8d-1d71-46ce-82ba-f1781e28a1cb",
+    "accountName": "Kendall Roth IRA",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 2,
+      "finalBalance": 34071.33,
+      "lastActivity": {
+        "id": "2aaec543-e5c2-43a5-b94b-797a0cf7d87b",
+        "name": "Balance Adjustment",
+        "category": "Ignore.Balance Adjustment",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 2653.83,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-02",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 34071.33,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 2,
+      "finalBalance": 34071.33,
+      "lastActivity": {
+        "id": "2aaec543-e5c2-43a5-b94b-797a0cf7d87b",
+        "name": "Balance Adjustment",
+        "category": "Ignore.Balance Adjustment",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 2653.83,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-02T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 34071.33
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "8a06d434-8cab-4607-875d-e1cbab574534",
+    "accountName": "Jake 401(k)",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 28,
+      "finalBalance": 96599.89000000003,
+      "lastActivity": {
+        "id": "fc053b0b-cee8-46d4-86c5-5392165f09eb",
+        "name": "401(k) Contribution",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "teal",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 904,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-11",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 96599.89000000003,
+        "billId": "7a2ceda4-4195-47f4-af64-5d08732d3359",
+        "firstBill": true,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 28,
+      "finalBalance": 96599.89000000003,
+      "lastActivity": {
+        "id": "BILL-7a2ceda4-4195-47f4-af64-5d08732d3359-1752192000000",
+        "name": "401(k) Contribution",
+        "category": "Ignore.Transfer",
+        "flagColor": "teal",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 904,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-11T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 96599.89000000003
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "6de0db48-fb17-4f29-aa4e-17032809f14c",
+    "accountName": "Mortgage",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 30,
+      "finalBalance": -531423.8299999996,
+      "lastActivity": {
+        "id": "f324322c-a3e2-4e07-bffb-a0e3cdd98328-2025-07-01",
+        "name": "Mortgage",
+        "category": "Housing.Mortgage",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Mortgage",
+        "amount": 4100,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -531423.8299999996,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 30,
+      "finalBalance": -531423.8299999996,
+      "lastActivity": {
+        "id": "f324322c-a3e2-4e07-bffb-a0e3cdd98328-2025-07-01",
+        "name": "Mortgage",
+        "category": "Housing.Mortgage",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": true,
+        "fro": "Jake",
+        "to": "Mortgage",
+        "amount": 4100,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -531423.8299999996
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
+    "accountName": "Fidelity Money Market",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 13,
+      "finalBalance": 54312.719999999994,
+      "lastActivity": {
+        "id": "7072cdc8-9873-44e9-86ca-56d2cf8ec7f6",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 265.58,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 54312.719999999994,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 13,
+      "finalBalance": 54312.719999999994,
+      "lastActivity": {
+        "id": "7072cdc8-9873-44e9-86ca-56d2cf8ec7f6",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 265.58,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 54312.719999999994
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "7b825511-8ca3-4fa2-b10f-12a07530e792",
+    "accountName": "Kendall Chase",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 15,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "0a9afe14-1609-426a-9aac-1dbff0a31a3f-2025-07-19",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Kendall Chase",
+        "amount": 885,
+        "amountIsVariable": true,
+        "amountVariable": "{FULL}",
+        "date": "2025-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": "0a9afe14-1609-426a-9aac-1dbff0a31a3f",
+        "firstBill": true,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 15,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1752883200000-TO",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Kendall Chase",
+        "amount": 885,
+        "amountIsVariable": false,
+        "amountVariable": "{FULL}",
+        "date": "2025-07-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 0
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "75cad31a-cd94-4693-932a-7a8fc33f51e3",
+    "accountName": "Solar",
+    "scenario": "historical_to_current",
+    "startDate": "2024-01-01",
+    "endDate": "2025-07-19",
+    "original": {
+      "activityCount": 1,
+      "finalBalance": -52750,
+      "lastActivity": {
+        "id": "1373b5ab-5ddf-460b-8bc0-84ef4e7b6da9",
+        "name": "Opening Balance",
+        "category": "Ignore.Balance Adjustment",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": -52750,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -52750,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 1,
+      "finalBalance": -52750,
+      "lastActivity": {
+        "id": "1373b5ab-5ddf-460b-8bc0-84ef4e7b6da9",
+        "name": "Opening Balance",
+        "category": "Ignore.Balance Adjustment",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -52750,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -52750
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "fbc8afbe-921d-4b9b-811a-7ca7eaa120ba",
+    "accountName": "Kendall",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 13,
+      "finalBalance": 4086.0999999999967,
+      "lastActivity": {
+        "id": "0a9afe14-1609-426a-9aac-1dbff0a31a3f-2025-08-19",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Kendall Chase",
+        "amount": -885,
+        "amountIsVariable": true,
+        "amountVariable": "{FULL}",
+        "date": "2025-08-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 4086.0999999999967,
+        "billId": "0a9afe14-1609-426a-9aac-1dbff0a31a3f",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 13,
+      "finalBalance": 4086.0999999999985,
+      "lastActivity": {
+        "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1755561600000-FROM",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Kendall Chase",
+        "amount": -885,
+        "amountIsVariable": false,
+        "amountVariable": "{FULL}",
+        "date": "2025-08-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 4086.0999999999985
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 1.8189894035458565e-12,
+      "percentageDiff": 4.45165170589525e-14,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "f2eba978-1ba4-40da-87eb-7671e73c0ad0",
+    "accountName": "Jake",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 11,
+      "finalBalance": 4292.369999999987,
+      "lastActivity": {
+        "id": "78fa8199-03e6-4f02-9eef-e8f5ca69cb81",
+        "name": "City of Raleigh Kendall",
+        "category": "Income.Salary",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 950,
+        "amountIsVariable": false,
+        "amountVariable": "KENDALL_TRANSFER_TO_JAKE",
+        "date": "2025-08-13",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 4292.369999999987,
+        "billId": "2b3ec713-c7bd-492f-b958-0f8a01d97025",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 11,
+      "finalBalance": 4292.369999999998,
+      "lastActivity": {
+        "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-1755043200000",
+        "name": "City of Raleigh Kendall",
+        "category": "Income.Salary",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 950,
+        "amountIsVariable": true,
+        "amountVariable": "KENDALL_TRANSFER_TO_JAKE",
+        "date": "2025-08-13T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 4292.369999999998
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 1.0913936421275139e-11,
+      "percentageDiff": 2.5426364505564927e-13,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "a458bdf3-8d66-4769-b40c-516b38028d75",
+    "accountName": "Spending",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 7,
+      "finalBalance": 154.51000000000022,
+      "lastActivity": {
+        "id": "a265d64e-e1cd-4d0c-a794-5430c870a2ec",
+        "name": "Adobe",
+        "category": "Shopping.Electronics & Software",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": -64.34,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-12",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 154.51000000000022,
+        "billId": "9a9ae8a9-0a41-478f-bcbd-9a3feff2a2a3",
+        "firstBill": true,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 7,
+      "finalBalance": 154.51000000000025,
+      "lastActivity": {
+        "id": "BILL-9a9ae8a9-0a41-478f-bcbd-9a3feff2a2a3-1754956800000",
+        "name": "Adobe",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -64.34,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-12T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 154.51000000000025
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 2.842170943040401e-14,
+      "percentageDiff": 1.8394737836000235e-14,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "bd7f0645-b485-4c96-bcbb-10b390b9e8db",
+    "accountName": "Emergency",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 1,
+      "finalBalance": 2024.9960916666666,
+      "lastActivity": {
+        "id": "298f0561-19ba-4ee3-ac19-44b6e8b922ee",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "lime",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 1.6860916666666668,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-28",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 2024.9960916666666,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "0cd1a0e5-e412-4703-984f-3ca7ffffd42d",
+        "firstInterest": true
+      }
+    },
+    "calculated": {
+      "activityCount": 1,
+      "finalBalance": 2024.9960916666666,
+      "lastActivity": {
+        "id": "INTEREST-0cd1a0e5-e412-4703-984f-3ca7ffffd42d-1753660800000",
+        "name": "Interest - 0cd1a0e5-e412-4703-984f-3ca7ffffd42d",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 1.6860916666666663,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-28T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 2024.9960916666666
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "a9d6dfc1-493c-4b25-a734-dde33ee97b68",
+    "accountName": "Vacation",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "2973daf0-6932-410e-8a27-a8647e54dffa",
+    "accountName": "Alaska",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "87586483-d4ae-40e2-816a-b58fec926faf",
+    "accountName": "Bathroom",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "5c9f1e09-ec97-4a40-8dac-3336ed466e8e",
+    "accountName": "Jake Chase",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 1,
+      "finalBalance": 4.634595522171973e-13,
+      "lastActivity": {
+        "id": "a5c7d989-c927-48f8-88e6-2baa9f9b4713",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "lime",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 8.712201330733175e-15,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-20",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 4.634595522171973e-13,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "ad5c64e8-83a0-4063-819f-10889a0811d4",
+        "firstInterest": true
+      }
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": -1,
+      "balanceDiff": -4.634595522171973e-13,
+      "percentageDiff": 100,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "3dee3218-60c5-4ed8-b1e3-b728a2006471",
+    "accountName": "Costco",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 21,
+      "finalBalance": -1557.92,
+      "lastActivity": {
+        "id": "24401490-8958-4e53-8667-6d3c664e6301",
+        "name": "Lawn Care",
+        "category": "Housing.Maintenance & Repairs",
+        "flag": true,
+        "flagColor": "yellow",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": -140,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-17",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -1557.92,
+        "billId": "3780bfed-52c9-47e2-97e5-642ef1439bf3",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 21,
+      "finalBalance": -1557.920000000005,
+      "lastActivity": {
+        "id": "BILL-3780bfed-52c9-47e2-97e5-642ef1439bf3-1755388800000",
+        "name": "Lawn Care",
+        "category": "Housing.Maintenance & Repairs",
+        "flagColor": "yellow",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -140,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-17T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -1557.920000000005
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -5.002220859751105e-12,
+      "percentageDiff": 3.2108329437654727e-13,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "76e7786a-c89c-41ab-9e2b-e5c13a7d3b1d",
+    "accountName": "REI",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 3,
+      "finalBalance": -20.420666666666666,
+      "lastActivity": {
+        "id": "7af0bc43-3895-4847-be19-de5368613bd2",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "pink",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": -0.4206666666666667,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-06",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -20.420666666666666,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "e31dc6c3-f208-46dd-81a3-26b3cebbe4f9",
+        "firstInterest": true
+      }
+    },
+    "calculated": {
+      "activityCount": 2,
+      "finalBalance": -20.00000000000864,
+      "lastActivity": {
+        "id": "BILL-204cd8a7-92fe-450f-bb82-d92c12a241ad-1754352000000",
+        "name": "Open AI Plus",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": "indigo",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -20,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-05T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -20.00000000000864
+      }
+    },
+    "differences": {
+      "activityCountDiff": -1,
+      "balanceDiff": 0.42066666665802543,
+      "percentageDiff": 2.060004570490804,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "18754bfc-52fa-4cdb-82f3-327b6f251bb7",
+    "accountName": "WellsFargo",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "141c272a-a655-4144-a2f2-56a1ff6f6172",
+    "accountName": "Kendall 401(k)",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 5,
+      "finalBalance": 17531.093333333334,
+      "lastActivity": {
+        "id": "43f4cc67-4a9b-427f-8380-7292da77760b",
+        "name": "Employer Match",
+        "category": "Ignore.Other",
+        "flag": true,
+        "flagColor": "green",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 109,
+        "amountIsVariable": false,
+        "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
+        "date": "2025-08-14",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 17531.093333333334,
+        "billId": "73981483-c208-4bc8-8128-c326d9825d59",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 5,
+      "finalBalance": 17531.093333333334,
+      "lastActivity": {
+        "id": "BILL-73981483-c208-4bc8-8128-c326d9825d59-1755129600000",
+        "name": "Employer Match",
+        "category": "Ignore.Other",
+        "flagColor": "green",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 109,
+        "amountIsVariable": true,
+        "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
+        "date": "2025-08-14T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 17531.093333333334
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "9005ec8d-1d71-46ce-82ba-f1781e28a1cb",
+    "accountName": "Kendall Roth IRA",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 1,
+      "finalBalance": 34213.293875,
+      "lastActivity": {
+        "id": "542df3bf-c4f4-49f4-9248-64321d287882",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "lime",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 141.963875,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 34213.293875,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "c1024308-fef3-484e-bb30-b5ac4a86f088",
+        "firstInterest": true
+      }
+    },
+    "calculated": {
+      "activityCount": 1,
+      "finalBalance": 34213.293875,
+      "lastActivity": {
+        "id": "INTEREST-c1024308-fef3-484e-bb30-b5ac4a86f088-1754006400000",
+        "name": "Interest - c1024308-fef3-484e-bb30-b5ac4a86f088",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 141.963875,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 34213.293875
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "8a06d434-8cab-4607-875d-e1cbab574534",
+    "accountName": "Jake 401(k)",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 5,
+      "finalBalance": 99285.79675000004,
+      "lastActivity": {
+        "id": "739da16c-04b8-492f-abe5-2742a0e8fb8f",
+        "name": "401(k) Contribution",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "teal",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 904,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-08",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 99285.79675000004,
+        "billId": "7a2ceda4-4195-47f4-af64-5d08732d3359",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 5,
+      "finalBalance": 99285.79675000002,
+      "lastActivity": {
+        "id": "BILL-7a2ceda4-4195-47f4-af64-5d08732d3359-1754611200000",
+        "name": "401(k) Contribution",
+        "category": "Ignore.Transfer",
+        "flagColor": "teal",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 904,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-08T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 99285.79675000002
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -1.4551915228366852e-11,
+      "percentageDiff": 1.465659309257328e-14,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "6de0db48-fb17-4f29-aa4e-17032809f14c",
+    "accountName": "Mortgage",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 3,
+      "finalBalance": -530777.3857989579,
+      "lastActivity": {
+        "id": "f324322c-a3e2-4e07-bffb-a0e3cdd98328-2025-08-01",
+        "name": "Mortgage",
+        "category": "Housing.Mortgage",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Mortgage",
+        "amount": 4100,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -530777.3857989579,
+        "billId": "f324322c-a3e2-4e07-bffb-a0e3cdd98328",
+        "firstBill": true,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 2,
+      "finalBalance": -528064.9099999996,
+      "lastActivity": {
+        "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-1754006400000-TO",
+        "name": "Mortgage",
+        "category": "Ignore.Transfer",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Mortgage",
+        "amount": 4100,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -528064.9099999996
+      }
+    },
+    "differences": {
+      "activityCountDiff": -1,
+      "balanceDiff": 2712.4757989583304,
+      "percentageDiff": 0.5110383131480535,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
+    "accountName": "Fidelity Money Market",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 2,
+      "finalBalance": 54448.50179999999,
+      "lastActivity": {
+        "id": "aa6baf49-97b4-48c9-a062-563522670017",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "lime",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 135.78179999999998,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 54448.50179999999,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "ddd6204a-98ce-4103-b1de-0fc8bd5add90",
+        "firstInterest": true
+      }
+    },
+    "calculated": {
+      "activityCount": 2,
+      "finalBalance": 54458.025024999995,
+      "lastActivity": {
+        "id": "INTEREST-ddd6204a-98ce-4103-b1de-0fc8bd5add90-1754006400000",
+        "name": "Interest - ddd6204a-98ce-4103-b1de-0fc8bd5add90",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 145.305025,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 54458.025024999995
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 9.523225000004459,
+      "percentageDiff": 0.017490334325423917,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "7b825511-8ca3-4fa2-b10f-12a07530e792",
+    "accountName": "Kendall Chase",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 4,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "0a9afe14-1609-426a-9aac-1dbff0a31a3f-2025-08-19",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Kendall Chase",
+        "amount": 885,
+        "amountIsVariable": true,
+        "amountVariable": "{FULL}",
+        "date": "2025-08-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": "0a9afe14-1609-426a-9aac-1dbff0a31a3f",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 4,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1755561600000-TO",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Kendall Chase",
+        "amount": 885,
+        "amountIsVariable": false,
+        "amountVariable": "{FULL}",
+        "date": "2025-08-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 0
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "75cad31a-cd94-4693-932a-7a8fc33f51e3",
+    "accountName": "Solar",
+    "scenario": "current_to_near_future",
+    "startDate": "2025-07-19",
+    "endDate": "2025-08-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "fbc8afbe-921d-4b9b-811a-7ca7eaa120ba",
+    "accountName": "Kendall",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 155,
+      "finalBalance": 6126.1282007399905,
+      "lastActivity": {
+        "id": "0a9afe14-1609-426a-9aac-1dbff0a31a3f-2026-07-19",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Kendall Chase",
+        "amount": -911.55,
+        "amountIsVariable": true,
+        "amountVariable": "{FULL}",
+        "date": "2026-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 6126.1282007399905,
+        "billId": "0a9afe14-1609-426a-9aac-1dbff0a31a3f",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 155,
+      "finalBalance": 5290.424999999997,
+      "lastActivity": {
+        "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1784419200000-FROM",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Kendall Chase",
+        "amount": -885,
+        "amountIsVariable": false,
+        "amountVariable": "{FULL}",
+        "date": "2026-07-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 5290.424999999997
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -835.703200739993,
+      "percentageDiff": 13.641621157047387,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "f2eba978-1ba4-40da-87eb-7671e73c0ad0",
+    "accountName": "Jake",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 176,
+      "finalBalance": 11593.041799999999,
+      "lastActivity": {
+        "id": "c5e45697-c98c-4f02-8d5a-b36729507571",
+        "name": "City of Raleigh Kendall",
+        "category": "Income.Salary",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 950,
+        "amountIsVariable": false,
+        "amountVariable": "KENDALL_TRANSFER_TO_JAKE",
+        "date": "2026-07-15",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 11593.041799999999,
+        "billId": "2b3ec713-c7bd-492f-b958-0f8a01d97025",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 172,
+      "finalBalance": 22730.124999999993,
+      "lastActivity": {
+        "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-1784073600000",
+        "name": "City of Raleigh Kendall",
+        "category": "Income.Salary",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 950,
+        "amountIsVariable": true,
+        "amountVariable": "KENDALL_TRANSFER_TO_JAKE",
+        "date": "2026-07-15T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 22730.124999999993
+      }
+    },
+    "differences": {
+      "activityCountDiff": -4,
+      "balanceDiff": 11137.083199999994,
+      "percentageDiff": 96.06696320201308,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "a458bdf3-8d66-4769-b40c-516b38028d75",
+    "accountName": "Spending",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 119,
+      "finalBalance": 581.9838000000002,
+      "lastActivity": {
+        "id": "3db8dbcc-6cbc-4631-8d46-b6a16ed8481e-2026-07-13",
+        "name": "Transfer from Jake to Spending",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Spending",
+        "amount": 437.75,
+        "amountIsVariable": false,
+        "amountVariable": "JAKE_TRANSFER_TO_SPENDING",
+        "date": "2026-07-13",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 581.9838000000002,
+        "billId": "3db8dbcc-6cbc-4631-8d46-b6a16ed8481e",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 119,
+      "finalBalance": 558.1500000000001,
+      "lastActivity": {
+        "id": "TRANSFER-3db8dbcc-6cbc-4631-8d46-b6a16ed8481e-1783900800000-TO",
+        "name": "Transfer from Jake to Spending",
+        "category": "Ignore.Transfer",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Spending",
+        "amount": 425,
+        "amountIsVariable": true,
+        "amountVariable": "JAKE_TRANSFER_TO_SPENDING",
+        "date": "2026-07-13T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 558.1500000000001
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -23.83380000000011,
+      "percentageDiff": 4.095268631188721,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "bd7f0645-b485-4c96-bcbb-10b390b9e8db",
+    "accountName": "Emergency",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 13,
+      "finalBalance": 2043.636093122644,
+      "lastActivity": {
+        "id": "957778af-a722-4571-8508-d95f86bdf719",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "lime",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 1.7016120675459152,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-06-28",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 2043.636093122644,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "0cd1a0e5-e412-4703-984f-3ca7ffffd42d",
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 13,
+      "finalBalance": 2043.6360931226443,
+      "lastActivity": {
+        "id": "INTEREST-0cd1a0e5-e412-4703-984f-3ca7ffffd42d-1782604800000",
+        "name": "Interest - 0cd1a0e5-e412-4703-984f-3ca7ffffd42d",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 1.7016120675459148,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-06-28T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 2043.6360931226443
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 2.2737367544323206e-13,
+      "percentageDiff": 1.112593754868601e-14,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "a9d6dfc1-493c-4b25-a734-dde33ee97b68",
+    "accountName": "Vacation",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "2973daf0-6932-410e-8a27-a8647e54dffa",
+    "accountName": "Alaska",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "87586483-d4ae-40e2-816a-b58fec926faf",
+    "accountName": "Bathroom",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "5c9f1e09-ec97-4a40-8dac-3336ed466e8e",
+    "accountName": "Jake Chase",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 18,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "dce24aab-3e7e-4cbc-bfbe-9dd75fe0a86b-2026-05-04",
+        "name": "Chase Fee",
+        "category": "Ignore.Transfer",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Jake Chase",
+        "amount": 94.99999999999945,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-05-04",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": "dce24aab-3e7e-4cbc-bfbe-9dd75fe0a86b",
+        "firstBill": true,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 8,
+      "finalBalance": 4.547473508864641e-13,
+      "lastActivity": {
+        "id": "TRANSFER-dce24aab-3e7e-4cbc-bfbe-9dd75fe0a86b-1777852800000-TO",
+        "name": "Chase Fee",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": false,
+        "isTransfer": true,
+        "to": "Jake Chase",
+        "amount": 95,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-05-04T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 4.547473508864641e-13
+      }
+    },
+    "differences": {
+      "activityCountDiff": -10,
+      "balanceDiff": 4.547473508864641e-13,
+      "percentageDiff": 100,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "3dee3218-60c5-4ed8-b1e3-b728a2006471",
+    "accountName": "Costco",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 350,
+      "finalBalance": -1838.5751448333333,
+      "lastActivity": {
+        "id": "acb72d52-71d7-4a2b-a40a-cc3fee117e24",
+        "name": "Spotify",
+        "category": "Amusement.Music",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": -18.7666,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-16",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -1838.5751448333333,
+        "billId": "3cb12c2d-26df-4435-85f0-6cbb34da66f4",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 351,
+      "finalBalance": -1797.400000000003,
+      "lastActivity": {
+        "id": "BILL-3780bfed-52c9-47e2-97e5-642ef1439bf3-1784419200000",
+        "name": "Lawn Care",
+        "category": "Housing.Maintenance & Repairs",
+        "flagColor": "yellow",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -140,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -1797.400000000003
+      }
+    },
+    "differences": {
+      "activityCountDiff": 1,
+      "balanceDiff": 41.17514483333025,
+      "percentageDiff": 2.239513840325671,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "76e7786a-c89c-41ab-9e2b-e5c13a7d3b1d",
+    "accountName": "REI",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 52,
+      "finalBalance": -21.03328666666667,
+      "lastActivity": {
+        "id": "1741fc82-25ce-4cc2-bd17-d8f1b32bdae7",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "pink",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": -0.4332866666666667,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-06",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -21.03328666666667,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "e31dc6c3-f208-46dd-81a3-26b3cebbe4f9",
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 40,
+      "finalBalance": -20.000000000010914,
+      "lastActivity": {
+        "id": "BILL-204cd8a7-92fe-450f-bb82-d92c12a241ad-1783209600000",
+        "name": "Open AI Plus",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": "indigo",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -20,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-05T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -20.000000000010914
+      }
+    },
+    "differences": {
+      "activityCountDiff": -12,
+      "balanceDiff": 1.033286666655755,
+      "percentageDiff": 4.912625796582218,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "18754bfc-52fa-4cdb-82f3-327b6f251bb7",
+    "accountName": "WellsFargo",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "141c272a-a655-4144-a2f2-56a1ff6f6172",
+    "accountName": "Kendall 401(k)",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 92,
+      "finalBalance": 28017.950752022825,
+      "lastActivity": {
+        "id": "6aee3a7c-ae03-4214-a1e6-e841e59aac17",
+        "name": "Employer Match",
+        "category": "Ignore.Other",
+        "flag": true,
+        "flagColor": "green",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 112.27,
+        "amountIsVariable": false,
+        "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
+        "date": "2026-07-16",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 28017.950752022825,
+        "billId": "73981483-c208-4bc8-8128-c326d9825d59",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 92,
+      "finalBalance": 27857.229580940155,
+      "lastActivity": {
+        "id": "BILL-73981483-c208-4bc8-8128-c326d9825d59-1784160000000",
+        "name": "Employer Match",
+        "category": "Ignore.Other",
+        "flagColor": "green",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 109,
+        "amountIsVariable": true,
+        "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
+        "date": "2026-07-16T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 27857.229580940155
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -160.72117108267048,
+      "percentageDiff": 0.5736364251088807,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "9005ec8d-1d71-46ce-82ba-f1781e28a1cb",
+    "accountName": "Kendall Roth IRA",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 13,
+      "finalBalance": 35814.48390615482,
+      "lastActivity": {
+        "id": "0a445e10-d2bb-43e2-9915-5768fe860ae4",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "lime",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 148.60781703798682,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 35814.48390615482,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "c1024308-fef3-484e-bb30-b5ac4a86f088",
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 13,
+      "finalBalance": 35814.483906154834,
+      "lastActivity": {
+        "id": "INTEREST-c1024308-fef3-484e-bb30-b5ac4a86f088-1782864000000",
+        "name": "Interest - c1024308-fef3-484e-bb30-b5ac4a86f088",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 148.60781703798682,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 35814.483906154834
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 1.4551915228366852e-11,
+      "percentageDiff": 4.063136932671551e-14,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "8a06d434-8cab-4607-875d-e1cbab574534",
+    "accountName": "Jake 401(k)",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 69,
+      "finalBalance": 132122.90893140098,
+      "lastActivity": {
+        "id": "1e968da8-a4c7-4b2c-aad4-0138767f825e",
+        "name": "401(k) Contribution",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "teal",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 913.04,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-10",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 132122.90893140098,
+        "billId": "7a2ceda4-4195-47f4-af64-5d08732d3359",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 69,
+      "finalBalance": 131916.15581743867,
+      "lastActivity": {
+        "id": "BILL-7a2ceda4-4195-47f4-af64-5d08732d3359-1783641600000",
+        "name": "401(k) Contribution",
+        "category": "Ignore.Transfer",
+        "flagColor": "teal",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 904,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-10T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 131916.15581743867
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -206.75311396230245,
+      "percentageDiff": 0.1564854389253948,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "6de0db48-fb17-4f29-aa4e-17032809f14c",
+    "accountName": "Mortgage",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 39,
+      "finalBalance": -522181.39007706963,
+      "lastActivity": {
+        "id": "f324322c-a3e2-4e07-bffb-a0e3cdd98328-2026-07-01",
+        "name": "Mortgage",
+        "category": "Housing.Mortgage",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Mortgage",
+        "amount": 4300,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -522181.39007706963,
+        "billId": "f324322c-a3e2-4e07-bffb-a0e3cdd98328",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 27,
+      "finalBalance": -491116.78999999963,
+      "lastActivity": {
+        "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-1782864000000-TO",
+        "name": "Mortgage",
+        "category": "Ignore.Transfer",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Mortgage",
+        "amount": 4100,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -491116.78999999963
+      }
+    },
+    "differences": {
+      "activityCountDiff": -12,
+      "balanceDiff": 31064.600077070005,
+      "percentageDiff": 5.9490055883617625,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
+    "accountName": "Fidelity Money Market",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 31,
+      "finalBalance": 65826.3812366556,
+      "lastActivity": {
+        "id": "97135675-3df0-48bf-b466-02b48dd3cebf-2026-07-10",
+        "name": "Transfer from Kendall to Fidelity",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Fidelity Money Market",
+        "amount": 300,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-10",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 65826.3812366556,
+        "billId": "97135675-3df0-48bf-b466-02b48dd3cebf",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 29,
+      "finalBalance": 63971.482154546735,
+      "lastActivity": {
+        "id": "TRANSFER-97135675-3df0-48bf-b466-02b48dd3cebf-1783641600000-TO",
+        "name": "Transfer from Kendall to Fidelity",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Fidelity Money Market",
+        "amount": 300,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-10T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 63971.482154546735
+      }
+    },
+    "differences": {
+      "activityCountDiff": -2,
+      "balanceDiff": -1854.8990821088591,
+      "percentageDiff": 2.8178657967543774,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "7b825511-8ca3-4fa2-b10f-12a07530e792",
+    "accountName": "Kendall Chase",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 40,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "0a9afe14-1609-426a-9aac-1dbff0a31a3f-2026-07-19",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Kendall Chase",
+        "amount": 911.55,
+        "amountIsVariable": true,
+        "amountVariable": "{FULL}",
+        "date": "2026-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": "0a9afe14-1609-426a-9aac-1dbff0a31a3f",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 40,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1784419200000-TO",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Kendall Chase",
+        "amount": 885,
+        "amountIsVariable": false,
+        "amountVariable": "{FULL}",
+        "date": "2026-07-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 0
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "75cad31a-cd94-4693-932a-7a8fc33f51e3",
+    "accountName": "Solar",
+    "scenario": "recent_to_medium_term",
+    "startDate": "2025-06-19",
+    "endDate": "2026-07-19",
+    "original": {
+      "activityCount": 14,
+      "finalBalance": -11870,
+      "lastActivity": {
+        "id": "9ed6ceee-f81e-4cb2-824e-48e02b88b8ad-2026-07-01",
+        "name": "Transfer from Jake to Solar",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "cyan",
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Solar",
+        "amount": 1000,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -11870,
+        "billId": "9ed6ceee-f81e-4cb2-824e-48e02b88b8ad",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 14,
+      "finalBalance": -11870,
+      "lastActivity": {
+        "id": "TRANSFER-9ed6ceee-f81e-4cb2-824e-48e02b88b8ad-1782864000000-TO",
+        "name": "Transfer from Jake to Solar",
+        "category": "Ignore.Transfer",
+        "flagColor": "cyan",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Solar",
+        "amount": 1000,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2026-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -11870
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "fbc8afbe-921d-4b9b-811a-7ca7eaa120ba",
+    "accountName": "Kendall",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 1502,
+      "finalBalance": 3633.492842131202,
+      "lastActivity": {
+        "id": "0a9afe14-1609-426a-9aac-1dbff0a31a3f-2035-07-19",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Kendall Chase",
+        "amount": -1189.3659957195482,
+        "amountIsVariable": true,
+        "amountVariable": "{FULL}",
+        "date": "2035-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 3633.492842131202,
+        "billId": "0a9afe14-1609-426a-9aac-1dbff0a31a3f",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 1502,
+      "finalBalance": -9411.605000000007,
+      "lastActivity": {
+        "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-2068416000000-FROM",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Kendall Chase",
+        "amount": -885,
+        "amountIsVariable": false,
+        "amountVariable": "{FULL}",
+        "date": "2035-07-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -9411.605000000007
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -13045.097842131208,
+      "percentageDiff": 359.0236284731385,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "f2eba978-1ba4-40da-87eb-7671e73c0ad0",
+    "accountName": "Jake",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 1512,
+      "finalBalance": 12739.762387173412,
+      "lastActivity": {
+        "id": "b4453f62-7096-461d-b36f-60a1a3eb298a",
+        "name": "City of Raleigh Kendall",
+        "category": "Income.Salary",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 950,
+        "amountIsVariable": false,
+        "amountVariable": "KENDALL_TRANSFER_TO_JAKE",
+        "date": "2035-07-18",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 12739.762387173412,
+        "billId": "2b3ec713-c7bd-492f-b958-0f8a01d97025",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 1430,
+      "finalBalance": 73403.69499999973,
+      "lastActivity": {
+        "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-2068329600000",
+        "name": "City of Raleigh Kendall",
+        "category": "Income.Salary",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 950,
+        "amountIsVariable": true,
+        "amountVariable": "KENDALL_TRANSFER_TO_JAKE",
+        "date": "2035-07-18T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 73403.69499999973
+      }
+    },
+    "differences": {
+      "activityCountDiff": -82,
+      "balanceDiff": 60663.93261282632,
+      "percentageDiff": 476.1778969590806,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "a458bdf3-8d66-4769-b40c-516b38028d75",
+    "accountName": "Spending",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 1108,
+      "finalBalance": 2505.287791888726,
+      "lastActivity": {
+        "id": "3db8dbcc-6cbc-4631-8d46-b6a16ed8481e-2035-07-13",
+        "name": "Transfer from Jake to Spending",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Spending",
+        "amount": 571.1644612212518,
+        "amountIsVariable": false,
+        "amountVariable": "JAKE_TRANSFER_TO_SPENDING",
+        "date": "2035-07-13",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 2505.287791888726,
+        "billId": "3db8dbcc-6cbc-4631-8d46-b6a16ed8481e",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 1108,
+      "finalBalance": 1592.4299999999969,
+      "lastActivity": {
+        "id": "TRANSFER-3db8dbcc-6cbc-4631-8d46-b6a16ed8481e-2067897600000-TO",
+        "name": "Transfer from Jake to Spending",
+        "category": "Ignore.Transfer",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Spending",
+        "amount": 425,
+        "amountIsVariable": true,
+        "amountVariable": "JAKE_TRANSFER_TO_SPENDING",
+        "date": "2035-07-13T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 1592.4299999999969
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -912.8577918887293,
+      "percentageDiff": 36.43724265308975,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "bd7f0645-b485-4c96-bcbb-10b390b9e8db",
+    "accountName": "Emergency",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 122,
+      "finalBalance": 2236.0102529460833,
+      "lastActivity": {
+        "id": "cfeaf540-7d34-403c-a287-9dea30a87108",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "lime",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 1.8617903854671805,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-06-28",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 2236.0102529460833,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "0cd1a0e5-e412-4703-984f-3ca7ffffd42d",
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 122,
+      "finalBalance": 2236.010252946081,
+      "lastActivity": {
+        "id": "INTEREST-0cd1a0e5-e412-4703-984f-3ca7ffffd42d-2066601600000",
+        "name": "Interest - 0cd1a0e5-e412-4703-984f-3ca7ffffd42d",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 1.86179038546718,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-06-28T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 2236.010252946081
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -2.2737367544323206e-12,
+      "percentageDiff": 1.016872239935631e-13,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "a9d6dfc1-493c-4b25-a734-dde33ee97b68",
+    "accountName": "Vacation",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "2973daf0-6932-410e-8a27-a8647e54dffa",
+    "accountName": "Alaska",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "87586483-d4ae-40e2-816a-b58fec926faf",
+    "accountName": "Bathroom",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "5c9f1e09-ec97-4a40-8dac-3336ed466e8e",
+    "accountName": "Jake Chase",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 38,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "dce24aab-3e7e-4cbc-bfbe-9dd75fe0a86b-2035-05-04",
+        "name": "Chase Fee",
+        "category": "Ignore.Transfer",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Jake Chase",
+        "amount": 95,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-05-04",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": "dce24aab-3e7e-4cbc-bfbe-9dd75fe0a86b",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 28,
+      "finalBalance": 4.547473508864641e-13,
+      "lastActivity": {
+        "id": "TRANSFER-dce24aab-3e7e-4cbc-bfbe-9dd75fe0a86b-2061849600000-TO",
+        "name": "Chase Fee",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": false,
+        "isTransfer": true,
+        "to": "Jake Chase",
+        "amount": 95,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-05-04T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 4.547473508864641e-13
+      }
+    },
+    "differences": {
+      "activityCountDiff": -10,
+      "balanceDiff": 4.547473508864641e-13,
+      "percentageDiff": 100,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "3dee3218-60c5-4ed8-b1e3-b728a2006471",
+    "accountName": "Costco",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 2983,
+      "finalBalance": -2392.0120316710945,
+      "lastActivity": {
+        "id": "fede1728-8126-4a48-b606-522806a28db7",
+        "name": "Hello Fresh",
+        "category": "Food.Groceries",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": -105.45711828713327,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-18",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -2392.0120316710945,
+        "billId": "dd5e4670-ec56-41e5-b72f-59962bf26d37",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 2948,
+      "finalBalance": -1797.3999999999073,
+      "lastActivity": {
+        "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-2068329600000",
+        "name": "Hello Fresh",
+        "category": "Food.Groceries",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -78.47,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-18T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -1797.3999999999073
+      }
+    },
+    "differences": {
+      "activityCountDiff": -35,
+      "balanceDiff": 594.6120316711872,
+      "percentageDiff": 24.858237492049007,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "76e7786a-c89c-41ab-9e2b-e5c13a7d3b1d",
+    "accountName": "REI",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 438,
+      "finalBalance": -27.44366841045987,
+      "lastActivity": {
+        "id": "6b4603ac-9c6d-4157-ae40-22706da3172a",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "pink",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": -0.5653408235774274,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-06",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -27.44366841045987,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "e31dc6c3-f208-46dd-81a3-26b3cebbe4f9",
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 318,
+      "finalBalance": -20.000000000010004,
+      "lastActivity": {
+        "id": "BILL-204cd8a7-92fe-450f-bb82-d92c12a241ad-2067206400000",
+        "name": "Open AI Plus",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": "indigo",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -20,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-05T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -20.000000000010004
+      }
+    },
+    "differences": {
+      "activityCountDiff": -120,
+      "balanceDiff": 7.443668410449867,
+      "percentageDiff": 27.123445375884188,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "18754bfc-52fa-4cdb-82f3-327b6f251bb7",
+    "accountName": "WellsFargo",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "141c272a-a655-4144-a2f2-56a1ff6f6172",
+    "accountName": "Kendall 401(k)",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 909,
+      "finalBalance": 184551.02860338526,
+      "lastActivity": {
+        "id": "2bda9b76-fd17-45e2-bcb7-1e79637243fd",
+        "name": "Employer Match",
+        "category": "Ignore.Other",
+        "flag": true,
+        "flagColor": "green",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 146.48688534850933,
+        "amountIsVariable": false,
+        "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
+        "date": "2035-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 184551.02860338526,
+        "billId": "73981483-c208-4bc8-8128-c326d9825d59",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 909,
+      "finalBalance": 164267.60659042053,
+      "lastActivity": {
+        "id": "BILL-73981483-c208-4bc8-8128-c326d9825d59-2068416000000",
+        "name": "Employer Match",
+        "category": "Ignore.Other",
+        "flagColor": "green",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 109,
+        "amountIsVariable": true,
+        "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
+        "date": "2035-07-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 164267.60659042053
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -20283.42201296473,
+      "percentageDiff": 10.990684888869087,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "9005ec8d-1d71-46ce-82ba-f1781e28a1cb",
+    "accountName": "Kendall Roth IRA",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 121,
+      "finalBalance": 56115.80410893984,
+      "lastActivity": {
+        "id": "68c10798-8c2e-4538-9dca-88dd35432f9e",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "lime",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 232.84566020306985,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 56115.80410893984,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "c1024308-fef3-484e-bb30-b5ac4a86f088",
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 121,
+      "finalBalance": 56115.80410893985,
+      "lastActivity": {
+        "id": "INTEREST-c1024308-fef3-484e-bb30-b5ac4a86f088-2066860800000",
+        "name": "Interest - c1024308-fef3-484e-bb30-b5ac4a86f088",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 232.84566020306985,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 56115.80410893985
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 7.275957614183426e-12,
+      "percentageDiff": 1.2965968731479497e-14,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "8a06d434-8cab-4607-875d-e1cbab574534",
+    "accountName": "Jake 401(k)",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 652,
+      "finalBalance": 570850.5383264751,
+      "lastActivity": {
+        "id": "2df1277b-b374-4fb7-934f-b18e1a0a1c9f",
+        "name": "401(k) Contribution",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "teal",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 998.5784013717289,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-13",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 570850.5383264751,
+        "billId": "7a2ceda4-4195-47f4-af64-5d08732d3359",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 652,
+      "finalBalance": 544676.0300674225,
+      "lastActivity": {
+        "id": "BILL-7a2ceda4-4195-47f4-af64-5d08732d3359-2067897600000",
+        "name": "401(k) Contribution",
+        "category": "Ignore.Transfer",
+        "flagColor": "teal",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 904,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-13T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 544676.0300674225
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -26174.508259052527,
+      "percentageDiff": 4.5851771176018525,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "6de0db48-fb17-4f29-aa4e-17032809f14c",
+    "accountName": "Mortgage",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 368,
+      "finalBalance": -292011.0972260699,
+      "lastActivity": {
+        "id": "f324322c-a3e2-4e07-bffb-a0e3cdd98328-2035-07-01",
+        "name": "Mortgage",
+        "category": "Housing.Mortgage",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Mortgage",
+        "amount": 6100,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -292011.0972260699,
+        "billId": "f324322c-a3e2-4e07-bffb-a0e3cdd98328",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 248,
+      "finalBalance": -58753.43000000005,
+      "lastActivity": {
+        "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-2066860800000-TO",
+        "name": "Mortgage",
+        "category": "Ignore.Transfer",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Mortgage",
+        "amount": 5300,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -58753.43000000005
+      }
+    },
+    "differences": {
+      "activityCountDiff": -120,
+      "balanceDiff": 233257.66722606984,
+      "percentageDiff": 79.87972698362414,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
+    "accountName": "Fidelity Money Market",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 417,
+      "finalBalance": 235918.93160891038,
+      "lastActivity": {
+        "id": "97135675-3df0-48bf-b466-02b48dd3cebf-2035-07-10",
+        "name": "Transfer from Kendall to Fidelity",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Fidelity Money Market",
+        "amount": 300,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-10",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 235918.93160891038,
+        "billId": "97135675-3df0-48bf-b466-02b48dd3cebf",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 355,
+      "finalBalance": 269983.5977510031,
+      "lastActivity": {
+        "id": "TRANSFER-97135675-3df0-48bf-b466-02b48dd3cebf-2067638400000-TO",
+        "name": "Transfer from Kendall to Fidelity",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Fidelity Money Market",
+        "amount": 300,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2035-07-10T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 269983.5977510031
+      }
+    },
+    "differences": {
+      "activityCountDiff": -62,
+      "balanceDiff": 34064.66614209273,
+      "percentageDiff": 14.439140559759192,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "7b825511-8ca3-4fa2-b10f-12a07530e792",
+    "accountName": "Kendall Chase",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 367,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "0a9afe14-1609-426a-9aac-1dbff0a31a3f-2035-07-19",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Kendall Chase",
+        "amount": 1189.3659957195482,
+        "amountIsVariable": true,
+        "amountVariable": "{FULL}",
+        "date": "2035-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": "0a9afe14-1609-426a-9aac-1dbff0a31a3f",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 367,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-2068416000000-TO",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Kendall Chase",
+        "amount": 885,
+        "amountIsVariable": false,
+        "amountVariable": "{FULL}",
+        "date": "2035-07-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 0
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "75cad31a-cd94-4693-932a-7a8fc33f51e3",
+    "accountName": "Solar",
+    "scenario": "extended_projection",
+    "startDate": "2025-05-19",
+    "endDate": "2035-07-19",
+    "original": {
+      "activityCount": 26,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "9ed6ceee-f81e-4cb2-824e-48e02b88b8ad-2027-07-01",
+        "name": "Transfer from Jake to Solar",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "cyan",
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Solar",
+        "amount": 870,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2027-07-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": "9ed6ceee-f81e-4cb2-824e-48e02b88b8ad",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 26,
+      "finalBalance": 130,
+      "lastActivity": {
+        "id": "TRANSFER-9ed6ceee-f81e-4cb2-824e-48e02b88b8ad-1814400000000-TO",
+        "name": "Transfer from Jake to Solar",
+        "category": "Ignore.Transfer",
+        "flagColor": "cyan",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Solar",
+        "amount": 1000,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2027-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 130
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 130,
+      "percentageDiff": 100,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "fbc8afbe-921d-4b9b-811a-7ca7eaa120ba",
+    "accountName": "Kendall",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 4769,
+      "finalBalance": 6198.3443790902475,
+      "lastActivity": {
+        "id": "0a9afe14-1609-426a-9aac-1dbff0a31a3f-2075-07-19",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Kendall Chase",
+        "amount": -3879.7568265557784,
+        "amountIsVariable": true,
+        "amountVariable": "{FULL}",
+        "date": "2075-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 6198.3443790902475,
+        "billId": "0a9afe14-1609-426a-9aac-1dbff0a31a3f",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 3743,
+      "finalBalance": -1090999.9850000006,
+      "lastActivity": {
+        "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-3330720000000-FROM",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Kendall Chase",
+        "amount": -885,
+        "amountIsVariable": false,
+        "amountVariable": "{FULL}",
+        "date": "2075-07-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -1090999.9850000006
+      }
+    },
+    "differences": {
+      "activityCountDiff": -1026,
+      "balanceDiff": -1097198.3293790908,
+      "percentageDiff": 17701.47417236811,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "f2eba978-1ba4-40da-87eb-7671e73c0ad0",
+    "accountName": "Jake",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 3971,
+      "finalBalance": 9967.645183758628,
+      "lastActivity": {
+        "id": "SOCIAL-SECURITY",
+        "name": "Jake Social Security",
+        "category": "Income.Retirement",
+        "flag": true,
+        "flagColor": "green",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 10520.867697684025,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-15",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 9967.645183758628,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 3355,
+      "finalBalance": -5346868.77500001,
+      "lastActivity": {
+        "id": "BILL-5c925bdd-24bc-4e27-be31-4606d39954c9-3330374400000",
+        "name": "Health Insurance & Prescriptions",
+        "category": "Health.Doctor",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -2500,
+        "amountIsVariable": true,
+        "amountVariable": "HEALTH_COST_AT_RETIREMENT",
+        "date": "2075-07-15T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -5346868.77500001
+      }
+    },
+    "differences": {
+      "activityCountDiff": -616,
+      "balanceDiff": -5356836.4201837685,
+      "percentageDiff": 53742.24625202597,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "a458bdf3-8d66-4769-b40c-516b38028d75",
+    "accountName": "Spending",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 3265,
+      "finalBalance": 37529.4124111474,
+      "lastActivity": {
+        "id": "3db8dbcc-6cbc-4631-8d46-b6a16ed8481e-2075-07-13",
+        "name": "Transfer from Jake to Spending",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Spending",
+        "amount": 1863.1600579505152,
+        "amountIsVariable": false,
+        "amountVariable": "JAKE_TRANSFER_TO_SPENDING",
+        "date": "2075-07-13",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 37529.4124111474,
+        "billId": "3db8dbcc-6cbc-4631-8d46-b6a16ed8481e",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 3265,
+      "finalBalance": 6882.2300000000505,
+      "lastActivity": {
+        "id": "TRANSFER-3db8dbcc-6cbc-4631-8d46-b6a16ed8481e-3330201600000-TO",
+        "name": "Transfer from Jake to Spending",
+        "category": "Ignore.Transfer",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Spending",
+        "amount": 425,
+        "amountIsVariable": true,
+        "amountVariable": "JAKE_TRANSFER_TO_SPENDING",
+        "date": "2075-07-13T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 6882.2300000000505
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": -30647.18241114735,
+      "percentageDiff": 81.6617699083511,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "bd7f0645-b485-4c96-bcbb-10b390b9e8db",
+    "accountName": "Emergency",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 489,
+      "finalBalance": 2997.5000017346642,
+      "lastActivity": {
+        "id": "AUTO-PULL",
+        "name": "Auto Pull from Emergency",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "violet",
+        "isTransfer": true,
+        "from": "Emergency",
+        "to": "Kendall",
+        "amount": -2.497916668112339,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 2997.5000017346642,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 360,
+      "finalBalance": 3335.179718584613,
+      "lastActivity": {
+        "id": "INTEREST-0cd1a0e5-e412-4703-984f-3ca7ffffd42d-3328905600000",
+        "name": "Interest - 0cd1a0e5-e412-4703-984f-3ca7ffffd42d",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 2.7770022636008447,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-06-28T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 3335.179718584613
+      }
+    },
+    "differences": {
+      "activityCountDiff": -129,
+      "balanceDiff": 337.6797168499488,
+      "percentageDiff": 11.265378370459795,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "a9d6dfc1-493c-4b25-a734-dde33ee97b68",
+    "accountName": "Vacation",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "2973daf0-6932-410e-8a27-a8647e54dffa",
+    "accountName": "Alaska",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "87586483-d4ae-40e2-816a-b58fec926faf",
+    "accountName": "Bathroom",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "5c9f1e09-ec97-4a40-8dac-3336ed466e8e",
+    "accountName": "Jake Chase",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 60,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "dce24aab-3e7e-4cbc-bfbe-9dd75fe0a86b-2075-05-04",
+        "name": "Chase Fee",
+        "category": "Ignore.Transfer",
+        "flag": false,
+        "flagColor": null,
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Jake Chase",
+        "amount": 95,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-05-04",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": "dce24aab-3e7e-4cbc-bfbe-9dd75fe0a86b",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 60,
+      "finalBalance": 4.547473508864641e-13,
+      "lastActivity": {
+        "id": "TRANSFER-dce24aab-3e7e-4cbc-bfbe-9dd75fe0a86b-3324153600000-TO",
+        "name": "Chase Fee",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": false,
+        "isTransfer": true,
+        "to": "Jake Chase",
+        "amount": 95,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-05-04T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 4.547473508864641e-13
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 4.547473508864641e-13,
+      "percentageDiff": 100,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "3dee3218-60c5-4ed8-b1e3-b728a2006471",
+    "accountName": "Costco",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 8423,
+      "finalBalance": -2054.939999999937,
+      "lastActivity": {
+        "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-3330547200000",
+        "name": "Hello Fresh",
+        "category": "Food.Groceries",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -78.47,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-17T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -2054.939999999937
+      }
+    },
+    "differences": {
+      "activityCountDiff": 8423,
+      "balanceDiff": -2054.939999999937,
+      "percentageDiff": 100,
+      "significant": true
+    },
+    "errors": [
+      "Original API error: terminated"
+    ],
+    "success": false
+  },
+  {
+    "accountId": "76e7786a-c89c-41ab-9e2b-e5c13a7d3b1d",
+    "accountName": "REI",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 1110,
+      "finalBalance": -89.52228350601133,
+      "lastActivity": {
+        "id": "7f2bdb1f-f7e7-42ea-b0bc-a76dec934a1a",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "pink",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": -1.8441631318694511,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-06",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -89.52228350601133,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "e31dc6c3-f208-46dd-81a3-26b3cebbe4f9",
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 750,
+      "finalBalance": -20.000000000008214,
+      "lastActivity": {
+        "id": "BILL-204cd8a7-92fe-450f-bb82-d92c12a241ad-3329510400000",
+        "name": "Open AI Plus",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": "indigo",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -20,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-05T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -20.000000000008214
+      }
+    },
+    "differences": {
+      "activityCountDiff": -360,
+      "balanceDiff": 69.52228350600312,
+      "percentageDiff": 77.65919364795333,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "18754bfc-52fa-4cdb-82f3-327b6f251bb7",
+    "accountName": "WellsFargo",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "141c272a-a655-4144-a2f2-56a1ff6f6172",
+    "accountName": "Kendall 401(k)",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 530,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "AUTO-PULL",
+        "name": "Auto Pull from Kendall 401(k)",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "violet",
+        "isTransfer": true,
+        "from": "Kendall 401(k)",
+        "to": "Kendall",
+        "amount": -465.2160459126799,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2061-05-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 594,
+      "finalBalance": 1953428.2798435413,
+      "lastActivity": {
+        "id": "INTEREST-b8f65e81-5ce8-41bb-86bf-59f0460aa9b4-3329164800000",
+        "name": "Interest - b8f65e81-5ce8-41bb-86bf-59f0460aa9b4",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 8105.511534620509,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 1953428.2798435413
+      }
+    },
+    "differences": {
+      "activityCountDiff": 64,
+      "balanceDiff": 1953428.2798435413,
+      "percentageDiff": 100,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "9005ec8d-1d71-46ce-82ba-f1781e28a1cb",
+    "accountName": "Kendall Roth IRA",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 157,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "AUTO-PULL",
+        "name": "Auto Pull from Kendall Roth IRA",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "violet",
+        "isTransfer": true,
+        "from": "Kendall Roth IRA",
+        "to": "Kendall",
+        "amount": -4956.5055988116255,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2056-12-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 360,
+      "finalBalance": 412923.5047922792,
+      "lastActivity": {
+        "id": "INTEREST-c1024308-fef3-484e-bb30-b5ac4a86f088-3329164800000",
+        "name": "Interest - c1024308-fef3-484e-bb30-b5ac4a86f088",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 1713.3755385571742,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 412923.5047922792
+      }
+    },
+    "differences": {
+      "activityCountDiff": 203,
+      "balanceDiff": 412923.5047922792,
+      "percentageDiff": 100,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "8a06d434-8cab-4607-875d-e1cbab574534",
+    "accountName": "Jake 401(k)",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 654,
+      "finalBalance": 3305157.8897242416,
+      "lastActivity": {
+        "id": "134ef383-81a0-4623-b416-6d51922d5143",
+        "name": "Interest",
+        "category": "Banking.Interest",
+        "flag": true,
+        "flagColor": "lime",
+        "isTransfer": false,
+        "from": null,
+        "to": null,
+        "amount": 13714.34809014208,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-02",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 3305157.8897242416,
+        "billId": null,
+        "firstBill": false,
+        "interestId": "9d4a3a72-0eb0-4134-a92e-5bfca4f55432",
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 516,
+      "finalBalance": 6098968.313351488,
+      "lastActivity": {
+        "id": "INTEREST-9d4a3a72-0eb0-4134-a92e-5bfca4f55432-3329251200000",
+        "name": "Interest - 9d4a3a72-0eb0-4134-a92e-5bfca4f55432",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 25306.922462039358,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-02T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 6098968.313351488
+      }
+    },
+    "differences": {
+      "activityCountDiff": -138,
+      "balanceDiff": 2793810.423627246,
+      "percentageDiff": 84.52880367117172,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "6de0db48-fb17-4f29-aa4e-17032809f14c",
+    "accountName": "Mortgage",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 1080,
+      "finalBalance": -3265.492691288573,
+      "lastActivity": {
+        "id": "f324322c-a3e2-4e07-bffb-a0e3cdd98328-2075-07-01",
+        "name": "Mortgage",
+        "category": "Housing.Mortgage",
+        "flag": true,
+        "flagColor": "gray",
+        "isTransfer": true,
+        "from": "Jake",
+        "to": "Mortgage",
+        "amount": 3265.492691288571,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-01",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": -3265.492691288573,
+        "billId": "f324322c-a3e2-4e07-bffb-a0e3cdd98328",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 1080,
+      "finalBalance": 14804713.027510056,
+      "lastActivity": {
+        "id": "INTEREST-0c0229d4-58f6-41e5-bdae-615bcbdffada-3329164800000",
+        "name": "Interest - 0c0229d4-58f6-41e5-bdae-615bcbdffada",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": 75181.98138128237,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 14804713.027510056
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 14807978.520201344,
+      "percentageDiff": 453468.4324881484,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
+    "accountName": "Fidelity Money Market",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 1636,
+      "finalBalance": 71344.03448249499,
+      "lastActivity": {
+        "id": "97135675-3df0-48bf-b466-02b48dd3cebf-2075-07-10",
+        "name": "Transfer from Kendall to Fidelity",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Fidelity Money Market",
+        "amount": 300,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-10",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 71344.03448249499,
+        "billId": "97135675-3df0-48bf-b466-02b48dd3cebf",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 1080,
+      "finalBalance": 2357410.5752068143,
+      "lastActivity": {
+        "id": "TRANSFER-97135675-3df0-48bf-b466-02b48dd3cebf-3329942400000-TO",
+        "name": "Transfer from Kendall to Fidelity",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Fidelity Money Market",
+        "amount": 300,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2075-07-10T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 2357410.5752068143
+      }
+    },
+    "differences": {
+      "activityCountDiff": -556,
+      "balanceDiff": 2286066.5407243194,
+      "percentageDiff": 3204.2854841426583,
+      "significant": true
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "7b825511-8ca3-4fa2-b10f-12a07530e792",
+    "accountName": "Kendall Chase",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 1081,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "0a9afe14-1609-426a-9aac-1dbff0a31a3f-2075-07-19",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flag": true,
+        "flagColor": "blue",
+        "isTransfer": true,
+        "from": "Kendall",
+        "to": "Kendall Chase",
+        "amount": 3879.7568265557784,
+        "amountIsVariable": true,
+        "amountVariable": "{FULL}",
+        "date": "2075-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "balance": 0,
+        "billId": "0a9afe14-1609-426a-9aac-1dbff0a31a3f",
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false
+      }
+    },
+    "calculated": {
+      "activityCount": 1081,
+      "finalBalance": 0,
+      "lastActivity": {
+        "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-3330720000000-TO",
+        "name": "Transfer from Kendall to Kendall Chase",
+        "category": "Ignore.Transfer",
+        "flagColor": "blue",
+        "flag": true,
+        "isTransfer": true,
+        "to": "Kendall Chase",
+        "amount": 885,
+        "amountIsVariable": false,
+        "amountVariable": "{FULL}",
+        "date": "2075-07-19T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 0
+      }
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  },
+  {
+    "accountId": "75cad31a-cd94-4693-932a-7a8fc33f51e3",
+    "accountName": "Solar",
+    "scenario": "far_future_projection",
+    "startDate": "2045-07-19",
+    "endDate": "2075-07-19",
+    "original": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "calculated": {
+      "activityCount": 0,
+      "finalBalance": 0
+    },
+    "differences": {
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
+    },
+    "errors": [],
+    "success": true
+  }
+]

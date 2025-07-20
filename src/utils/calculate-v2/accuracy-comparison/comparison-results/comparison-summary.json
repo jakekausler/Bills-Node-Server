@@ -1,0 +1,181 @@
+{
+  "totalComparisons": 90,
+  "successfulComparisons": 54,
+  "failedComparisons": 1,
+  "significantDiscrepancies": 36,
+  "scenarios": [
+    {
+      "scenario": "historical_to_current",
+      "comparisons": 18,
+      "successful": 18,
+      "failed": 0,
+      "discrepancies": 0,
+      "avgBalanceDiff": 0,
+      "avgActivityCountDiff": 0
+    },
+    {
+      "scenario": "current_to_near_future",
+      "comparisons": 18,
+      "successful": 14,
+      "failed": 0,
+      "discrepancies": 4,
+      "avgBalanceDiff": 151.245538368057,
+      "avgActivityCountDiff": 0.16666666666666666
+    },
+    {
+      "scenario": "recent_to_medium_term",
+      "comparisons": 18,
+      "successful": 8,
+      "failed": 0,
+      "discrepancies": 10,
+      "avgBalanceDiff": 2518.1001153591014,
+      "avgActivityCountDiff": 2.2777777777777777
+    },
+    {
+      "scenario": "extended_projection",
+      "comparisons": 18,
+      "successful": 7,
+      "failed": 0,
+      "discrepancies": 11,
+      "avgBalanceDiff": 21618.56708817265,
+      "avgActivityCountDiff": 23.833333333333332
+    },
+    {
+      "scenario": "far_future_projection",
+      "comparisons": 18,
+      "successful": 7,
+      "failed": 1,
+      "discrepancies": 11,
+      "avgBalanceDiff": 1596741.7412868384,
+      "avgActivityCountDiff": 639.7222222222222
+    }
+  ],
+  "accounts": [
+    {
+      "accountName": "Kendall",
+      "comparisons": 5,
+      "successful": 2,
+      "failed": 0,
+      "discrepancies": 3
+    },
+    {
+      "accountName": "Jake",
+      "comparisons": 5,
+      "successful": 2,
+      "failed": 0,
+      "discrepancies": 3
+    },
+    {
+      "accountName": "Spending",
+      "comparisons": 5,
+      "successful": 2,
+      "failed": 0,
+      "discrepancies": 3
+    },
+    {
+      "accountName": "Emergency",
+      "comparisons": 5,
+      "successful": 4,
+      "failed": 0,
+      "discrepancies": 1
+    },
+    {
+      "accountName": "Vacation",
+      "comparisons": 5,
+      "successful": 5,
+      "failed": 0,
+      "discrepancies": 0
+    },
+    {
+      "accountName": "Alaska",
+      "comparisons": 5,
+      "successful": 5,
+      "failed": 0,
+      "discrepancies": 0
+    },
+    {
+      "accountName": "Bathroom",
+      "comparisons": 5,
+      "successful": 5,
+      "failed": 0,
+      "discrepancies": 0
+    },
+    {
+      "accountName": "Jake Chase",
+      "comparisons": 5,
+      "successful": 2,
+      "failed": 0,
+      "discrepancies": 3
+    },
+    {
+      "accountName": "Costco",
+      "comparisons": 5,
+      "successful": 2,
+      "failed": 1,
+      "discrepancies": 3
+    },
+    {
+      "accountName": "REI",
+      "comparisons": 5,
+      "successful": 1,
+      "failed": 0,
+      "discrepancies": 4
+    },
+    {
+      "accountName": "WellsFargo",
+      "comparisons": 5,
+      "successful": 5,
+      "failed": 0,
+      "discrepancies": 0
+    },
+    {
+      "accountName": "Kendall 401(k)",
+      "comparisons": 5,
+      "successful": 2,
+      "failed": 0,
+      "discrepancies": 3
+    },
+    {
+      "accountName": "Kendall Roth IRA",
+      "comparisons": 5,
+      "successful": 4,
+      "failed": 0,
+      "discrepancies": 1
+    },
+    {
+      "accountName": "Jake 401(k)",
+      "comparisons": 5,
+      "successful": 2,
+      "failed": 0,
+      "discrepancies": 3
+    },
+    {
+      "accountName": "Mortgage",
+      "comparisons": 5,
+      "successful": 1,
+      "failed": 0,
+      "discrepancies": 4
+    },
+    {
+      "accountName": "Fidelity Money Market",
+      "comparisons": 5,
+      "successful": 1,
+      "failed": 0,
+      "discrepancies": 4
+    },
+    {
+      "accountName": "Kendall Chase",
+      "comparisons": 5,
+      "successful": 5,
+      "failed": 0,
+      "discrepancies": 0
+    },
+    {
+      "accountName": "Solar",
+      "comparisons": 5,
+      "successful": 4,
+      "failed": 0,
+      "discrepancies": 1
+    }
+  ]
+}
