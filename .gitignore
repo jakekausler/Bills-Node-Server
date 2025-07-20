@@ -12,3 +12,4 @@ src/utils/io/data/variables.csv
 src/utils/io/data/*_backup*
 src/utils/io/data/simulations/*
 src/utils/io/data/backup/
+**/cache

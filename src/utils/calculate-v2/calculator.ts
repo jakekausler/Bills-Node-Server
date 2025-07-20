@@ -128,7 +128,7 @@ export class Calculator {
     // Calculate interest amount
     const interestAmount = this.calculateInterestAmount(currentBalance, event.rate, interest.compounded);
 
-    // Only create activities for amounts >= $0.00001 (match original behavior)
+    // Only create activities for amounts >= $0.00001 (filter out floating-point noise)
     if (Math.abs(interestAmount) < 0.00001) {
       return;
     }

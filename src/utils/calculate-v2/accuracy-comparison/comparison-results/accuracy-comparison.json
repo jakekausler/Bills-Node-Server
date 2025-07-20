@@ -1238,7 +1238,7 @@
     "startDate": "2025-07-19",
     "endDate": "2025-08-19",
     "original": {
-      "activityCount": 11,
+      "activityCount": 9,
       "finalBalance": 4292.369999999987,
       "lastActivity": {
         "id": "78fa8199-03e6-4f02-9eef-e8f5ca69cb81",
@@ -1288,10 +1288,10 @@
       }
     },
     "differences": {
-      "activityCountDiff": 0,
+      "activityCountDiff": 2,
       "balanceDiff": 1.0913936421275139e-11,
       "percentageDiff": 2.5426364505564927e-13,
-      "significant": false
+      "significant": true
     },
     "errors": [],
     "success": true
@@ -1502,39 +1502,18 @@
     "startDate": "2025-07-19",
     "endDate": "2025-08-19",
     "original": {
-      "activityCount": 1,
-      "finalBalance": 4.634595522171973e-13,
-      "lastActivity": {
-        "id": "a5c7d989-c927-48f8-88e6-2baa9f9b4713",
-        "name": "Interest",
-        "category": "Banking.Interest",
-        "flag": true,
-        "flagColor": "lime",
-        "isTransfer": false,
-        "from": null,
-        "to": null,
-        "amount": 8.712201330733175e-15,
-        "amountIsVariable": false,
-        "amountVariable": null,
-        "date": "2025-07-20",
-        "dateIsVariable": false,
-        "dateVariable": null,
-        "balance": 4.634595522171973e-13,
-        "billId": null,
-        "firstBill": false,
-        "interestId": "ad5c64e8-83a0-4063-819f-10889a0811d4",
-        "firstInterest": true
-      }
+      "activityCount": 0,
+      "finalBalance": 0
     },
     "calculated": {
       "activityCount": 0,
       "finalBalance": 0
     },
     "differences": {
-      "activityCountDiff": -1,
-      "balanceDiff": -4.634595522171973e-13,
-      "percentageDiff": 100,
-      "significant": true
+      "activityCountDiff": 0,
+      "balanceDiff": 0,
+      "percentageDiff": 0,
+      "significant": false
     },
     "errors": [],
     "success": true
@@ -1611,7 +1590,7 @@
     "startDate": "2025-07-19",
     "endDate": "2025-08-19",
     "original": {
-      "activityCount": 3,
+      "activityCount": 2,
       "finalBalance": -20.420666666666666,
       "lastActivity": {
         "id": "7af0bc43-3895-4847-be19-de5368613bd2",
@@ -1661,7 +1640,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": -1,
+      "activityCountDiff": 0,
       "balanceDiff": 0.42066666665802543,
       "percentageDiff": 2.060004570490804,
       "significant": true
@@ -1958,7 +1937,7 @@
     "startDate": "2025-07-19",
     "endDate": "2025-08-19",
     "original": {
-      "activityCount": 2,
+      "activityCount": 1,
       "finalBalance": 54448.50179999999,
       "lastActivity": {
         "id": "aa6baf49-97b4-48c9-a062-563522670017",
@@ -2008,7 +1987,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": 0,
+      "activityCountDiff": 1,
       "balanceDiff": 9.523225000004459,
       "percentageDiff": 0.017490334325423917,
       "significant": true
@@ -2174,7 +2153,7 @@
     "startDate": "2025-06-19",
     "endDate": "2026-07-19",
     "original": {
-      "activityCount": 176,
+      "activityCount": 173,
       "finalBalance": 11593.041799999999,
       "lastActivity": {
         "id": "c5e45697-c98c-4f02-8d5a-b36729507571",
@@ -2224,7 +2203,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": -4,
+      "activityCountDiff": -1,
       "balanceDiff": 11137.083199999994,
       "percentageDiff": 96.06696320201308,
       "significant": true
@@ -2437,7 +2416,7 @@
     "startDate": "2025-06-19",
     "endDate": "2026-07-19",
     "original": {
-      "activityCount": 18,
+      "activityCount": 8,
       "finalBalance": 0,
       "lastActivity": {
         "id": "dce24aab-3e7e-4cbc-bfbe-9dd75fe0a86b-2026-05-04",
@@ -2486,10 +2465,10 @@
       }
     },
     "differences": {
-      "activityCountDiff": -10,
+      "activityCountDiff": 0,
       "balanceDiff": 4.547473508864641e-13,
       "percentageDiff": 100,
-      "significant": true
+      "significant": false
     },
     "errors": [],
     "success": true
@@ -2566,7 +2545,7 @@
     "startDate": "2025-06-19",
     "endDate": "2026-07-19",
     "original": {
-      "activityCount": 52,
+      "activityCount": 51,
       "finalBalance": -21.03328666666667,
       "lastActivity": {
         "id": "1741fc82-25ce-4cc2-bd17-d8f1b32bdae7",
@@ -2616,7 +2595,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": -12,
+      "activityCountDiff": -11,
       "balanceDiff": 1.033286666655755,
       "percentageDiff": 4.912625796582218,
       "significant": true
@@ -2913,7 +2892,7 @@
     "startDate": "2025-06-19",
     "endDate": "2026-07-19",
     "original": {
-      "activityCount": 31,
+      "activityCount": 30,
       "finalBalance": 65826.3812366556,
       "lastActivity": {
         "id": "97135675-3df0-48bf-b466-02b48dd3cebf-2026-07-10",
@@ -2962,7 +2941,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": -2,
+      "activityCountDiff": -1,
       "balanceDiff": -1854.8990821088591,
       "percentageDiff": 2.8178657967543774,
       "significant": true
@@ -3169,7 +3148,7 @@
     "startDate": "2025-05-19",
     "endDate": "2035-07-19",
     "original": {
-      "activityCount": 1512,
+      "activityCount": 1500,
       "finalBalance": 12739.762387173412,
       "lastActivity": {
         "id": "b4453f62-7096-461d-b36f-60a1a3eb298a",
@@ -3219,7 +3198,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": -82,
+      "activityCountDiff": -70,
       "balanceDiff": 60663.93261282632,
       "percentageDiff": 476.1778969590806,
       "significant": true
@@ -3432,7 +3411,7 @@
     "startDate": "2025-05-19",
     "endDate": "2035-07-19",
     "original": {
-      "activityCount": 38,
+      "activityCount": 28,
       "finalBalance": 0,
       "lastActivity": {
         "id": "dce24aab-3e7e-4cbc-bfbe-9dd75fe0a86b-2035-05-04",
@@ -3481,10 +3460,10 @@
       }
     },
     "differences": {
-      "activityCountDiff": -10,
+      "activityCountDiff": 0,
       "balanceDiff": 4.547473508864641e-13,
       "percentageDiff": 100,
-      "significant": true
+      "significant": false
     },
     "errors": [],
     "success": true
@@ -3561,7 +3540,7 @@
     "startDate": "2025-05-19",
     "endDate": "2035-07-19",
     "original": {
-      "activityCount": 438,
+      "activityCount": 437,
       "finalBalance": -27.44366841045987,
       "lastActivity": {
         "id": "6b4603ac-9c6d-4157-ae40-22706da3172a",
@@ -3611,7 +3590,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": -120,
+      "activityCountDiff": -119,
       "balanceDiff": 7.443668410449867,
       "percentageDiff": 27.123445375884188,
       "significant": true
@@ -3908,7 +3887,7 @@
     "startDate": "2025-05-19",
     "endDate": "2035-07-19",
     "original": {
-      "activityCount": 417,
+      "activityCount": 416,
       "finalBalance": 235918.93160891038,
       "lastActivity": {
         "id": "97135675-3df0-48bf-b466-02b48dd3cebf-2035-07-10",
@@ -3957,7 +3936,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": -62,
+      "activityCountDiff": -61,
       "balanceDiff": 34064.66614209273,
       "percentageDiff": 14.439140559759192,
       "significant": true
@@ -4164,7 +4143,7 @@
     "startDate": "2045-07-19",
     "endDate": "2075-07-19",
     "original": {
-      "activityCount": 3971,
+      "activityCount": 3941,
       "finalBalance": 9967.645183758628,
       "lastActivity": {
         "id": "SOCIAL-SECURITY",
@@ -4214,7 +4193,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": -616,
+      "activityCountDiff": -586,
       "balanceDiff": -5356836.4201837685,
       "percentageDiff": 53742.24625202597,
       "significant": true
