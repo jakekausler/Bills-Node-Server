@@ -343,26 +343,6 @@
         "balance": 3681.4
       },
       {
-        "id": "TRANSFER-8d0d770f-9b1a-4738-a2fd-d1b387149531-1753660800000-FROM",
-        "name": "Transfer from Jake to REI",
-        "category": "Ignore.Transfer",
-        "flagColor": "blue",
-        "flag": true,
-        "isTransfer": true,
-        "to": "REI",
-        "amount": -2.2737367544323206e-12,
-        "amountIsVariable": false,
-        "amountVariable": "{FULL}",
-        "date": "2025-07-28T00:00:00.000Z",
-        "dateIsVariable": false,
-        "dateVariable": null,
-        "billId": null,
-        "firstBill": false,
-        "interestId": null,
-        "firstInterest": false,
-        "balance": 3681.399999999998
-      },
-      {
         "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-1753833600000",
         "name": "City of Raleigh Kendall",
         "category": "Income.Salary",
@@ -381,7 +361,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4631.399999999998
+        "balance": 4631.4
       },
       {
         "id": "52862d96-9d70-4748-8618-587fcd21b06e",
@@ -402,7 +382,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4631.399999999998
+        "balance": 4631.4
       },
       {
         "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-1754006400000-FROM",
@@ -422,7 +402,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 531.3999999999978
+        "balance": 531.4000000000001
       },
       {
         "id": "BILL-977cbb1b-1171-4438-a977-c4f418800486-1754438400000",
@@ -443,7 +423,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 501.449999999998
+        "balance": 501.4500000000003
       },
       {
         "id": "BILL-7cca8bb6-9661-4792-adc5-1f0d1c7eb258-1754611200000",
@@ -464,7 +444,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3492.509999999998
+        "balance": 3492.51
       },
       {
         "id": "BILL-82a02207-d488-4d90-8ef3-4dd238a3ca87-1754956800000",
@@ -485,7 +465,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3342.369999999998
+        "balance": 3342.3700000000003
       },
       {
         "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-1755043200000",
@@ -506,10 +486,10 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4292.369999999998
+        "balance": 4292.370000000001
       }
     ],
-    "balance": 4292.369999999998
+    "balance": 4292.370000000001
   },
   {
     "id": "a458bdf3-8d66-4769-b40c-516b38028d75",
@@ -1168,26 +1148,6 @@
     "name": "REI",
     "consolidatedActivity": [
       {
-        "id": "TRANSFER-8d0d770f-9b1a-4738-a2fd-d1b387149531-1753660800000-TO",
-        "name": "Transfer from Jake to REI",
-        "category": "Ignore.Transfer",
-        "flagColor": "blue",
-        "flag": true,
-        "isTransfer": true,
-        "to": "REI",
-        "amount": 2.2737367544323206e-12,
-        "amountIsVariable": false,
-        "amountVariable": "{FULL}",
-        "date": "2025-07-28T00:00:00.000Z",
-        "dateIsVariable": false,
-        "dateVariable": null,
-        "billId": null,
-        "firstBill": false,
-        "interestId": null,
-        "firstInterest": false,
-        "balance": -8.640199666842818e-12
-      },
-      {
         "id": "BILL-204cd8a7-92fe-450f-bb82-d92c12a241ad-1754352000000",
         "name": "Open AI Plus",
         "category": "Shopping.Electronics & Software",
@@ -1206,7 +1166,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -20.00000000000864
+        "balance": -20.000000000010914
       },
       {
         "id": "INTEREST-e31dc6c3-f208-46dd-81a3-26b3cebbe4f9-1754438400000",
@@ -1217,7 +1177,7 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -0.4206666666666667,
+        "amount": -0.42066666666671454,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2025-08-06T00:00:00.000Z",
@@ -1227,10 +1187,10 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -20.420666666675306
+        "balance": -20.42066666667763
       }
     ],
-    "balance": -20.420666666675306
+    "balance": -20.42066666667763
   },
   {
     "id": "18754bfc-52fa-4cdb-82f3-327b6f251bb7",

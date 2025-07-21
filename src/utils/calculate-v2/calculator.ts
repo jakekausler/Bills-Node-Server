@@ -226,6 +226,11 @@ export class Calculator {
       }
     }
 
+    // Only create activities for non-zero amounts (filter out zeros and floating-point noise)
+    if (Math.abs(amount) <= 0.00001) {
+      return;
+    }
+
     // Create activities for both accounts
     const fromActivity = new ConsolidatedActivity({
       id: `TRANSFER-${transfer.id}-${event.date.getTime()}-FROM`,

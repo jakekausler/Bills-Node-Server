@@ -1263,8 +1263,8 @@
       }
     },
     "calculated": {
-      "activityCount": 11,
-      "finalBalance": 4292.369999999998,
+      "activityCount": 10,
+      "finalBalance": 4292.370000000001,
       "lastActivity": {
         "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-1755043200000",
         "name": "City of Raleigh Kendall",
@@ -1284,13 +1284,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4292.369999999998
+        "balance": 4292.370000000001
       }
     },
     "differences": {
-      "activityCountDiff": 2,
-      "balanceDiff": 1.0913936421275139e-11,
-      "percentageDiff": 2.5426364505564927e-13,
+      "activityCountDiff": 1,
+      "balanceDiff": 1.3642420526593924e-11,
+      "percentageDiff": 3.1782955631956154e-13,
       "significant": true
     },
     "errors": [],
@@ -1615,8 +1615,8 @@
       }
     },
     "calculated": {
-      "activityCount": 3,
-      "finalBalance": -20.420666666675306,
+      "activityCount": 2,
+      "finalBalance": -20.42066666667763,
       "lastActivity": {
         "id": "INTEREST-e31dc6c3-f208-46dd-81a3-26b3cebbe4f9-1754438400000",
         "name": "Interest - e31dc6c3-f208-46dd-81a3-26b3cebbe4f9",
@@ -1626,7 +1626,7 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -0.4206666666666667,
+        "amount": -0.42066666666671454,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2025-08-06T00:00:00.000Z",
@@ -1636,14 +1636,14 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -20.420666666675306
+        "balance": -20.42066666667763
       }
     },
     "differences": {
-      "activityCountDiff": 1,
-      "balanceDiff": -8.640199666842818e-12,
-      "percentageDiff": 4.231105579401335e-11,
-      "significant": true
+      "activityCountDiff": 0,
+      "balanceDiff": -1.0963674412778346e-11,
+      "percentageDiff": 5.3689111093883715e-11,
+      "significant": false
     },
     "errors": [],
     "success": true
@@ -2179,7 +2179,7 @@
       }
     },
     "calculated": {
-      "activityCount": 172,
+      "activityCount": 171,
       "finalBalance": 22689.685685333327,
       "lastActivity": {
         "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-1784073600000",
@@ -2204,7 +2204,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": -1,
+      "activityCountDiff": -2,
       "balanceDiff": 11096.643885333327,
       "percentageDiff": 95.71813918011861,
       "significant": true
@@ -2571,7 +2571,7 @@
       }
     },
     "calculated": {
-      "activityCount": 52,
+      "activityCount": 51,
       "finalBalance": -20.42066666667779,
       "lastActivity": {
         "id": "INTEREST-e31dc6c3-f208-46dd-81a3-26b3cebbe4f9-1783296000000",
@@ -2596,7 +2596,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": 1,
+      "activityCountDiff": 0,
       "balanceDiff": 0.6126199999888797,
       "percentageDiff": 2.912621359170431,
       "significant": true
@@ -3175,7 +3175,7 @@
       }
     },
     "calculated": {
-      "activityCount": 1430,
+      "activityCount": 1429,
       "finalBalance": 72780.90480833316,
       "lastActivity": {
         "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-2068329600000",
@@ -3200,7 +3200,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": -70,
+      "activityCountDiff": -71,
       "balanceDiff": 60041.14242115975,
       "percentageDiff": 471.2893427400976,
       "significant": true
@@ -3567,7 +3567,7 @@
       }
     },
     "calculated": {
-      "activityCount": 438,
+      "activityCount": 437,
       "finalBalance": -20.42066666667688,
       "lastActivity": {
         "id": "INTEREST-e31dc6c3-f208-46dd-81a3-26b3cebbe4f9-2067292800000",
@@ -3592,7 +3592,7 @@
       }
     },
     "differences": {
-      "activityCountDiff": 1,
+      "activityCountDiff": 0,
       "balanceDiff": 7.0230017437829915,
       "percentageDiff": 25.59060851029029,
       "significant": true
