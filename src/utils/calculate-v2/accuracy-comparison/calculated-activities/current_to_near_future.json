@@ -1207,9 +1207,30 @@
         "interestId": null,
         "firstInterest": false,
         "balance": -20.00000000000864
+      },
+      {
+        "id": "INTEREST-e31dc6c3-f208-46dd-81a3-26b3cebbe4f9-1754438400000",
+        "name": "Interest - e31dc6c3-f208-46dd-81a3-26b3cebbe4f9",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -0.4206666666666667,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-06T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -20.420666666675306
       }
     ],
-    "balance": -20.00000000000864
+    "balance": -20.420666666675306
   },
   {
     "id": "18754bfc-52fa-4cdb-82f3-327b6f251bb7",
@@ -1513,9 +1534,30 @@
         "interestId": null,
         "firstInterest": false,
         "balance": -528064.9099999996
+      },
+      {
+        "id": "INTEREST-0c0229d4-58f6-41e5-bdae-615bcbdffada-1754006400000",
+        "name": "Interest - 0c0229d4-58f6-41e5-bdae-615bcbdffada",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -2695.331311458333,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-01T00:00:00.000Z",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -530760.2413114579
       }
     ],
-    "balance": -528064.9099999996
+    "balance": -530760.2413114579
   },
   {
     "id": "ba1af043-c75c-4a7d-9a81-99574bded9c5",

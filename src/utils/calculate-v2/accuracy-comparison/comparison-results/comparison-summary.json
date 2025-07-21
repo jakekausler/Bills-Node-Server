@@ -19,7 +19,7 @@
       "successful": 14,
       "failed": 0,
       "discrepancies": 4,
-      "avgBalanceDiff": 151.24553836805697,
+      "avgBalanceDiff": 1.4815395833335177,
       "avgActivityCountDiff": 0.2222222222222222
     },
     {
@@ -28,8 +28,8 @@
       "successful": 9,
       "failed": 0,
       "discrepancies": 9,
-      "avgBalanceDiff": 2518.1001153591014,
-      "avgActivityCountDiff": 1.4444444444444444
+      "avgBalanceDiff": 849.9857799573955,
+      "avgActivityCountDiff": 0.6666666666666666
     },
     {
       "scenario": "extended_projection",
@@ -37,8 +37,8 @@
       "successful": 8,
       "failed": 0,
       "discrepancies": 10,
-      "avgBalanceDiff": 21618.56708817265,
-      "avgActivityCountDiff": 22.5
+      "avgBalanceDiff": 11161.040656087001,
+      "avgActivityCountDiff": 11.833333333333334
     },
     {
       "scenario": "far_future_projection",
@@ -46,7 +46,7 @@
       "successful": 7,
       "failed": 1,
       "discrepancies": 11,
-      "avgBalanceDiff": 1596741.7412868384,
+      "avgBalanceDiff": 1417935.6677687764,
       "avgActivityCountDiff": 638.0555555555555
     }
   ],

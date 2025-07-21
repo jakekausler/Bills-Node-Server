@@ -1615,34 +1615,34 @@
       }
     },
     "calculated": {
-      "activityCount": 2,
-      "finalBalance": -20.00000000000864,
+      "activityCount": 3,
+      "finalBalance": -20.420666666675306,
       "lastActivity": {
-        "id": "BILL-204cd8a7-92fe-450f-bb82-d92c12a241ad-1754352000000",
-        "name": "Open AI Plus",
-        "category": "Shopping.Electronics & Software",
-        "flagColor": "indigo",
-        "flag": true,
+        "id": "INTEREST-e31dc6c3-f208-46dd-81a3-26b3cebbe4f9-1754438400000",
+        "name": "Interest - e31dc6c3-f208-46dd-81a3-26b3cebbe4f9",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -20,
+        "amount": -0.4206666666666667,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-05T00:00:00.000Z",
+        "date": "2025-08-06T00:00:00.000Z",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -20.00000000000864
+        "balance": -20.420666666675306
       }
     },
     "differences": {
-      "activityCountDiff": 0,
-      "balanceDiff": 0.42066666665802543,
-      "percentageDiff": 2.060004570490804,
+      "activityCountDiff": 1,
+      "balanceDiff": -8.640199666842818e-12,
+      "percentageDiff": 4.231105579401335e-11,
       "significant": true
     },
     "errors": [],
@@ -1898,17 +1898,18 @@
       }
     },
     "calculated": {
-      "activityCount": 2,
-      "finalBalance": -528064.9099999996,
+      "activityCount": 3,
+      "finalBalance": -530760.2413114579,
       "lastActivity": {
-        "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-1754006400000-TO",
-        "name": "Mortgage",
-        "category": "Ignore.Transfer",
-        "flagColor": "gray",
-        "flag": true,
-        "isTransfer": true,
-        "to": "Mortgage",
-        "amount": 4100,
+        "id": "INTEREST-0c0229d4-58f6-41e5-bdae-615bcbdffada-1754006400000",
+        "name": "Interest - 0c0229d4-58f6-41e5-bdae-615bcbdffada",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -2695.331311458333,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2025-08-01T00:00:00.000Z",
@@ -1918,13 +1919,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -528064.9099999996
+        "balance": -530760.2413114579
       }
     },
     "differences": {
-      "activityCountDiff": -1,
-      "balanceDiff": 2712.4757989583304,
-      "percentageDiff": 0.5110383131480535,
+      "activityCountDiff": 0,
+      "balanceDiff": 17.144487499957904,
+      "percentageDiff": 0.003230071204738875,
       "significant": true
     },
     "errors": [],
@@ -2115,7 +2116,7 @@
     },
     "calculated": {
       "activityCount": 155,
-      "finalBalance": 5290.424999999997,
+      "finalBalance": 5254.613018666664,
       "lastActivity": {
         "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1784419200000-FROM",
         "name": "Transfer from Kendall to Kendall Chase",
@@ -2134,13 +2135,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 5290.424999999997
+        "balance": 5254.613018666664
       }
     },
     "differences": {
       "activityCountDiff": 0,
-      "balanceDiff": -835.703200739993,
-      "percentageDiff": 13.641621157047387,
+      "balanceDiff": -871.5151820733263,
+      "percentageDiff": 14.226198889668254,
       "significant": true
     },
     "errors": [],
@@ -2179,7 +2180,7 @@
     },
     "calculated": {
       "activityCount": 172,
-      "finalBalance": 22730.124999999993,
+      "finalBalance": 22689.685685333327,
       "lastActivity": {
         "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-1784073600000",
         "name": "City of Raleigh Kendall",
@@ -2199,13 +2200,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 22730.124999999993
+        "balance": 22689.685685333327
       }
     },
     "differences": {
       "activityCountDiff": -1,
-      "balanceDiff": 11137.083199999994,
-      "percentageDiff": 96.06696320201308,
+      "balanceDiff": 11096.643885333327,
+      "percentageDiff": 95.71813918011861,
       "significant": true
     },
     "errors": [],
@@ -2505,8 +2506,8 @@
       }
     },
     "calculated": {
-      "activityCount": 351,
-      "finalBalance": -1797.400000000003,
+      "activityCount": 359,
+      "finalBalance": -1805.9640500000025,
       "lastActivity": {
         "id": "BILL-3780bfed-52c9-47e2-97e5-642ef1439bf3-1784419200000",
         "name": "Lawn Care",
@@ -2526,13 +2527,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1797.400000000003
+        "balance": -1805.9640500000025
       }
     },
     "differences": {
-      "activityCountDiff": 1,
-      "balanceDiff": 41.17514483333025,
-      "percentageDiff": 2.239513840325671,
+      "activityCountDiff": 9,
+      "balanceDiff": 32.61109483333075,
+      "percentageDiff": 1.773715636533689,
       "significant": true
     },
     "errors": [],
@@ -2570,34 +2571,34 @@
       }
     },
     "calculated": {
-      "activityCount": 40,
-      "finalBalance": -20.000000000010914,
+      "activityCount": 52,
+      "finalBalance": -20.42066666667779,
       "lastActivity": {
-        "id": "BILL-204cd8a7-92fe-450f-bb82-d92c12a241ad-1783209600000",
-        "name": "Open AI Plus",
-        "category": "Shopping.Electronics & Software",
-        "flagColor": "indigo",
-        "flag": true,
+        "id": "INTEREST-e31dc6c3-f208-46dd-81a3-26b3cebbe4f9-1783296000000",
+        "name": "Interest - e31dc6c3-f208-46dd-81a3-26b3cebbe4f9",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -20,
+        "amount": -0.4206666666666667,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2026-07-05T00:00:00.000Z",
+        "date": "2026-07-06T00:00:00.000Z",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -20.000000000010914
+        "balance": -20.42066666667779
       }
     },
     "differences": {
-      "activityCountDiff": -11,
-      "balanceDiff": 1.033286666655755,
-      "percentageDiff": 4.912625796582218,
+      "activityCountDiff": 1,
+      "balanceDiff": 0.6126199999888797,
+      "percentageDiff": 2.912621359170431,
       "significant": true
     },
     "errors": [],
@@ -2853,17 +2854,18 @@
       }
     },
     "calculated": {
-      "activityCount": 27,
-      "finalBalance": -491116.78999999963,
+      "activityCount": 39,
+      "finalBalance": -523233.3718653083,
       "lastActivity": {
-        "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-1782864000000-TO",
-        "name": "Mortgage",
-        "category": "Ignore.Transfer",
-        "flagColor": "gray",
-        "flag": true,
-        "isTransfer": true,
-        "to": "Mortgage",
-        "amount": 4100,
+        "id": "INTEREST-0c0229d4-58f6-41e5-bdae-615bcbdffada-1782864000000",
+        "name": "Interest - 0c0229d4-58f6-41e5-bdae-615bcbdffada",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -2657.1080134107297,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2026-07-01T00:00:00.000Z",
@@ -2873,13 +2875,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -491116.78999999963
+        "balance": -523233.3718653083
       }
     },
     "differences": {
-      "activityCountDiff": -12,
-      "balanceDiff": 31064.600077070005,
-      "percentageDiff": 5.9490055883617625,
+      "activityCountDiff": 0,
+      "balanceDiff": -1051.981788238685,
+      "percentageDiff": 0.20145907307869043,
       "significant": true
     },
     "errors": [],
@@ -2918,7 +2920,7 @@
     },
     "calculated": {
       "activityCount": 29,
-      "finalBalance": 63971.482154546735,
+      "finalBalance": 63971.30985294612,
       "lastActivity": {
         "id": "TRANSFER-97135675-3df0-48bf-b466-02b48dd3cebf-1783641600000-TO",
         "name": "Transfer from Kendall to Fidelity",
@@ -2937,13 +2939,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 63971.482154546735
+        "balance": 63971.30985294612
       }
     },
     "differences": {
       "activityCountDiff": -1,
-      "balanceDiff": -1854.8990821088591,
-      "percentageDiff": 2.8178657967543774,
+      "balanceDiff": -1855.0713837094736,
+      "percentageDiff": 2.81812754834603,
       "significant": true
     },
     "errors": [],
@@ -3110,7 +3112,7 @@
     },
     "calculated": {
       "activityCount": 1502,
-      "finalBalance": -9411.605000000007,
+      "finalBalance": -9984.335858333348,
       "lastActivity": {
         "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-2068416000000-FROM",
         "name": "Transfer from Kendall to Kendall Chase",
@@ -3129,13 +3131,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -9411.605000000007
+        "balance": -9984.335858333348
       }
     },
     "differences": {
       "activityCountDiff": 0,
-      "balanceDiff": -13045.097842131208,
-      "percentageDiff": 359.0236284731385,
+      "balanceDiff": -13617.82870046455,
+      "percentageDiff": 374.7861711068378,
       "significant": true
     },
     "errors": [],
@@ -3174,7 +3176,7 @@
     },
     "calculated": {
       "activityCount": 1430,
-      "finalBalance": 73403.69499999973,
+      "finalBalance": 72780.90480833316,
       "lastActivity": {
         "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-2068329600000",
         "name": "City of Raleigh Kendall",
@@ -3194,13 +3196,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 73403.69499999973
+        "balance": 72780.90480833316
       }
     },
     "differences": {
       "activityCountDiff": -70,
-      "balanceDiff": 60663.93261282632,
-      "percentageDiff": 476.1778969590806,
+      "balanceDiff": 60041.14242115975,
+      "percentageDiff": 471.2893427400976,
       "significant": true
     },
     "errors": [],
@@ -3500,8 +3502,8 @@
       }
     },
     "calculated": {
-      "activityCount": 2948,
-      "finalBalance": -1797.3999999999073,
+      "activityCount": 3064,
+      "finalBalance": -1803.1825679999092,
       "lastActivity": {
         "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-2068329600000",
         "name": "Hello Fresh",
@@ -3521,13 +3523,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1797.3999999999073
+        "balance": -1803.1825679999092
       }
     },
     "differences": {
-      "activityCountDiff": -35,
-      "balanceDiff": 594.6120316711872,
-      "percentageDiff": 24.858237492049007,
+      "activityCountDiff": 81,
+      "balanceDiff": 588.8294636711853,
+      "percentageDiff": 24.616492554170826,
       "significant": true
     },
     "errors": [],
@@ -3565,34 +3567,34 @@
       }
     },
     "calculated": {
-      "activityCount": 318,
-      "finalBalance": -20.000000000010004,
+      "activityCount": 438,
+      "finalBalance": -20.42066666667688,
       "lastActivity": {
-        "id": "BILL-204cd8a7-92fe-450f-bb82-d92c12a241ad-2067206400000",
-        "name": "Open AI Plus",
-        "category": "Shopping.Electronics & Software",
-        "flagColor": "indigo",
-        "flag": true,
+        "id": "INTEREST-e31dc6c3-f208-46dd-81a3-26b3cebbe4f9-2067292800000",
+        "name": "Interest - e31dc6c3-f208-46dd-81a3-26b3cebbe4f9",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -20,
+        "amount": -0.4206666666666667,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2035-07-05T00:00:00.000Z",
+        "date": "2035-07-06T00:00:00.000Z",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -20.000000000010004
+        "balance": -20.42066666667688
       }
     },
     "differences": {
-      "activityCountDiff": -119,
-      "balanceDiff": 7.443668410449867,
-      "percentageDiff": 27.123445375884188,
+      "activityCountDiff": 1,
+      "balanceDiff": 7.0230017437829915,
+      "percentageDiff": 25.59060851029029,
       "significant": true
     },
     "errors": [],
@@ -3848,17 +3850,18 @@
       }
     },
     "calculated": {
-      "activityCount": 248,
-      "finalBalance": -58753.43000000005,
+      "activityCount": 368,
+      "finalBalance": -337094.6955122032,
       "lastActivity": {
-        "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-2066860800000-TO",
-        "name": "Mortgage",
-        "category": "Ignore.Transfer",
-        "flagColor": "gray",
-        "flag": true,
-        "isTransfer": true,
-        "to": "Mortgage",
-        "amount": 5300,
+        "id": "INTEREST-0c0229d4-58f6-41e5-bdae-615bcbdffada-2066860800000",
+        "name": "Interest - 0c0229d4-58f6-41e5-bdae-615bcbdffada",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -1711.8499409366768,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2035-07-01T00:00:00.000Z",
@@ -3868,13 +3871,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -58753.43000000005
+        "balance": -337094.6955122032
       }
     },
     "differences": {
-      "activityCountDiff": -120,
-      "balanceDiff": 233257.66722606984,
-      "percentageDiff": 79.87972698362414,
+      "activityCountDiff": 0,
+      "balanceDiff": -45083.59828613332,
+      "percentageDiff": 15.439001707264016,
       "significant": true
     },
     "errors": [],
@@ -3913,7 +3916,7 @@
     },
     "calculated": {
       "activityCount": 355,
-      "finalBalance": 269983.5977510031,
+      "finalBalance": 269978.4534813978,
       "lastActivity": {
         "id": "TRANSFER-97135675-3df0-48bf-b466-02b48dd3cebf-2067638400000-TO",
         "name": "Transfer from Kendall to Fidelity",
@@ -3932,13 +3935,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 269983.5977510031
+        "balance": 269978.4534813978
       }
     },
     "differences": {
       "activityCountDiff": -61,
-      "balanceDiff": 34064.66614209273,
-      "percentageDiff": 14.439140559759192,
+      "balanceDiff": 34059.52187248744,
+      "percentageDiff": 14.43696003547053,
       "significant": true
     },
     "errors": [],
@@ -4105,7 +4108,7 @@
     },
     "calculated": {
       "activityCount": 3743,
-      "finalBalance": -1090999.9850000006,
+      "finalBalance": -1093972.7777570002,
       "lastActivity": {
         "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-3330720000000-FROM",
         "name": "Transfer from Kendall to Kendall Chase",
@@ -4124,13 +4127,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1090999.9850000006
+        "balance": -1093972.7777570002
       }
     },
     "differences": {
       "activityCountDiff": -1026,
-      "balanceDiff": -1097198.3293790908,
-      "percentageDiff": 17701.47417236811,
+      "balanceDiff": -1100171.1221360904,
+      "percentageDiff": 17749.435249958897,
       "significant": true
     },
     "errors": [],
@@ -4169,7 +4172,7 @@
     },
     "calculated": {
       "activityCount": 3355,
-      "finalBalance": -5346868.77500001,
+      "finalBalance": -5350093.547090337,
       "lastActivity": {
         "id": "BILL-5c925bdd-24bc-4e27-be31-4606d39954c9-3330374400000",
         "name": "Health Insurance & Prescriptions",
@@ -4189,13 +4192,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -5346868.77500001
+        "balance": -5350093.547090337
       }
     },
     "differences": {
       "activityCountDiff": -586,
-      "balanceDiff": -5356836.4201837685,
-      "percentageDiff": 53742.24625202597,
+      "balanceDiff": -5360061.1922740955,
+      "percentageDiff": 53774.59864851357,
       "significant": true
     },
     "errors": [],
@@ -4474,8 +4477,8 @@
       "finalBalance": 0
     },
     "calculated": {
-      "activityCount": 8423,
-      "finalBalance": -2054.939999999937,
+      "activityCount": 8783,
+      "finalBalance": -2065.503593333288,
       "lastActivity": {
         "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-3330547200000",
         "name": "Hello Fresh",
@@ -4495,12 +4498,12 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -2054.939999999937
+        "balance": -2065.503593333288
       }
     },
     "differences": {
-      "activityCountDiff": 8423,
-      "balanceDiff": -2054.939999999937,
+      "activityCountDiff": 8783,
+      "balanceDiff": -2065.503593333288,
       "percentageDiff": 100,
       "significant": true
     },
@@ -4541,34 +4544,34 @@
       }
     },
     "calculated": {
-      "activityCount": 750,
-      "finalBalance": -20.000000000008214,
+      "activityCount": 1110,
+      "finalBalance": -20.42066666667531,
       "lastActivity": {
-        "id": "BILL-204cd8a7-92fe-450f-bb82-d92c12a241ad-3329510400000",
-        "name": "Open AI Plus",
-        "category": "Shopping.Electronics & Software",
-        "flagColor": "indigo",
-        "flag": true,
+        "id": "INTEREST-e31dc6c3-f208-46dd-81a3-26b3cebbe4f9-3329596800000",
+        "name": "Interest - e31dc6c3-f208-46dd-81a3-26b3cebbe4f9",
+        "category": "Banking.Interest",
+        "flagColor": null,
+        "flag": false,
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -20,
+        "amount": -0.4206666666666667,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2075-07-05T00:00:00.000Z",
+        "date": "2075-07-06T00:00:00.000Z",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -20.000000000008214
+        "balance": -20.42066666667531
       }
     },
     "differences": {
-      "activityCountDiff": -360,
-      "balanceDiff": 69.52228350600312,
-      "percentageDiff": 77.65919364795333,
+      "activityCountDiff": 0,
+      "balanceDiff": 69.10161683933603,
+      "percentageDiff": 77.18929202101499,
       "significant": true
     },
     "errors": [],
@@ -4825,7 +4828,7 @@
     },
     "calculated": {
       "activityCount": 1080,
-      "finalBalance": 14804713.027510056,
+      "finalBalance": 11580049.840491164,
       "lastActivity": {
         "id": "INTEREST-0c0229d4-58f6-41e5-bdae-615bcbdffada-3329164800000",
         "name": "Interest - 0c0229d4-58f6-41e5-bdae-615bcbdffada",
@@ -4835,7 +4838,7 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": 75181.98138128237,
+        "amount": 58806.346998037916,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2075-07-01T00:00:00.000Z",
@@ -4845,13 +4848,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 14804713.027510056
+        "balance": 11580049.840491164
       }
     },
     "differences": {
       "activityCountDiff": 0,
-      "balanceDiff": 14807978.520201344,
-      "percentageDiff": 453468.4324881484,
+      "balanceDiff": 11583315.333182452,
+      "percentageDiff": 354718.7646165468,
       "significant": true
     },
     "errors": [],
@@ -4890,7 +4893,7 @@
     },
     "calculated": {
       "activityCount": 1080,
-      "finalBalance": 2357410.5752068143,
+      "finalBalance": 2357356.7311266004,
       "lastActivity": {
         "id": "TRANSFER-97135675-3df0-48bf-b466-02b48dd3cebf-3329942400000-TO",
         "name": "Transfer from Kendall to Fidelity",
@@ -4909,13 +4912,13 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 2357410.5752068143
+        "balance": 2357356.7311266004
       }
     },
     "differences": {
       "activityCountDiff": -556,
-      "balanceDiff": 2286066.5407243194,
-      "percentageDiff": 3204.2854841426583,
+      "balanceDiff": 2286012.6966441055,
+      "percentageDiff": 3204.2100131090892,
       "significant": true
     },
     "errors": [],

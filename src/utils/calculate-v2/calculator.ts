@@ -443,7 +443,7 @@ export class Calculator {
    * Calculates interest amount based on balance, rate, and frequency
    */
   private calculateInterestAmount(balance: number, annualRate: number, frequency: string): number {
-    if (balance <= 0 || annualRate <= 0) return 0;
+    if (balance === 0 || annualRate === 0) return 0;
 
     // Convert annual rate to period rate based on frequency
     let periodsPerYear = 1;

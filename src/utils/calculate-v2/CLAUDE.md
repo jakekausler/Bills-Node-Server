@@ -16,3 +16,5 @@ Development Notes:
 
 Memories:
 - As results improve, commit the new changes
+- create temporary test scripts in a "testing" folder
+- Make sure to put debug and testing scripts in the testing folders
