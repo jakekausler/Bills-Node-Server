@@ -1,6 +1,6 @@
 /**
  * Balance tracking system for optimized financial calculations
- * 
+ *
  * This module manages account balances throughout the calculation process,
  * providing efficient balance updates, snapshot management, and state tracking
  * to replace the expensive deep copying in the original system.
@@ -71,12 +71,12 @@ export class BalanceTracker {
         currentInterest: account.interests.length > 0 ? account.interests[0] : null,
         interestIndex: 0,
         nextInterestDate: account.interests.length > 0 ? account.interests[0].applicableDate : null,
-        accumulatedTaxableInterest: 0
+        accumulatedTaxableInterest: 0,
       };
 
       // Start with 0 balance - Opening Balance activities will be processed as events
       // This prevents double-counting the Opening Balance
-      // (Previous logic incorrectly set starting balance to Opening Balance amount, 
+      // (Previous logic incorrectly set starting balance to Opening Balance amount,
       //  then added Opening Balance activity again during calculation)
     }
   }
@@ -95,7 +95,7 @@ export class BalanceTracker {
         currentInterest: state.currentInterest,
         interestIndex: state.interestIndex,
         nextInterestDate: state.nextInterestDate ? new Date(state.nextInterestDate) : null,
-        accumulatedTaxableInterest: state.accumulatedTaxableInterest
+        accumulatedTaxableInterest: state.accumulatedTaxableInterest,
       };
     }
 
@@ -107,12 +107,8 @@ export class BalanceTracker {
    */
   getCurrentBalances(): Record<string, number> {
     try {
-      console.log('[BalanceTracker] Getting current balances...');
-      console.log('[BalanceTracker] Balances object:', this.balances);
-      
       const result = { ...this.balances };
-      console.log('[BalanceTracker] Cloned balances result:', result);
-      
+
       return result;
     } catch (error) {
       console.error('[BalanceTracker] Error in getCurrentBalances:', error);
@@ -181,7 +177,7 @@ export class BalanceTracker {
         currentInterest: null,
         interestIndex: 0,
         nextInterestDate: null,
-        accumulatedTaxableInterest: 0
+        accumulatedTaxableInterest: 0,
       };
     }
 
@@ -192,7 +188,7 @@ export class BalanceTracker {
    * Advances to the next interest configuration for an account
    */
   advanceInterest(accountId: string): void {
-    const account = this.accounts.find(acc => acc.id === accountId);
+    const account = this.accounts.find((acc) => acc.id === accountId);
     if (!account) return;
 
     const state = this.interestStates[accountId];
@@ -218,7 +214,7 @@ export class BalanceTracker {
         currentInterest: null,
         interestIndex: 0,
         nextInterestDate: null,
-        accumulatedTaxableInterest: 0
+        accumulatedTaxableInterest: 0,
       };
     }
 
@@ -248,7 +244,7 @@ export class BalanceTracker {
 
     // Apply activity additions
     for (const [accountId, activities] of segmentResult.activitiesAdded) {
-      const account = this.accounts.find(acc => acc.id === accountId);
+      const account = this.accounts.find((acc) => acc.id === accountId);
       if (account) {
         account.consolidatedActivity.push(...activities);
         this.updateActivityIndex(accountId, activities.length);
@@ -273,7 +269,7 @@ export class BalanceTracker {
       activityIndices: { ...this.activityIndices },
       interestStates: { ...this.interestStates },
       dataHash: this.calculateStateHash(),
-      processedEventIds: new Set() // This would be populated by the engine
+      processedEventIds: new Set(), // This would be populated by the engine
     };
 
     const key = await this.cache.setBalanceSnapshot(date, snapshot);
@@ -304,21 +300,14 @@ export class BalanceTracker {
    */
   getUpdatedAccounts(startDate?: Date, endDate?: Date): CalculationAccount[] {
     try {
-      console.log(`[BalanceTracker] Getting updated accounts for ${this.accounts.length} accounts`);
-      
       return this.accounts.map((account, accountIndex) => {
         try {
-          console.log(`[BalanceTracker] Processing account ${accountIndex}: ${account.id}`);
-          
           // Get the starting balance for this account (from balance tracker)
           const startingBalance = this.balances[account.id] || 0;
-          console.log(`[BalanceTracker] Starting balance for ${account.id}: ${startingBalance}`);
           // Initialize consolidatedActivity if it doesn't exist
           if (!account.consolidatedActivity) {
             account.consolidatedActivity = [];
           }
-          
-          console.log(`[BalanceTracker] Account has ${account.consolidatedActivity.length} consolidated activities`);
 
           // First, calculate running balances for ALL activities to get correct starting balance
           const allActivitiesWithBalances = account.consolidatedActivity.map((activity, index) => {
@@ -348,32 +337,31 @@ export class BalanceTracker {
           // Calculate the balance at the start date by including activities before the start date
           let balanceAtStartDate = 0;
           let activitiesToReturn = allActivitiesWithBalances;
-          
+
           if (startDate || endDate) {
             const originalCount = activitiesToReturn.length;
-            
+
             // Find all activities before the start date to calculate starting balance
             if (startDate) {
-              const activitiesBeforeStart = allActivitiesWithBalances.filter(activity => {
+              const activitiesBeforeStart = allActivitiesWithBalances.filter((activity) => {
                 const activityDate = new Date(activity.date);
                 return activityDate < startDate;
               });
-              
+
               // The balance at start date is the balance of the last activity before start date
               if (activitiesBeforeStart.length > 0) {
                 balanceAtStartDate = activitiesBeforeStart[activitiesBeforeStart.length - 1].balance;
-                console.log(`[BalanceTracker] Balance at start date for ${account.id}: ${balanceAtStartDate} (from ${activitiesBeforeStart.length} pre-start activities)`);
               }
             }
-            
+
             // Filter activities by date range
-            activitiesToReturn = allActivitiesWithBalances.filter(activity => {
+            activitiesToReturn = allActivitiesWithBalances.filter((activity) => {
               const activityDate = new Date(activity.date);
               const afterStart = !startDate || activityDate >= startDate;
               const beforeEnd = !endDate || activityDate <= endDate;
               return afterStart && beforeEnd;
             });
-            
+
             // Adjust the balances of filtered activities to account for the starting balance
             activitiesToReturn = activitiesToReturn.map((activity, index) => {
               const adjustedActivity = new ConsolidatedActivity(activity.serialize());
@@ -385,29 +373,21 @@ export class BalanceTracker {
               adjustedActivity.balance = balanceAtStartDate + cumulativeAmount;
               return adjustedActivity;
             });
-            
-            console.log(`[BalanceTracker] Filtered activities for ${account.id}: ${originalCount} -> ${activitiesToReturn.length} (starting balance: ${balanceAtStartDate})`);
           }
 
           // Final account balance is the balance of the last activity in the filtered list,
           // or the balance at start date if no activities in the range
-          const finalBalance = activitiesToReturn.length > 0 ? 
-            activitiesToReturn[activitiesToReturn.length - 1].balance : 
-            balanceAtStartDate;
-
-          console.log(`[BalanceTracker] Final balance for ${account.id}: ${finalBalance}`);
-          console.log(`[BalanceTracker] Final balance type: ${typeof finalBalance}`);
-          console.log(`[BalanceTracker] Final balance is NaN: ${isNaN(finalBalance)}`);
+          const finalBalance =
+            activitiesToReturn.length > 0
+              ? activitiesToReturn[activitiesToReturn.length - 1].balance
+              : balanceAtStartDate;
 
           // Create updated account by mutating the existing account
           account.consolidatedActivity = activitiesToReturn;
-          
+
           // Add balance property dynamically (Account class doesn't have balance property)
           (account as any).balance = finalBalance;
-          
-          console.log(`[BalanceTracker] After assignment, account.balance = ${(account as any).balance} (type: ${typeof (account as any).balance})`);
-          console.log(`[BalanceTracker] Account object keys after assignment:`, Object.keys(account));
-          
+
           return account as CalculationAccount;
         } catch (error) {
           console.error(`[BalanceTracker] Error processing account ${account.id}:`, error);
@@ -443,7 +423,7 @@ export class BalanceTracker {
 
     // Check for negative balances where not allowed
     for (const [accountId, balance] of Object.entries(this.balances)) {
-      const account = this.accounts.find(acc => acc.id === accountId);
+      const account = this.accounts.find((acc) => acc.id === accountId);
       if (account && account.type !== 'Credit Card' && balance < 0) {
         const minBalance = account.minimumBalance || 0;
         if (balance < minBalance) {
@@ -454,15 +434,17 @@ export class BalanceTracker {
 
     // Check activity indices are within bounds
     for (const [accountId, index] of Object.entries(this.activityIndices)) {
-      const account = this.accounts.find(acc => acc.id === accountId);
+      const account = this.accounts.find((acc) => acc.id === accountId);
       if (account && index > account.consolidatedActivity.length) {
-        errors.push(`Activity index ${index} exceeds activity count ${account.consolidatedActivity.length} for account ${accountId}`);
+        errors.push(
+          `Activity index ${index} exceeds activity count ${account.consolidatedActivity.length} for account ${accountId}`,
+        );
       }
     }
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -486,7 +468,7 @@ export class BalanceTracker {
       accountBalances: { ...this.balances },
       totalActivities,
       snapshotCount: 0, // Would need to track this
-      lastSnapshotDate: this.lastSnapshotDate
+      lastSnapshotDate: this.lastSnapshotDate,
     };
   }
 
@@ -549,15 +531,13 @@ export class BalanceTracker {
           {
             interestIndex: state.interestIndex,
             nextInterestDate: state.nextInterestDate?.getTime() || null,
-            accumulatedTaxableInterest: state.accumulatedTaxableInterest
-          }
-        ])
-      )
+            accumulatedTaxableInterest: state.accumulatedTaxableInterest,
+          },
+        ]),
+      ),
     };
 
-    return createHash('sha256')
-      .update(JSON.stringify(stateData))
-      .digest('hex');
+    return createHash('sha256').update(JSON.stringify(stateData)).digest('hex');
   }
 
   /**
@@ -584,9 +564,9 @@ export class BalanceTracker {
       interestStates: Object.fromEntries(
         Object.entries(this.interestStates).map(([id, state]) => [
           id,
-          { ...state, nextInterestDate: state.nextInterestDate ? new Date(state.nextInterestDate) : null }
-        ])
-      )
+          { ...state, nextInterestDate: state.nextInterestDate ? new Date(state.nextInterestDate) : null },
+        ]),
+      ),
     };
   }
 
@@ -603,8 +583,9 @@ export class BalanceTracker {
     this.interestStates = Object.fromEntries(
       Object.entries(snapshot.interestStates).map(([id, state]) => [
         id,
-        { ...state, nextInterestDate: state.nextInterestDate ? new Date(state.nextInterestDate) : null }
-      ])
+        { ...state, nextInterestDate: state.nextInterestDate ? new Date(state.nextInterestDate) : null },
+      ]),
     );
   }
 }
+

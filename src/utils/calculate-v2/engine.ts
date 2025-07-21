@@ -1,6 +1,6 @@
 /**
  * Main calculation engine orchestrator for the optimized financial system
- * 
+ *
  * This module coordinates the entire calculation process using the event-based
  * timeline, caching system, and dependency tracking to achieve 10-100x performance
  * improvements over the original daily iteration approach.
@@ -15,7 +15,7 @@ import {
   ProcessingState,
   PerformanceMetrics,
   TimelineEvent,
-  EventType
+  EventType,
 } from './types';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { Timeline } from './timeline';
@@ -52,10 +52,7 @@ export class CalculationEngine {
   /**
    * Main entry point for performing calculations
    */
-  async calculate(
-    accountsAndTransfers: AccountsAndTransfers,
-    options: CalculationOptions
-  ): Promise<CalculationResult> {
+  async calculate(accountsAndTransfers: AccountsAndTransfers, options: CalculationOptions): Promise<CalculationResult> {
     const startTime = new Date();
 
     try {
@@ -69,7 +66,7 @@ export class CalculationEngine {
         memoryUsageMB: 0,
         operationTimes: {},
         deepCopyCount: 0,
-        lookaheadCount: 0
+        lookaheadCount: 0,
       };
 
       // Initialize processing state
@@ -81,7 +78,7 @@ export class CalculationEngine {
         processedEvents: new Set(),
         processedSegments: new Set(),
         error: null,
-        metrics
+        metrics,
       };
 
       // Check cache first (unless forced recalculation)
@@ -98,27 +95,23 @@ export class CalculationEngine {
       await this.initializeCalculation(accountsAndTransfers, options);
 
       // Perform the calculation
-      console.log('[Engine] About to call performCalculation...');
       const result = await this.performCalculation(accountsAndTransfers, options);
-      console.log('[Engine] performCalculation returned, success:', result.success);
 
       // Cache the result (re-enabled after fixing serialization)
       if (result.success) {
-        console.log('[Engine] About to cache result...');
         try {
           await this.cacheResult(accountsAndTransfers, options, result);
-          console.log('[Engine] Result cached successfully');
         } catch (cacheError) {
-          console.warn('[Engine] Failed to cache result:', cacheError instanceof Error ? cacheError.message : String(cacheError));
+          console.warn(
+            '[Engine] Failed to cache result:',
+            cacheError instanceof Error ? cacheError.message : String(cacheError),
+          );
           // Don't fail the entire calculation if caching fails
         }
       } else {
-        console.log('[Engine] Not caching failed result');
       }
 
-      console.log('[Engine] About to return final result...');
       return result;
-
     } catch (error) {
       return this.createErrorResult(error as Error, startTime, options);
     }
@@ -127,10 +120,7 @@ export class CalculationEngine {
   /**
    * Initializes all calculation components
    */
-  private initializeCalculation(
-    accountsAndTransfers: AccountsAndTransfers,
-    options: CalculationOptions
-  ): void {
+  private initializeCalculation(accountsAndTransfers: AccountsAndTransfers, options: CalculationOptions): void {
     startTiming('initializeCalculation');
 
     // Create timeline - always start from earliest data to get correct balances
@@ -140,39 +130,23 @@ export class CalculationEngine {
       accountsAndTransfers,
       actualStartDate,
       options.endDate,
-      options.simulation
+      options.simulation,
     );
 
     // Build dependency graph
-    this.dependencyGraph = buildDependencyGraph(
-      this.timeline.getEvents(),
-      accountsAndTransfers.accounts
-    );
+    this.dependencyGraph = buildDependencyGraph(this.timeline.getEvents(), accountsAndTransfers.accounts);
 
     // Optimize dependency graph
     optimizeDependencyGraph(this.dependencyGraph);
 
     // Initialize balance tracker - use actual start date for processing all historical data
-    this.balanceTracker = new BalanceTracker(
-      accountsAndTransfers.accounts,
-      this.cache,
-      actualStartDate
-    );
+    this.balanceTracker = new BalanceTracker(accountsAndTransfers.accounts, this.cache, actualStartDate);
 
     // Initialize segment processor
-    this.segmentProcessor = new SegmentProcessor(
-      this.timeline.getSegments(),
-      this.cache,
-      this.config
-    );
+    this.segmentProcessor = new SegmentProcessor(this.timeline.getSegments(), this.cache, this.config);
 
     // Initialize calculator
-    this.calculator = new Calculator(
-      this.config,
-      this.cache,
-      this.dependencyGraph,
-      this.balanceTracker
-    );
+    this.calculator = new Calculator(this.config, this.cache, this.dependencyGraph, this.balanceTracker);
 
     // Initialize push/pull processor
     this.pushPullProcessor = new SmartPushPullProcessor(this.cache);
@@ -185,7 +159,7 @@ export class CalculationEngine {
    */
   private async performCalculation(
     accountsAndTransfers: AccountsAndTransfers,
-    options: CalculationOptions
+    options: CalculationOptions,
   ): Promise<CalculationResult> {
     if (!this.timeline || !this.balanceTracker || !this.segmentProcessor || !this.calculator) {
       throw new Error('Calculation components not initialized');
@@ -208,48 +182,32 @@ export class CalculationEngine {
     }
 
     // Finalize calculation
-    console.log('[Engine] Getting final balances...');
     const finalBalances = this.balanceTracker.getCurrentBalances();
-    console.log('[Engine] Final balances:', finalBalances);
-    
-    console.log('[Engine] Getting updated accounts...');
+
     const updatedAccounts = this.balanceTracker.getUpdatedAccounts(options.startDate, options.endDate);
-    console.log(`[Engine] Got ${updatedAccounts.length} updated accounts`);
-    
+
     // Debug the first account
     if (updatedAccounts.length > 0) {
       const firstAccount = updatedAccounts[0];
-      console.log(`[Engine] First account: ${firstAccount.name} (${firstAccount.id})`);
-      console.log(`[Engine] First account balance: ${firstAccount.balance} (type: ${typeof firstAccount.balance})`);
-      console.log(`[Engine] First account consolidated activities: ${firstAccount.consolidatedActivity?.length || 'undefined'}`);
-      console.log(`[Engine] First account keys:`, Object.keys(firstAccount));
     }
 
     endTiming('performCalculation');
 
     // Create result
     try {
-      console.log('[Engine] Creating result...');
-      console.log('[Engine] Processing state error:', this.processingState!.error);
-      
       const metrics = this.processingState!.metrics;
-      console.log('[Engine] Got metrics');
-      
+
       metrics.endTime = new Date();
-      console.log('[Engine] Set end time');
-      
+
       metrics.memoryUsageMB = process.memoryUsage().heapUsed / (1024 * 1024);
-      console.log('[Engine] Set memory usage');
-      
-      console.log('[Engine] Building metadata...');
+
       const metadata = {
         startDate: options.startDate || this.getMinDate(accountsAndTransfers),
         endDate: options.endDate,
         simulation: options.simulation,
         totalEvents,
-        cacheUtilization: this.calculateCacheUtilization()
+        cacheUtilization: this.calculateCacheUtilization(),
       };
-      console.log('[Engine] Built metadata');
 
       const result = {
         success: !this.processingState!.error,
@@ -257,35 +215,18 @@ export class CalculationEngine {
         accounts: updatedAccounts,
         finalBalances,
         metrics,
-        metadata
+        metadata,
       };
-      
-      console.log('[Engine] Built final result:', { 
-        success: result.success, 
-        error: result.error, 
-        accountCount: result.accounts.length 
-      });
-      
-      // Test each property of the result to see which one causes issues
-      console.log('[Engine] Testing result properties...');
-      console.log('[Engine] result.success:', result.success);
-      console.log('[Engine] result.error:', result.error);
-      console.log('[Engine] result.accounts type:', typeof result.accounts);
-      console.log('[Engine] result.accounts length:', result.accounts?.length);
-      
+
       // Test accessing the first account
       if (result.accounts && result.accounts.length > 0) {
         try {
-          console.log('[Engine] Accessing first account...');
           const firstAccount = result.accounts[0];
-          console.log('[Engine] First account id:', firstAccount?.id);
-          console.log('[Engine] First account type:', typeof firstAccount);
         } catch (accountError) {
           console.error('[Engine] Error accessing first account:', accountError);
         }
       }
-      
-      console.log('[Engine] About to return result...');
+
       return result;
     } catch (error) {
       console.error('[Engine] Error creating result:', error);
@@ -299,7 +240,7 @@ export class CalculationEngine {
   private async processSegment(
     segment: any, // CalculationSegment from types
     accountsAndTransfers: AccountsAndTransfers,
-    options: CalculationOptions
+    options: CalculationOptions,
   ): Promise<void> {
     startTiming(`processSegment_${segment.id}`);
 
@@ -315,18 +256,13 @@ export class CalculationEngine {
       this.processingState!.metrics.cacheMisses++;
 
       // Process events in the segment
-      const segmentResult = await this.processSegmentEvents(
-        segment.events,
-        accountsAndTransfers,
-        options
-      );
+      const segmentResult = await this.processSegmentEvents(segment.events, accountsAndTransfers, options);
 
       // Cache the segment result
       await this.segmentProcessor!.cacheSegmentResult(segment, segmentResult);
 
       // Apply the result to balance tracker
       this.balanceTracker!.applySegmentResult(segmentResult);
-
     } catch (error) {
       this.processingState!.error = error as Error;
       throw error;
@@ -341,35 +277,28 @@ export class CalculationEngine {
   private async processSegmentEvents(
     events: TimelineEvent[],
     accountsAndTransfers: AccountsAndTransfers,
-    options: CalculationOptions
+    options: CalculationOptions,
   ): Promise<any> {
     try {
-      console.log(`[Engine] Processing segment with ${events.length} events`);
-      
       const segmentResult = {
         balanceChanges: new Map<string, number>(),
         activitiesAdded: new Map<string, any[]>(),
         interestStateChanges: new Map<string, any>(),
-        processedEventIds: new Set<string>()
+        processedEventIds: new Set<string>(),
       };
 
       // Group events by date for efficient processing
       const eventsByDate = this.groupEventsByDate(events);
-      console.log(`[Engine] Grouped events into ${eventsByDate.size} dates`);
 
       for (const [dateString, dayEvents] of eventsByDate) {
         const date = new Date(dateString);
         this.processingState!.currentDate = date;
-        
-        console.log(`[Engine] Processing ${dayEvents.length} events for date ${dateString}`);
 
         // Process events for this date
         await this.processDayEvents(dayEvents, accountsAndTransfers, options, segmentResult);
       }
 
-      console.log(`[Engine] Segment processing complete. Balance changes: ${segmentResult.balanceChanges.size}, Activities added: ${segmentResult.activitiesAdded.size}`);
       return segmentResult;
-      
     } catch (error) {
       console.error(`[Engine] Error processing segment events:`, error);
       throw error;
@@ -383,20 +312,17 @@ export class CalculationEngine {
     events: TimelineEvent[],
     accountsAndTransfers: AccountsAndTransfers,
     options: CalculationOptions,
-    segmentResult: any
+    segmentResult: any,
   ): Promise<void> {
     // Sort events by priority
     const sortedEvents = [...events].sort((a, b) => a.priority - b.priority);
-    console.log(`[Engine] Processing ${sortedEvents.length} events for day`);
 
     for (const event of sortedEvents) {
       try {
-        console.log(`[Engine] Processing event: ${event.type} - ${event.id} - Account: ${event.accountId}`);
         await this.processEvent(event, accountsAndTransfers, options, segmentResult);
         this.processingState!.processedEvents.add(event.id);
         this.processingState!.metrics.eventsProcessed++;
         segmentResult.processedEventIds.add(event.id);
-        console.log(`[Engine] Successfully processed event: ${event.id}`);
       } catch (error) {
         console.error(`[Engine] Error processing event ${event.id}:`, error);
         this.processingState!.error = error as Error;
@@ -412,7 +338,7 @@ export class CalculationEngine {
     event: TimelineEvent,
     accountsAndTransfers: AccountsAndTransfers,
     options: CalculationOptions,
-    segmentResult: any
+    segmentResult: any,
   ): Promise<void> {
     if (!this.calculator) {
       throw new Error('Calculator not initialized');
@@ -456,9 +382,9 @@ export class CalculationEngine {
               pushPullProcessor: this.pushPullProcessor,
               balanceTracker: this.balanceTracker,
               simulation: options.simulation || 'Default',
-              monteCarlo: options.monteCarlo || false
+              monteCarlo: options.monteCarlo || false,
             },
-            segmentResult
+            segmentResult,
           );
           break;
         default:
@@ -499,7 +425,7 @@ export class CalculationEngine {
    */
   private async tryGetCachedResult(
     accountsAndTransfers: AccountsAndTransfers,
-    options: CalculationOptions
+    options: CalculationOptions,
   ): Promise<CalculationResult | null> {
     const dataHash = this.hashAccountsAndTransfers(accountsAndTransfers);
     const cacheKey = createCalculationKey(
@@ -507,7 +433,7 @@ export class CalculationEngine {
       options.endDate,
       options.simulation,
       options.monteCarlo,
-      dataHash
+      dataHash,
     );
 
     return await this.cache.get<CalculationResult>(cacheKey);
@@ -519,7 +445,7 @@ export class CalculationEngine {
   private async cacheResult(
     accountsAndTransfers: AccountsAndTransfers,
     options: CalculationOptions,
-    result: CalculationResult
+    result: CalculationResult,
   ): Promise<void> {
     const dataHash = this.hashAccountsAndTransfers(accountsAndTransfers);
     const cacheKey = createCalculationKey(
@@ -527,22 +453,18 @@ export class CalculationEngine {
       options.endDate,
       options.simulation,
       options.monteCarlo,
-      dataHash
+      dataHash,
     );
 
     await this.cache.set(cacheKey, result, {
-      size: this.estimateResultSize(result)
+      size: this.estimateResultSize(result),
     });
   }
 
   /**
    * Creates an error result
    */
-  private createErrorResult(
-    error: Error,
-    startTime: Date,
-    options: CalculationOptions
-  ): CalculationResult {
+  private createErrorResult(error: Error, startTime: Date, options: CalculationOptions): CalculationResult {
     return {
       success: false,
       error: error.message,
@@ -557,15 +479,15 @@ export class CalculationEngine {
         memoryUsageMB: process.memoryUsage().heapUsed / (1024 * 1024),
         operationTimes: {},
         deepCopyCount: 0,
-        lookaheadCount: 0
+        lookaheadCount: 0,
       },
       metadata: {
         startDate: options.startDate || new Date(),
         endDate: options.endDate,
         simulation: options.simulation,
         totalEvents: 0,
-        cacheUtilization: 0
-      }
+        cacheUtilization: 0,
+      },
     };
   }
 
@@ -579,7 +501,7 @@ export class CalculationEngine {
       diskCacheDir: './cache/calculate-v2',
       enableParallelProcessing: false, // TODO: Enable after implementing
       maxWorkerThreads: 4,
-      enablePerfMetrics: true
+      enablePerfMetrics: true,
     };
 
     return { ...defaults, ...overrides };
@@ -620,22 +542,19 @@ export class CalculationEngine {
   private hashAccountsAndTransfers(accountsAndTransfers: AccountsAndTransfers): string {
     // Create a simplified hash of the data structure
     const hashData = {
-      accounts: accountsAndTransfers.accounts.map(acc => ({
+      accounts: accountsAndTransfers.accounts.map((acc) => ({
         id: acc.id,
         name: acc.name,
         type: acc.type,
         balance: (acc as any).balance || acc.todayBalance || 0,
         activityCount: acc.activity.length,
         billCount: acc.bills.length,
-        interestCount: acc.interests.length
+        interestCount: acc.interests.length,
       })),
-      transferCount: accountsAndTransfers.transfers.activity.length +
-        accountsAndTransfers.transfers.bills.length
+      transferCount: accountsAndTransfers.transfers.activity.length + accountsAndTransfers.transfers.bills.length,
     };
 
-    return crypto.createHash('sha256')
-      .update(JSON.stringify(hashData))
-      .digest('hex');
+    return crypto.createHash('sha256').update(JSON.stringify(hashData)).digest('hex');
   }
 
   private calculateCacheUtilization(): number {
@@ -665,7 +584,7 @@ export class CalculationEngine {
       processing: this.processingState.metrics,
       cache: this.cache.getCacheStats(),
       timeline: this.timeline?.getStats() || null,
-      dependency: this.dependencyGraph?.getStats() || null
+      dependency: this.dependencyGraph?.getStats() || null,
     };
   }
 
@@ -695,7 +614,7 @@ export async function calculateAllActivity(
   monteCarlo: boolean = false,
   simulationNumber: number = 1,
   totalSimulations: number = 1,
-  config: Partial<CalculationConfig> = {}
+  config: Partial<CalculationConfig> = {},
 ): Promise<CalculationResult> {
   const engine = new CalculationEngine(config);
 
@@ -708,8 +627,9 @@ export async function calculateAllActivity(
     totalSimulations,
     forceRecalculation: false,
     enableLogging: false,
-    config
+    config,
   };
 
   return await engine.calculate(accountsAndTransfers, options);
 }
+

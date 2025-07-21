@@ -1,6 +1,6 @@
 /**
  * Event-based timeline management for optimized financial calculations
- * 
+ *
  * This module replaces daily iteration with event-driven processing, dramatically
  * reducing the number of calculation steps from ~22,000 days to ~200-500 events
  * for typical 60-year calculations.
@@ -18,7 +18,7 @@ import {
   TransferEvent,
   PushPullEvent,
   CalculationSegment,
-  Transfer
+  Transfer,
 } from './types';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { Account } from '../../data/account/account';
@@ -47,7 +47,7 @@ export class Timeline {
     accountsAndTransfers: AccountsAndTransfers,
     startDate: Date,
     endDate: Date,
-    simulation: string
+    simulation: string,
   ): Timeline {
     const timeline = new Timeline();
 
@@ -83,7 +83,6 @@ export class Timeline {
         // Skip transfer activities to prevent double-counting
         // Transfer activities are processed separately in addTransferEvents method
         if (activity.isTransfer) {
-          console.log(`[Timeline] Skipping transfer activity: ${activity.name} (handled in addTransferEvents)`);
           continue;
         }
 
@@ -96,7 +95,7 @@ export class Timeline {
             priority: 1, // Activities have high priority
             cacheable: true,
             dependencies: [],
-            activity: new ConsolidatedActivity(activity.serialize())
+            activity: new ConsolidatedActivity(activity.serialize()),
           };
 
           this.addEvent(event);
@@ -116,9 +115,7 @@ export class Timeline {
     }
 
     // Add transfer bills
-    console.log(`[Timeline] Processing ${accountsAndTransfers.transfers.bills.length} transfer bills`);
     for (const transfer of accountsAndTransfers.transfers.bills) {
-      console.log(`[Timeline] Processing transfer bill: ${transfer.name} (ID: ${transfer.id}) from ${transfer.fro} to ${transfer.to}, start: ${transfer.startDate}, end: ${endDate}`);
       this.generateTransferBillEvents(accountsAndTransfers.accounts, transfer, endDate, simulation);
     }
   }
@@ -146,7 +143,7 @@ export class Timeline {
         dependencies: [],
         bill,
         amount,
-        isVariable: bill.amountIsVariable || false
+        isVariable: bill.amountIsVariable || false,
       };
 
       this.addEvent(event);
@@ -194,30 +191,21 @@ export class Timeline {
    * Generates transfer bill events
    */
   private generateTransferBillEvents(accounts: Account[], transfer: Transfer, endDate: Date, simulation: string): void {
-    console.log(`[Timeline] Generating events for transfer bill: ${transfer.name}, startDate: ${transfer.startDate}, endDate: ${endDate}`);
-    
     if (!transfer.startDate || transfer.startDate > endDate) {
-      console.log(`[Timeline] Transfer bill skipped: ${!transfer.startDate ? 'no start date' : 'start date after end date'}`);
       return;
     }
 
-    const fromAccount = accounts.find(acc => acc.name === transfer.fro);
-    const toAccount = accounts.find(acc => acc.name === transfer.to);
-
-    console.log(`[Timeline] Found fromAccount: ${fromAccount?.name}, toAccount: ${toAccount?.name}`);
+    const fromAccount = accounts.find((acc) => acc.name === transfer.fro);
+    const toAccount = accounts.find((acc) => acc.name === transfer.to);
 
     if (!fromAccount || !toAccount) {
-      console.log(`[Timeline] Transfer bill skipped: missing accounts`);
       return;
     }
 
     let currentDate = transfer.startDate;
     let eventCount = 0;
 
-    console.log(`[Timeline] Starting event generation loop: currentDate=${currentDate}, endDate=${endDate}`);
-    
     while (currentDate <= endDate && (!transfer.endDate || currentDate <= transfer.endDate)) {
-      console.log(`[Timeline] Creating transfer event for date: ${currentDate}`);
       const amount = this.calculateTransferAmount(transfer, currentDate, simulation);
 
       const event: TransferEvent = {
@@ -231,10 +219,9 @@ export class Timeline {
         transfer,
         fromAccountId: fromAccount.id,
         toAccountId: toAccount.id,
-        amount
+        amount,
       };
 
-      console.log(`[Timeline] Adding transfer event: ${event.id}, amount: ${amount}, date: ${event.date}`);
       this.addEvent(event);
 
       currentDate = nextDate(currentDate, transfer.periods, transfer.everyN);
@@ -301,12 +288,13 @@ export class Timeline {
     if (typeof amount === 'number' && transfer.increaseBy && transfer.increaseBy > 0 && transfer.startDate) {
       // Calculate if we need to apply inflation increase based on increaseByDate
       const shouldApplyIncrease = this.shouldApplyInflationIncrease(transfer, date);
-      
+
       if (shouldApplyIncrease) {
-        const increaseRate = transfer.increaseByIsVariable && transfer.increaseByVariable 
-          ? this.getVariableIncreaseRate(transfer.increaseByVariable, simulation)
-          : transfer.increaseBy;
-        
+        const increaseRate =
+          transfer.increaseByIsVariable && transfer.increaseByVariable
+            ? this.getVariableIncreaseRate(transfer.increaseByVariable, simulation)
+            : transfer.increaseBy;
+
         // Calculate years since start date
         const yearsDiff = dayjs.utc(date).diff(dayjs.utc(transfer.startDate), 'year', true);
         if (yearsDiff > 0) {
@@ -328,17 +316,22 @@ export class Timeline {
    */
   private shouldApplyInflationIncrease(transfer: Transfer, currentDate: Date): boolean {
     if (!transfer.increaseByDate || !transfer.startDate) return false;
-    
+
     // increaseByDate is an object with { day: number; month: number }
     const { day, month } = transfer.increaseByDate;
-    
+
     // Get the increase date for the current year
     const currentYear = dayjs.utc(currentDate).year();
-    const increaseDate = dayjs.utc().year(currentYear).month(month - 1).date(day);
-    
+    const increaseDate = dayjs
+      .utc()
+      .year(currentYear)
+      .month(month - 1)
+      .date(day);
+
     // Check if current date is past the increase date and after start date
-    return dayjs.utc(currentDate).isAfter(increaseDate) && 
-           dayjs.utc(currentDate).isAfter(dayjs.utc(transfer.startDate));
+    return (
+      dayjs.utc(currentDate).isAfter(increaseDate) && dayjs.utc(currentDate).isAfter(dayjs.utc(transfer.startDate))
+    );
   }
 
   /**
@@ -380,7 +373,7 @@ export class Timeline {
         dependencies: [],
         interest,
         rate: interest.apr,
-        taxDeferred: account.type !== 'Checking' && account.type !== 'Savings'
+        taxDeferred: account.type !== 'Checking' && account.type !== 'Savings',
       };
 
       this.addEvent(event);
@@ -400,20 +393,15 @@ export class Timeline {
    */
   private addTransferEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date, simulation: string): void {
     // Add manual transfer activities
-    console.log(`[Timeline] Processing ${accountsAndTransfers.transfers.activity.length} transfer activities`);
     for (const transfer of accountsAndTransfers.transfers.activity) {
-      console.log(`[Timeline] Checking transfer: ${transfer.name} from ${transfer.fro} to ${transfer.to} on ${transfer.date}`);
       if (transfer.date <= endDate && transfer.isTransfer) {
         // Find the accounts involved in the transfer
-        const fromAccount = accountsAndTransfers.accounts.find(acc => acc.name === transfer.fro);
-        const toAccount = accountsAndTransfers.accounts.find(acc => acc.name === transfer.to);
-
-        console.log(`[Timeline] From account: ${fromAccount ? fromAccount.name : 'NOT FOUND'}, To account: ${toAccount ? toAccount.name : 'NOT FOUND'}`);
+        const fromAccount = accountsAndTransfers.accounts.find((acc) => acc.name === transfer.fro);
+        const toAccount = accountsAndTransfers.accounts.find((acc) => acc.name === transfer.to);
 
         // Only create transfer events if both accounts are present in our dataset
         // This prevents errors when testing with account subsets
         if (!fromAccount && !toAccount) {
-          console.log(`[Timeline] Transfer skipped: neither account found for transfer from "${transfer.fro}" to "${transfer.to}"`);
           continue;
         }
 
@@ -432,19 +420,13 @@ export class Timeline {
         }
 
         if (!shouldProcessTransfer) {
-          console.log(`[Timeline] Transfer skipped: no matching accounts found`);
           continue;
         }
-
-        console.log(`[Timeline] Adding transfer events for "${transfer.name}"`);
-        console.log(`[Timeline] Processing ${accountsToProcess.length} account(s) for this transfer`);
 
         // Create transfer events for each account that exists in our dataset
         for (const { account, isSource } of accountsToProcess) {
           const amount = isSource ? -(transfer.amount as number) : (transfer.amount as number);
           const eventId = isSource ? `transfer_from_${transfer.id}` : `transfer_to_${transfer.id}`;
-          
-          console.log(`[Timeline] Creating event for ${account.name} (${isSource ? 'source' : 'destination'}): amount=${amount}`);
 
           const transferEvent: ActivityEvent = {
             id: eventId,
@@ -468,8 +450,8 @@ export class Timeline {
               isTransfer: true,
               category: transfer.category,
               flag: transfer.flag || false,
-              flagColor: transfer.flagColor || null
-            })
+              flagColor: transfer.flagColor || null,
+            }),
           };
 
           this.addEvent(transferEvent);
@@ -494,7 +476,7 @@ export class Timeline {
         priority: 10, // Lowest priority - process last
         cacheable: false, // Cannot cache due to complex lookahead logic
         dependencies: [], // Depends on all accounts (handled specially)
-        checkType: 'monthly'
+        checkType: 'monthly',
       };
 
       this.addEvent(event);
@@ -588,7 +570,7 @@ export class Timeline {
         affectedAccounts,
         dependencies: this.calculateSegmentDependencies(segmentEvents),
         cached: false,
-        cacheKey: this.generateSegmentCacheKey(segmentEvents)
+        cacheKey: this.generateSegmentCacheKey(segmentEvents),
       };
 
       this.segments.push(segment);
@@ -619,22 +601,17 @@ export class Timeline {
     if (events.length === 0) {
       return 'empty';
     }
-    
+
     // Create a compact representation for hashing
-    const eventSummary = events.map(e => 
-      `${e.type}_${e.date.getTime()}_${e.accountId || ''}`
-    ).join('|');
-    
+    const eventSummary = events.map((e) => `${e.type}_${e.date.getTime()}_${e.accountId || ''}`).join('|');
+
     // Generate a short hash to prevent filesystem length issues
-    const hash = crypto.createHash('sha256')
-      .update(eventSummary)
-      .digest('hex')
-      .substring(0, 16); // Use first 16 characters for reasonable uniqueness
-    
+    const hash = crypto.createHash('sha256').update(eventSummary).digest('hex').substring(0, 16); // Use first 16 characters for reasonable uniqueness
+
     // Include event count and date range for debugging
-    const startDate = Math.min(...events.map(e => e.date.getTime()));
-    const endDate = Math.max(...events.map(e => e.date.getTime()));
-    
+    const startDate = Math.min(...events.map((e) => e.date.getTime()));
+    const endDate = Math.max(...events.map((e) => e.date.getTime()));
+
     return `${events.length}evt_${startDate}_${endDate}_${hash}`;
   }
 
@@ -657,18 +634,14 @@ export class Timeline {
    * Gets events in a date range
    */
   getEventsInRange(startDate: Date, endDate: Date): TimelineEvent[] {
-    return this.events.filter(event =>
-      event.date >= startDate && event.date <= endDate
-    );
+    return this.events.filter((event) => event.date >= startDate && event.date <= endDate);
   }
 
   /**
    * Gets events for a specific account
    */
   getEventsForAccount(accountId: string): TimelineEvent[] {
-    return this.events.filter(event =>
-      event.accountId === accountId || event.dependencies.includes(accountId)
-    );
+    return this.events.filter((event) => event.accountId === accountId || event.dependencies.includes(accountId));
   }
 
   /**
@@ -696,7 +669,7 @@ export class Timeline {
    * Gets events by type
    */
   getEventsByType(type: EventType): TimelineEvent[] {
-    return this.events.filter(event => event.type === type);
+    return this.events.filter((event) => event.type === type);
   }
 
   /**
@@ -719,8 +692,7 @@ export class Timeline {
       const prev = this.events[i - 1];
       const curr = this.events[i];
 
-      if (prev.date > curr.date ||
-        (prev.date.getTime() === curr.date.getTime() && prev.priority > curr.priority)) {
+      if (prev.date > curr.date || (prev.date.getTime() === curr.date.getTime() && prev.priority > curr.priority)) {
         errors.push(`Events not properly sorted at index ${i}`);
         break;
       }
@@ -740,7 +712,7 @@ export class Timeline {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -760,7 +732,7 @@ export class Timeline {
         eventsByType: {} as Record<EventType, number>,
         dateRange: null,
         segmentCount: 0,
-        cacheableEvents: 0
+        cacheableEvents: 0,
       };
     }
 
@@ -777,10 +749,11 @@ export class Timeline {
       eventsByType,
       dateRange: {
         start: this.events[0].date,
-        end: this.events[this.events.length - 1].date
+        end: this.events[this.events.length - 1].date,
       },
       segmentCount: this.segments.length,
-      cacheableEvents
+      cacheableEvents,
     };
   }
 }
+

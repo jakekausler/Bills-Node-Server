@@ -1,6 +1,6 @@
 /**
  * Core calculation logic for processing financial events
- * 
+ *
  * This module contains the actual calculation logic for different event types,
  * replacing the complex nested loops in the original system with focused,
  * event-specific processing functions.
@@ -8,14 +8,7 @@
 
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import {
-  ActivityEvent,
-  BillEvent,
-  InterestEvent,
-  TransferEvent,
-  PushPullEvent,
-  CalculationConfig,
-} from './types';
+import { ActivityEvent, BillEvent, InterestEvent, TransferEvent, PushPullEvent, CalculationConfig } from './types';
 import { CacheManager } from './cache';
 import { DependencyGraph } from './dependency';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
@@ -46,8 +39,6 @@ export class Calculator {
    */
   async processActivityEvent(event: ActivityEvent, segmentResult: any): Promise<void> {
     try {
-      console.log(`[Calculator] Processing activity event: ${event.id}`);
-      
       const activity = event.activity;
       const accountId = event.accountId;
 
@@ -57,8 +48,6 @@ export class Calculator {
       if (!accountId) {
         throw new Error(`AccountId is undefined for event ${event.id}`);
       }
-
-      console.log(`[Calculator] Activity: ${activity.name}, Amount: ${activity.amount}, Account: ${accountId}`);
 
       // Add the activity to the segment result
       if (!segmentResult.activitiesAdded.has(accountId)) {
@@ -70,8 +59,6 @@ export class Calculator {
       const balanceChange = activity.amount as number;
       const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
       segmentResult.balanceChanges.set(accountId, currentChange + balanceChange);
-      
-      console.log(`[Calculator] Balance change: ${balanceChange}, New total change: ${currentChange + balanceChange}`);
     } catch (error) {
       console.error(`[Calculator] Error processing activity event ${event.id}:`, error);
       throw error;
@@ -101,7 +88,7 @@ export class Calculator {
       isTransfer: false,
       category: bill.category,
       flag: bill.flag || false,
-      flagColor: bill.flagColor || null
+      flagColor: bill.flagColor || null,
     });
 
     // Add to segment result
@@ -132,34 +119,34 @@ export class Calculator {
     if (Math.abs(interestAmount) < 0.00001) {
       return;
     }
-    
+
     // Create consolidated activity for interest
     const interestActivity = new ConsolidatedActivity({
-        id: `INTEREST-${interest.id}-${event.date.getTime()}`,
-        name: `Interest - ${interest.id}`,
-        amount: interestAmount,
-        amountIsVariable: false,
-        amountVariable: null,
-        date: formatDate(event.date),
-        dateIsVariable: false,
-        dateVariable: null,
-        from: null,
-        to: null,
-        isTransfer: false,
-        category: 'Banking.Interest',
-        flag: false,
-        flagColor: null
-      });
+      id: `INTEREST-${interest.id}-${event.date.getTime()}`,
+      name: `Interest - ${interest.id}`,
+      amount: interestAmount,
+      amountIsVariable: false,
+      amountVariable: null,
+      date: formatDate(event.date),
+      dateIsVariable: false,
+      dateVariable: null,
+      from: null,
+      to: null,
+      isTransfer: false,
+      category: 'Banking.Interest',
+      flag: false,
+      flagColor: null,
+    });
 
-      // Add to segment result
-      if (!segmentResult.activitiesAdded.has(accountId)) {
-        segmentResult.activitiesAdded.set(accountId, []);
-      }
-      segmentResult.activitiesAdded.get(accountId).push(interestActivity);
+    // Add to segment result
+    if (!segmentResult.activitiesAdded.has(accountId)) {
+      segmentResult.activitiesAdded.set(accountId, []);
+    }
+    segmentResult.activitiesAdded.get(accountId).push(interestActivity);
 
-      // Update balance
-      const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
-      segmentResult.balanceChanges.set(accountId, currentChange + interestAmount);
+    // Update balance
+    const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+    segmentResult.balanceChanges.set(accountId, currentChange + interestAmount);
 
     // Track taxable interest if not tax-deferred
     if (!event.taxDeferred) {
@@ -174,14 +161,14 @@ export class Calculator {
     const transfer = event.transfer;
     const fromAccountId = event.fromAccountId;
     const toAccountId = event.toAccountId;
-    
+
     // Calculate actual transfer amount, resolving {FULL} and {HALF} based on current balance
     let amount = event.amount;
-    
+
     // Check if this is a {FULL} or {HALF} transfer that needs balance resolution
     if ((transfer.amountIsVariable && transfer.amountVariable) || typeof transfer.amount === 'string') {
       const toAccountBalance = this.getCurrentAccountBalance(toAccountId, segmentResult);
-      
+
       // Handle variable amounts
       if (transfer.amountIsVariable && transfer.amountVariable) {
         switch (transfer.amountVariable) {
@@ -246,7 +233,7 @@ export class Calculator {
       isTransfer: true,
       category: 'Ignore.Transfer',
       flag: transfer.flag || false,
-      flagColor: transfer.flagColor || 'blue'
+      flagColor: transfer.flagColor || 'blue',
     });
 
     const toActivity = new ConsolidatedActivity({
@@ -263,7 +250,7 @@ export class Calculator {
       isTransfer: true,
       category: 'Ignore.Transfer',
       flag: transfer.flag || false,
-      flagColor: transfer.flagColor || 'blue'
+      flagColor: transfer.flagColor || 'blue',
     });
 
     // Add activities to segment result
@@ -328,7 +315,7 @@ export class Calculator {
     event: PushPullEvent,
     accountsAndTransfers: AccountsAndTransfers,
     options: any,
-    segmentResult: any
+    segmentResult: any,
   ): Promise<void> {
     // Get the SmartPushPullProcessor from the engine
     const pushPullProcessor = options.pushPullProcessor;
@@ -343,7 +330,7 @@ export class Calculator {
       accountsAndTransfers,
       balanceTracker: options.balanceTracker,
       simulation: options.simulation || 'Default',
-      monteCarlo: options.monteCarlo || false
+      monteCarlo: options.monteCarlo || false,
     };
 
     try {
@@ -357,7 +344,7 @@ export class Calculator {
           this.addActivityToSegmentResult(activity, segmentResult);
         }
 
-        // Add pull activities  
+        // Add pull activities
         for (const activity of result.pullActivities) {
           this.addActivityToSegmentResult(activity, segmentResult);
         }
@@ -376,7 +363,6 @@ export class Calculator {
           segmentResult.taxImplications.push(...result.taxImplications);
         }
       }
-
     } catch (error) {
       console.error('Push/Pull processing failed:', error);
       // Continue processing - don't fail the entire calculation for push/pull issues
@@ -391,16 +377,16 @@ export class Calculator {
   private addActivityToSegmentResult(activity: ConsolidatedActivity, segmentResult: any): void {
     // Determine which account this activity belongs to based on the activity's from/to
     let _accountId = '';
-    
+
     // For transfers, we need to add to both accounts
     if (activity.isTransfer && activity.fro && activity.to) {
       // Convert amount to number for calculations
       const activityAmount = typeof activity.amount === 'number' ? activity.amount : 0;
-      
+
       // Find the accounts by name
       const fromAccount = segmentResult.accountsAndTransfers?.accounts?.find((acc: any) => acc.name === activity.fro);
       const toAccount = segmentResult.accountsAndTransfers?.accounts?.find((acc: any) => acc.name === activity.to);
-      
+
       if (fromAccount) {
         if (!segmentResult.activitiesAdded.has(fromAccount.id)) {
           segmentResult.activitiesAdded.set(fromAccount.id, []);
@@ -408,11 +394,11 @@ export class Calculator {
         // Create a copy for the from account (negative amount)
         const fromActivity = new ConsolidatedActivity({
           ...activity.serialize(),
-          amount: -Math.abs(activityAmount)
+          amount: -Math.abs(activityAmount),
         });
         segmentResult.activitiesAdded.get(fromAccount.id).push(fromActivity);
       }
-      
+
       if (toAccount) {
         if (!segmentResult.activitiesAdded.has(toAccount.id)) {
           segmentResult.activitiesAdded.set(toAccount.id, []);
@@ -420,7 +406,7 @@ export class Calculator {
         // Create a copy for the to account (positive amount)
         const toActivity = new ConsolidatedActivity({
           ...activity.serialize(),
-          amount: Math.abs(activityAmount)
+          amount: Math.abs(activityAmount),
         });
         segmentResult.activitiesAdded.get(toAccount.id).push(toActivity);
       }
@@ -437,10 +423,10 @@ export class Calculator {
   private getCurrentSegmentBalance(accountId: string, segmentResult: any): number {
     // Get the current balance from the balance tracker
     const currentBalance = this.balanceTracker.getAccountBalance(accountId);
-    
+
     // Add any changes made in this segment
     const segmentChanges = segmentResult.balanceChanges.get(accountId) || 0;
-    
+
     return currentBalance + segmentChanges;
   }
 
@@ -509,7 +495,7 @@ export class Calculator {
 
     const periodRate = annualRate / periodsPerYear;
     const interest = balance * periodRate;
-    
+
     // Return raw calculation without rounding to match original behavior exactly
     return interest;
   }
@@ -571,12 +557,12 @@ export class Calculator {
       if (!date) {
         throw new Error('Date is undefined');
       }
-      
+
       const timestamp = date.getTime();
       if (isNaN(timestamp)) {
         throw new Error(`Invalid date: ${date}`);
       }
-      
+
       const parts = [type.toUpperCase(), sourceId, timestamp.toString()];
 
       if (suffix) {
@@ -616,7 +602,7 @@ export class Calculator {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(amount);
   }
 
@@ -632,7 +618,7 @@ export class Calculator {
     return {
       eventsProcessed: 0,
       averageProcessingTime: 0,
-      errorCount: 0
+      errorCount: 0,
     };
   }
 
@@ -666,7 +652,7 @@ export class Calculator {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -676,10 +662,11 @@ export class Calculator {
   private getCurrentAccountBalance(accountId: string, segmentResult: any): number {
     // Get the account's starting balance from the balance tracker
     const startingBalance = this.balanceTracker?.getAccountBalance(accountId) || 0;
-    
+
     // Add any balance changes accumulated during this segment
     const balanceChanges = segmentResult.balanceChanges.get(accountId) || 0;
-    
+
     return startingBalance + balanceChanges;
   }
 }
+
