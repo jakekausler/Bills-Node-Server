@@ -1,6 +1,6 @@
 /**
  * Advanced interest calculation module for optimized financial calculations
- * 
+ *
  * This module provides sophisticated interest calculations including compound interest,
  * tax-deferred growth, variable rates, and historical rate lookups, optimized for
  * the new event-based calculation system.
@@ -12,6 +12,7 @@ import { Interest } from '../../data/interest/interest';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { formatDate } from '../date/date';
 import { loadRatesToYears } from '../calculate/interest';
+import { log } from './logger';
 
 dayjs.extend(utc);
 
@@ -67,10 +68,10 @@ export class InterestCalculator {
     }
 
     const result = await this.performInterestCalculation(context);
-    
+
     // Cache the result
     this.calculationCache.set(cacheKey, result);
-    
+
     return result;
   }
 
@@ -78,15 +79,8 @@ export class InterestCalculator {
    * Performs the actual interest calculation
    */
   private async performInterestCalculation(context: InterestCalculationContext): Promise<InterestCalculationResult> {
-    const {
-      accountId,
-      accountType,
-      currentBalance,
-      interest,
-      calculationDate,
-      previousApplicationDate,
-      taxDeferred
-    } = context;
+    const { accountId, accountType, currentBalance, interest, calculationDate, previousApplicationDate, taxDeferred } =
+      context;
 
     // No interest on zero or negative balances (unless specified otherwise)
     if (currentBalance <= 0) {
@@ -100,11 +94,7 @@ export class InterestCalculator {
     }
 
     // Calculate time period
-    const timePeriod = this.calculateTimePeriod(
-      interest,
-      calculationDate,
-      previousApplicationDate
-    );
+    const timePeriod = this.calculateTimePeriod(interest, calculationDate, previousApplicationDate);
 
     if (timePeriod <= 0) {
       return this.createZeroInterestResult(interest, calculationDate);
@@ -115,7 +105,7 @@ export class InterestCalculator {
       currentBalance,
       effectiveRate,
       timePeriod,
-      interest.compounded
+      interest.compounded,
     );
 
     // Determine taxable amount
@@ -123,21 +113,19 @@ export class InterestCalculator {
 
     // Create consolidated activity if interest amount is significant
     let activity: ConsolidatedActivity | null = null;
-    if (Math.abs(interestResult.interestAmount) >= 0.01) { // Only create activity for amounts >= 1 cent
+    if (Math.abs(interestResult.interestAmount) >= 0.01) {
+      // Only create activity for amounts >= 1 cent
       activity = this.createInterestActivity(
         accountId,
         interest,
         interestResult.interestAmount,
         calculationDate,
-        effectiveRate
+        effectiveRate,
       );
     }
 
     // Calculate next application date
-    const nextApplicationDate = this.calculateNextApplicationDate(
-      interest,
-      calculationDate
-    );
+    const nextApplicationDate = this.calculateNextApplicationDate(interest, calculationDate);
 
     return {
       interestAmount: interestResult.interestAmount,
@@ -145,7 +133,7 @@ export class InterestCalculator {
       compoundingPeriods: interestResult.compoundingPeriods,
       taxableAmount,
       nextApplicationDate,
-      activity
+      activity,
     };
   }
 
@@ -162,7 +150,7 @@ export class InterestCalculator {
     if (interest.aprIsVariable && interest.aprVariable) {
       const year = dayjs.utc(date).year();
       const rateCache = await this.getRateCache(interest.aprVariable);
-      
+
       return rateCache[year] || 0;
     }
 
@@ -174,14 +162,14 @@ export class InterestCalculator {
    */
   private async getRateCache(rateName: string): Promise<InterestRateCache> {
     let cache = this.rateCache.get(rateName);
-    
+
     if (!cache) {
       // Load historical rates - this would integrate with the existing system
       // For now, use a placeholder implementation
       cache = await this.loadHistoricalRates(rateName);
       this.rateCache.set(rateName, cache);
     }
-    
+
     return cache;
   }
 
@@ -193,24 +181,20 @@ export class InterestCalculator {
     // For now, return a simple cache structure
     const currentYear = dayjs().year();
     const cache: InterestRateCache = {};
-    
+
     // Load rates for a reasonable historical range
     for (let year = currentYear - 10; year <= currentYear + 60; year++) {
       // This is a placeholder - actual implementation would use loadRatesToYears
       cache[year] = 2.5; // Default rate
     }
-    
+
     return cache;
   }
 
   /**
    * Calculates the time period for interest application
    */
-  private calculateTimePeriod(
-    interest: Interest,
-    currentDate: Date,
-    previousApplicationDate: Date | null
-  ): number {
+  private calculateTimePeriod(interest: Interest, currentDate: Date, previousApplicationDate: Date | null): number {
     if (!previousApplicationDate) {
       // First application - use the time since the interest start date
       if (interest.applicableDate) {
@@ -230,7 +214,7 @@ export class InterestCalculator {
     principal: number,
     annualRate: number,
     days: number,
-    frequency: string
+    frequency: string,
   ): { interestAmount: number; compoundingPeriods: number } {
     if (principal === 0 || annualRate === 0 || days === 0) {
       return { interestAmount: 0, compoundingPeriods: 0 };
@@ -245,7 +229,7 @@ export class InterestCalculator {
       const simpleRate = (annualRate / 100) * (days / 365);
       return {
         interestAmount: principal * simpleRate,
-        compoundingPeriods
+        compoundingPeriods,
       };
     }
 
@@ -255,7 +239,7 @@ export class InterestCalculator {
 
     return {
       interestAmount,
-      compoundingPeriods
+      compoundingPeriods,
     };
   }
 
@@ -264,13 +248,18 @@ export class InterestCalculator {
    */
   private getPeriodsPerYear(frequency: string): number {
     if (!frequency || typeof frequency !== 'string') return 12; // Default to monthly
-    
+
     switch (frequency) {
-      case 'day': return 365;
-      case 'week': return 52;
-      case 'month': return 12;
-      case 'year': return 1;
-      default: return 12; // Default to monthly
+      case 'day':
+        return 365;
+      case 'week':
+        return 52;
+      case 'month':
+        return 12;
+      case 'year':
+        return 1;
+      default:
+        return 12; // Default to monthly
     }
   }
 
@@ -282,12 +271,11 @@ export class InterestCalculator {
     interest: Interest,
     amount: number,
     date: Date,
-    effectiveRate: number
+    effectiveRate: number,
   ): ConsolidatedActivity {
     // Add defensive check for undefined effectiveRate
-    const safeEffectiveRate = (typeof effectiveRate === 'number' && !isNaN(effectiveRate)) ? effectiveRate : 0;
-    const interestName = 
-      `Interest ${safeEffectiveRate.toFixed(2)}%`;
+    const safeEffectiveRate = typeof effectiveRate === 'number' && !isNaN(effectiveRate) ? effectiveRate : 0;
+    const interestName = `Interest ${safeEffectiveRate.toFixed(2)}%`;
 
     return new ConsolidatedActivity({
       id: `INTEREST-${interest.id}-${date.getTime()}`,
@@ -303,7 +291,7 @@ export class InterestCalculator {
       isTransfer: false,
       category: 'Banking.Interest',
       flag: false,
-      flagColor: null
+      flagColor: null,
     });
   }
 
@@ -353,7 +341,7 @@ export class InterestCalculator {
       compoundingPeriods: 0,
       taxableAmount: 0,
       nextApplicationDate: this.calculateNextApplicationDate(interest, date),
-      activity: null
+      activity: null,
     };
   }
 
@@ -362,15 +350,16 @@ export class InterestCalculator {
    */
   private generateCalculationCacheKey(context: InterestCalculationContext): string {
     // Add defensive check for undefined currentBalance
-    const safeBalance = (typeof context.currentBalance === 'number' && !isNaN(context.currentBalance)) ? context.currentBalance : 0;
+    const safeBalance =
+      typeof context.currentBalance === 'number' && !isNaN(context.currentBalance) ? context.currentBalance : 0;
     const parts = [
       context.accountId,
       context.interest.id,
       context.calculationDate.getTime().toString(),
       safeBalance.toFixed(2),
-      context.previousApplicationDate?.getTime().toString() || 'null'
+      context.previousApplicationDate?.getTime().toString() || 'null',
     ];
-    
+
     return parts.join('|');
   }
 
@@ -378,13 +367,13 @@ export class InterestCalculator {
    * Batches interest calculations for multiple accounts
    */
   async batchCalculateInterest(
-    contexts: InterestCalculationContext[]
+    contexts: InterestCalculationContext[],
   ): Promise<Map<string, InterestCalculationResult>> {
     const results = new Map<string, InterestCalculationResult>();
-    
+
     // Group by rate name for efficient rate loading
     const contextsByRate = new Map<string, InterestCalculationContext[]>();
-    
+
     for (const context of contexts) {
       const rateName = context.interest.aprVariable || 'fixed';
       if (!contextsByRate.has(rateName)) {
@@ -440,7 +429,7 @@ export class InterestCalculator {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -449,7 +438,7 @@ export class InterestCalculator {
    */
   private isValidFrequency(frequency: string): boolean {
     if (!frequency || typeof frequency !== 'string') return false;
-    
+
     const validFrequencies = ['day', 'week', 'month', 'year'];
     return validFrequencies.includes(frequency);
   }
@@ -470,7 +459,7 @@ export class InterestCalculator {
       cacheSize: this.calculationCache.size,
       rateCacheSize: this.rateCache.size,
       calculationsPerformed: calculations.length,
-      averageInterestAmount: calculations.length > 0 ? totalInterest / calculations.length : 0
+      averageInterestAmount: calculations.length > 0 ? totalInterest / calculations.length : 0,
     };
   }
 
@@ -497,3 +486,4 @@ export class InterestCalculator {
     }
   }
 }
+

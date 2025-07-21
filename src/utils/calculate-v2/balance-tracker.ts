@@ -13,6 +13,7 @@ import { BalanceSnapshot, InterestState, CalculationAccount } from './types';
 import { CacheManager } from './cache';
 import { Account } from '../../data/account/account';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
+import { err, warn } from './logger';
 
 dayjs.extend(utc);
 
@@ -111,7 +112,7 @@ export class BalanceTracker {
 
       return result;
     } catch (error) {
-      console.error('[BalanceTracker] Error in getCurrentBalances:', error);
+      error('[BalanceTracker] Error in getCurrentBalances:', error);
       throw error;
     }
   }
@@ -249,7 +250,7 @@ export class BalanceTracker {
         account.consolidatedActivity.push(...activities);
         this.updateActivityIndex(accountId, activities.length);
       } else {
-        console.warn(`[BalanceTracker] Account ${accountId} not found for applying activities`);
+        warn(`[BalanceTracker] Account ${accountId} not found for applying activities`);
       }
     }
 
@@ -318,7 +319,7 @@ export class BalanceTracker {
               for (let i = 0; i <= index; i++) {
                 const amount = account.consolidatedActivity[i].amount as number;
                 if (isNaN(amount)) {
-                  console.warn(`[BalanceTracker] NaN amount found in activity ${i}:`, account.consolidatedActivity[i]);
+                  warn(`[BalanceTracker] NaN amount found in activity ${i}:`, account.consolidatedActivity[i]);
                 }
                 runningBalance += amount;
               }
@@ -329,7 +330,7 @@ export class BalanceTracker {
 
               return updatedActivity;
             } catch (error) {
-              console.error(`[BalanceTracker] Error processing activity ${index} for account ${account.id}:`, error);
+              err(`[BalanceTracker] Error processing activity ${index} for account ${account.id}:`, error);
               throw error;
             }
           });
@@ -390,12 +391,12 @@ export class BalanceTracker {
 
           return account as CalculationAccount;
         } catch (error) {
-          console.error(`[BalanceTracker] Error processing account ${account.id}:`, error);
+          err(`[BalanceTracker] Error processing account ${account.id}:`, error);
           throw error;
         }
       });
     } catch (error) {
-      console.error(`[BalanceTracker] Error in getUpdatedAccounts:`, error);
+      err(`[BalanceTracker] Error in getUpdatedAccounts:`, error);
       throw error;
     }
   }
@@ -588,4 +589,3 @@ export class BalanceTracker {
     );
   }
 }
-

@@ -1,8 +1,8 @@
 {
   "totalComparisons": 90,
-  "successfulComparisons": 57,
+  "successfulComparisons": 59,
   "failedComparisons": 1,
-  "significantDiscrepancies": 33,
+  "significantDiscrepancies": 31,
   "scenarios": [
     {
       "scenario": "historical_to_current",
@@ -16,11 +16,11 @@
     {
       "scenario": "current_to_near_future",
       "comparisons": 18,
-      "successful": 15,
+      "successful": 17,
       "failed": 0,
-      "discrepancies": 3,
-      "avgBalanceDiff": 1.4815395833337983,
-      "avgActivityCountDiff": 0.1111111111111111
+      "discrepancies": 1,
+      "avgBalanceDiff": 0.5290680555583592,
+      "avgActivityCountDiff": 0
     },
     {
       "scenario": "recent_to_medium_term",
@@ -28,7 +28,7 @@
       "successful": 9,
       "failed": 0,
       "discrepancies": 9,
-      "avgBalanceDiff": 849.9857799573955,
+      "avgBalanceDiff": 862.7666288154594,
       "avgActivityCountDiff": 0.6666666666666666
     },
     {
@@ -37,7 +37,7 @@
       "successful": 8,
       "failed": 0,
       "discrepancies": 10,
-      "avgBalanceDiff": 11161.040656087001,
+      "avgBalanceDiff": 11325.693318310565,
       "avgActivityCountDiff": 11.833333333333334
     },
     {
@@ -46,7 +46,7 @@
       "successful": 7,
       "failed": 1,
       "discrepancies": 11,
-      "avgBalanceDiff": 1417935.6677687764,
+      "avgBalanceDiff": 1411195.3985242418,
       "avgActivityCountDiff": 638.0555555555555
     }
   ],
@@ -61,9 +61,9 @@
     {
       "accountName": "Jake",
       "comparisons": 5,
-      "successful": 1,
+      "successful": 2,
       "failed": 0,
-      "discrepancies": 4
+      "discrepancies": 3
     },
     {
       "accountName": "Spending",
@@ -152,9 +152,9 @@
     {
       "accountName": "Mortgage",
       "comparisons": 5,
-      "successful": 1,
+      "successful": 2,
       "failed": 0,
-      "discrepancies": 4
+      "discrepancies": 3
     },
     {
       "accountName": "Fidelity Money Market",

@@ -1,6 +1,6 @@
 /**
  * Advanced bill processing module for optimized financial calculations
- * 
+ *
  * This module handles recurring bill scheduling, inflation adjustments,
  * variable amounts, and complex frequency patterns optimized for the
  * new event-based calculation system.
@@ -13,6 +13,7 @@ import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { formatDate } from '../date/date';
 import { loadVariable } from '../simulation/variable';
 import { nextDate } from '../calculate/helpers';
+import { warn } from './logger';
 
 dayjs.extend(utc);
 
@@ -87,7 +88,7 @@ export class BillProcessor {
 
     const result = await this.performBillCalculation(context);
     this.calculationCache.set(cacheKey, result);
-    
+
     return result;
   }
 
@@ -99,17 +100,17 @@ export class BillProcessor {
 
     // Calculate base amount (handling variables)
     const baseAmount = await this.calculateBaseAmount(bill, simulation);
-    
+
     // Apply inflation if configured
     const inflationResult = await this.applyInflation(bill, baseAmount, calculationDate);
-    
+
     // Create consolidated activity
     const activity = this.createBillActivity(
       accountId,
       bill,
       inflationResult.adjustedAmount,
       calculationDate,
-      simulation
+      simulation,
     );
 
     // Calculate next occurrence
@@ -125,8 +126,8 @@ export class BillProcessor {
         originalAmount: typeof bill.amount === 'number' ? bill.amount : 0,
         yearsFromStart: inflationResult.yearsFromStart,
         cumulativeInflation: inflationResult.cumulativeInflation,
-        variableResolved: bill.amountIsVariable || false
-      }
+        variableResolved: bill.amountIsVariable || false,
+      },
     };
   }
 
@@ -200,7 +201,7 @@ export class BillProcessor {
   private async applyInflation(
     bill: Bill,
     baseAmount: number,
-    calculationDate: Date
+    calculationDate: Date,
   ): Promise<{
     adjustedAmount: number;
     effectiveRate: number;
@@ -212,24 +213,24 @@ export class BillProcessor {
         adjustedAmount: baseAmount,
         effectiveRate: 0,
         yearsFromStart: 0,
-        cumulativeInflation: 0
+        cumulativeInflation: 0,
       };
     }
 
     const yearsFromStart = dayjs.utc(calculationDate).diff(dayjs.utc(bill.startDate), 'year', true);
-    
+
     if (yearsFromStart <= 0) {
       return {
         adjustedAmount: baseAmount,
         effectiveRate: bill.increaseBy,
         yearsFromStart: 0,
-        cumulativeInflation: 0
+        cumulativeInflation: 0,
       };
     }
 
     // Get effective inflation rate (could be variable in the future)
     const effectiveRate = await this.getEffectiveInflationRate(bill, calculationDate);
-    
+
     // Calculate compound inflation: A = P(1 + r)^t
     const inflationMultiplier = Math.pow(1 + effectiveRate / 100, yearsFromStart);
     const adjustedAmount = baseAmount * inflationMultiplier;
@@ -239,7 +240,7 @@ export class BillProcessor {
       adjustedAmount,
       effectiveRate,
       yearsFromStart,
-      cumulativeInflation
+      cumulativeInflation,
     };
   }
 
@@ -260,7 +261,7 @@ export class BillProcessor {
     bill: Bill,
     amount: number,
     date: Date,
-    _simulation: string
+    _simulation: string,
   ): ConsolidatedActivity {
     return new ConsolidatedActivity({
       id: `BILL-${bill.id}-${date.getTime()}`,
@@ -276,7 +277,7 @@ export class BillProcessor {
       isTransfer: bill.isTransfer || false,
       category: bill.category,
       flag: bill.flag || false,
-      flagColor: bill.flagColor || null
+      flagColor: bill.flagColor || null,
     });
   }
 
@@ -288,7 +289,7 @@ export class BillProcessor {
 
     try {
       const nextOccurrence = nextDate(currentDate, bill.periods, bill.everyN);
-      
+
       // Check if we've passed the end date
       if (bill.endDate && nextOccurrence > bill.endDate) {
         return null;
@@ -296,7 +297,7 @@ export class BillProcessor {
 
       return nextOccurrence;
     } catch (error) {
-      console.warn(`Error calculating next occurrence for bill ${bill.id}:`, error);
+      warn(`Error calculating next occurrence for bill ${bill.id}:`, error);
       return null;
     }
   }
@@ -304,12 +305,7 @@ export class BillProcessor {
   /**
    * Generates a complete schedule for a bill
    */
-  generateBillSchedule(
-    bill: Bill,
-    accountId: string,
-    endDate: Date,
-    simulation: string = 'Default'
-  ): BillSchedule {
+  generateBillSchedule(bill: Bill, accountId: string, endDate: Date, simulation: string = 'Default'): BillSchedule {
     const cacheKey = `${bill.id}_${accountId}_${endDate.getTime()}_${simulation}`;
     const cached = this.scheduleCache.get(cacheKey);
     if (cached) {
@@ -318,28 +314,23 @@ export class BillProcessor {
 
     const schedule = this.createBillSchedule(bill, accountId, endDate, simulation);
     this.scheduleCache.set(cacheKey, schedule);
-    
+
     return schedule;
   }
 
   /**
    * Creates a bill schedule
    */
-  private createBillSchedule(
-    bill: Bill,
-    accountId: string,
-    endDate: Date,
-    _simulation: string
-  ): BillSchedule {
+  private createBillSchedule(bill: Bill, accountId: string, endDate: Date, _simulation: string): BillSchedule {
     const occurrences: BillOccurrence[] = [];
-    
+
     if (!bill.startDate || !bill.periods || !bill.everyN) {
       return {
         billId: bill.id,
         accountId,
         occurrences: [],
         totalOccurrences: 0,
-        scheduleComplete: true
+        scheduleComplete: true,
       };
     }
 
@@ -347,13 +338,14 @@ export class BillProcessor {
     let occurrenceCount = 0;
     const maxOccurrences = 10000; // Safety limit
 
-    while (currentDate <= endDate && 
-           (!bill.endDate || currentDate <= bill.endDate) &&
-           occurrenceCount < maxOccurrences) {
-
+    while (
+      currentDate <= endDate &&
+      (!bill.endDate || currentDate <= bill.endDate) &&
+      occurrenceCount < maxOccurrences
+    ) {
       // Calculate amount for this occurrence
       const yearsFromStart = dayjs.utc(currentDate).diff(dayjs.utc(bill.startDate), 'year', true);
-      
+
       // Convert bill.amount to number if it's a string literal
       let baseAmount: number;
       if (typeof bill.amount === 'number') {
@@ -377,7 +369,7 @@ export class BillProcessor {
             baseAmount = 0;
         }
       }
-      
+
       let adjustedAmount = baseAmount;
       let inflationRate = 0;
 
@@ -391,14 +383,14 @@ export class BillProcessor {
         date: new Date(currentDate),
         amount: adjustedAmount,
         inflationRate,
-        occurrence: occurrenceCount
+        occurrence: occurrenceCount,
       });
 
       // Calculate next occurrence
       try {
         currentDate = nextDate(currentDate, bill.periods, bill.everyN);
       } catch (error) {
-        console.warn(`Error calculating next date for bill ${bill.id}:`, error);
+        warn(`Error calculating next date for bill ${bill.id}:`, error);
         break;
       }
 
@@ -410,22 +402,24 @@ export class BillProcessor {
       accountId,
       occurrences,
       totalOccurrences: occurrenceCount,
-      scheduleComplete: occurrenceCount < maxOccurrences
+      scheduleComplete: occurrenceCount < maxOccurrences,
     };
   }
 
   /**
    * Batch processes multiple bills
    */
-  async batchProcessBills(
-    contexts: BillCalculationContext[]
-  ): Promise<Map<string, BillCalculationResult>> {
+  async batchProcessBills(contexts: BillCalculationContext[]): Promise<Map<string, BillCalculationResult>> {
     const results = new Map<string, BillCalculationResult>();
 
     // Pre-load all required variables
     const variablesToLoad = new Set<string>();
     for (const context of contexts) {
-      if (context.bill.amountIsVariable && context.bill.amountVariable && typeof context.bill.amountVariable === 'string') {
+      if (
+        context.bill.amountIsVariable &&
+        context.bill.amountVariable &&
+        typeof context.bill.amountVariable === 'string'
+      ) {
         variablesToLoad.add(`${context.bill.amountVariable}_${context.simulation}`);
       }
     }
@@ -500,7 +494,7 @@ export class BillProcessor {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -533,7 +527,7 @@ export class BillProcessor {
       scheduleCacheSize: this.scheduleCache.size,
       variableCacheSize: this.variableCache.size,
       averageAmount: calculations.length > 0 ? totalAmount / calculations.length : 0,
-      totalInflationAdjustment: totalInflation
+      totalInflationAdjustment: totalInflation,
     };
   }
 
@@ -542,7 +536,7 @@ export class BillProcessor {
    */
   estimateInflationImpact(
     bill: Bill,
-    years: number
+    years: number,
   ): {
     originalAmount: number;
     inflatedAmount: number;
@@ -552,13 +546,13 @@ export class BillProcessor {
     // Convert bill.amount to number
     const originalAmount = typeof bill.amount === 'number' ? bill.amount : 0;
     const inflationRate = bill.increaseBy || 0;
-    
+
     if (inflationRate <= 0 || years <= 0) {
       return {
         originalAmount,
         inflatedAmount: originalAmount,
         totalIncrease: 0,
-        percentageIncrease: 0
+        percentageIncrease: 0,
       };
     }
 
@@ -570,7 +564,7 @@ export class BillProcessor {
       originalAmount,
       inflatedAmount,
       totalIncrease,
-      percentageIncrease
+      percentageIncrease,
     };
   }
 
@@ -578,17 +572,18 @@ export class BillProcessor {
    * Finds bills that occur on a specific date
    */
   findBillsForDate(bills: Bill[], targetDate: Date): Bill[] {
-    return bills.filter(bill => {
+    return bills.filter((bill) => {
       if (!bill.startDate || !bill.periods || !bill.everyN) return false;
-      
+
       let currentDate = bill.startDate;
       const maxIterations = 1000; // Safety limit
       let iterations = 0;
 
-      while (currentDate <= targetDate && 
-             (!bill.endDate || currentDate <= bill.endDate) &&
-             iterations < maxIterations) {
-        
+      while (
+        currentDate <= targetDate &&
+        (!bill.endDate || currentDate <= bill.endDate) &&
+        iterations < maxIterations
+      ) {
         if (dayjs.utc(currentDate).isSame(dayjs.utc(targetDate), 'day')) {
           return true;
         }
@@ -646,9 +641,9 @@ export class BillProcessor {
       context.calculationDate.getTime().toString(),
       context.simulation,
       context.bill.amount.toString(),
-      (context.bill.increaseBy || 0).toString()
+      (context.bill.increaseBy || 0).toString(),
     ];
-    
+
     return parts.join('|');
   }
 
@@ -670,7 +665,7 @@ export class BillProcessor {
    */
   getNextOccurrences(bill: Bill, startDate: Date, count: number): Date[] {
     const occurrences: Date[] = [];
-    
+
     if (!bill.periods || !bill.everyN || count <= 0) {
       return occurrences;
     }
@@ -680,8 +675,7 @@ export class BillProcessor {
     const maxIterations = Math.min(count * 2, 1000); // Safety limit
 
     while (occurrences.length < count && iterations < maxIterations) {
-      if (currentDate >= (bill.startDate || startDate) && 
-          (!bill.endDate || currentDate <= bill.endDate)) {
+      if (currentDate >= (bill.startDate || startDate) && (!bill.endDate || currentDate <= bill.endDate)) {
         occurrences.push(new Date(currentDate));
       }
 
@@ -697,3 +691,4 @@ export class BillProcessor {
     return occurrences;
   }
 }
+

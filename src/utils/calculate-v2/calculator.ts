@@ -15,6 +15,7 @@ import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { formatDate } from '../date/date';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { loadVariable } from '../simulation/variable';
+import { err, log, warn } from './logger';
 
 dayjs.extend(utc);
 
@@ -60,7 +61,7 @@ export class Calculator {
       const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
       segmentResult.balanceChanges.set(accountId, currentChange + balanceChange);
     } catch (error) {
-      console.error(`[Calculator] Error processing activity event ${event.id}:`, error);
+      err(`[Calculator] Error processing activity event ${event.id}:`, error);
       throw error;
     }
   }
@@ -119,6 +120,15 @@ export class Calculator {
     if (Math.abs(interestAmount) < 0.00001) {
       return;
     }
+
+    log({
+      accountId,
+      amount: interestAmount,
+      interestRate: event.rate,
+      compounded: interest.compounded,
+      date: event.date,
+      usingBalance: currentBalance,
+    });
 
     // Create consolidated activity for interest
     const interestActivity = new ConsolidatedActivity({
@@ -278,7 +288,7 @@ export class Calculator {
   async processPensionEvent(_event: any, _segmentResult: any): Promise<void> {
     // TODO: Implement pension processing
     // This would integrate with the existing pension calculation logic
-    console.log('Pension event processing not yet implemented');
+    log('Pension event processing not yet implemented');
   }
 
   /**
@@ -287,7 +297,7 @@ export class Calculator {
   async processSocialSecurityEvent(_event: any, _segmentResult: any): Promise<void> {
     // TODO: Implement social security processing
     // This would integrate with the existing social security calculation logic
-    console.log('Social Security event processing not yet implemented');
+    log('Social Security event processing not yet implemented');
   }
 
   /**
@@ -296,7 +306,7 @@ export class Calculator {
   async processTaxEvent(_event: any, _segmentResult: any): Promise<void> {
     // TODO: Implement tax processing
     // This would handle pull taxes, interest taxes, etc.
-    console.log('Tax event processing not yet implemented');
+    log('Tax event processing not yet implemented');
   }
 
   /**
@@ -305,7 +315,7 @@ export class Calculator {
   async processRMDEvent(_event: any, _segmentResult: any): Promise<void> {
     // TODO: Implement RMD processing
     // This would integrate with the existing RMD calculation logic
-    console.log('RMD event processing not yet implemented');
+    log('RMD event processing not yet implemented');
   }
 
   /**
@@ -320,7 +330,7 @@ export class Calculator {
     // Get the SmartPushPullProcessor from the engine
     const pushPullProcessor = options.pushPullProcessor;
     if (!pushPullProcessor) {
-      console.warn('Push/Pull processor not available, skipping');
+      warn('Push/Pull processor not available, skipping');
       return;
     }
 
@@ -364,7 +374,7 @@ export class Calculator {
         }
       }
     } catch (error) {
-      console.error('Push/Pull processing failed:', error);
+      err('Push/Pull processing failed:', error);
       // Continue processing - don't fail the entire calculation for push/pull issues
     }
   }
@@ -413,7 +423,7 @@ export class Calculator {
     } else {
       // For non-transfer activities, try to determine the account from context
       // This is a fallback - the push/pull processor should handle account assignment
-      console.warn('Non-transfer activity in push/pull result - may need account assignment logic');
+      warn('Non-transfer activity in push/pull result - may need account assignment logic');
     }
   }
 
@@ -571,7 +581,7 @@ export class Calculator {
 
       return parts.join('-');
     } catch (error) {
-      console.error(`[Calculator] Error creating activity ID:`, { type, sourceId, date, suffix });
+      err(`[Calculator] Error creating activity ID:`, { type, sourceId, date, suffix });
       throw new Error(`Failed to create activity ID: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -581,13 +591,13 @@ export class Calculator {
    */
   private validateAmount(amount: number, context: string): boolean {
     if (!isFinite(amount)) {
-      console.warn(`Invalid amount (${amount}) in ${context}`);
+      warn(`Invalid amount (${amount}) in ${context}`);
       return false;
     }
 
     // Check for unreasonably large amounts (> $1B)
     if (Math.abs(amount) > 1_000_000_000) {
-      console.warn(`Unreasonably large amount (${amount}) in ${context}`);
+      warn(`Unreasonably large amount (${amount}) in ${context}`);
       return false;
     }
 
@@ -669,4 +679,3 @@ export class Calculator {
     return startingBalance + balanceChanges;
   }
 }
-

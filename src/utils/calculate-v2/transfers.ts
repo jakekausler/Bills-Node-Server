@@ -1,6 +1,6 @@
 /**
  * Advanced transfer handling module for optimized financial calculations
- * 
+ *
  * This module handles money movements between accounts including one-time transfers,
  * recurring transfers, complex transfer rules, and dependency management optimized
  * for the new event-based calculation system.
@@ -15,6 +15,7 @@ import { formatDate } from '../date/date';
 import { loadVariable } from '../simulation/variable';
 import { nextDate } from '../calculate/helpers';
 import { Account } from '../../data/account/account';
+import { warn } from './logger';
 
 dayjs.extend(utc);
 
@@ -117,7 +118,7 @@ export class TransferProcessor {
 
     const result = await this.performTransferCalculation(context);
     this.calculationCache.set(cacheKey, result);
-    
+
     return result;
   }
 
@@ -129,12 +130,26 @@ export class TransferProcessor {
 
     // Calculate base amount (handling variables)
     const baseAmount = await this.calculateTransferAmount(transfer, simulation, fromBalance);
-    
+
     // Validate transfer constraints
-    const validation = await this.validateTransfer(transfer, fromAccountId, toAccountId, baseAmount, fromBalance, toBalance);
-    
+    const validation = await this.validateTransfer(
+      transfer,
+      fromAccountId,
+      toAccountId,
+      baseAmount,
+      fromBalance,
+      toBalance,
+    );
+
     if (!validation.canExecute) {
-      return this.createFailedTransferResult(transfer, fromAccountId, toAccountId, baseAmount, validation.errors.join('; '), calculationDate);
+      return this.createFailedTransferResult(
+        transfer,
+        fromAccountId,
+        toAccountId,
+        baseAmount,
+        validation.errors.join('; '),
+        calculationDate,
+      );
     }
 
     // Apply balance constraints if necessary
@@ -148,7 +163,7 @@ export class TransferProcessor {
       toAccountId,
       actualAmount,
       calculationDate,
-      simulation
+      simulation,
     );
 
     // Calculate tax implications
@@ -157,7 +172,7 @@ export class TransferProcessor {
       fromAccountId,
       toAccountId,
       actualAmount,
-      calculationDate
+      calculationDate,
     );
 
     // Calculate next occurrence for recurring transfers
@@ -175,15 +190,19 @@ export class TransferProcessor {
         originalAmount: transfer.amount,
         variableResolved: transfer.amountIsVariable || false,
         balanceConstraintApplied,
-        taxImplications
-      }
+        taxImplications,
+      },
     };
   }
 
   /**
    * Calculates the transfer amount (handling variables)
    */
-  private async calculateTransferAmount(transfer: Transfer, simulation: string, fromBalance: number = 0): Promise<number> {
+  private async calculateTransferAmount(
+    transfer: Transfer,
+    simulation: string,
+    fromBalance: number = 0,
+  ): Promise<number> {
     // Handle direct amount first (convert string literals to numbers)
     let baseAmount: number;
     if (typeof transfer.amount === 'number') {
@@ -253,7 +272,7 @@ export class TransferProcessor {
     toAccountId: string,
     amount: number,
     fromBalance: number,
-    toBalance: number
+    toBalance: number,
   ): Promise<TransferValidationResult> {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -308,7 +327,7 @@ export class TransferProcessor {
       canExecute: errors.length === 0,
       errors,
       warnings,
-      suggestedAmount
+      suggestedAmount,
     };
   }
 
@@ -321,10 +340,10 @@ export class TransferProcessor {
     toAccountId: string,
     amount: number,
     date: Date,
-    simulation: string
+    simulation: string,
   ): { fromActivity: ConsolidatedActivity; toActivity: ConsolidatedActivity } {
     const timestamp = date.getTime();
-    
+
     const fromActivity = new ConsolidatedActivity({
       id: `TRANSFER-${transfer.id}-${timestamp}-FROM`,
       name: `Transfer to ${transfer.to}`,
@@ -339,7 +358,7 @@ export class TransferProcessor {
       isTransfer: true,
       category: 'Ignore.Transfer',
       flag: transfer.flag || false,
-      flagColor: transfer.flagColor || 'blue'
+      flagColor: transfer.flagColor || 'blue',
     });
 
     const toActivity = new ConsolidatedActivity({
@@ -356,7 +375,7 @@ export class TransferProcessor {
       isTransfer: true,
       category: 'Ignore.Transfer',
       flag: transfer.flag || false,
-      flagColor: transfer.flagColor || 'blue'
+      flagColor: transfer.flagColor || 'blue',
     });
 
     return { fromActivity, toActivity };
@@ -370,12 +389,12 @@ export class TransferProcessor {
     fromAccountId: string,
     toAccountId: string,
     amount: number,
-    date: Date
+    date: Date,
   ): Promise<TaxImplication[]> {
     const implications: TaxImplication[] = [];
-    
+
     const fromAccount = this.accountCache.get(fromAccountId);
-    
+
     if (!fromAccount) {
       return implications;
     }
@@ -383,34 +402,34 @@ export class TransferProcessor {
     // Check for withdrawal taxes from retirement accounts
     if (this.isRetirementAccount(fromAccount)) {
       const taxRate = fromAccount.withdrawalTaxRate || 0;
-      
+
       if (taxRate > 0) {
         const taxDueDate = this.calculateTaxDueDate(date);
-        
+
         implications.push({
           accountId: fromAccountId,
           taxType: 'withdrawal',
           taxableAmount: amount,
           taxRate,
           penaltyRate: 0,
-          dueDate: taxDueDate
+          dueDate: taxDueDate,
         });
       }
 
       // Check for early withdrawal penalties
       if (fromAccount.earlyWithdrawlDate && date < fromAccount.earlyWithdrawlDate) {
         const penaltyRate = fromAccount.earlyWithdrawlPenalty || 0;
-        
+
         if (penaltyRate > 0) {
           const taxDueDate = this.calculateTaxDueDate(date);
-          
+
           implications.push({
             accountId: fromAccountId,
             taxType: 'earlyWithdrawal',
             taxableAmount: amount,
             taxRate: 0,
             penaltyRate,
-            dueDate: taxDueDate
+            dueDate: taxDueDate,
           });
         }
       }
@@ -427,7 +446,7 @@ export class TransferProcessor {
 
     try {
       const nextOccurrence = nextDate(currentDate, transfer.periods, transfer.everyN);
-      
+
       // Check if we've passed the end date
       if (transfer.endDate && nextOccurrence > transfer.endDate) {
         return null;
@@ -435,7 +454,7 @@ export class TransferProcessor {
 
       return nextOccurrence;
     } catch (error) {
-      console.warn(`Error calculating next occurrence for transfer ${transfer.id}:`, error);
+      warn(`Error calculating next occurrence for transfer ${transfer.id}:`, error);
       return null;
     }
   }
@@ -449,7 +468,7 @@ export class TransferProcessor {
     toAccountId: string,
     amount: number,
     reason: string,
-    date: Date
+    date: Date,
   ): TransferCalculationResult {
     return {
       amount,
@@ -463,8 +482,8 @@ export class TransferProcessor {
         originalAmount: transfer.amount,
         variableResolved: transfer.amountIsVariable || false,
         balanceConstraintApplied: false,
-        taxImplications: []
-      }
+        taxImplications: [],
+      },
     };
   }
 
@@ -476,7 +495,7 @@ export class TransferProcessor {
     fromAccountId: string,
     toAccountId: string,
     endDate: Date,
-    simulation: string = 'Default'
+    simulation: string = 'Default',
   ): TransferSchedule {
     const cacheKey = `${transfer.id}_${fromAccountId}_${toAccountId}_${endDate.getTime()}_${simulation}`;
     const cached = this.scheduleCache.get(cacheKey);
@@ -486,7 +505,7 @@ export class TransferProcessor {
 
     const schedule = this.createTransferSchedule(transfer, fromAccountId, toAccountId, endDate, simulation);
     this.scheduleCache.set(cacheKey, schedule);
-    
+
     return schedule;
   }
 
@@ -498,10 +517,10 @@ export class TransferProcessor {
     fromAccountId: string,
     toAccountId: string,
     endDate: Date,
-    simulation: string
+    simulation: string,
   ): TransferSchedule {
     const occurrences: TransferOccurrence[] = [];
-    
+
     if (!transfer.startDate || !transfer.periods || !transfer.everyN) {
       return {
         transferId: transfer.id,
@@ -509,7 +528,7 @@ export class TransferProcessor {
         toAccountId,
         occurrences: [],
         totalOccurrences: 0,
-        scheduleComplete: true
+        scheduleComplete: true,
       };
     }
 
@@ -517,10 +536,11 @@ export class TransferProcessor {
     let occurrenceCount = 0;
     const maxOccurrences = 10000; // Safety limit
 
-    while (currentDate <= endDate && 
-           (!transfer.endDate || currentDate <= transfer.endDate) &&
-           occurrenceCount < maxOccurrences) {
-
+    while (
+      currentDate <= endDate &&
+      (!transfer.endDate || currentDate <= transfer.endDate) &&
+      occurrenceCount < maxOccurrences
+    ) {
       // Calculate amount for this occurrence
       let baseAmount: number;
       if (typeof transfer.amount === 'number') {
@@ -534,14 +554,14 @@ export class TransferProcessor {
         date: new Date(currentDate),
         amount: baseAmount,
         occurrence: occurrenceCount,
-        estimated: transfer.amountIsVariable || typeof transfer.amount !== 'number'
+        estimated: transfer.amountIsVariable || typeof transfer.amount !== 'number',
       });
 
       // Calculate next occurrence
       try {
         currentDate = nextDate(currentDate, transfer.periods, transfer.everyN);
       } catch (error) {
-        console.warn(`Error calculating next date for transfer ${transfer.id}:`, error);
+        warn(`Error calculating next date for transfer ${transfer.id}:`, error);
         break;
       }
 
@@ -554,22 +574,24 @@ export class TransferProcessor {
       toAccountId,
       occurrences,
       totalOccurrences: occurrenceCount,
-      scheduleComplete: occurrenceCount < maxOccurrences
+      scheduleComplete: occurrenceCount < maxOccurrences,
     };
   }
 
   /**
    * Batch processes multiple transfers
    */
-  async batchProcessTransfers(
-    contexts: TransferCalculationContext[]
-  ): Promise<Map<string, TransferCalculationResult>> {
+  async batchProcessTransfers(contexts: TransferCalculationContext[]): Promise<Map<string, TransferCalculationResult>> {
     const results = new Map<string, TransferCalculationResult>();
 
     // Pre-load all required variables
     const variablesToLoad = new Set<string>();
     for (const context of contexts) {
-      if (context.transfer.amountIsVariable && context.transfer.amountVariable && typeof context.transfer.amountVariable === 'string') {
+      if (
+        context.transfer.amountIsVariable &&
+        context.transfer.amountVariable &&
+        typeof context.transfer.amountVariable === 'string'
+      ) {
         variablesToLoad.add(`${context.transfer.amountVariable}_${context.simulation}`);
       }
     }
@@ -644,14 +666,14 @@ export class TransferProcessor {
     } else if (!this.isValidPeriod(transfer.periods)) {
       errors.push(`Invalid period: ${transfer.periods}`);
     }
-    
+
     if (!transfer.everyN || transfer.everyN < 1) {
       errors.push('Transfer must have everyN >= 1');
     }
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -670,7 +692,7 @@ export class TransferProcessor {
     // This would be based on IRS limits for the year and account type
     // For now, return a placeholder
     const yearNum = dayjs.utc(year).year();
-    
+
     switch (account.type) {
       case '401k':
         return yearNum >= 2024 ? 23000 : 22500;
@@ -702,9 +724,9 @@ export class TransferProcessor {
       context.simulation,
       context.transfer.amount.toString(),
       context.fromBalance.toString(),
-      context.toBalance.toString()
+      context.toBalance.toString(),
     ];
-    
+
     return parts.join('|');
   }
 
@@ -722,8 +744,8 @@ export class TransferProcessor {
     totalTaxImplications: number;
   } {
     const calculations = Array.from(this.calculationCache.values());
-    const successful = calculations.filter(calc => calc.transferExecuted);
-    const failed = calculations.filter(calc => !calc.transferExecuted);
+    const successful = calculations.filter((calc) => calc.transferExecuted);
+    const failed = calculations.filter((calc) => !calc.transferExecuted);
     const totalAmount = successful.reduce((sum, calc) => sum + calc.actualAmount, 0);
     const totalTaxImplications = calculations.reduce((sum, calc) => sum + calc.metadata.taxImplications.length, 0);
 
@@ -735,7 +757,7 @@ export class TransferProcessor {
       scheduleCacheSize: this.scheduleCache.size,
       variableCacheSize: this.variableCache.size,
       averageAmount: successful.length > 0 ? totalAmount / successful.length : 0,
-      totalTaxImplications
+      totalTaxImplications,
     };
   }
 
@@ -765,20 +787,21 @@ export class TransferProcessor {
    * Finds transfers that occur on a specific date
    */
   findTransfersForDate(transfers: Transfer[], targetDate: Date): Transfer[] {
-    return transfers.filter(transfer => {
+    return transfers.filter((transfer) => {
       if (!transfer.startDate || !transfer.periods || !transfer.everyN) {
         // One-time transfer
         return transfer.startDate && dayjs.utc(transfer.startDate).isSame(dayjs.utc(targetDate), 'day');
       }
-      
+
       let currentDate = transfer.startDate;
       const maxIterations = 1000; // Safety limit
       let iterations = 0;
 
-      while (currentDate <= targetDate && 
-             (!transfer.endDate || currentDate <= transfer.endDate) &&
-             iterations < maxIterations) {
-        
+      while (
+        currentDate <= targetDate &&
+        (!transfer.endDate || currentDate <= transfer.endDate) &&
+        iterations < maxIterations
+      ) {
         if (dayjs.utc(currentDate).isSame(dayjs.utc(targetDate), 'day')) {
           return true;
         }
@@ -796,3 +819,4 @@ export class TransferProcessor {
     });
   }
 }
+

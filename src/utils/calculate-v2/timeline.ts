@@ -368,7 +368,7 @@ export class Timeline {
         type: EventType.interest,
         date: new Date(currentDate),
         accountId: account.id,
-        priority: 4, // Interest after transfers
+        priority: 0, // Interest after transfers
         cacheable: true,
         dependencies: [],
         interest,
@@ -756,4 +756,3 @@ export class Timeline {
     };
   }
 }
-

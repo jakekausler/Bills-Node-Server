@@ -1,6 +1,6 @@
 /**
  * Migration utilities for transitioning from legacy to calculate-v2 system
- * 
+ *
  * This module provides tools for data migration, validation, and gradual
  * rollout management to ensure smooth transition to the new calculation system.
  */
@@ -9,6 +9,8 @@ import { AccountsAndTransfers } from '../../data/account/types';
 import { CalculationConfig } from './types';
 import { ComparisonTestFramework, ComparisonTestConfig } from './comparison-testing';
 import { PerformanceBenchmark, BenchmarkConfig } from './performance-benchmarking';
+import { log } from 'node:console';
+import { err } from './logger';
 
 /**
  * Migration validation result
@@ -172,7 +174,7 @@ export class MigrationManager {
     strategy: MigrationStrategy,
     comparisonConfig: ComparisonTestConfig,
     benchmarkConfig: BenchmarkConfig,
-    calculationConfig: CalculationConfig
+    calculationConfig: CalculationConfig,
   ) {
     this.strategy = strategy;
     this.progress = this.initializeProgress();
@@ -184,8 +186,8 @@ export class MigrationManager {
    * Performs comprehensive migration validation
    */
   async validateMigration(accountsAndTransfers: AccountsAndTransfers): Promise<MigrationValidation> {
-    console.log('Starting migration validation...');
-    
+    log('Starting migration validation...');
+
     this.updateProgress('validation', 0, 'Starting validation process');
 
     const issues: ValidationIssue[] = [];
@@ -212,10 +214,10 @@ export class MigrationManager {
     issues.push(...configIssues);
 
     // Calculate confidence score
-    const errorCount = issues.filter(i => i.severity === 'error').length;
-    const warningCount = issues.filter(i => i.severity === 'warning').length;
-    
-    confidenceScore -= (errorCount * 0.3) + (warningCount * 0.1);
+    const errorCount = issues.filter((i) => i.severity === 'error').length;
+    const warningCount = issues.filter((i) => i.severity === 'warning').length;
+
+    confidenceScore -= errorCount * 0.3 + warningCount * 0.1;
     confidenceScore = Math.max(0, Math.min(1, confidenceScore));
 
     // Estimate performance improvement
@@ -228,10 +230,12 @@ export class MigrationManager {
       issues,
       recommendations: this.generateRecommendations(issues),
       confidenceScore,
-      estimatedImprovement
+      estimatedImprovement,
     };
 
-    console.log(`Migration validation completed. Safe: ${validation.isSafe}, Confidence: ${(confidenceScore * 100).toFixed(1)}%`);
+    log(
+      `Migration validation completed. Safe: ${validation.isSafe}, Confidence: ${(confidenceScore * 100).toFixed(1)}%`,
+    );
 
     return validation;
   }
@@ -240,7 +244,7 @@ export class MigrationManager {
    * Executes the migration process
    */
   async executeMigration(accountsAndTransfers: AccountsAndTransfers): Promise<void> {
-    console.log(`Starting migration with strategy: ${this.strategy.approach}`);
+    log(`Starting migration with strategy: ${this.strategy.approach}`);
 
     this.updateProgress('testing', 0, 'Preparing migration');
 
@@ -261,9 +265,9 @@ export class MigrationManager {
       }
 
       this.updateProgress('completed', 100, 'Migration completed successfully');
-      console.log('Migration completed successfully');
+      log('Migration completed successfully');
     } catch (error) {
-      console.error('Migration failed:', error);
+      err('Migration failed:', error);
       await this.handleMigrationFailure(error);
     }
   }
@@ -283,20 +287,23 @@ export class MigrationManager {
           category: 'data_compatibility',
           description: `Account missing required fields: ${account.name || 'unnamed'}`,
           path: `accounts.${account.id}`,
-          autoFixable: false
+          autoFixable: false,
         });
       }
 
       // Validate bills
       for (const bill of account.bills || []) {
-        if (typeof bill.amount === 'string' && !['HALF', 'FULL', '-HALF', '-FULL'].includes(bill.amount.replace(/[{}]/g, ''))) {
+        if (
+          typeof bill.amount === 'string' &&
+          !['HALF', 'FULL', '-HALF', '-FULL'].includes(bill.amount.replace(/[{}]/g, ''))
+        ) {
           issues.push({
             severity: 'warning',
             category: 'data_compatibility',
             description: `Bill has unsupported amount format: ${bill.amount}`,
             path: `accounts.${account.id}.bills.${bill.id}`,
             suggestedFix: 'Convert string amounts to numeric values',
-            autoFixable: true
+            autoFixable: true,
           });
         }
       }
@@ -309,7 +316,7 @@ export class MigrationManager {
             category: 'data_compatibility',
             description: 'Interest missing rate information',
             path: `accounts.${account.id}.interests.${interest.id}`,
-            autoFixable: false
+            autoFixable: false,
           });
         }
       }
@@ -326,35 +333,39 @@ export class MigrationManager {
 
     try {
       // Run a small benchmark to validate performance
-      const testCases = [{
-        id: 'validation_test',
-        description: 'Migration validation test',
-        accountsAndTransfers,
-        yearRange: 1
-      }];
+      const testCases = [
+        {
+          id: 'validation_test',
+          description: 'Migration validation test',
+          accountsAndTransfers,
+          yearRange: 1,
+        },
+      ];
 
       const results = await this.benchmarkFramework.runBenchmarkSuite(testCases);
-      
+
       if (results.length > 0) {
         const result = results[0];
-        
+
         // Check if performance is acceptable
-        if (result.summary.avgExecutionTime > 10000) { // 10 seconds
+        if (result.summary.avgExecutionTime > 10000) {
+          // 10 seconds
           issues.push({
             severity: 'warning',
             category: 'performance',
             description: `Performance may be slower than expected: ${result.summary.avgExecutionTime.toFixed(0)}ms`,
-            autoFixable: false
+            autoFixable: false,
           });
         }
 
         // Check memory usage
-        if (result.summary.avgMemoryUsage > 100 * 1024 * 1024) { // 100MB
+        if (result.summary.avgMemoryUsage > 100 * 1024 * 1024) {
+          // 100MB
           issues.push({
             severity: 'warning',
             category: 'performance',
             description: `High memory usage detected: ${(result.summary.avgMemoryUsage / 1024 / 1024).toFixed(0)}MB`,
-            autoFixable: false
+            autoFixable: false,
           });
         }
       }
@@ -363,7 +374,7 @@ export class MigrationManager {
         severity: 'error',
         category: 'performance',
         description: `Performance validation failed: ${error}`,
-        autoFixable: false
+        autoFixable: false,
       });
     }
 
@@ -378,24 +389,26 @@ export class MigrationManager {
 
     try {
       // Run comparison tests to validate functionality
-      const testCases = [{
-        id: 'functionality_test',
-        description: 'Functionality validation',
-        accountsAndTransfers,
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
-        simulation: 'Default'
-      }];
+      const testCases = [
+        {
+          id: 'functionality_test',
+          description: 'Functionality validation',
+          accountsAndTransfers,
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+          simulation: 'Default',
+        },
+      ];
 
       const results = await this.comparisonFramework.runComparisonTestSuite(testCases);
-      
+
       for (const result of results) {
         if (!result.outputsMatch) {
           issues.push({
             severity: 'error',
             category: 'functionality',
             description: `Output mismatch detected in test: ${result.testCaseId}`,
-            autoFixable: false
+            autoFixable: false,
           });
         }
       }
@@ -405,7 +418,7 @@ export class MigrationManager {
         severity: 'warning',
         category: 'functionality',
         description: `Functionality validation skipped: ${error}`,
-        autoFixable: false
+        autoFixable: false,
       });
     }
 
@@ -425,7 +438,7 @@ export class MigrationManager {
         category: 'configuration',
         description: 'Invalid rollout percentage',
         suggestedFix: 'Set rollout percentage between 0 and 100',
-        autoFixable: true
+        autoFixable: true,
       });
     }
 
@@ -436,7 +449,7 @@ export class MigrationManager {
         category: 'configuration',
         description: 'Error rate threshold too low',
         suggestedFix: 'Set error rate threshold above 0',
-        autoFixable: true
+        autoFixable: true,
       });
     }
 
@@ -446,17 +459,19 @@ export class MigrationManager {
   /**
    * Estimates performance improvement
    */
-  private async estimatePerformanceImprovement(accountsAndTransfers: AccountsAndTransfers): Promise<MigrationValidation['estimatedImprovement']> {
+  private async estimatePerformanceImprovement(
+    accountsAndTransfers: AccountsAndTransfers,
+  ): Promise<MigrationValidation['estimatedImprovement']> {
     // Run a quick benchmark to estimate improvement
     const eventCount = this.estimateEventCount(accountsAndTransfers);
-    
+
     // Estimate based on event count and known performance characteristics
     const speedupFactor = Math.min(100, Math.max(2, eventCount / 100));
     const memoryReduction = 0.3; // Estimate 30% memory reduction
 
     return {
       speedupFactor,
-      memoryReduction
+      memoryReduction,
     };
   }
 
@@ -465,13 +480,13 @@ export class MigrationManager {
    */
   private estimateEventCount(accountsAndTransfers: AccountsAndTransfers): number {
     let eventCount = 0;
-    
+
     for (const account of accountsAndTransfers.accounts) {
       eventCount += account.activity?.length || 0;
       eventCount += (account.bills?.length || 0) * 12; // Estimate monthly bills
       eventCount += account.interests?.length || 0;
     }
-    
+
     return eventCount;
   }
 
@@ -481,8 +496,8 @@ export class MigrationManager {
   private generateRecommendations(issues: ValidationIssue[]): string[] {
     const recommendations: string[] = [];
 
-    const errorCount = issues.filter(i => i.severity === 'error').length;
-    const warningCount = issues.filter(i => i.severity === 'warning').length;
+    const errorCount = issues.filter((i) => i.severity === 'error').length;
+    const warningCount = issues.filter((i) => i.severity === 'warning').length;
 
     if (errorCount > 0) {
       recommendations.push('Fix all error-level issues before proceeding with migration');
@@ -492,12 +507,12 @@ export class MigrationManager {
       recommendations.push('Consider addressing warning-level issues to improve migration confidence');
     }
 
-    const autoFixableIssues = issues.filter(i => i.autoFixable);
+    const autoFixableIssues = issues.filter((i) => i.autoFixable);
     if (autoFixableIssues.length > 0) {
       recommendations.push(`${autoFixableIssues.length} issues can be automatically fixed`);
     }
 
-    if (issues.some(i => i.category === 'performance')) {
+    if (issues.some((i) => i.category === 'performance')) {
       recommendations.push('Consider performance optimization before migration');
     }
 
@@ -512,7 +527,7 @@ export class MigrationManager {
 
     // Enable new system globally
     this.strategy.featureFlags.enableNewSystem = true;
-    
+
     this.updateProgress('rollout', 50, 'New system enabled globally');
 
     // Monitor for issues
@@ -530,12 +545,12 @@ export class MigrationManager {
 
     for (let step = 1; step <= steps; step++) {
       const currentPercentage = stepSize * step;
-      
+
       this.updateProgress('rollout', (step / steps) * 100, `Rolling out to ${currentPercentage.toFixed(1)}%`);
 
       // Update rollout percentage
       // This would be implemented in the integration layer
-      
+
       // Monitor this step
       await this.monitorMigration(2000);
 
@@ -618,8 +633,8 @@ export class MigrationManager {
    * Executes rollback to legacy system
    */
   private async executeRollback(): Promise<void> {
-    console.log('Executing rollback to legacy system');
-    
+    log('Executing rollback to legacy system');
+
     this.updateProgress('rolled_back', 0, 'Starting rollback');
 
     // Disable new system
@@ -632,13 +647,13 @@ export class MigrationManager {
    * Handles migration failure
    */
   private async handleMigrationFailure(error: any): Promise<void> {
-    console.error('Migration failed:', error);
-    
+    err('Migration failed:', error);
+
     this.progress.issues.push({
       severity: 'error',
       category: 'functionality',
       description: `Migration failed: ${error.message}`,
-      autoFixable: false
+      autoFixable: false,
     });
 
     if (this.strategy.rollbackCriteria.autoRollback) {
@@ -663,8 +678,8 @@ export class MigrationManager {
         avgNewSystemTime: 0,
         avgLegacyTime: 0,
         errorCounts: { newSystem: 0, legacy: 0 },
-        memoryUsage: { newSystem: 0, legacy: 0 }
-      }
+        memoryUsage: { newSystem: 0, legacy: 0 },
+      },
     };
   }
 
@@ -675,8 +690,8 @@ export class MigrationManager {
     this.progress.phase = phase;
     this.progress.percentage = percentage;
     this.progress.currentStep = step;
-    
-    console.log(`Migration Progress: ${phase} - ${percentage}% - ${step}`);
+
+    log(`Migration Progress: ${phase} - ${percentage}% - ${step}`);
   }
 
   /**
@@ -706,14 +721,14 @@ export function createDefaultMigrationStrategy(): MigrationStrategy {
       maxPerformanceDegradation: 0.2, // 20%
       maxMemoryIncrease: 0.5, // 50%
       autoRollback: true,
-      rollbackTimeout: 30 // minutes
+      rollbackTimeout: 30, // minutes
     },
     featureFlags: {
       enableNewSystem: false,
       enableComparison: true,
       enableCaching: true,
       enableParallelProcessing: true,
-      enableFallback: true
+      enableFallback: true,
     },
     monitoring: {
       metricsInterval: 60000, // 1 minute
@@ -721,9 +736,10 @@ export function createDefaultMigrationStrategy(): MigrationStrategy {
       alertThresholds: {
         executionTime: 30000, // 30 seconds
         errorRate: 0.01, // 1%
-        memoryUsage: 500 * 1024 * 1024 // 500MB
+        memoryUsage: 500 * 1024 * 1024, // 500MB
       },
-      retentionPeriod: 30 // days
-    }
+      retentionPeriod: 30, // days
+    },
   };
 }
+

@@ -1,6 +1,6 @@
 /**
  * Hybrid caching system for optimized financial calculations
- * 
+ *
  * This module implements both in-memory and disk-based caching to dramatically
  * improve performance for repeated calculations and enable fast incremental updates.
  */
@@ -9,6 +9,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import { CacheEntry, BalanceSnapshot, CalculationSegment, CalculationConfig } from './types';
+import { warn } from './logger';
 
 /**
  * Cache manager with hybrid memory/disk storage
@@ -24,7 +25,7 @@ export class CacheManager {
     this.config = config;
     this.diskCacheDir = config.diskCacheDir;
     this.maxMemorySizeMB = config.maxMemoryCacheMB;
-    
+
     // Ensure disk cache directory exists
     this.initializeDiskCache();
   }
@@ -36,32 +37,37 @@ export class CacheManager {
     try {
       await fs.mkdir(this.diskCacheDir, { recursive: true });
     } catch (error) {
-      console.warn(`Failed to create disk cache directory: ${error}`);
+      warn(`Failed to create disk cache directory: ${error}`);
     }
   }
 
   /**
    * Stores a value in the cache
    */
-  async set<T>(key: string, value: T, options: {
-    expiresAt?: Date;
-    forceDisk?: boolean;
-    size?: number;
-  } = {}): Promise<void> {
+  async set<T>(
+    key: string,
+    value: T,
+    options: {
+      expiresAt?: Date;
+      forceDisk?: boolean;
+      size?: number;
+    } = {},
+  ): Promise<void> {
     const size = options.size || this.estimateSize(value);
     const entry: CacheEntry<T> = {
       data: value,
       timestamp: new Date(),
       inputHash: this.hashObject(value),
       expiresAt: options.expiresAt || null,
-      size
+      size,
     };
 
     // Decide whether to store in memory or disk
-    const shouldStoreDisk = options.forceDisk || 
-                           !this.config.useDiskCache === false ||
-                           (size > 10 * 1024 * 1024) || // > 10MB
-                           (this.currentMemorySizeMB + size / (1024 * 1024) > this.maxMemorySizeMB);
+    const shouldStoreDisk =
+      options.forceDisk ||
+      !this.config.useDiskCache === false ||
+      size > 10 * 1024 * 1024 || // > 10MB
+      this.currentMemorySizeMB + size / (1024 * 1024) > this.maxMemorySizeMB;
 
     if (shouldStoreDisk && this.config.useDiskCache) {
       await this.setDisk(key, entry);
@@ -117,7 +123,7 @@ export class CacheManager {
       try {
         const diskPath = this.getDiskPath(key);
         await fs.access(diskPath);
-        
+
         const diskEntry = await this.getDisk(key);
         if (diskEntry && !this.isExpired(diskEntry)) {
           return true;
@@ -159,11 +165,7 @@ export class CacheManager {
     if (this.config.useDiskCache) {
       try {
         const files = await fs.readdir(this.diskCacheDir);
-        await Promise.all(
-          files.map(file => 
-            fs.unlink(path.join(this.diskCacheDir, file)).catch(() => {})
-          )
-        );
+        await Promise.all(files.map((file) => fs.unlink(path.join(this.diskCacheDir, file)).catch(() => {})));
       } catch {
         // Directory might not exist or be empty
       }
@@ -175,9 +177,9 @@ export class CacheManager {
    */
   async setBalanceSnapshot(date: Date, snapshot: BalanceSnapshot): Promise<string> {
     const key = `balance_snapshot_${date.getTime()}`;
-    await this.set(key, snapshot, { 
+    await this.set(key, snapshot, {
       forceDisk: true, // Always store snapshots on disk for persistence
-      size: this.estimateSnapshotSize(snapshot)
+      size: this.estimateSnapshotSize(snapshot),
     });
     return key;
   }
@@ -196,15 +198,14 @@ export class CacheManager {
   async findClosestSnapshot(date: Date): Promise<{ snapshot: BalanceSnapshot; key: string } | null> {
     const targetTime = date.getTime();
     const prefix = 'balance_snapshot_';
-    
+
     // Check memory cache first
     let closestEntry: { key: string; snapshot: BalanceSnapshot; time: number } | null = null;
-    
+
     for (const [key, entry] of this.memoryCache.entries()) {
       if (key && typeof key === 'string' && key.startsWith(prefix) && !this.isExpired(entry)) {
         const snapshotTime = parseInt(key.substring(prefix.length));
-        if (snapshotTime <= targetTime && 
-            (!closestEntry || snapshotTime > closestEntry.time)) {
+        if (snapshotTime <= targetTime && (!closestEntry || snapshotTime > closestEntry.time)) {
           closestEntry = { key, snapshot: entry.data, time: snapshotTime };
         }
       }
@@ -214,12 +215,13 @@ export class CacheManager {
     if (this.config.useDiskCache) {
       try {
         const files = await fs.readdir(this.diskCacheDir);
-        const snapshotFiles = files.filter(file => file && typeof file === 'string' && file.startsWith(prefix) && file.endsWith('.json'));
-        
+        const snapshotFiles = files.filter(
+          (file) => file && typeof file === 'string' && file.startsWith(prefix) && file.endsWith('.json'),
+        );
+
         for (const file of snapshotFiles) {
           const snapshotTime = parseInt(file.substring(prefix.length, file.length - 5));
-          if (snapshotTime <= targetTime && 
-              (!closestEntry || snapshotTime > closestEntry.time)) {
+          if (snapshotTime <= targetTime && (!closestEntry || snapshotTime > closestEntry.time)) {
             const snapshot = await this.getDisk<BalanceSnapshot>(file.substring(0, file.length - 5));
             if (snapshot && !this.isExpired({ ...snapshot, timestamp: new Date(snapshotTime) } as any)) {
               closestEntry = { key: file.substring(0, file.length - 5), snapshot: snapshot.data, time: snapshotTime };
@@ -240,7 +242,7 @@ export class CacheManager {
   async setSegmentResult(segment: CalculationSegment, result: any): Promise<void> {
     const key = `segment_${segment.id}_${segment.cacheKey}`;
     await this.set(key, result, {
-      size: this.estimateSize(result)
+      size: this.estimateSize(result),
     });
     segment.cached = true;
   }
@@ -258,7 +260,7 @@ export class CacheManager {
    */
   async invalidateByHash(hash: string): Promise<void> {
     const keysToDelete: string[] = [];
-    
+
     // Check memory cache
     for (const [key, entry] of this.memoryCache.entries()) {
       if (entry.inputHash === hash) {
@@ -287,7 +289,7 @@ export class CacheManager {
     return {
       memoryEntries: this.memoryCache.size,
       memorySizeMB: this.currentMemorySizeMB,
-      memoryUtilization: this.currentMemorySizeMB / this.maxMemorySizeMB
+      memoryUtilization: this.currentMemorySizeMB / this.maxMemorySizeMB,
     };
   }
 
@@ -352,7 +354,7 @@ export class CacheManager {
       const safeJson = this.safeStringify(entry);
       await fs.writeFile(diskPath, safeJson, 'utf8');
     } catch (error) {
-      console.warn(`Failed to write cache to disk: ${error}`);
+      warn(`Failed to write cache to disk: ${error}`);
     }
   }
 
@@ -392,7 +394,7 @@ export class CacheManager {
       const safeSerialized = this.safeStringify(value);
       return safeSerialized.length * 2; // Rough estimate: 2 bytes per character
     } catch (error) {
-      console.warn('[Cache] Error estimating size:', error instanceof Error ? error.message : String(error));
+      warn('[Cache] Error estimating size:', error instanceof Error ? error.message : String(error));
       return 1024; // Default 1KB if can't estimate
     }
   }
@@ -403,7 +405,7 @@ export class CacheManager {
     const indicesSize = Object.keys(snapshot.activityIndices).length * 16;
     const interestSize = Object.keys(snapshot.interestStates).length * 256; // Rough estimate for interest state
     const eventsSize = snapshot.processedEventIds.size * 32; // Rough estimate for event IDs
-    
+
     return baseSize + balanceSize + indicesSize + interestSize + eventsSize;
   }
 
@@ -411,15 +413,14 @@ export class CacheManager {
     try {
       // Use safe serialization for hashing to avoid toString errors
       const safeJson = this.safeStringify(obj);
-      return crypto.createHash('sha256')
-                   .update(safeJson)
-                   .digest('hex');
+      return crypto.createHash('sha256').update(safeJson).digest('hex');
     } catch (error) {
-      console.warn('[Cache] Error hashing object:', error instanceof Error ? error.message : String(error));
+      warn('[Cache] Error hashing object:', error instanceof Error ? error.message : String(error));
       // Fallback: create hash from object type and basic properties
-      return crypto.createHash('sha256')
-                   .update(`${typeof obj}_${Date.now()}`)
-                   .digest('hex');
+      return crypto
+        .createHash('sha256')
+        .update(`${typeof obj}_${Date.now()}`)
+        .digest('hex');
     }
   }
 
@@ -428,13 +429,13 @@ export class CacheManager {
    */
   private safeStringify(obj: any): string {
     const seen = new Set();
-    
+
     const replacer = (_key: string, value: any) => {
       // Skip functions and methods
       if (typeof value === 'function') {
         return '[Function]';
       }
-      
+
       // Handle circular references
       if (typeof value === 'object' && value !== null) {
         if (seen.has(value)) {
@@ -442,17 +443,17 @@ export class CacheManager {
         }
         seen.add(value);
       }
-      
+
       // Handle undefined (JSON.stringify normally omits these)
       if (value === undefined) {
         return '[Undefined]';
       }
-      
+
       // Handle Date objects
       if (value instanceof Date) {
         return value.toISOString();
       }
-      
+
       // For Account objects, preserve all important properties including consolidatedActivity
       if (value && typeof value === 'object' && value.constructor && value.constructor.name === 'Account') {
         return {
@@ -481,13 +482,13 @@ export class CacheManager {
           pushEnd: value.pushEnd,
           pushAccount: value.pushAccount,
           // Mark as serialized Account for reconstruction
-          __type: 'Account'
+          __type: 'Account',
         };
       }
-      
+
       return value;
     };
-    
+
     return JSON.stringify(obj, replacer);
   }
 
@@ -520,18 +521,18 @@ export class CacheManager {
       // Create an Account-like object with the cached properties
       // Note: We avoid dynamic import to keep the reviver function synchronous
       const account = Object.create(Object.prototype);
-      
+
       // Copy all the cached properties
       Object.assign(account, value);
-      
+
       // Remove the __type marker
       delete account.__type;
-      
+
       // Ensure consolidatedActivity is an array
       if (!Array.isArray(account.consolidatedActivity)) {
         account.consolidatedActivity = [];
       }
-      
+
       return account;
     }
 
@@ -542,8 +543,9 @@ export class CacheManager {
     if (this.currentMemorySizeMB <= this.maxMemorySizeMB) return;
 
     // Convert to array and sort by timestamp (LRU eviction)
-    const entries = Array.from(this.memoryCache.entries())
-      .sort((a, b) => a[1].timestamp.getTime() - b[1].timestamp.getTime());
+    const entries = Array.from(this.memoryCache.entries()).sort(
+      (a, b) => a[1].timestamp.getTime() - b[1].timestamp.getTime(),
+    );
 
     // Remove oldest entries until we're under the limit
     while (this.currentMemorySizeMB > this.maxMemorySizeMB && entries.length > 0) {
@@ -585,7 +587,7 @@ export function createCalculationKey(
   endDate: Date,
   simulation: string,
   monteCarlo: boolean,
-  dataHash: string
+  dataHash: string,
 ): string {
   const start = startDate ? startDate.getTime() : 'null';
   const parts = [
@@ -594,28 +596,18 @@ export function createCalculationKey(
     endDate.getTime(),
     simulation,
     monteCarlo.toString(),
-    dataHash.substring(0, 8) // First 8 chars of hash
+    dataHash.substring(0, 8), // First 8 chars of hash
   ];
-  
+
   return parts.join('_');
 }
 
 /**
  * Creates a cache key for an event
  */
-export function createEventKey(
-  eventType: string,
-  accountId: string,
-  date: Date,
-  additionalData?: string
-): string {
-  const parts = [
-    'event',
-    eventType,
-    accountId,
-    date.getTime().toString(),
-    additionalData || ''
-  ].filter(p => p);
-  
+export function createEventKey(eventType: string, accountId: string, date: Date, additionalData?: string): string {
+  const parts = ['event', eventType, accountId, date.getTime().toString(), additionalData || ''].filter((p) => p);
+
   return parts.join('_');
 }
+

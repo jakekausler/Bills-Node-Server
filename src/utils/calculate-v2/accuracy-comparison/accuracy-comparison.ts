@@ -103,7 +103,7 @@ async function runCalculateV2(
   initializeCache({
     diskCacheDir: './temp/calculate-v2-cache-comparison',
     maxMemoryCacheMB: 100,
-    enableDiskCache: true, // Re-enable caching after fixing serialization issues
+    enableDiskCache: false, // Disable caching to ensure fresh calculation for debugging
     cacheExpirationDays: 7,
     maxEventCount: 10000,
     segmentSize: 'month',

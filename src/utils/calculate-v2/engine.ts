@@ -27,6 +27,7 @@ import { Calculator } from './calculator';
 import { SmartPushPullProcessor } from './pushpull';
 import { startTiming, endTiming } from '../log';
 import crypto from 'crypto';
+import { err, log, warn } from './logger';
 
 dayjs.extend(utc);
 
@@ -102,7 +103,7 @@ export class CalculationEngine {
         try {
           await this.cacheResult(accountsAndTransfers, options, result);
         } catch (cacheError) {
-          console.warn(
+          warn(
             '[Engine] Failed to cache result:',
             cacheError instanceof Error ? cacheError.message : String(cacheError),
           );
@@ -223,13 +224,13 @@ export class CalculationEngine {
         try {
           const firstAccount = result.accounts[0];
         } catch (accountError) {
-          console.error('[Engine] Error accessing first account:', accountError);
+          err('[Engine] Error accessing first account:', accountError);
         }
       }
 
       return result;
     } catch (error) {
-      console.error('[Engine] Error creating result:', error);
+      err('[Engine] Error creating result:', error);
       throw error;
     }
   }
@@ -300,7 +301,7 @@ export class CalculationEngine {
 
       return segmentResult;
     } catch (error) {
-      console.error(`[Engine] Error processing segment events:`, error);
+      err(`[Engine] Error processing segment events:`, error);
       throw error;
     }
   }
@@ -324,7 +325,7 @@ export class CalculationEngine {
         this.processingState!.metrics.eventsProcessed++;
         segmentResult.processedEventIds.add(event.id);
       } catch (error) {
-        console.error(`[Engine] Error processing event ${event.id}:`, error);
+        err(`[Engine] Error processing event ${event.id}:`, error);
         this.processingState!.error = error as Error;
         throw error;
       }
@@ -388,7 +389,7 @@ export class CalculationEngine {
           );
           break;
         default:
-          console.warn(`Unknown event type: ${event.type}`);
+          warn(`Unknown event type: ${event.type}`);
       }
     } finally {
       endTiming(eventTiming);
@@ -632,4 +633,3 @@ export async function calculateAllActivity(
 
   return await engine.calculate(accountsAndTransfers, options);
 }
-

@@ -1,7 +1,7 @@
 /**
  * Core type definitions for the new event-based calculation engine
- * 
- * This module defines the fundamental data structures used throughout the 
+ *
+ * This module defines the fundamental data structures used throughout the
  * optimized calculation system, including events, snapshots, and processing state.
  */
 
@@ -59,7 +59,7 @@ export enum EventType {
   socialSecurity = 'social_security',
   tax = 'tax',
   rmd = 'rmd',
-  pushPullCheck = 'push_pull_check'
+  pushPullCheck = 'push_pull_check',
 }
 
 /**
@@ -342,3 +342,4 @@ export interface CalculationOptions {
   /** Custom configuration overrides */
   config: Partial<CalculationConfig>;
 }
+
