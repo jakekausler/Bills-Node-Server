@@ -13,8 +13,58 @@ The measure of how well this rewrite scores is based on accuracy and performance
 
 Development Notes:
 - Always run tests with npx tsx
+- Always run scripts from the root of the `calculate` folder
+
+## Accuracy Comparison Structure
+
+The `accuracy-comparison` folder contains three main scripts and associated data files for testing accuracy:
+
+### Scripts
+
+1. **`accuracy-comparison.ts`**
+   - Main accuracy comparison script that compares calculate-v2 results against original API responses
+   - Loads original responses, runs calculate-v2 for each scenario, and compares results
+   - Generates detailed comparison results and summary statistics
+   - Saves results to `comparison-results/` folder
+
+2. **`fetch-original-responses.ts`**
+   - Fetches original API responses from the running server for comparison testing
+   - Tests 5 scenarios: historical_to_current, current_to_near_future, recent_to_medium_term, extended_projection, far_future_projection
+   - Saves responses organized by scenario and a combined all-responses.json file
+
+3. **`analyze-extra-activities.ts`**
+   - Analyzes discrepancies between calculated and original results
+   - Focuses on identifying extra activities that appear in calculate-v2 but not in original API
+   - Provides detailed breakdown of differences for specific accounts (Kendall, Jake)
+
+### Data Folders
+
+1. **`original-responses/`**
+   - Contains API responses from the original system for comparison
+   - Files: `all-responses.json`, `all-responses-cleaned.json`, individual scenario files (e.g., `current_to_near_future.json`)
+   - Serves as ground truth for accuracy testing
+
+2. **`calculated-activities/`**
+   - Contains results from calculate-v2 system
+   - Currently has `current_to_near_future.json` with calculated activities for comparison
+
+3. **`comparison-results/`**
+   - Contains output from accuracy comparison tests
+   - `accuracy-comparison.json`: Detailed comparison results for each account/scenario
+   - `comparison-summary.json`: Summary statistics showing success rates, discrepancies, and performance by scenario
+
+### Test Scenarios
+
+The system tests 5 comprehensive scenarios covering different time ranges:
+- `historical_to_current`: 2024-01-01 to 2025-07-19
+- `current_to_near_future`: 2025-07-19 to 2025-08-19
+- `recent_to_medium_term`: 2025-06-19 to 2026-07-19
+- `extended_projection`: 2025-05-19 to 2035-07-19
+- `far_future_projection`: 2045-07-19 to 2075-07-19
 
 Memories:
 - As results improve, commit the new changes
 - create temporary test scripts in a "testing" folder
 - Make sure to put debug and testing scripts in the testing folders
+- Raw serialized activities contain a `from` field to represent the account a transfer is from. When instantiated as a class, this is mapped to a `fro` field
+- You should use jq or a script to read and analyze json files, rather than trying to grep through them
