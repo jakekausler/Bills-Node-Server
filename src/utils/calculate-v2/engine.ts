@@ -16,6 +16,17 @@ import {
   PerformanceMetrics,
   TimelineEvent,
   EventType,
+  ActivityEvent,
+  BillEvent,
+  InterestEvent,
+  TransferEvent,
+  PushPullEvent,
+  PensionEvent,
+  SocialSecurityEvent,
+  TaxEvent,
+  RMDEvent,
+  SegmentResult,
+  InterestState,
 } from './types';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { Timeline } from './timeline';
@@ -27,7 +38,8 @@ import { Calculator } from './calculator';
 import { SmartPushPullProcessor } from './pushpull';
 import { startTiming, endTiming } from '../log';
 import crypto from 'crypto';
-import { err, log, warn } from './logger';
+import { debug, err, log, warn } from './logger';
+import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 
 dayjs.extend(utc);
 
@@ -55,6 +67,8 @@ export class CalculationEngine {
    */
   async calculate(accountsAndTransfers: AccountsAndTransfers, options: CalculationOptions): Promise<CalculationResult> {
     const startTime = new Date();
+
+    debug('Test logging', { prop1: 'value1', prop2: 'value2' });
 
     try {
       // Initialize performance metrics
@@ -279,12 +293,12 @@ export class CalculationEngine {
     events: TimelineEvent[],
     accountsAndTransfers: AccountsAndTransfers,
     options: CalculationOptions,
-  ): Promise<any> {
+  ): Promise<SegmentResult> {
     try {
       const segmentResult = {
         balanceChanges: new Map<string, number>(),
-        activitiesAdded: new Map<string, any[]>(),
-        interestStateChanges: new Map<string, any>(),
+        activitiesAdded: new Map<string, ConsolidatedActivity[]>(),
+        interestStateChanges: new Map<string, InterestState>(),
         processedEventIds: new Set<string>(),
       };
 
@@ -313,7 +327,7 @@ export class CalculationEngine {
     events: TimelineEvent[],
     accountsAndTransfers: AccountsAndTransfers,
     options: CalculationOptions,
-    segmentResult: any,
+    segmentResult: SegmentResult,
   ): Promise<void> {
     // Sort events by priority
     const sortedEvents = [...events].sort((a, b) => a.priority - b.priority);
@@ -339,7 +353,7 @@ export class CalculationEngine {
     event: TimelineEvent,
     accountsAndTransfers: AccountsAndTransfers,
     options: CalculationOptions,
-    segmentResult: any,
+    segmentResult: SegmentResult,
   ): Promise<void> {
     if (!this.calculator) {
       throw new Error('Calculator not initialized');
@@ -351,39 +365,37 @@ export class CalculationEngine {
     try {
       switch (event.type) {
         case EventType.activity:
-          await this.calculator.processActivityEvent(event as any, segmentResult);
+          await this.calculator.processActivityEvent(event as ActivityEvent, segmentResult);
           break;
         case EventType.bill:
-          await this.calculator.processBillEvent(event as any, segmentResult);
+          await this.calculator.processBillEvent(event as BillEvent, segmentResult);
           break;
         case EventType.interest:
-          await this.calculator.processInterestEvent(event as any, segmentResult);
+          await this.calculator.processInterestEvent(event as InterestEvent, segmentResult);
           break;
         case EventType.transfer:
-          await this.calculator.processTransferEvent(event as any, segmentResult);
+          await this.calculator.processTransferEvent(event as TransferEvent, segmentResult);
           break;
         case EventType.pension:
-          await this.calculator.processPensionEvent(event as any, segmentResult);
+          await this.calculator.processPensionEvent(event as PensionEvent, segmentResult);
           break;
         case EventType.socialSecurity:
-          await this.calculator.processSocialSecurityEvent(event as any, segmentResult);
+          await this.calculator.processSocialSecurityEvent(event as SocialSecurityEvent, segmentResult);
           break;
         case EventType.tax:
-          await this.calculator.processTaxEvent(event as any, segmentResult);
+          await this.calculator.processTaxEvent(event as TaxEvent, segmentResult);
           break;
         case EventType.rmd:
-          await this.calculator.processRMDEvent(event as any, segmentResult);
+          await this.calculator.processRMDEvent(event as RMDEvent, segmentResult);
           break;
         case EventType.pushPullCheck:
           await this.calculator.processPushPullEvent(
-            event as any,
+            event as PushPullEvent,
             accountsAndTransfers,
             {
               ...options,
-              pushPullProcessor: this.pushPullProcessor,
-              balanceTracker: this.balanceTracker,
-              simulation: options.simulation || 'Default',
-              monteCarlo: options.monteCarlo || false,
+              pushPullProcessor: this.pushPullProcessor!,
+              balanceTracker: this.balanceTracker!,
             },
             segmentResult,
           );

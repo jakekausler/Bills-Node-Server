@@ -46,6 +46,12 @@ function getCallerInfo(depth: number = 2): { fileName: string; functionName: str
   };
 }
 
+function formatExtraInformation(extraInformation: Record<string, any>): string {
+  return Object.entries(extraInformation)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(' | ');
+}
+
 /**
  * Main logging function
  * @param level Log level
@@ -90,22 +96,23 @@ function logMessage(level: LogLevel, ...args: any[]): void {
 
   // Format output
   const parts: string[] = [];
-  parts.push(`[${logEntry.fileName}:${logEntry.functionName}]`);
 
   if (logEntry.scenario) {
-    parts.push(`[${logEntry.scenario}]`);
+    parts.push(`${logEntry.scenario}`);
   }
 
-  parts.push(`[${logEntry.level}]`);
+  parts.push(`${logEntry.level}`);
 
-  // Add extra information as JSON before the message
-  if (extraInformation && Object.keys(extraInformation).length > 0) {
-    parts.push(JSON.stringify(extraInformation));
-  }
+  parts.push(`${logEntry.fileName}:${logEntry.functionName}`);
 
   parts.push(logEntry.message);
 
-  const fullOutput = parts.join(' ');
+  // Add extra information as JSON after the message
+  if (extraInformation && Object.keys(extraInformation).length > 0) {
+    parts.push(formatExtraInformation(extraInformation));
+  }
+
+  const fullOutput = parts.join(' | ');
 
   // Output to appropriate console method based on level
   switch (level) {

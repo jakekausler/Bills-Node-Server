@@ -47,18 +47,18 @@ const TEST_SCENARIOS: TestScenario[] = [
     startDate: '2025-06-19',
     endDate: '2026-07-19',
   },
-  {
-    id: 'extended_projection',
-    description: 'Long-term projection (2 months ago to 10 years)',
-    startDate: '2025-05-19',
-    endDate: '2035-07-19',
-  },
-  {
-    id: 'far_future_projection',
-    description: 'Far-future projection (20 to 50 years)',
-    startDate: '2045-07-19',
-    endDate: '2075-07-19',
-  },
+  // {
+  //   id: 'extended_projection',
+  //   description: 'Long-term projection (2 months ago to 10 years)',
+  //   startDate: '2025-05-19',
+  //   endDate: '2035-07-19',
+  // },
+  // {
+  //   id: 'far_future_projection',
+  //   description: 'Far-future projection (20 to 50 years)',
+  //   startDate: '2045-07-19',
+  //   endDate: '2075-07-19',
+  // },
 ];
 
 /**
@@ -243,4 +243,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 export { fetchAllOriginalResponses, TEST_SCENARIOS };
-

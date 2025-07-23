@@ -8,14 +8,27 @@
 
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { ActivityEvent, BillEvent, InterestEvent, TransferEvent, PushPullEvent, CalculationConfig } from './types';
+import {
+  ActivityEvent,
+  BillEvent,
+  InterestEvent,
+  TransferEvent,
+  PushPullEvent,
+  CalculationConfig,
+  PushPullOptions,
+  SegmentResult,
+  PensionEvent,
+  SocialSecurityEvent,
+  TaxEvent,
+  RMDEvent,
+} from './types';
 import { CacheManager } from './cache';
 import { DependencyGraph } from './dependency';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { formatDate } from '../date/date';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { loadVariable } from '../simulation/variable';
-import { err, log, warn } from './logger';
+import { debug, err, log, warn } from './logger';
 
 dayjs.extend(utc);
 
@@ -38,7 +51,7 @@ export class Calculator {
   /**
    * Processes an activity event (manual transaction)
    */
-  async processActivityEvent(event: ActivityEvent, segmentResult: any): Promise<void> {
+  processActivityEvent(event: ActivityEvent, segmentResult: SegmentResult): void {
     try {
       const activity = event.activity;
       const accountId = event.accountId;
@@ -54,11 +67,18 @@ export class Calculator {
       if (!segmentResult.activitiesAdded.has(accountId)) {
         segmentResult.activitiesAdded.set(accountId, []);
       }
-      segmentResult.activitiesAdded.get(accountId).push(activity);
+      segmentResult.activitiesAdded.get(accountId)?.push(activity);
 
       // Update balance in segment result
       const balanceChange = activity.amount as number;
       const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+      debug('Activity Event', {
+        accountId,
+        date: formatDate(event.date),
+        balanceChange: balanceChange.toFixed(2),
+        currentChange: currentChange.toFixed(2),
+        newBalance: (currentChange + balanceChange).toFixed(2),
+      });
       segmentResult.balanceChanges.set(accountId, currentChange + balanceChange);
     } catch (error) {
       err(`[Calculator] Error processing activity event ${event.id}:`, error);
@@ -69,7 +89,7 @@ export class Calculator {
   /**
    * Processes a bill event (recurring payment/income)
    */
-  async processBillEvent(event: BillEvent, segmentResult: any): Promise<void> {
+  processBillEvent(event: BillEvent, segmentResult: SegmentResult): void {
     const bill = event.bill;
     const accountId = event.accountId;
     const amount = event.amount;
@@ -96,17 +116,24 @@ export class Calculator {
     if (!segmentResult.activitiesAdded.has(accountId)) {
       segmentResult.activitiesAdded.set(accountId, []);
     }
-    segmentResult.activitiesAdded.get(accountId).push(billActivity);
+    segmentResult.activitiesAdded.get(accountId)?.push(billActivity);
 
     // Update balance
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+    debug('Bill Event', {
+      accountId,
+      date: formatDate(event.date),
+      balanceChange: amount.toFixed(2),
+      currentChange: currentChange.toFixed(2),
+      newBalance: (currentChange + amount).toFixed(2),
+    });
     segmentResult.balanceChanges.set(accountId, currentChange + amount);
   }
 
   /**
    * Processes an interest event (compound interest application)
    */
-  async processInterestEvent(event: InterestEvent, segmentResult: any): Promise<void> {
+  processInterestEvent(event: InterestEvent, segmentResult: SegmentResult): void {
     const interest = event.interest;
     const accountId = event.accountId;
 
@@ -121,13 +148,13 @@ export class Calculator {
       return;
     }
 
-    log({
+    debug({
       accountId,
-      amount: interestAmount,
+      date: formatDate(event.date),
+      amount: interestAmount.toFixed(2),
       interestRate: event.rate,
       compounded: interest.compounded,
-      date: event.date,
-      usingBalance: currentBalance,
+      usingBalance: currentBalance.toFixed(2),
     });
 
     // Create consolidated activity for interest
@@ -152,11 +179,18 @@ export class Calculator {
     if (!segmentResult.activitiesAdded.has(accountId)) {
       segmentResult.activitiesAdded.set(accountId, []);
     }
-    segmentResult.activitiesAdded.get(accountId).push(interestActivity);
+    segmentResult.activitiesAdded.get(accountId)?.push(interestActivity);
 
     // Update balance
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + interestAmount);
+    debug('Interest Event', {
+      accountId,
+      date: formatDate(event.date),
+      balanceChange: interestAmount.toFixed(2),
+      currentChange: currentChange.toFixed(2),
+      newBalance: (currentChange + interestAmount).toFixed(2),
+    });
 
     // Track taxable interest if not tax-deferred
     if (!event.taxDeferred) {
@@ -167,7 +201,7 @@ export class Calculator {
   /**
    * Processes a transfer event (money movement between accounts)
    */
-  async processTransferEvent(event: TransferEvent, segmentResult: any): Promise<void> {
+  processTransferEvent(event: TransferEvent, segmentResult: SegmentResult): void {
     const transfer = event.transfer;
     const fromAccountId = event.fromAccountId;
     const toAccountId = event.toAccountId;
@@ -271,12 +305,23 @@ export class Calculator {
       segmentResult.activitiesAdded.set(toAccountId, []);
     }
 
-    segmentResult.activitiesAdded.get(fromAccountId).push(fromActivity);
-    segmentResult.activitiesAdded.get(toAccountId).push(toActivity);
+    segmentResult.activitiesAdded.get(fromAccountId)?.push(fromActivity);
+    segmentResult.activitiesAdded.get(toAccountId)?.push(toActivity);
 
     // Update balances
     const fromCurrentChange = segmentResult.balanceChanges.get(fromAccountId) || 0;
     const toCurrentChange = segmentResult.balanceChanges.get(toAccountId) || 0;
+    debug('Transfer Event', {
+      fromAccountId,
+      toAccountId,
+      date: formatDate(event.date),
+      fromBalanceChange: (-amount).toFixed(2),
+      toBalanceChange: amount.toFixed(2),
+      fromCurrentChange: fromCurrentChange.toFixed(2),
+      toCurrentChange: toCurrentChange.toFixed(2),
+      fromNewBalance: (fromCurrentChange - amount).toFixed(2),
+      toNewBalance: (toCurrentChange + amount).toFixed(2),
+    });
 
     segmentResult.balanceChanges.set(fromAccountId, fromCurrentChange - amount);
     segmentResult.balanceChanges.set(toAccountId, toCurrentChange + amount);
@@ -285,7 +330,7 @@ export class Calculator {
   /**
    * Processes a pension event
    */
-  async processPensionEvent(_event: any, _segmentResult: any): Promise<void> {
+  processPensionEvent(_event: PensionEvent, _segmentResult: SegmentResult): void {
     // TODO: Implement pension processing
     // This would integrate with the existing pension calculation logic
     log('Pension event processing not yet implemented');
@@ -294,7 +339,7 @@ export class Calculator {
   /**
    * Processes a social security event
    */
-  async processSocialSecurityEvent(_event: any, _segmentResult: any): Promise<void> {
+  processSocialSecurityEvent(_event: SocialSecurityEvent, _segmentResult: SegmentResult): void {
     // TODO: Implement social security processing
     // This would integrate with the existing social security calculation logic
     log('Social Security event processing not yet implemented');
@@ -303,7 +348,7 @@ export class Calculator {
   /**
    * Processes a tax event
    */
-  async processTaxEvent(_event: any, _segmentResult: any): Promise<void> {
+  processTaxEvent(_event: TaxEvent, _segmentResult: SegmentResult): void {
     // TODO: Implement tax processing
     // This would handle pull taxes, interest taxes, etc.
     log('Tax event processing not yet implemented');
@@ -312,7 +357,7 @@ export class Calculator {
   /**
    * Processes an RMD (Required Minimum Distribution) event
    */
-  async processRMDEvent(_event: any, _segmentResult: any): Promise<void> {
+  processRMDEvent(_event: RMDEvent, _segmentResult: SegmentResult): void {
     // TODO: Implement RMD processing
     // This would integrate with the existing RMD calculation logic
     log('RMD event processing not yet implemented');
@@ -324,8 +369,8 @@ export class Calculator {
   async processPushPullEvent(
     event: PushPullEvent,
     accountsAndTransfers: AccountsAndTransfers,
-    options: any,
-    segmentResult: any,
+    options: PushPullOptions,
+    segmentResult: SegmentResult,
   ): Promise<void> {
     // Get the SmartPushPullProcessor from the engine
     const pushPullProcessor = options.pushPullProcessor;
@@ -362,6 +407,13 @@ export class Calculator {
         // Apply balance changes
         for (const [accountId, change] of result.balanceChanges) {
           const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+          debug('Push/Pull Event', {
+            accountId,
+            date: formatDate(event.date),
+            balanceChange: change.toFixed(2),
+            currentChange: currentChange.toFixed(2),
+            newBalance: (currentChange + change).toFixed(2),
+          });
           segmentResult.balanceChanges.set(accountId, currentChange + change);
         }
 
@@ -384,7 +436,7 @@ export class Calculator {
   /**
    * Adds an activity to the segment result
    */
-  private addActivityToSegmentResult(activity: ConsolidatedActivity, segmentResult: any): void {
+  private addActivityToSegmentResult(activity: ConsolidatedActivity, segmentResult: SegmentResult): void {
     // Determine which account this activity belongs to based on the activity's from/to
     let _accountId = '';
 
@@ -406,7 +458,7 @@ export class Calculator {
           ...activity.serialize(),
           amount: -Math.abs(activityAmount),
         });
-        segmentResult.activitiesAdded.get(fromAccount.id).push(fromActivity);
+        segmentResult.activitiesAdded.get(fromAccount.id)?.push(fromActivity);
       }
 
       if (toAccount) {
@@ -418,7 +470,7 @@ export class Calculator {
           ...activity.serialize(),
           amount: Math.abs(activityAmount),
         });
-        segmentResult.activitiesAdded.get(toAccount.id).push(toActivity);
+        segmentResult.activitiesAdded.get(toAccount.id)?.push(toActivity);
       }
     } else {
       // For non-transfer activities, try to determine the account from context
@@ -430,7 +482,7 @@ export class Calculator {
   /**
    * Gets the current balance for an account including segment changes
    */
-  private getCurrentSegmentBalance(accountId: string, segmentResult: any): number {
+  private getCurrentSegmentBalance(accountId: string, segmentResult: SegmentResult): number {
     // Get the current balance from the balance tracker
     const currentBalance = this.balanceTracker.getAccountBalance(accountId);
 
@@ -478,7 +530,7 @@ export class Calculator {
         break;
       default:
         // Try to parse as number (e.g., "6 months" -> 2 periods per year)
-        const match = frequency.match(/(\d+)\s*(month|day|week|year)/);
+        const match = frequency.match(/(\d+)\s*(month|day|week|year)/) as RegExpMatchArray | null;
         if (match) {
           const amount = parseInt(match[1]);
           const unit = match[2];
@@ -513,13 +565,21 @@ export class Calculator {
   /**
    * Adds taxable interest for later tax calculation
    */
-  private addTaxableInterest(accountId: string, amount: number, segmentResult: any): void {
+  private addTaxableInterest(accountId: string, amount: number, segmentResult: SegmentResult): void {
     if (!segmentResult.interestStateChanges.has(accountId)) {
-      segmentResult.interestStateChanges.set(accountId, {});
+      segmentResult.interestStateChanges.set(accountId, {
+        currentInterest: null,
+        interestIndex: 0,
+        nextInterestDate: null,
+        accumulatedTaxableInterest: 0,
+      });
     }
 
     const stateChanges = segmentResult.interestStateChanges.get(accountId);
-    stateChanges.accumulatedTaxableInterest = (stateChanges.accumulatedTaxableInterest || 0) + amount;
+    if (!stateChanges) {
+      return;
+    }
+    stateChanges.accumulatedTaxableInterest = (stateChanges?.accumulatedTaxableInterest || 0) + amount;
   }
 
   /**
@@ -635,7 +695,7 @@ export class Calculator {
   /**
    * Validates a segment result for consistency
    */
-  validateSegmentResult(segmentResult: any): { valid: boolean; errors: string[] } {
+  validateSegmentResult(segmentResult: SegmentResult): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     // Check that balance changes are finite numbers
@@ -654,7 +714,7 @@ export class Calculator {
         if (!activity.name) {
           errors.push(`Activity missing name for account ${accountId}`);
         }
-        if (!isFinite(activity.amount)) {
+        if (!isFinite(activity.amount as number)) {
           errors.push(`Activity has invalid amount for account ${accountId}: ${activity.amount}`);
         }
       }
@@ -669,7 +729,7 @@ export class Calculator {
   /**
    * Gets the current balance of an account including changes made during the current segment
    */
-  private getCurrentAccountBalance(accountId: string, segmentResult: any): number {
+  private getCurrentAccountBalance(accountId: string, segmentResult: SegmentResult): number {
     // Get the account's starting balance from the balance tracker
     const startingBalance = this.balanceTracker?.getAccountBalance(accountId) || 0;
 

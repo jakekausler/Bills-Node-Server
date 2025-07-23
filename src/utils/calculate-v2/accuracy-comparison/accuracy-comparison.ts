@@ -241,6 +241,7 @@ export async function runAccuracyComparison(): Promise<void> {
         console.log('  🔧 Running calculate-v2...');
         const startTime = performance.now();
 
+        process.env.SCENARIO = scenario.id;
         const calculatedResults = await runCalculateV2(accountsAndTransfers, scenario.startDate, scenario.endDate);
 
         const endTime = performance.now();
@@ -438,7 +439,7 @@ function generateComparisonSummary(results: ComparisonResult[]): ComparisonSumma
     const avgActivityCountDiff =
       scenarioResults.length > 0
         ? scenarioResults.reduce((sum, r) => sum + Math.abs(r.differences.activityCountDiff), 0) /
-          scenarioResults.length
+        scenarioResults.length
         : 0;
 
     return {

@@ -1553,7 +1553,7 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": 145.305025,
+        "amount": 135.7818,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2025-08-01T00:00:00.000Z",
@@ -1563,10 +1563,10 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 54458.025024999995
+        "balance": 54448.50179999999
       }
     ],
-    "balance": 54458.025024999995
+    "balance": 54448.50179999999
   },
   {
     "id": "7b825511-8ca3-4fa2-b10f-12a07530e792",

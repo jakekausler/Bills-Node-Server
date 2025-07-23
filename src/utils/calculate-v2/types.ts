@@ -46,6 +46,9 @@ export interface Transfer {
   dateVariable?: string | null;
 }
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
+import { SmartPushPullProcessor } from './pushpull';
+import { BalanceTracker } from './balance-tracker';
+import { AccountsAndTransfers } from '../../data/account/types';
 
 /**
  * Event types that can occur in the timeline
@@ -139,6 +142,42 @@ export interface PushPullEvent extends TimelineEvent {
   type: EventType.pushPullCheck;
   /** Type of check (monthly lookahead) */
   checkType: 'monthly';
+}
+
+/**
+ * Pension event (monthly pension income)
+ */
+export interface PensionEvent extends TimelineEvent {
+  type: EventType.pension;
+  /** The pension configuration */
+  // TODO: Add pension configuration
+}
+
+/**
+ * Social Security event (monthly social security income)
+ */
+export interface SocialSecurityEvent extends TimelineEvent {
+  type: EventType.socialSecurity;
+  /** The social security configuration */
+  // TODO: Add social security configuration
+}
+
+/**
+ * Tax event (monthly tax income)
+ */
+export interface TaxEvent extends TimelineEvent {
+  type: EventType.tax;
+  /** The tax configuration */
+  // TODO: Add tax configuration
+}
+
+/**
+ * RMD event (monthly required minimum distribution)
+ */
+export interface RMDEvent extends TimelineEvent {
+  type: EventType.rmd;
+  /** The RMD configuration */
+  // TODO: Add RMD configuration
 }
 
 /**
@@ -343,3 +382,42 @@ export interface CalculationOptions {
   config: Partial<CalculationConfig>;
 }
 
+/**
+ * Options for push/pull processing
+ */
+export interface PushPullOptions extends CalculationOptions {
+  /** Push/pull processor */
+  pushPullProcessor: SmartPushPullProcessor;
+  /** Balance tracker */
+  balanceTracker: BalanceTracker;
+}
+
+/**
+ * Tax implication for push/pull
+ */
+export interface TaxImplication {
+  accountId: string;
+  type: 'withdrawal' | 'earlyWithdrawal';
+  amount: number;
+  taxRate: number;
+  penaltyRate: number;
+  dueDate: Date;
+}
+
+/**
+ * Results of a calculation segment
+ */
+export interface SegmentResult {
+  /** Balance changes for each account */
+  balanceChanges: Map<string, number>;
+  /** Activities added to the segment */
+  activitiesAdded: Map<string, ConsolidatedActivity[]>;
+  /** Interest state changes for each account */
+  interestStateChanges: Map<string, InterestState>;
+  /** Processed event IDs */
+  processedEventIds: Set<string>;
+  /** Tax implications */
+  taxImplications?: TaxImplication[];
+  /** Accounts and Transfers */
+  accountsAndTransfers?: AccountsAndTransfers;
+}

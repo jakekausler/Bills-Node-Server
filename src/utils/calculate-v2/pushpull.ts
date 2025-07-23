@@ -1,6 +1,6 @@
 /**
  * Smart push/pull optimization system for optimized financial calculations
- * 
+ *
  * This module implements the most complex optimization - replacing expensive
  * deep copying for lookahead calculations with smart predictive modeling
  * and efficient state snapshots to handle push/pull balance management.
@@ -10,12 +10,14 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { Account } from '../../data/account/account';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
-import { formatDate, isBefore, isAfter } from '../date/date';
+import { formatDate, isBefore, isAfter, isAfterOrSame } from '../date/date';
 import { nextDate } from '../calculate/helpers';
 import { loadVariable } from '../simulation/variable';
 import { BalanceTracker } from './balance-tracker';
 import { CacheManager } from './cache';
 import { AccountsAndTransfers } from '../../data/account/types';
+import { TaxImplication } from './types';
+import { debug } from './logger';
 
 dayjs.extend(utc);
 
@@ -101,18 +103,6 @@ interface PushPullExecutionResult {
 }
 
 /**
- * Tax implication for push/pull
- */
-interface TaxImplication {
-  accountId: string;
-  type: 'withdrawal' | 'earlyWithdrawal';
-  amount: number;
-  taxRate: number;
-  penaltyRate: number;
-  dueDate: Date;
-}
-
-/**
  * Smart push/pull processor that eliminates expensive deep copying
  */
 export class SmartPushPullProcessor {
@@ -133,7 +123,7 @@ export class SmartPushPullProcessor {
 
     // Find accounts that need push/pull management
     const managedAccounts = this.findManagedAccounts(accountsAndTransfers.accounts);
-    
+
     if (managedAccounts.length === 0) {
       return this.createEmptyResult(checkDate);
     }
@@ -146,7 +136,7 @@ export class SmartPushPullProcessor {
         accountsAndTransfers,
         balanceTracker,
         checkDate,
-        simulation
+        simulation,
       );
       executionResults.push(accountResult);
     }
@@ -163,7 +153,7 @@ export class SmartPushPullProcessor {
     accountsAndTransfers: AccountsAndTransfers,
     balanceTracker: BalanceTracker,
     checkDate: Date,
-    simulation: string
+    simulation: string,
   ): Promise<PushPullExecutionResult> {
     // Check if push/pull is active for this account
     if (!this.isPushPullActive(account, checkDate)) {
@@ -176,7 +166,7 @@ export class SmartPushPullProcessor {
       accountsAndTransfers,
       balanceTracker,
       checkDate,
-      simulation
+      simulation,
     );
 
     // Make push/pull decision based on lookahead
@@ -184,13 +174,7 @@ export class SmartPushPullProcessor {
 
     // Execute the decision if needed
     if (decision.action !== 'none') {
-      return await this.executePushPullDecision(
-        decision,
-        account,
-        accountsAndTransfers,
-        balanceTracker,
-        checkDate
-      );
+      return await this.executePushPullDecision(decision, account, accountsAndTransfers, balanceTracker, checkDate);
     }
 
     return this.createEmptyResult(checkDate);
@@ -204,7 +188,7 @@ export class SmartPushPullProcessor {
     accountsAndTransfers: AccountsAndTransfers,
     balanceTracker: BalanceTracker,
     checkDate: Date,
-    simulation: string
+    simulation: string,
   ): Promise<LookaheadResult> {
     const cacheKey = this.generateLookaheadCacheKey(account, checkDate, simulation);
     const cached = this.patternCache.get(cacheKey);
@@ -214,7 +198,7 @@ export class SmartPushPullProcessor {
 
     // Get current balance from balance tracker
     const currentBalance = balanceTracker.getAccountBalance(account.id);
-    
+
     // Use event-based projection instead of deep copying
     const monthEnd = dayjs.utc(checkDate).endOf('month').toDate();
     const projections = await this.generateEventBasedProjections(
@@ -222,15 +206,15 @@ export class SmartPushPullProcessor {
       currentBalance,
       checkDate,
       monthEnd,
-      simulation
+      simulation,
     );
 
     // Analyze risk level
     const riskLevel = this.analyzeRiskLevel(projections, account);
-    
+
     // Find minimum balance and worst case
-    const minimumProjection = projections.reduce((min, proj) => 
-      proj.projectedBalance < min.projectedBalance ? proj : min
+    const minimumProjection = projections.reduce((min, proj) =>
+      proj.projectedBalance < min.projectedBalance ? proj : min,
     );
 
     // Generate recommendation
@@ -238,7 +222,7 @@ export class SmartPushPullProcessor {
       account,
       currentBalance,
       minimumProjection,
-      accountsAndTransfers.accounts
+      accountsAndTransfers.accounts,
     );
 
     const result: LookaheadResult = {
@@ -246,12 +230,12 @@ export class SmartPushPullProcessor {
       worstCaseDate: minimumProjection.date,
       projections,
       riskLevel,
-      recommendedAction
+      recommendedAction,
     };
 
     // Cache the result
     this.patternCache.set(cacheKey, result);
-    
+
     return result;
   }
 
@@ -263,27 +247,29 @@ export class SmartPushPullProcessor {
     currentBalance: number,
     startDate: Date,
     endDate: Date,
-    simulation: string
+    simulation: string,
   ): Promise<BalanceProjection[]> {
     const projections: BalanceProjection[] = [];
     let runningBalance = currentBalance;
-    
+
     // Get all scheduled events for this account in the date range
     const accountEvents = this.getScheduledEventsForAccount(account, startDate, endDate, simulation);
-    
+
     // Sort events by date
     accountEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
-    
+
     // Generate projections by processing events chronologically
     let currentDate = startDate;
     let eventIndex = 0;
-    
+
     while (currentDate <= endDate) {
       const dailyEvents: ProjectedEvent[] = [];
-      
+
       // Process all events for this date
-      while (eventIndex < accountEvents.length && 
-             accountEvents[eventIndex].date.toDateString() === currentDate.toDateString()) {
+      while (
+        eventIndex < accountEvents.length &&
+        accountEvents[eventIndex].date.toDateString() === currentDate.toDateString()
+      ) {
         const event = accountEvents[eventIndex];
         runningBalance += event.amount;
         dailyEvents.push(event);
@@ -295,7 +281,7 @@ export class SmartPushPullProcessor {
         projectedBalance: runningBalance,
         minimumBalance: account.minimumBalance || 0,
         events: dailyEvents,
-        confidence: this.calculateProjectionConfidence(dailyEvents)
+        confidence: this.calculateProjectionConfidence(dailyEvents),
       });
 
       currentDate = dayjs.utc(currentDate).add(1, 'day').toDate();
@@ -311,22 +297,22 @@ export class SmartPushPullProcessor {
     account: Account,
     startDate: Date,
     endDate: Date,
-    simulation: string
+    simulation: string,
   ): ProjectedEvent[] {
     const events: ProjectedEvent[] = [];
-    
+
     // Add bill events
     for (const bill of account.bills) {
       const billEvents = this.generateBillEventsForRange(bill, startDate, endDate, simulation);
       events.push(...billEvents);
     }
-    
+
     // Add interest events
     for (const interest of account.interests) {
       const interestEvents = this.generateInterestEventsForRange(interest, startDate, endDate);
       events.push(...interestEvents);
     }
-    
+
     // Add existing activities in the range
     for (const activity of account.activity) {
       if (activity.date >= startDate && activity.date <= endDate) {
@@ -335,100 +321,91 @@ export class SmartPushPullProcessor {
           type: 'activity',
           amount: activity.amount,
           description: activity.name,
-          certainty: 1.0 // Existing activities are certain
+          certainty: 1.0, // Existing activities are certain
         });
       }
     }
-    
+
     return events;
   }
 
   /**
    * Generates bill events for a date range
    */
-  private generateBillEventsForRange(
-    bill: any,
-    startDate: Date,
-    endDate: Date,
-    simulation: string
-  ): ProjectedEvent[] {
+  private generateBillEventsForRange(bill: any, startDate: Date, endDate: Date, simulation: string): ProjectedEvent[] {
     const events: ProjectedEvent[] = [];
-    
+
     if (!bill.startDate || !bill.periods || !bill.everyN) {
       return events;
     }
-    
+
     // Use the same logic as the timeline generator
     let currentDate = bill.startDate > startDate ? bill.startDate : startDate;
     let eventCount = 0;
-    
+
     while (currentDate <= endDate && (!bill.endDate || currentDate <= bill.endDate)) {
       const amount = this.calculateBillAmountForDate(bill, currentDate, simulation);
-      
+
       events.push({
         date: new Date(currentDate),
         type: 'bill',
         amount: amount,
         description: `Bill: ${bill.name}`,
-        certainty: bill.amountIsVariable ? 0.8 : 1.0
+        certainty: bill.amountIsVariable ? 0.8 : 1.0,
       });
-      
+
       // Calculate next occurrence using existing helper
       try {
         currentDate = this.calculateNextBillDate(currentDate, bill.periods, bill.everyN);
       } catch (error) {
         break; // Stop if date calculation fails
       }
-      
+
       eventCount++;
       if (eventCount > 1000) break; // Safety limit
     }
-    
+
     return events;
   }
 
   /**
    * Generates interest events for a date range
    */
-  private generateInterestEventsForRange(
-    interest: any,
-    startDate: Date,
-    endDate: Date
-  ): ProjectedEvent[] {
+  private generateInterestEventsForRange(interest: any, startDate: Date, endDate: Date): ProjectedEvent[] {
     const events: ProjectedEvent[] = [];
-    
+
     if (!interest.applicableDate || !interest.compounded) {
       return events;
     }
-    
+
     let currentDate = interest.applicableDate > startDate ? interest.applicableDate : startDate;
     let eventCount = 0;
-    
+
     while (currentDate <= endDate && (!interest.endDate || currentDate <= interest.endDate)) {
       // Simplified interest calculation for projection
       const estimatedAmount = this.estimateInterestAmount(interest, currentDate);
-      
+
       if (estimatedAmount > 0) {
         events.push({
           date: new Date(currentDate),
           type: 'interest',
           amount: estimatedAmount,
           description: `Interest: ${interest.name || 'Interest'}`,
-          certainty: 0.9
+          certainty: 0.9,
         });
       }
-      
+
       // Calculate next interest date
       try {
         currentDate = this.calculateNextInterestDate(currentDate, interest.compounded);
       } catch (error) {
         break;
       }
-      
+
       eventCount++;
       if (eventCount > 1000) break; // Safety limit
     }
-    
+
     return events;
   }
 
@@ -438,7 +415,7 @@ export class SmartPushPullProcessor {
   private makePushPullDecision(
     account: Account,
     lookaheadResult: LookaheadResult,
-    allAccounts: Account[]
+    allAccounts: Account[],
   ): PushPullDecision {
     const currentBalance = lookaheadResult.projections[0]?.projectedBalance || 0;
     const minimumBalance = account.minimumBalance || 0;
@@ -450,7 +427,7 @@ export class SmartPushPullProcessor {
     }
 
     // Check if push is beneficial
-    const excessAmount = currentBalance - minimumBalance - (minimumPullAmount * 4);
+    const excessAmount = currentBalance - minimumBalance - minimumPullAmount * 4;
     if (excessAmount > 0 && account.performsPushes) {
       return this.createPushDecision(account, excessAmount, allAccounts);
     }
@@ -462,7 +439,7 @@ export class SmartPushPullProcessor {
       toAccount: null,
       reason: 'No action needed - balances are within acceptable range',
       confidence: 0.9,
-      alternatives: []
+      alternatives: [],
     };
   }
 
@@ -472,14 +449,14 @@ export class SmartPushPullProcessor {
   private createPullDecision(
     account: Account,
     lookaheadResult: LookaheadResult,
-    allAccounts: Account[]
+    allAccounts: Account[],
   ): PushPullDecision {
     const shortfall = Math.abs(lookaheadResult.minimumBalance - (account.minimumBalance || 0));
     const pullAmount = shortfall + (account.minimumPullAmount || 0);
 
     // Find best pull source
     const pullableAccounts = this.findPullableAccounts(allAccounts, pullAmount);
-    
+
     if (pullableAccounts.length === 0) {
       return {
         action: 'none',
@@ -488,7 +465,7 @@ export class SmartPushPullProcessor {
         toAccount: null,
         reason: 'Pull needed but no suitable source accounts available',
         confidence: 0.1,
-        alternatives: []
+        alternatives: [],
       };
     }
 
@@ -501,20 +478,16 @@ export class SmartPushPullProcessor {
       toAccount: account,
       reason: `Pull needed to maintain minimum balance. Projected shortfall: ${(typeof shortfall === 'number' ? shortfall : 0).toFixed(2)}`,
       confidence: lookaheadResult.riskLevel === 'high' ? 0.95 : 0.8,
-      alternatives: this.generatePullAlternatives(pullableAccounts.slice(1), pullAmount)
+      alternatives: this.generatePullAlternatives(pullableAccounts.slice(1), pullAmount),
     };
   }
 
   /**
    * Creates a push decision
    */
-  private createPushDecision(
-    account: Account,
-    excessAmount: number,
-    allAccounts: Account[]
-  ): PushPullDecision {
-    const pushAccount = allAccounts.find(acc => acc.name === account.pushAccount);
-    
+  private createPushDecision(account: Account, excessAmount: number, allAccounts: Account[]): PushPullDecision {
+    const pushAccount = allAccounts.find((acc) => acc.name === account.pushAccount);
+
     if (!pushAccount) {
       return {
         action: 'none',
@@ -523,7 +496,7 @@ export class SmartPushPullProcessor {
         toAccount: null,
         reason: 'Push account not found',
         confidence: 0.1,
-        alternatives: []
+        alternatives: [],
       };
     }
 
@@ -534,7 +507,7 @@ export class SmartPushPullProcessor {
       toAccount: pushAccount,
       reason: `Push excess funds to optimize balance. Excess amount: ${(typeof excessAmount === 'number' ? excessAmount : 0).toFixed(2)}`,
       confidence: 0.85,
-      alternatives: []
+      alternatives: [],
     };
   }
 
@@ -546,7 +519,7 @@ export class SmartPushPullProcessor {
     account: Account,
     accountsAndTransfers: AccountsAndTransfers,
     balanceTracker: BalanceTracker,
-    checkDate: Date
+    checkDate: Date,
   ): Promise<PushPullExecutionResult> {
     const activities: ConsolidatedActivity[] = [];
     const balanceChanges = new Map<string, number>();
@@ -559,15 +532,14 @@ export class SmartPushPullProcessor {
         decision.toAccount,
         decision.amount,
         checkDate,
-        balanceTracker
+        balanceTracker,
       );
-      
+
       activities.push(...pullResult.activities);
       pullResult.balanceChanges.forEach((amount, accountId) => {
         balanceChanges.set(accountId, (balanceChanges.get(accountId) || 0) + amount);
       });
       taxImplications.push(...pullResult.taxImplications);
-
     } else if (decision.action === 'push' && decision.fromAccount && decision.toAccount) {
       // Execute push
       const pushResult = await this.executePush(
@@ -575,9 +547,9 @@ export class SmartPushPullProcessor {
         decision.toAccount,
         decision.amount,
         checkDate,
-        balanceTracker
+        balanceTracker,
       );
-      
+
       activities.push(...pushResult.activities);
       pushResult.balanceChanges.forEach((amount, accountId) => {
         balanceChanges.set(accountId, (balanceChanges.get(accountId) || 0) + amount);
@@ -586,11 +558,11 @@ export class SmartPushPullProcessor {
 
     return {
       executed: activities.length > 0,
-      pushActivities: activities.filter(act => act.name?.includes('Push')),
-      pullActivities: activities.filter(act => act.name?.includes('Pull')),
+      pushActivities: activities.filter((act) => act.name?.includes('Push')),
+      pullActivities: activities.filter((act) => act.name?.includes('Pull')),
       balanceChanges,
       taxImplications,
-      nextCheckDate: dayjs.utc(checkDate).add(1, 'month').toDate()
+      nextCheckDate: dayjs.utc(checkDate).add(1, 'month').toDate(),
     };
   }
 
@@ -602,7 +574,7 @@ export class SmartPushPullProcessor {
     toAccount: Account,
     amount: number,
     date: Date,
-    balanceTracker: BalanceTracker
+    balanceTracker: BalanceTracker,
   ): Promise<{
     activities: ConsolidatedActivity[];
     balanceChanges: Map<string, number>;
@@ -627,7 +599,7 @@ export class SmartPushPullProcessor {
       isTransfer: true,
       category: 'Ignore.Transfer',
       flag: true,
-      flagColor: 'violet'
+      flagColor: 'violet',
     });
 
     const pullToActivity = new ConsolidatedActivity({
@@ -644,11 +616,11 @@ export class SmartPushPullProcessor {
       isTransfer: true,
       category: 'Ignore.Transfer',
       flag: true,
-      flagColor: 'violet'
+      flagColor: 'violet',
     });
 
     activities.push(pullFromActivity, pullToActivity);
-    
+
     // Update balances
     balanceChanges.set(fromAccount.id, -amount);
     balanceChanges.set(toAccount.id, amount);
@@ -665,7 +637,7 @@ export class SmartPushPullProcessor {
           amount: amount,
           taxRate,
           penaltyRate,
-          dueDate: this.calculateTaxDueDate(date)
+          dueDate: this.calculateTaxDueDate(date),
         });
       }
     }
@@ -673,7 +645,7 @@ export class SmartPushPullProcessor {
     return {
       activities,
       balanceChanges,
-      taxImplications
+      taxImplications,
     };
   }
 
@@ -685,7 +657,7 @@ export class SmartPushPullProcessor {
     toAccount: Account,
     amount: number,
     date: Date,
-    balanceTracker: BalanceTracker
+    balanceTracker: BalanceTracker,
   ): Promise<{
     activities: ConsolidatedActivity[];
     balanceChanges: Map<string, number>;
@@ -708,7 +680,7 @@ export class SmartPushPullProcessor {
       isTransfer: true,
       category: 'Ignore.Transfer',
       flag: true,
-      flagColor: 'indigo'
+      flagColor: 'indigo',
     });
 
     const pushToActivity = new ConsolidatedActivity({
@@ -725,32 +697,34 @@ export class SmartPushPullProcessor {
       isTransfer: true,
       category: 'Ignore.Transfer',
       flag: true,
-      flagColor: 'indigo'
+      flagColor: 'indigo',
     });
 
     activities.push(pushFromActivity, pushToActivity);
-    
+
     // Update balances
     balanceChanges.set(fromAccount.id, -amount);
     balanceChanges.set(toAccount.id, amount);
 
     return {
       activities,
-      balanceChanges
+      balanceChanges,
     };
   }
 
   // Helper methods
 
   private findManagedAccounts(accounts: Account[]): Account[] {
-    return accounts.filter(account => 
-      account.type === 'Checking' && 
-      account.pushAccount &&
-      (account.performsPulls || account.performsPushes)
+    return accounts.filter(
+      (account) =>
+        account.type === 'Checking' && account.pushAccount && (account.performsPulls || account.performsPushes),
     );
   }
 
   private isPushPullActive(account: Account, date: Date): boolean {
+    if (isBefore(date, dayjs().toDate())) {
+      return false; // Cannot process past dates
+    }
     if (account.pushStart && isBefore(date, account.pushStart)) {
       return false;
     }
@@ -763,7 +737,7 @@ export class SmartPushPullProcessor {
   private billOccursOnDate(bill: any, date: Date): boolean {
     // Simplified bill occurrence check
     if (!bill.startDate || !bill.periods || !bill.everyN) return false;
-    
+
     // This would need proper frequency calculation logic
     return false; // Placeholder
   }
@@ -771,11 +745,11 @@ export class SmartPushPullProcessor {
   private estimateMonthlyInterest(account: Account, date: Date): number {
     // Simplified monthly interest estimation
     if (account.interests.length === 0) return 0;
-    
+
     const currentInterest = account.interests[0];
     const annualRate = currentInterest.rate || 0;
     const monthlyRate = annualRate / 100 / 12;
-    
+
     // Estimate based on average balance
     return 1000 * monthlyRate; // Placeholder calculation
   }
@@ -788,15 +762,15 @@ export class SmartPushPullProcessor {
 
   private calculateProjectionConfidence(events: ProjectedEvent[]): number {
     if (events.length === 0) return 1.0;
-    
+
     const totalCertainty = events.reduce((sum, event) => sum + event.certainty, 0);
     return totalCertainty / events.length;
   }
 
   private analyzeRiskLevel(projections: BalanceProjection[], account: Account): 'low' | 'medium' | 'high' {
     const minimumBalance = account.minimumBalance || 0;
-    const criticalProjections = projections.filter(proj => proj.projectedBalance < minimumBalance);
-    
+    const criticalProjections = projections.filter((proj) => proj.projectedBalance < minimumBalance);
+
     if (criticalProjections.length === 0) return 'low';
     if (criticalProjections.length <= projections.length * 0.3) return 'medium';
     return 'high';
@@ -806,7 +780,7 @@ export class SmartPushPullProcessor {
     account: Account,
     currentBalance: number,
     minimumProjection: BalanceProjection,
-    allAccounts: Account[]
+    allAccounts: Account[],
   ): PushPullDecision {
     // Generate recommendation based on analysis
     return {
@@ -816,27 +790,24 @@ export class SmartPushPullProcessor {
       toAccount: null,
       reason: 'Analysis in progress',
       confidence: 0.5,
-      alternatives: []
+      alternatives: [],
     };
   }
 
   private findPullableAccounts(accounts: Account[], neededAmount: number): Account[] {
     return accounts
-      .filter(acc => 
-        acc.pullPriority !== -1 && 
-        acc.balance > (acc.minimumBalance || 0) + neededAmount
-      )
+      .filter((acc) => acc.pullPriority !== -1 && acc.balance > (acc.minimumBalance || 0) + neededAmount)
       .sort((a, b) => a.pullPriority - b.pullPriority);
   }
 
   private generatePullAlternatives(accounts: Account[], amount: number): PushPullAlternative[] {
-    return accounts.map(account => ({
+    return accounts.map((account) => ({
       action: 'pull' as const,
       amount,
       fromAccountId: account.id,
       toAccountId: '',
       reason: `Alternative pull source (priority ${account.pullPriority})`,
-      score: 1.0 / (account.pullPriority + 1)
+      score: 1.0 / (account.pullPriority + 1),
     }));
   }
 
@@ -863,25 +834,25 @@ export class SmartPushPullProcessor {
       pullActivities: [],
       balanceChanges: new Map(),
       taxImplications: [],
-      nextCheckDate: dayjs.utc(date).add(1, 'month').toDate()
+      nextCheckDate: dayjs.utc(date).add(1, 'month').toDate(),
     };
   }
 
   private combineExecutionResults(results: PushPullExecutionResult[], checkDate: Date): PushPullExecutionResult {
     const combined: PushPullExecutionResult = {
-      executed: results.some(r => r.executed),
+      executed: results.some((r) => r.executed),
       pushActivities: [],
       pullActivities: [],
       balanceChanges: new Map(),
       taxImplications: [],
-      nextCheckDate: dayjs.utc(checkDate).add(1, 'month').toDate()
+      nextCheckDate: dayjs.utc(checkDate).add(1, 'month').toDate(),
     };
 
     for (const result of results) {
       combined.pushActivities.push(...result.pushActivities);
       combined.pullActivities.push(...result.pullActivities);
       combined.taxImplications.push(...result.taxImplications);
-      
+
       result.balanceChanges.forEach((amount, accountId) => {
         const current = combined.balanceChanges.get(accountId) || 0;
         combined.balanceChanges.set(accountId, current + amount);
@@ -950,11 +921,11 @@ export class SmartPushPullProcessor {
     // Simplified interest calculation for projection
     const annualRate = interest.rate || 0;
     const monthlyRate = annualRate / 100 / 12;
-    
+
     // Use a rough estimate based on typical account balance
     // In a real implementation, this would use the current balance from balance tracker
     const estimatedBalance = 10000; // Placeholder
-    
+
     return estimatedBalance * monthlyRate;
   }
 
@@ -975,7 +946,7 @@ export class SmartPushPullProcessor {
       projectionsGenerated: projectionCount,
       decisionsEvaluated: decisionCount,
       cacheHitRate: patternCount > 0 ? 0.8 : 0, // Estimated
-      averageConfidence: 0.85 // Estimated
+      averageConfidence: 0.85, // Estimated
     };
   }
 
@@ -988,3 +959,4 @@ export class SmartPushPullProcessor {
     this.patternCache.clear();
   }
 }
+

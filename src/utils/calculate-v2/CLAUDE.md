@@ -62,9 +62,26 @@ The system tests 5 comprehensive scenarios covering different time ranges:
 - `extended_projection`: 2025-05-19 to 2035-07-19
 - `far_future_projection`: 2045-07-19 to 2075-07-19
 
+## Reading JSON Files
+
+When working with JSON files, especially for testing and analysis, it's recommended to use tools like `jq` or write scripts to parse and analyze the data. This is more efficient than trying to grep through large JSON files, which can lead to incorrect results or missed data.
+
+# Logging ans Debugging
+
+You can use the logging utility in this folder to log messages and debug information. Available functions are `debug`, `log`, `warn`, and `error`. Each of these functions takes multiple string arguments and an optional final argument that can be an object. When processed through the `log-reader`, the messages will be formatted as follows:
+```
+<scenario> | <LEVEL> | <file>.<function> | <message> | <prop1>: <value1> | <prop2>: <value2> | ...
+```
+Where `<scenario>` is the scenario being processed, `<LEVEL>` is the log level (DEBUG, LOG, WARN, ERROR), `<file>` is the file name where the log was called, and `<function>` is the function name where the log was called. <message> is the main message, and each property is formatted as `<prop>: <value>`.
+
+The scenario can be run and logs filtered sucinctly using a command similar to the following, replacing the last string with the regex you want to filter by:
+```bash
+npx tsx accuracy-comparison/accuracy-comparison.ts 2>&1 | tee /tmp/log && bat --plain /tmp/log | npx tsx accuracy-comparison/log-reader.ts --color="never" "DEBUG.*calculate.*prop1"
+```
+
 Memories:
 - As results improve, commit the new changes
 - create temporary test scripts in a "testing" folder
 - Make sure to put debug and testing scripts in the testing folders
 - Raw serialized activities contain a `from` field to represent the account a transfer is from. When instantiated as a class, this is mapped to a `fro` field
-- You should use jq or a script to read and analyze json files, rather than trying to grep through them
+
