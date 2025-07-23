@@ -40,6 +40,7 @@ import { startTiming, endTiming } from '../log';
 import crypto from 'crypto';
 import { debug, err, log, warn } from './logger';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
+import { formatDate } from '../date/date';
 
 dayjs.extend(utc);
 
@@ -111,6 +112,26 @@ export class CalculationEngine {
 
       // Perform the calculation
       const result = await this.performCalculation(accountsAndTransfers, options);
+
+      // Round values and format dates
+      result.accounts.forEach((account) => {
+        // The accounts from getUpdatedAccounts have consolidatedActivity, not activity
+        if (account.consolidatedActivity) {
+          account.consolidatedActivity.forEach((activity) => {
+            try {
+              activity.amount = Math.round(activity.amount * 100) / 100; // Round to 2 decimal places
+            } catch {
+              err('Error rounding activity amount:', activity.amount);
+            }
+            activity.balance = Math.round(activity.balance * 100) / 100; // Round to 2 decimal places
+            try {
+              activity.date = formatDate(activity.date);
+            } catch {
+              err('Error formatting activity date:', activity.date);
+            }
+          });
+        }
+      });
 
       // Cache the result (re-enabled after fixing serialization)
       if (result.success) {

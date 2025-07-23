@@ -10,7 +10,7 @@
       "successful": 18,
       "failed": 0,
       "discrepancies": 0,
-      "avgBalanceDiff": 0,
+      "avgBalanceDiff": 2.2598416964885675e-11,
       "avgActivityCountDiff": 0
     },
     {
@@ -19,7 +19,7 @@
       "successful": 18,
       "failed": 0,
       "discrepancies": 0,
-      "avgBalanceDiff": 2.555980118914805e-12,
+      "avgBalanceDiff": 0.0011685764125027494,
       "avgActivityCountDiff": 0
     },
     {
@@ -28,7 +28,7 @@
       "successful": 9,
       "failed": 0,
       "discrepancies": 9,
-      "avgBalanceDiff": 864.1153920723268,
+      "avgBalanceDiff": 864.1159604601057,
       "avgActivityCountDiff": 0.6666666666666666
     }
   ],

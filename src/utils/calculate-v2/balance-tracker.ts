@@ -133,12 +133,6 @@ export class BalanceTracker {
       this.balances[accountId] = 0;
     }
     this.balances[accountId] += amount;
-    debug(
-      'updateBalance', {
-      accountId,
-      amount: amount.toFixed(2),
-      balance: this.balances[accountId].toFixed(2),
-    });
   }
 
   /**
@@ -247,22 +241,12 @@ export class BalanceTracker {
   applySegmentResult(segmentResult: any): void {
     // Apply balance changes
     for (const [accountId, change] of segmentResult.balanceChanges) {
-      debug(
-        'balanceChanges', {
-        accountId,
-        change: change.toFixed(2),
-      });
       this.updateBalance(accountId, change);
     }
 
     // Apply activity additions
     for (const [accountId, activities] of segmentResult.activitiesAdded) {
       const account = this.accounts.find((acc) => acc.id === accountId);
-      debug(
-        'activitiesAdded', {
-        accountId,
-        activities: activities.map((activity: ConsolidatedActivity) => `${activity.name} - ${formatDate(activity.date)}: ${activity.amount}`).join(' // '),
-      });
       if (account) {
         account.consolidatedActivity.push(...activities);
         this.updateActivityIndex(accountId, activities.length);
@@ -273,11 +257,6 @@ export class BalanceTracker {
 
     // Apply interest state changes
     for (const [accountId, stateChanges] of segmentResult.interestStateChanges) {
-      debug(
-        'interestStateChanges', {
-        accountId,
-        stateChanges: Object.keys(stateChanges),
-      });
       this.updateInterestState(accountId, stateChanges);
     }
   }

@@ -1,5 +1,5 @@
-[
-  {
+{
+  "fbc8afbe-921d-4b9b-811a-7ca7eaa120ba": {
     "id": "fbc8afbe-921d-4b9b-811a-7ca7eaa120ba",
     "name": "Kendall",
     "consolidatedActivity": [
@@ -15,14 +15,14 @@
         "amount": -11,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-19T00:00:00.000Z",
+        "date": "2025-07-19",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 5775.579999999995
+        "balance": 5775.58
       },
       {
         "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1752883200000-FROM",
@@ -35,14 +35,14 @@
         "amount": -885,
         "amountIsVariable": false,
         "amountVariable": "{FULL}",
-        "date": "2025-07-19T00:00:00.000Z",
+        "date": "2025-07-19",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4890.579999999995
+        "balance": 4890.58
       },
       {
         "id": "BILL-d82dc889-bfd7-4940-afeb-a17f781703a4-1753315200000",
@@ -56,14 +56,14 @@
         "amount": -10,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-24T00:00:00.000Z",
+        "date": "2025-07-24",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4880.579999999995
+        "balance": 4880.58
       },
       {
         "id": "BILL-1d23f1ef-d035-4976-96b6-b953a7ffa80e-1753660800000",
@@ -77,14 +77,14 @@
         "amount": -180,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-28T00:00:00.000Z",
+        "date": "2025-07-28",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4700.579999999995
+        "balance": 4700.58
       },
       {
         "id": "TRANSFER-4645420d-4ac3-48f0-9a44-7641199ca61c-1753660800000-FROM",
@@ -94,17 +94,17 @@
         "flag": true,
         "isTransfer": true,
         "to": "Costco",
-        "amount": -2372.479999999997,
+        "amount": -2372.48,
         "amountIsVariable": false,
         "amountVariable": "{FULL}",
-        "date": "2025-07-28T00:00:00.000Z",
+        "date": "2025-07-28",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 2328.0999999999985
+        "balance": 2328.1
       },
       {
         "id": "BILL-be3dbf9c-3f61-4661-90d7-b17a4274e877-1753920000000",
@@ -118,14 +118,14 @@
         "amount": 1440,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_PAY",
-        "date": "2025-07-31T00:00:00.000Z",
+        "date": "2025-07-31",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3768.0999999999985
+        "balance": 3768.1
       },
       {
         "id": "BILL-6489179f-a8b2-4384-9564-02c9cacd29d2-1753920000000",
@@ -139,14 +139,14 @@
         "amount": -100,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_TRANSFER_TO_BEN",
-        "date": "2025-07-31T00:00:00.000Z",
+        "date": "2025-07-31",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3668.0999999999985
+        "balance": 3668.1
       },
       {
         "id": "BILL-46c755c7-4961-4d01-a374-eb97edb25bf5-1754179200000",
@@ -160,14 +160,14 @@
         "amount": -25,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-03T00:00:00.000Z",
+        "date": "2025-08-03",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3643.0999999999985
+        "balance": 3643.1
       },
       {
         "id": "BILL-afc47479-e2a4-4f59-86f3-163cb2d0d411-1754524800000",
@@ -181,14 +181,14 @@
         "amount": -1,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-07T00:00:00.000Z",
+        "date": "2025-08-07",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3642.0999999999985
+        "balance": 3642.1
       },
       {
         "id": "BILL-be3dbf9c-3f61-4661-90d7-b17a4274e877-1755129600000",
@@ -202,14 +202,14 @@
         "amount": 1440,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_PAY",
-        "date": "2025-08-14T00:00:00.000Z",
+        "date": "2025-08-14",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 5082.0999999999985
+        "balance": 5082.1
       },
       {
         "id": "BILL-6489179f-a8b2-4384-9564-02c9cacd29d2-1755129600000",
@@ -223,14 +223,14 @@
         "amount": -100,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_TRANSFER_TO_BEN",
-        "date": "2025-08-14T00:00:00.000Z",
+        "date": "2025-08-14",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4982.0999999999985
+        "balance": 4982.1
       },
       {
         "id": "BILL-cce39f97-834a-474a-b93a-5dba4e963b41-1755561600000",
@@ -244,14 +244,14 @@
         "amount": -11,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-19T00:00:00.000Z",
+        "date": "2025-08-19",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4971.0999999999985
+        "balance": 4971.1
       },
       {
         "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1755561600000-FROM",
@@ -264,19 +264,19 @@
         "amount": -885,
         "amountIsVariable": false,
         "amountVariable": "{FULL}",
-        "date": "2025-08-19T00:00:00.000Z",
+        "date": "2025-08-19",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4086.0999999999985
+        "balance": 4086.1
       }
     ],
     "balance": 4086.0999999999985
   },
-  {
+  "f2eba978-1ba4-40da-87eb-7671e73c0ad0": {
     "id": "f2eba978-1ba4-40da-87eb-7671e73c0ad0",
     "name": "Jake",
     "consolidatedActivity": [
@@ -292,14 +292,14 @@
         "amount": 2991.06,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-25T00:00:00.000Z",
+        "date": "2025-07-25",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 6003.879999999997
+        "balance": 6003.88
       },
       {
         "id": "TRANSFER-46d51036-f4b1-412d-84f7-270738800da0-1753574400000-FROM",
@@ -309,10 +309,10 @@
         "flag": true,
         "isTransfer": true,
         "to": "Costco",
-        "amount": -2372.479999999997,
+        "amount": -2372.48,
         "amountIsVariable": false,
         "amountVariable": "{HALF}",
-        "date": "2025-07-27T00:00:00.000Z",
+        "date": "2025-07-27",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -333,7 +333,7 @@
         "amount": 50,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-28T00:00:00.000Z",
+        "date": "2025-07-28",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -354,7 +354,7 @@
         "amount": 950,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_TRANSFER_TO_JAKE",
-        "date": "2025-07-30T00:00:00.000Z",
+        "date": "2025-07-30",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -375,7 +375,7 @@
         "amount": 0,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-31T00:00:00.000Z",
+        "date": "2025-07-31",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -395,14 +395,14 @@
         "amount": -4100,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-01T00:00:00.000Z",
+        "date": "2025-08-01",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 531.4000000000001
+        "balance": 531.4
       },
       {
         "id": "BILL-977cbb1b-1171-4438-a977-c4f418800486-1754438400000",
@@ -416,14 +416,14 @@
         "amount": -29.95,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-06T00:00:00.000Z",
+        "date": "2025-08-06",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 501.4500000000003
+        "balance": 501.45
       },
       {
         "id": "BILL-7cca8bb6-9661-4792-adc5-1f0d1c7eb258-1754611200000",
@@ -437,7 +437,7 @@
         "amount": 2991.06,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-08T00:00:00.000Z",
+        "date": "2025-08-08",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -458,14 +458,14 @@
         "amount": -150.14,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-12T00:00:00.000Z",
+        "date": "2025-08-12",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3342.3700000000003
+        "balance": 3342.37
       },
       {
         "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-1755043200000",
@@ -479,19 +479,19 @@
         "amount": 950,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_TRANSFER_TO_JAKE",
-        "date": "2025-08-13T00:00:00.000Z",
+        "date": "2025-08-13",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4292.370000000001
+        "balance": 4292.37
       }
     ],
     "balance": 4292.370000000001
   },
-  {
+  "a458bdf3-8d66-4769-b40c-516b38028d75": {
     "id": "a458bdf3-8d66-4769-b40c-516b38028d75",
     "name": "Spending",
     "consolidatedActivity": [
@@ -507,14 +507,14 @@
         "amount": -19.99,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-20T00:00:00.000Z",
+        "date": "2025-07-20",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 280.24000000000024
+        "balance": 280.24
       },
       {
         "id": "BILL-c9364085-82b9-4def-88f7-a36c1c1813c1-1753315200000",
@@ -528,14 +528,14 @@
         "amount": -4.43,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-24T00:00:00.000Z",
+        "date": "2025-07-24",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 275.81000000000023
+        "balance": 275.81
       },
       {
         "id": "BILL-da4956e5-2787-4011-903d-538fe2f76598-1754006400000",
@@ -549,14 +549,14 @@
         "amount": -20,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-01T00:00:00.000Z",
+        "date": "2025-08-01",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 255.81000000000023
+        "balance": 255.81
       },
       {
         "id": "BILL-4f6d649e-b581-4a4b-a3f9-7eba8a447915-1754092800000",
@@ -570,14 +570,14 @@
         "amount": -16.44,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-02T00:00:00.000Z",
+        "date": "2025-08-02",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 239.37000000000023
+        "balance": 239.37
       },
       {
         "id": "BILL-c1d96b82-d469-44a1-886d-35b8059d2b21-1754265600000",
@@ -591,14 +591,14 @@
         "amount": -0.52,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-04T00:00:00.000Z",
+        "date": "2025-08-04",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 238.85000000000025
+        "balance": 238.85
       },
       {
         "id": "BILL-283b70db-3b6c-4b37-b3db-0cf4fb2929eb-1754352000000",
@@ -612,14 +612,14 @@
         "amount": -20,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-05T00:00:00.000Z",
+        "date": "2025-08-05",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 218.85000000000025
+        "balance": 218.85
       },
       {
         "id": "BILL-9a9ae8a9-0a41-478f-bcbd-9a3feff2a2a3-1754956800000",
@@ -633,19 +633,19 @@
         "amount": -64.34,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-12T00:00:00.000Z",
+        "date": "2025-08-12",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 154.51000000000025
+        "balance": 154.51
       }
     ],
     "balance": 154.51000000000025
   },
-  {
+  "bd7f0645-b485-4c96-bcbb-10b390b9e8db": {
     "id": "bd7f0645-b485-4c96-bcbb-10b390b9e8db",
     "name": "Emergency",
     "consolidatedActivity": [
@@ -658,46 +658,46 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": 1.6860916666666663,
+        "amount": 1.69,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-28T00:00:00.000Z",
+        "date": "2025-07-28",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 2024.9960916666666
+        "balance": 2025
       }
     ],
     "balance": 2024.9960916666666
   },
-  {
+  "a9d6dfc1-493c-4b25-a734-dde33ee97b68": {
     "id": "a9d6dfc1-493c-4b25-a734-dde33ee97b68",
     "name": "Vacation",
     "consolidatedActivity": [],
     "balance": 0
   },
-  {
+  "2973daf0-6932-410e-8a27-a8647e54dffa": {
     "id": "2973daf0-6932-410e-8a27-a8647e54dffa",
     "name": "Alaska",
     "consolidatedActivity": [],
     "balance": 4.547473508864641e-13
   },
-  {
+  "87586483-d4ae-40e2-816a-b58fec926faf": {
     "id": "87586483-d4ae-40e2-816a-b58fec926faf",
     "name": "Bathroom",
     "consolidatedActivity": [],
     "balance": 9.094947017729282e-13
   },
-  {
+  "5c9f1e09-ec97-4a40-8dac-3336ed466e8e": {
     "id": "5c9f1e09-ec97-4a40-8dac-3336ed466e8e",
     "name": "Jake Chase",
     "consolidatedActivity": [],
     "balance": 4.547473508864641e-13
   },
-  {
+  "3dee3218-60c5-4ed8-b1e3-b728a2006471": {
     "id": "3dee3218-60c5-4ed8-b1e3-b728a2006471",
     "name": "Costco",
     "consolidatedActivity": [
@@ -713,14 +713,14 @@
         "amount": -140,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-20T00:00:00.000Z",
+        "date": "2025-07-20",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -3925.3999999999996
+        "balance": -3925.4
       },
       {
         "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-1753228800000",
@@ -734,14 +734,14 @@
         "amount": -78.47,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-23T00:00:00.000Z",
+        "date": "2025-07-23",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -4003.8699999999994
+        "balance": -4003.87
       },
       {
         "id": "BILL-372c0a2b-3be8-43c8-a397-7475503dea1a-1753315200000",
@@ -755,7 +755,7 @@
         "amount": -75,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-24T00:00:00.000Z",
+        "date": "2025-07-24",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -776,7 +776,7 @@
         "amount": -650,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-26T00:00:00.000Z",
+        "date": "2025-07-26",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -797,7 +797,7 @@
         "amount": -16.09,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-26T00:00:00.000Z",
+        "date": "2025-07-26",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -814,17 +814,17 @@
         "flag": true,
         "isTransfer": true,
         "to": "Costco",
-        "amount": 2372.479999999997,
+        "amount": 2372.48,
         "amountIsVariable": false,
         "amountVariable": "{HALF}",
-        "date": "2025-07-27T00:00:00.000Z",
+        "date": "2025-07-27",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -2372.4800000000027
+        "balance": -2372.48
       },
       {
         "id": "TRANSFER-4645420d-4ac3-48f0-9a44-7641199ca61c-1753660800000-TO",
@@ -834,17 +834,17 @@
         "flag": true,
         "isTransfer": true,
         "to": "Costco",
-        "amount": 2372.479999999997,
+        "amount": 2372.48,
         "amountIsVariable": false,
         "amountVariable": "{FULL}",
-        "date": "2025-07-28T00:00:00.000Z",
+        "date": "2025-07-28",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -5.9117155615240335e-12
+        "balance": 0
       },
       {
         "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-1753833600000",
@@ -858,14 +858,14 @@
         "amount": -78.47,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-30T00:00:00.000Z",
+        "date": "2025-07-30",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -78.47000000000571
+        "balance": -78.47
       },
       {
         "id": "BILL-363bf990-971b-4184-9fda-cbbfbe467b22-1753920000000",
@@ -879,14 +879,14 @@
         "amount": -500,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-31T00:00:00.000Z",
+        "date": "2025-07-31",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -578.4700000000057
+        "balance": -578.47
       },
       {
         "id": "BILL-2e4d5ac4-f46f-442d-94ad-25ee71e6e368-1754092800000",
@@ -900,14 +900,14 @@
         "amount": -80.67,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-02T00:00:00.000Z",
+        "date": "2025-08-02",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -659.1400000000058
+        "balance": -659.14
       },
       {
         "id": "BILL-b4f771b3-4e57-4de1-9d59-c1ea022b44f8-1754179200000",
@@ -921,14 +921,14 @@
         "amount": -70,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-03T00:00:00.000Z",
+        "date": "2025-08-03",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -729.1400000000058
+        "balance": -729.14
       },
       {
         "id": "BILL-b1094fd2-e18d-4e82-9a3e-c74eafced769-1754265600000",
@@ -942,14 +942,14 @@
         "amount": -20.37,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-04T00:00:00.000Z",
+        "date": "2025-08-04",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -749.5100000000057
+        "balance": -749.51
       },
       {
         "id": "BILL-23162451-13aa-407b-a2da-510c52b64349-1754438400000",
@@ -963,14 +963,14 @@
         "amount": -34,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-06T00:00:00.000Z",
+        "date": "2025-08-06",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -783.5100000000057
+        "balance": -783.51
       },
       {
         "id": "BILL-f30e333a-e815-4f0a-9545-e2c1ec4c4ed8-1754438400000",
@@ -984,14 +984,14 @@
         "amount": -145.77,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-06T00:00:00.000Z",
+        "date": "2025-08-06",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -929.2800000000057
+        "balance": -929.28
       },
       {
         "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-1754438400000",
@@ -1005,14 +1005,14 @@
         "amount": -78.47,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-06T00:00:00.000Z",
+        "date": "2025-08-06",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1007.7500000000055
+        "balance": -1007.75
       },
       {
         "id": "BILL-e10aec69-03ba-4b0f-9e40-10f491728bda-1754784000000",
@@ -1026,14 +1026,14 @@
         "amount": -227.96,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-10T00:00:00.000Z",
+        "date": "2025-08-10",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1235.7100000000055
+        "balance": -1235.71
       },
       {
         "id": "BILL-a4107369-199a-4679-a483-3e242cfcc1ca-1754870400000",
@@ -1047,14 +1047,14 @@
         "amount": -60.52,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-11T00:00:00.000Z",
+        "date": "2025-08-11",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1296.2300000000055
+        "balance": -1296.23
       },
       {
         "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-1755043200000",
@@ -1068,14 +1068,14 @@
         "amount": -78.47,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-13T00:00:00.000Z",
+        "date": "2025-08-13",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1374.7000000000053
+        "balance": -1374.7
       },
       {
         "id": "BILL-a1d7d5cb-4378-4425-a697-677df7258fec-1755129600000",
@@ -1089,14 +1089,14 @@
         "amount": -25,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-14T00:00:00.000Z",
+        "date": "2025-08-14",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1399.7000000000053
+        "balance": -1399.7
       },
       {
         "id": "BILL-3cb12c2d-26df-4435-85f0-6cbb34da66f4-1755302400000",
@@ -1110,14 +1110,14 @@
         "amount": -18.22,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-16T00:00:00.000Z",
+        "date": "2025-08-16",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1417.920000000005
+        "balance": -1417.92
       },
       {
         "id": "BILL-3780bfed-52c9-47e2-97e5-642ef1439bf3-1755388800000",
@@ -1131,19 +1131,19 @@
         "amount": -140,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-17T00:00:00.000Z",
+        "date": "2025-08-17",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1557.920000000005
+        "balance": -1557.92
       }
     ],
     "balance": -1557.920000000005
   },
-  {
+  "76e7786a-c89c-41ab-9e2b-e5c13a7d3b1d": {
     "id": "76e7786a-c89c-41ab-9e2b-e5c13a7d3b1d",
     "name": "REI",
     "consolidatedActivity": [
@@ -1159,14 +1159,14 @@
         "amount": -20,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-05T00:00:00.000Z",
+        "date": "2025-08-05",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -20.000000000010914
+        "balance": -20
       },
       {
         "id": "INTEREST-e31dc6c3-f208-46dd-81a3-26b3cebbe4f9-1754438400000",
@@ -1177,28 +1177,28 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -0.42066666666671454,
+        "amount": -0.42,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-06T00:00:00.000Z",
+        "date": "2025-08-06",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -20.42066666667763
+        "balance": -20.42
       }
     ],
     "balance": -20.42066666667763
   },
-  {
+  "18754bfc-52fa-4cdb-82f3-327b6f251bb7": {
     "id": "18754bfc-52fa-4cdb-82f3-327b6f251bb7",
     "name": "WellsFargo",
     "consolidatedActivity": [],
     "balance": 0
   },
-  {
+  "141c272a-a655-4144-a2f2-56a1ff6f6172": {
     "id": "141c272a-a655-4144-a2f2-56a1ff6f6172",
     "name": "Kendall 401(k)",
     "consolidatedActivity": [
@@ -1214,7 +1214,7 @@
         "amount": 144,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_401K_CONTRIBUTION",
-        "date": "2025-07-31T00:00:00.000Z",
+        "date": "2025-07-31",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -1235,7 +1235,7 @@
         "amount": 109,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
-        "date": "2025-07-31T00:00:00.000Z",
+        "date": "2025-07-31",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -1253,17 +1253,17 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": 71.69333333333334,
+        "amount": 71.69,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-01T00:00:00.000Z",
+        "date": "2025-08-01",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 17278.093333333334
+        "balance": 17278.09
       },
       {
         "id": "BILL-759ed23d-37db-4946-9826-56abab1439a0-1755129600000",
@@ -1277,14 +1277,14 @@
         "amount": 144,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_401K_CONTRIBUTION",
-        "date": "2025-08-14T00:00:00.000Z",
+        "date": "2025-08-14",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 17422.093333333334
+        "balance": 17422.09
       },
       {
         "id": "BILL-73981483-c208-4bc8-8128-c326d9825d59-1755129600000",
@@ -1298,19 +1298,19 @@
         "amount": 109,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
-        "date": "2025-08-14T00:00:00.000Z",
+        "date": "2025-08-14",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 17531.093333333334
+        "balance": 17531.09
       }
     ],
     "balance": 17531.093333333334
   },
-  {
+  "9005ec8d-1d71-46ce-82ba-f1781e28a1cb": {
     "id": "9005ec8d-1d71-46ce-82ba-f1781e28a1cb",
     "name": "Kendall Roth IRA",
     "consolidatedActivity": [
@@ -1323,22 +1323,22 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": 141.963875,
+        "amount": 141.96,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-01T00:00:00.000Z",
+        "date": "2025-08-01",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 34213.293875
+        "balance": 34213.29
       }
     ],
     "balance": 34213.293875
   },
-  {
+  "8a06d434-8cab-4607-875d-e1cbab574534": {
     "id": "8a06d434-8cab-4607-875d-e1cbab574534",
     "name": "Jake 401(k)",
     "consolidatedActivity": [
@@ -1354,14 +1354,14 @@
         "amount": 235.33,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-25T00:00:00.000Z",
+        "date": "2025-07-25",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 96835.22000000003
+        "balance": 96835.22
       },
       {
         "id": "BILL-7a2ceda4-4195-47f4-af64-5d08732d3359-1753401600000",
@@ -1375,14 +1375,14 @@
         "amount": 904,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-25T00:00:00.000Z",
+        "date": "2025-07-25",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 97739.22000000003
+        "balance": 97739.22
       },
       {
         "id": "INTEREST-9d4a3a72-0eb0-4134-a92e-5bfca4f55432-1754092800000",
@@ -1393,17 +1393,17 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": 407.24674999999996,
+        "amount": 407.25,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-02T00:00:00.000Z",
+        "date": "2025-08-02",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 98146.46675000002
+        "balance": 98146.47
       },
       {
         "id": "BILL-ec49cfee-9d15-44c5-864b-449b4b39be95-1754611200000",
@@ -1417,14 +1417,14 @@
         "amount": 235.33,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-08T00:00:00.000Z",
+        "date": "2025-08-08",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 98381.79675000002
+        "balance": 98381.8
       },
       {
         "id": "BILL-7a2ceda4-4195-47f4-af64-5d08732d3359-1754611200000",
@@ -1438,19 +1438,19 @@
         "amount": 904,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-08T00:00:00.000Z",
+        "date": "2025-08-08",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 99285.79675000002
+        "balance": 99285.8
       }
     ],
     "balance": 99285.79675000002
   },
-  {
+  "6de0db48-fb17-4f29-aa4e-17032809f14c": {
     "id": "6de0db48-fb17-4f29-aa4e-17032809f14c",
     "name": "Mortgage",
     "consolidatedActivity": [
@@ -1463,17 +1463,17 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -2712.475798958333,
+        "amount": -2712.48,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-01T00:00:00.000Z",
+        "date": "2025-08-01",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -534136.3057989579
+        "balance": -534136.31
       },
       {
         "id": "BILL-74984c05-2b45-466d-beb3-fa0bb552b25f-1754006400000",
@@ -1487,14 +1487,14 @@
         "amount": -741.08,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-01T00:00:00.000Z",
+        "date": "2025-08-01",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -534877.3857989579
+        "balance": -534877.39
       },
       {
         "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-1754006400000-TO",
@@ -1507,19 +1507,19 @@
         "amount": 4100,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-01T00:00:00.000Z",
+        "date": "2025-08-01",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -530777.3857989579
+        "balance": -530777.39
       }
     ],
     "balance": -530777.3857989579
   },
-  {
+  "ba1af043-c75c-4a7d-9a81-99574bded9c5": {
     "id": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
     "name": "Fidelity Money Market",
     "consolidatedActivity": [
@@ -1535,14 +1535,14 @@
         "amount": 0,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-31T00:00:00.000Z",
+        "date": "2025-07-31",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 54312.719999999994
+        "balance": 54312.72
       },
       {
         "id": "INTEREST-ddd6204a-98ce-4103-b1de-0fc8bd5add90-1754006400000",
@@ -1553,22 +1553,22 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": 135.7818,
+        "amount": 135.78,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-01T00:00:00.000Z",
+        "date": "2025-08-01",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 54448.50179999999
+        "balance": 54448.5
       }
     ],
     "balance": 54448.50179999999
   },
-  {
+  "7b825511-8ca3-4fa2-b10f-12a07530e792": {
     "id": "7b825511-8ca3-4fa2-b10f-12a07530e792",
     "name": "Kendall Chase",
     "consolidatedActivity": [
@@ -1583,7 +1583,7 @@
         "amount": 885,
         "amountIsVariable": false,
         "amountVariable": "{FULL}",
-        "date": "2025-07-19T00:00:00.000Z",
+        "date": "2025-07-19",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -1604,7 +1604,7 @@
         "amount": -600,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_SPENDING",
-        "date": "2025-08-18T00:00:00.000Z",
+        "date": "2025-08-18",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -1625,7 +1625,7 @@
         "amount": -285,
         "amountIsVariable": true,
         "amountVariable": "KENDALL_EXTRA_SPENDING",
-        "date": "2025-08-18T00:00:00.000Z",
+        "date": "2025-08-18",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -1645,7 +1645,7 @@
         "amount": 885,
         "amountIsVariable": false,
         "amountVariable": "{FULL}",
-        "date": "2025-08-19T00:00:00.000Z",
+        "date": "2025-08-19",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -1657,10 +1657,10 @@
     ],
     "balance": 0
   },
-  {
+  "75cad31a-cd94-4693-932a-7a8fc33f51e3": {
     "id": "75cad31a-cd94-4693-932a-7a8fc33f51e3",
     "name": "Solar",
     "consolidatedActivity": [],
     "balance": -52750
   }
-]
+}

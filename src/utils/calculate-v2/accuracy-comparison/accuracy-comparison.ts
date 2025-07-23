@@ -248,22 +248,33 @@ export async function runAccuracyComparison(): Promise<void> {
         console.log(`  ⏱️  Calculate-v2 completed in ${(endTime - startTime).toFixed(2)}ms`);
 
         // Write calculated results to file for analysis
-        if (scenario.id === 'current_to_near_future') {
-          try {
-            mkdirSync(path.join(path.dirname(new URL(import.meta.url).pathname), 'calculated-activities'), { recursive: true });
-            const calculatedActivitiesFile = path.join(path.dirname(new URL(import.meta.url).pathname), 'calculated-activities', `${scenario.id}.json`);
-            const calculatedData = calculatedResults.accounts.map((account) => ({
+        try {
+          mkdirSync(path.join(path.dirname(new URL(import.meta.url).pathname), 'calculated-activities'), {
+            recursive: true,
+          });
+          const calculatedActivitiesFile = path.join(
+            path.dirname(new URL(import.meta.url).pathname),
+            'calculated-activities',
+            `${scenario.id}.json`,
+          );
+
+          console.log('First result:', calculatedResults.accounts[0].consolidatedActivity[0]);
+
+          // Create account map for easier lookup
+          const calculatedDataMap: Record<string, any> = {};
+          calculatedResults.accounts.forEach((account) => {
+            calculatedDataMap[account.id] = {
               id: account.id,
               name: account.name,
               consolidatedActivity: account.consolidatedActivity || [],
               balance: account.balance,
-            }));
+            };
+          });
 
-            writeFileSync(calculatedActivitiesFile, JSON.stringify(calculatedData, null, 2));
-            console.log(`  💾 Saved calculated activities to ${calculatedActivitiesFile}`);
-          } catch (error) {
-            console.log(`  ⚠️  Failed to write calculated activities: ${error}`);
-          }
+          writeFileSync(calculatedActivitiesFile, JSON.stringify(calculatedDataMap, null, 2));
+          console.log(`  💾 Saved calculated activities to ${calculatedActivitiesFile}`);
+        } catch (error) {
+          console.log(`  ⚠️  Failed to write calculated activities: ${error}`);
         }
 
         // Compare with original responses for this scenario
@@ -439,7 +450,7 @@ function generateComparisonSummary(results: ComparisonResult[]): ComparisonSumma
     const avgActivityCountDiff =
       scenarioResults.length > 0
         ? scenarioResults.reduce((sum, r) => sum + Math.abs(r.differences.activityCountDiff), 0) /
-        scenarioResults.length
+          scenarioResults.length
         : 0;
 
     return {

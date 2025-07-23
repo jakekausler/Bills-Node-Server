@@ -62,10 +62,6 @@ The system tests 5 comprehensive scenarios covering different time ranges:
 - `extended_projection`: 2025-05-19 to 2035-07-19
 - `far_future_projection`: 2045-07-19 to 2075-07-19
 
-## Reading JSON Files
-
-When working with JSON files, especially for testing and analysis, it's recommended to use tools like `jq` or write scripts to parse and analyze the data. This is more efficient than trying to grep through large JSON files, which can lead to incorrect results or missed data.
-
 # Logging ans Debugging
 
 You can use the logging utility in this folder to log messages and debug information. Available functions are `debug`, `log`, `warn`, and `error`. Each of these functions takes multiple string arguments and an optional final argument that can be an object. When processed through the `log-reader`, the messages will be formatted as follows:
@@ -84,4 +80,4 @@ Memories:
 - create temporary test scripts in a "testing" folder
 - Make sure to put debug and testing scripts in the testing folders
 - Raw serialized activities contain a `from` field to represent the account a transfer is from. When instantiated as a class, this is mapped to a `fro` field
-
+- Use ES Module Scope (import, no direct __dirname or __filename)
