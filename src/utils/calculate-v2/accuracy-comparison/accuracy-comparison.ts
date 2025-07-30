@@ -16,6 +16,11 @@ import { Bill } from '../../../data/bill/bill';
 import { calculateAllActivity } from './../engine';
 import { initializeCache } from './../cache';
 import { TEST_SCENARIOS } from './fetch-original-responses';
+import { formatDate } from '../../date/date';
+
+// Get current directory - works with tsx
+// Since we're running from the calculate-v2 directory, we need to go into accuracy-comparison
+const currentDir = path.resolve(process.cwd(), 'accuracy-comparison');
 
 interface OriginalResponse {
   accountId: string;
@@ -80,7 +85,7 @@ interface ComparisonSummary {
  * Loads original responses from saved files
  */
 async function loadOriginalResponses(): Promise<OriginalResponse[]> {
-  const responsesDir = path.join(path.dirname(new URL(import.meta.url).pathname), 'original-responses');
+  const responsesDir = path.resolve(currentDir, 'original-responses');
   const allResponsesFile = path.join(responsesDir, 'all-responses.json');
 
   try {
@@ -134,10 +139,7 @@ async function runCalculateV2(
   }
 
   // Return the updated accounts from the calculation result
-  return {
-    accounts: result.accounts,
-    transfers: testData.transfers,
-  };
+  return result.accountsAndTransfers;
 }
 
 /**
@@ -249,16 +251,17 @@ export async function runAccuracyComparison(): Promise<void> {
 
         // Write calculated results to file for analysis
         try {
-          mkdirSync(path.join(path.dirname(new URL(import.meta.url).pathname), 'calculated-activities'), {
+          mkdirSync(path.resolve(currentDir, 'calculated-activities'), {
             recursive: true,
           });
           const calculatedActivitiesFile = path.join(
-            path.dirname(new URL(import.meta.url).pathname),
-            'calculated-activities',
+            path.resolve(currentDir, 'calculated-activities'),
             `${scenario.id}.json`,
           );
 
-          console.log('First result:', calculatedResults.accounts[0].consolidatedActivity[0]);
+          if (calculatedResults.accounts.length > 0 && calculatedResults.accounts[0].consolidatedActivity?.length > 0) {
+            console.log('First result:', calculatedResults.accounts[0].consolidatedActivity[0]);
+          }
 
           // Create account map for easier lookup
           const calculatedDataMap: Record<string, any> = {};
@@ -266,7 +269,13 @@ export async function runAccuracyComparison(): Promise<void> {
             calculatedDataMap[account.id] = {
               id: account.id,
               name: account.name,
-              consolidatedActivity: account.consolidatedActivity || [],
+              consolidatedActivity:
+                account.consolidatedActivity.map((v) => {
+                  return {
+                    ...v,
+                    date: formatDate(new Date(v.date)),
+                  };
+                }) || [],
               balance: account.balance,
             };
           });
@@ -389,7 +398,7 @@ export async function runAccuracyComparison(): Promise<void> {
     }
 
     // Save detailed results
-    const outputDir = path.join(path.dirname(new URL(import.meta.url).pathname), 'comparison-results');
+    const outputDir = path.resolve(currentDir, 'comparison-results');
     await fs.mkdir(outputDir, { recursive: true });
 
     const resultsFile = path.join(outputDir, 'accuracy-comparison.json');
@@ -492,7 +501,8 @@ function generateComparisonSummary(results: ComparisonResult[]): ComparisonSumma
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// This works with tsx which sets process.argv[1] to the script path
+if (process.argv[1] && process.argv[1].includes('accuracy-comparison.ts')) {
   console.log('🧪 Starting Calculate-v2 Accuracy Comparison...\n');
 
   runAccuracyComparison()

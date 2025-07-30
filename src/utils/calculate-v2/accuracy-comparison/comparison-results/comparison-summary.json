@@ -1,163 +1,163 @@
 {
   "totalComparisons": 54,
-  "successfulComparisons": 0,
-  "failedComparisons": 54,
-  "significantDiscrepancies": 54,
+  "successfulComparisons": 40,
+  "failedComparisons": 0,
+  "significantDiscrepancies": 14,
   "scenarios": [
     {
       "scenario": "historical_to_current",
       "comparisons": 18,
-      "successful": 0,
-      "failed": 18,
-      "discrepancies": 18,
-      "avgBalanceDiff": 0,
-      "avgActivityCountDiff": 0
+      "successful": 15,
+      "failed": 0,
+      "discrepancies": 3,
+      "avgBalanceDiff": 421.73722222224353,
+      "avgActivityCountDiff": 1.1666666666666667
     },
     {
       "scenario": "current_to_near_future",
       "comparisons": 18,
-      "successful": 0,
-      "failed": 18,
-      "discrepancies": 18,
-      "avgBalanceDiff": 0,
-      "avgActivityCountDiff": 0
+      "successful": 13,
+      "failed": 0,
+      "discrepancies": 5,
+      "avgBalanceDiff": 290.4816500578925,
+      "avgActivityCountDiff": 1
     },
     {
       "scenario": "recent_to_medium_term",
       "comparisons": 18,
-      "successful": 0,
-      "failed": 18,
-      "discrepancies": 18,
-      "avgBalanceDiff": 0,
-      "avgActivityCountDiff": 0
+      "successful": 12,
+      "failed": 0,
+      "discrepancies": 6,
+      "avgBalanceDiff": 2541.4564836015584,
+      "avgActivityCountDiff": 1.5
     }
   ],
   "accounts": [
     {
       "accountName": "Kendall",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 1,
+      "failed": 0,
+      "discrepancies": 2
     },
     {
       "accountName": "Jake",
       "comparisons": 3,
       "successful": 0,
-      "failed": 3,
+      "failed": 0,
       "discrepancies": 3
     },
     {
       "accountName": "Spending",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 1,
+      "failed": 0,
+      "discrepancies": 2
     },
     {
       "accountName": "Emergency",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     },
     {
       "accountName": "Vacation",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     },
     {
       "accountName": "Alaska",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     },
     {
       "accountName": "Bathroom",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     },
     {
       "accountName": "Jake Chase",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     },
     {
       "accountName": "Costco",
       "comparisons": 3,
       "successful": 0,
-      "failed": 3,
+      "failed": 0,
       "discrepancies": 3
     },
     {
       "accountName": "REI",
       "comparisons": 3,
       "successful": 0,
-      "failed": 3,
+      "failed": 0,
       "discrepancies": 3
     },
     {
       "accountName": "WellsFargo",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     },
     {
       "accountName": "Kendall 401(k)",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     },
     {
       "accountName": "Kendall Roth IRA",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     },
     {
       "accountName": "Jake 401(k)",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     },
     {
       "accountName": "Mortgage",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     },
     {
       "accountName": "Fidelity Money Market",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 2,
+      "failed": 0,
+      "discrepancies": 1
     },
     {
       "accountName": "Kendall Chase",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     },
     {
       "accountName": "Solar",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 3,
-      "discrepancies": 3
+      "successful": 3,
+      "failed": 0,
+      "discrepancies": 0
     }
   ]
 }

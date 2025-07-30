@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, unlinkS
 import path from 'path';
 
 // Point to data directory at repository root (CommonJS)
-export const BASE_DATA_DIR = path.join(__dirname, '../../../../data');
+export const BASE_DATA_DIR = path.join(__dirname, '../../../data');
 
 /**
  * Loads and parses JSON data from a file

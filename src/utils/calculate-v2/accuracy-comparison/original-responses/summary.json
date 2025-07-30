@@ -1,16 +1,16 @@
 {
-  "totalScenarios": 5,
+  "totalScenarios": 3,
   "totalAccounts": 18,
-  "totalResponses": 90,
-  "successfulResponses": 89,
+  "totalResponses": 54,
+  "successfulResponses": 53,
   "failedResponses": 1,
   "scenarios": [
     {
       "id": "historical_to_current",
       "description": "Historical data processing (earliest to today)",
       "accountResponses": 18,
-      "successfulAccounts": 18,
-      "failedAccounts": 0
+      "successfulAccounts": 17,
+      "failedAccounts": 1
     },
     {
       "id": "current_to_near_future",
@@ -25,21 +25,7 @@
       "accountResponses": 18,
       "successfulAccounts": 18,
       "failedAccounts": 0
-    },
-    {
-      "id": "extended_projection",
-      "description": "Long-term projection (2 months ago to 10 years)",
-      "accountResponses": 18,
-      "successfulAccounts": 18,
-      "failedAccounts": 0
-    },
-    {
-      "id": "far_future_projection",
-      "description": "Far-future projection (20 to 50 years)",
-      "accountResponses": 18,
-      "successfulAccounts": 17,
-      "failedAccounts": 1
     }
   ],
-  "generatedAt": "2025-07-19T02:51:59.551Z"
+  "generatedAt": "2025-07-30T01:42:36.994Z"
 }

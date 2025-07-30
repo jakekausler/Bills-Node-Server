@@ -7,6 +7,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { load } from '../../io/io';
 import { AccountsAndTransfersData } from '../../../data/account/types';
+import { ConsolidatedActivity } from '../../../data/activity/consolidatedActivity';
 
 interface TestScenario {
   id: string;
@@ -69,7 +70,7 @@ async function fetchOriginalConsolidatedActivity(
   startDate: string,
   endDate: string,
 ): Promise<any[]> {
-  const url = `http://localhost:5002/api/accounts/${accountId}/consolidated_activity?startDate=${startDate}&endDate=${endDate}`;
+  const url = `http://localhost:5173/api/accounts/${accountId}/consolidated_activity?startDate=${startDate}&endDate=${endDate}`;
 
   try {
     console.log(`    Fetching: ${url}`);
@@ -94,6 +95,15 @@ async function fetchOriginalConsolidatedActivity(
 function getAccounts(): Array<{ id: string; name: string }> {
   const data = load<AccountsAndTransfersData>('data.json');
   return data.accounts.map((acc) => ({ id: acc.id, name: acc.name }));
+}
+
+/**
+ * Removes negligible activities from the consolidated activity
+ */
+function removeNegligibles(activities: ConsolidatedActivity[]): ConsolidatedActivity[] {
+  return activities.filter((activity) => {
+    return activity.amount === 0 || Math.abs(Number(activity.amount)) >= 0.0001;
+  });
 }
 
 /**
@@ -131,10 +141,8 @@ async function fetchAllOriginalResponses(): Promise<void> {
       console.log(`  ${accountIndex + 1}/${accounts.length}: ${account.name} (${account.id})`);
 
       try {
-        const consolidatedActivity = await fetchOriginalConsolidatedActivity(
-          account.id,
-          scenario.startDate,
-          scenario.endDate,
+        const consolidatedActivity = removeNegligibles(
+          await fetchOriginalConsolidatedActivity(account.id, scenario.startDate, scenario.endDate),
         );
 
         const response: OriginalResponse = {

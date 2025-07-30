@@ -96,7 +96,7 @@
         "isTransfer": true,
         "fro": "Kendall",
         "to": "Costco",
-        "amount": -2372.48,
+        "amount": -2371.63,
         "amountIsVariable": false,
         "amountVariable": "{FULL}",
         "date": "2025-07-28",
@@ -106,7 +106,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 2328.1
+        "balance": 2328.95
       },
       {
         "id": "be3dbf9c-3f61-4661-90d7-b17a4274e877",
@@ -127,7 +127,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3768.1
+        "balance": 3768.95
       },
       {
         "id": "6489179f-a8b2-4384-9564-02c9cacd29d2",
@@ -148,7 +148,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3668.1
+        "balance": 3668.95
       },
       {
         "id": "46c755c7-4961-4d01-a374-eb97edb25bf5",
@@ -169,7 +169,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3643.1
+        "balance": 3643.95
       },
       {
         "id": "afc47479-e2a4-4f59-86f3-163cb2d0d411",
@@ -190,7 +190,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3642.1
+        "balance": 3642.95
       },
       {
         "id": "be3dbf9c-3f61-4661-90d7-b17a4274e877",
@@ -211,7 +211,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 5082.1
+        "balance": 5082.95
       },
       {
         "id": "6489179f-a8b2-4384-9564-02c9cacd29d2",
@@ -232,7 +232,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4982.1
+        "balance": 4982.95
       },
       {
         "id": "cce39f97-834a-474a-b93a-5dba4e963b41",
@@ -253,7 +253,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4971.1
+        "balance": 4971.95
       },
       {
         "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1755561600000-FROM",
@@ -274,35 +274,35 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4086.1
+        "balance": 4086.95
       }
     ],
-    "balance": 4086.0999999999985
+    "balance": 4086.9499999999985
   },
   "f2eba978-1ba4-40da-87eb-7671e73c0ad0": {
     "id": "f2eba978-1ba4-40da-87eb-7671e73c0ad0",
     "name": "Jake",
     "consolidatedActivity": [
       {
-        "id": "7cca8bb6-9661-4792-adc5-1f0d1c7eb258",
+        "id": "4ff86eb4-9bbe-41b4-8229-66b884d612ef",
         "name": "Nearpod",
         "category": "Income.Salary",
-        "flagColor": "gray",
-        "flag": true,
+        "flagColor": null,
+        "flag": false,
         "isTransfer": false,
         "fro": null,
         "to": null,
         "amount": 2991.06,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-07-25",
+        "date": "2025-07-24",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 6003.88
+        "balance": 11595.69
       },
       {
         "id": "TRANSFER-46d51036-f4b1-412d-84f7-270738800da0-1753574400000-FROM",
@@ -313,7 +313,7 @@
         "isTransfer": true,
         "fro": "Jake",
         "to": "Costco",
-        "amount": -2372.48,
+        "amount": -2371.63,
         "amountIsVariable": false,
         "amountVariable": "{HALF}",
         "date": "2025-07-27",
@@ -323,28 +323,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3631.4
-      },
-      {
-        "id": "92eb73da-f5b6-49b2-a11a-aa566173bc21",
-        "name": "Nearpod Internet",
-        "category": "Utilities.Internet & Cable",
-        "flagColor": "grape",
-        "flag": true,
-        "isTransfer": false,
-        "fro": null,
-        "to": null,
-        "amount": 50,
-        "amountIsVariable": false,
-        "amountVariable": null,
-        "date": "2025-07-28",
-        "dateIsVariable": false,
-        "dateVariable": null,
-        "billId": null,
-        "firstBill": false,
-        "interestId": null,
-        "firstInterest": false,
-        "balance": 3681.4
+        "balance": 9224.06
       },
       {
         "id": "2b3ec713-c7bd-492f-b958-0f8a01d97025",
@@ -365,7 +344,28 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4631.4
+        "balance": 10174.06
+      },
+      {
+        "id": "171a8774-f86f-48e3-930a-903321fd198f",
+        "name": "Solar Panels",
+        "category": "Housing.Maintenance & Repairs",
+        "flagColor": "orange",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -6000,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-31",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 4174.06
       },
       {
         "id": "52862d96-9d70-4748-8618-587fcd21b06e",
@@ -386,7 +386,28 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4631.4
+        "balance": 4174.06
+      },
+      {
+        "id": "62225af1-16d2-4543-bb22-754375e22fe1",
+        "name": "Transfer from Jake to REI",
+        "category": "Ignore.Transfer",
+        "flagColor": "cyan",
+        "flag": true,
+        "isTransfer": true,
+        "fro": "Jake",
+        "to": "REI",
+        "amount": -40,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-31",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 4134.06
       },
       {
         "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-1754006400000-FROM",
@@ -407,7 +428,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 531.4
+        "balance": 34.06
       },
       {
         "id": "977cbb1b-1171-4438-a977-c4f418800486",
@@ -428,7 +449,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 501.45
+        "balance": 4.11
       },
       {
         "id": "7cca8bb6-9661-4792-adc5-1f0d1c7eb258",
@@ -449,7 +470,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3492.51
+        "balance": 2995.17
       },
       {
         "id": "82a02207-d488-4d90-8ef3-4dd238a3ca87",
@@ -470,7 +491,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3342.37
+        "balance": 2845.03
       },
       {
         "id": "2b3ec713-c7bd-492f-b958-0f8a01d97025",
@@ -491,21 +512,42 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4292.37
+        "balance": 3795.03
       }
     ],
-    "balance": 4292.370000000001
+    "balance": 3795.0299999999997
   },
   "a458bdf3-8d66-4769-b40c-516b38028d75": {
     "id": "a458bdf3-8d66-4769-b40c-516b38028d75",
     "name": "Spending",
     "consolidatedActivity": [
       {
+        "id": "f1e2914e-3348-48a5-82db-362a79cccef9",
+        "name": "OptumRX",
+        "category": "Health.Pharmacy",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -20,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-20",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": 280.23
+      },
+      {
         "id": "dc6bb324-25be-4868-a0a1-9cdb67d52b10",
         "name": "Crooked Media",
         "category": "Gifts.Donations",
-        "flagColor": "gray",
-        "flag": true,
+        "flagColor": null,
+        "flag": false,
         "isTransfer": false,
         "fro": null,
         "to": null,
@@ -519,18 +561,18 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 280.24
+        "balance": 260.24
       },
       {
-        "id": "c9364085-82b9-4def-88f7-a36c1c1813c1",
+        "id": "d4be81a7-070f-4e56-9e55-35416b8c5d2a",
         "name": "Backblaze",
         "category": "Shopping.Electronics & Software",
-        "flagColor": "gray",
-        "flag": true,
+        "flagColor": null,
+        "flag": false,
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -4.43,
+        "amount": -4.29,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2025-07-24",
@@ -540,7 +582,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 275.81
+        "balance": 255.95
       },
       {
         "id": "da4956e5-2787-4011-903d-538fe2f76598",
@@ -561,7 +603,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 255.81
+        "balance": 235.95
       },
       {
         "id": "4f6d649e-b581-4a4b-a3f9-7eba8a447915",
@@ -582,7 +624,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 239.37
+        "balance": 219.51
       },
       {
         "id": "c1d96b82-d469-44a1-886d-35b8059d2b21",
@@ -603,7 +645,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 238.85
+        "balance": 218.99
       },
       {
         "id": "283b70db-3b6c-4b37-b3db-0cf4fb2929eb",
@@ -624,7 +666,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 218.85
+        "balance": 198.99
       },
       {
         "id": "9a9ae8a9-0a41-478f-bcbd-9a3feff2a2a3",
@@ -645,10 +687,10 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 154.51
+        "balance": 134.65
       }
     ],
-    "balance": 154.51000000000025
+    "balance": 134.65000000000026
   },
   "bd7f0645-b485-4c96-bcbb-10b390b9e8db": {
     "id": "bd7f0645-b485-4c96-bcbb-10b390b9e8db",
@@ -707,15 +749,57 @@
     "name": "Costco",
     "consolidatedActivity": [
       {
-        "id": "3780bfed-52c9-47e2-97e5-642ef1439bf3",
+        "id": "f18e40c4-934e-4ead-9da4-a5eff36da5c9",
         "name": "Lawn Care",
         "category": "Housing.Maintenance & Repairs",
-        "flagColor": "yellow",
-        "flag": true,
+        "flagColor": null,
+        "flag": false,
         "isTransfer": false,
         "fro": null,
         "to": null,
         "amount": -140,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -4173.41
+      },
+      {
+        "id": "b0dc38c0-b7f7-4789-8140-af59e0d6912b",
+        "name": "LH Trading",
+        "category": "Shopping.Other",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -18.2,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -4191.61
+      },
+      {
+        "id": "8e6e9658-46d4-4c6e-8203-af2527768b03",
+        "name": "Bricklink",
+        "category": "Shopping.Hobbies",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -7.04,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2025-07-20",
@@ -725,10 +809,73 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -3925.4
+        "balance": -4198.65
       },
       {
-        "id": "dd5e4670-ec56-41e5-b72f-59962bf26d37",
+        "id": "7b32197c-7a34-45d0-ad16-06d372ecd63c",
+        "name": "Harris Teeter",
+        "category": "Food.Groceries",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -64.13,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-20",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -4262.78
+      },
+      {
+        "id": "117c3258-8fbd-47eb-8d8a-98af9831fcd2",
+        "name": "Harris Teeter",
+        "category": "Food.Coffee Shops",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -6.98,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-20",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -4269.76
+      },
+      {
+        "id": "d4a7fc94-6f0d-46f9-bcad-a610f2542aee",
+        "name": "Amazon",
+        "category": "Shopping.Other",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -43.5,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-22",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -4313.26
+      },
+      {
+        "id": "14f951c9-6b28-404d-8de0-cbd51e2ea5da",
         "name": "Hello Fresh",
         "category": "Food.Groceries",
         "flagColor": "gray",
@@ -746,18 +893,18 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -4003.87
+        "balance": -4391.73
       },
       {
-        "id": "372c0a2b-3be8-43c8-a397-7475503dea1a",
+        "id": "0915396c-078c-4407-8a78-f231e467f6ab",
         "name": "Raleigh Utility",
         "category": "Utilities.Water & Sewer",
-        "flagColor": "grape",
+        "flagColor": "gray",
         "flag": true,
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -75,
+        "amount": -47.12,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2025-07-24",
@@ -767,7 +914,28 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -4078.87
+        "balance": -4438.85
+      },
+      {
+        "id": "90c80a7a-fbb7-48b0-b807-bb5612adda08",
+        "name": "Marco's Pizza",
+        "category": "Food.Restaurants",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -38.32,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-24",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -4477.17
       },
       {
         "id": "b2ced2da-5aa0-43f4-965d-e64ee181ccd1",
@@ -778,7 +946,7 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -650,
+        "amount": -250,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2025-07-26",
@@ -788,7 +956,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -4728.87
+        "balance": -4727.17
       },
       {
         "id": "8206e6e1-70ac-4a6d-87ee-eb6521bd567a",
@@ -809,7 +977,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -4744.96
+        "balance": -4743.26
       },
       {
         "id": "TRANSFER-46d51036-f4b1-412d-84f7-270738800da0-1753574400000-TO",
@@ -820,7 +988,7 @@
         "isTransfer": true,
         "fro": "Jake",
         "to": "Costco",
-        "amount": 2372.48,
+        "amount": 2371.63,
         "amountIsVariable": false,
         "amountVariable": "{HALF}",
         "date": "2025-07-27",
@@ -830,7 +998,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -2372.48
+        "balance": -2371.63
       },
       {
         "id": "TRANSFER-4645420d-4ac3-48f0-9a44-7641199ca61c-1753660800000-TO",
@@ -841,7 +1009,7 @@
         "isTransfer": true,
         "fro": "Kendall",
         "to": "Costco",
-        "amount": 2372.48,
+        "amount": 2371.63,
         "amountIsVariable": false,
         "amountVariable": "{FULL}",
         "date": "2025-07-28",
@@ -896,27 +1064,6 @@
         "balance": -578.47
       },
       {
-        "id": "2e4d5ac4-f46f-442d-94ad-25ee71e6e368",
-        "name": "Chewy - Litter",
-        "category": "Pets.Supplies",
-        "flagColor": "gray",
-        "flag": true,
-        "isTransfer": false,
-        "fro": null,
-        "to": null,
-        "amount": -80.67,
-        "amountIsVariable": false,
-        "amountVariable": null,
-        "date": "2025-08-02",
-        "dateIsVariable": false,
-        "dateVariable": null,
-        "billId": null,
-        "firstBill": false,
-        "interestId": null,
-        "firstInterest": false,
-        "balance": -659.14
-      },
-      {
         "id": "b4f771b3-4e57-4de1-9d59-c1ea022b44f8",
         "name": "Google Fiber",
         "category": "Utilities.Internet & Cable",
@@ -929,6 +1076,27 @@
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2025-08-03",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -648.47
+      },
+      {
+        "id": "2e4d5ac4-f46f-442d-94ad-25ee71e6e368",
+        "name": "Chewy - Litter",
+        "category": "Pets.Supplies",
+        "flagColor": "gray",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -80.67,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-04",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
@@ -980,27 +1148,6 @@
         "balance": -783.51
       },
       {
-        "id": "f30e333a-e815-4f0a-9545-e2c1ec4c4ed8",
-        "name": "Chewy - Tea Kitty Wet",
-        "category": "Pets.Food",
-        "flagColor": "gray",
-        "flag": true,
-        "isTransfer": false,
-        "fro": null,
-        "to": null,
-        "amount": -145.77,
-        "amountIsVariable": false,
-        "amountVariable": null,
-        "date": "2025-08-06",
-        "dateIsVariable": false,
-        "dateVariable": null,
-        "billId": null,
-        "firstBill": false,
-        "interestId": null,
-        "firstInterest": false,
-        "balance": -929.28
-      },
-      {
         "id": "dd5e4670-ec56-41e5-b72f-59962bf26d37",
         "name": "Hello Fresh",
         "category": "Food.Groceries",
@@ -1019,7 +1166,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1007.75
+        "balance": -861.98
       },
       {
         "id": "e10aec69-03ba-4b0f-9e40-10f491728bda",
@@ -1040,7 +1187,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1235.71
+        "balance": -1089.94
       },
       {
         "id": "a4107369-199a-4679-a483-3e242cfcc1ca",
@@ -1061,7 +1208,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1296.23
+        "balance": -1150.46
       },
       {
         "id": "dd5e4670-ec56-41e5-b72f-59962bf26d37",
@@ -1082,7 +1229,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1374.7
+        "balance": -1228.93
       },
       {
         "id": "a1d7d5cb-4378-4425-a697-677df7258fec",
@@ -1103,7 +1250,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1399.7
+        "balance": -1253.93
       },
       {
         "id": "3cb12c2d-26df-4435-85f0-6cbb34da66f4",
@@ -1124,7 +1271,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1417.92
+        "balance": -1272.15
       },
       {
         "id": "3780bfed-52c9-47e2-97e5-642ef1439bf3",
@@ -1145,35 +1292,245 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -1557.92
+        "balance": -1412.15
       }
     ],
-    "balance": -1557.920000000005
+    "balance": -1412.150000000005
   },
   "76e7786a-c89c-41ab-9e2b-e5c13a7d3b1d": {
     "id": "76e7786a-c89c-41ab-9e2b-e5c13a7d3b1d",
     "name": "REI",
     "consolidatedActivity": [
       {
-        "id": "204cd8a7-92fe-450f-bb82-d92c12a241ad",
-        "name": "Open AI Plus",
+        "id": "39fa3d30-94a6-4628-afbd-c2bb564a15b2",
+        "name": "NAS Upgrade",
         "category": "Shopping.Electronics & Software",
-        "flagColor": "indigo",
-        "flag": true,
+        "flagColor": null,
+        "flag": false,
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -20,
+        "amount": -871.94,
         "amountIsVariable": false,
         "amountVariable": null,
-        "date": "2025-08-05",
+        "date": "2025-07-19",
         "dateIsVariable": false,
         "dateVariable": null,
         "billId": null,
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -20
+        "balance": -1462.16
+      },
+      {
+        "id": "752f2952-83f1-4ccc-b49b-ec87c0c6cf7f",
+        "name": "Claude",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -100,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -1562.16
+      },
+      {
+        "id": "70903baf-e2c9-444a-b0cb-bdbc1e1f0b61",
+        "name": "Cell Idle Factory",
+        "category": "Shopping.Video Games",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -31.09,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-19",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -1593.25
+      },
+      {
+        "id": "0dc660d3-bdfc-4109-b609-ee307f329295",
+        "name": "NAS Upgrade",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -556.61,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-22",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -2149.86
+      },
+      {
+        "id": "d036b6bf-1a81-43ae-8534-4e251fd76d83",
+        "name": "Ubiquity",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -69.4,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-22",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -2219.26
+      },
+      {
+        "id": "569f726b-4624-4aa6-b4a6-ea993e9ea89d",
+        "name": "NAS Upgrade",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -48.25,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-22",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -2267.51
+      },
+      {
+        "id": "e788cf09-8a30-4894-9625-e77ddcaa8cfb",
+        "name": "Paizo",
+        "category": "Shopping.Books",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -77.36,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-23",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -2344.87
+      },
+      {
+        "id": "e3329d69-4e25-4206-9970-6a58b980f5f0",
+        "name": "NAS Upgrade",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": null,
+        "flag": false,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -1344.68,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-23",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -3689.55
+      },
+      {
+        "id": "00eb276a-7fbf-4855-ad2a-abda39bfd8b0",
+        "name": "NAS Upgrade",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": "red",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -804.33,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-23",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -4493.88
+      },
+      {
+        "id": "37df45e7-1209-44c1-a67c-26ac860eb425",
+        "name": "Alpaca",
+        "category": "Food.Restaurants",
+        "flagColor": "red",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -17.33,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-23",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -4511.21
+      },
+      {
+        "id": "62225af1-16d2-4543-bb22-754375e22fe1",
+        "name": "Transfer from Jake to REI",
+        "category": "Ignore.Transfer",
+        "flagColor": "cyan",
+        "flag": true,
+        "isTransfer": true,
+        "fro": "Jake",
+        "to": "REI",
+        "amount": 40,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-07-31",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -4471.21
       },
       {
         "id": "INTEREST-e31dc6c3-f208-46dd-81a3-26b3cebbe4f9-1754438400000",
@@ -1184,7 +1541,7 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": -0.42,
+        "amount": -94.04,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2025-08-06",
@@ -1194,10 +1551,31 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": -20.42
+        "balance": -4565.25
+      },
+      {
+        "id": "204cd8a7-92fe-450f-bb82-d92c12a241ad",
+        "name": "Claude",
+        "category": "Shopping.Electronics & Software",
+        "flagColor": "indigo",
+        "flag": true,
+        "isTransfer": false,
+        "fro": null,
+        "to": null,
+        "amount": -20,
+        "amountIsVariable": false,
+        "amountVariable": null,
+        "date": "2025-08-18",
+        "dateIsVariable": false,
+        "dateVariable": null,
+        "billId": null,
+        "firstBill": false,
+        "interestId": null,
+        "firstInterest": false,
+        "balance": -4585.25
       }
     ],
-    "balance": -20.42066666667763
+    "balance": -4585.254450333344
   },
   "18754bfc-52fa-4cdb-82f3-327b6f251bb7": {
     "id": "18754bfc-52fa-4cdb-82f3-327b6f251bb7",
