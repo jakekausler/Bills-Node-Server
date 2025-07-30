@@ -13,7 +13,7 @@ type CategoriesWithCounts = Record<string, number>;
 /**
  * Mapping of names to their most frequently used category
  */
-type NamesWithCategories = Record<string, string>;
+type NamesWithCategories = Record<string, string | string[]>;
 
 /**
  * Adds a name-category pair to the names tracking object, incrementing the count

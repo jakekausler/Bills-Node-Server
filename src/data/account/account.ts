@@ -36,6 +36,7 @@ export class Account {
   pushStart: Date | null;
   pushEnd: Date | null;
   pushAccount: string | null;
+  defaultShowInGraph: boolean;
 
   /**
    * Creates a new Account instance
@@ -80,6 +81,7 @@ export class Account {
     this.pushStart = data.pushStart ? new Date(data.pushStart) : null;
     this.pushEnd = data.pushEnd ? new Date(data.pushEnd) : null;
     this.pushAccount = data.pushAccount || null;
+    this.defaultShowInGraph = data.defaultShowInGraph || false;
   }
 
   /**
@@ -111,6 +113,7 @@ export class Account {
       pushStart: this.pushStart ? formatDate(this.pushStart) : null,
       pushEnd: this.pushEnd ? formatDate(this.pushEnd) : null,
       pushAccount: this.pushAccount,
+      defaultShowInGraph: this.defaultShowInGraph,
     };
   }
 
@@ -141,6 +144,7 @@ export class Account {
       pushStart: this.pushStart ? formatDate(this.pushStart) : null,
       pushEnd: this.pushEnd ? formatDate(this.pushEnd) : null,
       pushAccount: this.pushAccount,
+      defaultShowInGraph: this.defaultShowInGraph,
     };
   }
 

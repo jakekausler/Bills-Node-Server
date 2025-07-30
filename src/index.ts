@@ -1,5 +1,6 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
 import bodyParser from 'body-parser';
+import path from 'path';
 import { getSimpleAccounts, addAccount, updateAccounts } from './api/accounts/accounts';
 import { getAccount, updateAccount, removeAccount } from './api/accounts/account';
 import { getGraphForAccounts } from './api/accounts/graph';
@@ -56,6 +57,9 @@ const port = process.env.PORT || 5002;
 // Middleware
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 
 interface DecodedToken {
   userId: number;
@@ -364,6 +368,11 @@ app.get('/api/moneyMovement', verifyToken, async (req: Request, res: Response) =
 app.get('/api/sharedSpending', async (req: Request, res: Response) => {
   console.log('Request:', req);
   res.send(await getSharedSpending(req));
+});
+
+// Serve frontend for all non-API routes (SPA fallback)
+app.get('*', (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
 });
 
 // Start server

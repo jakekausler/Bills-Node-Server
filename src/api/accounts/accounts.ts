@@ -49,6 +49,9 @@ function updateBasicAccountProperties(account: Account, newAccount: AccountData)
   if (newAccount.hidden !== account.hidden) {
     account.hidden = newAccount.hidden;
   }
+  if (newAccount.defaultShowInGraph !== account.defaultShowInGraph) {
+    account.defaultShowInGraph = newAccount.defaultShowInGraph || false;
+  }
 }
 
 /**

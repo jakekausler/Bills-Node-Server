@@ -1,10 +1,8 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const filename = fileURLToPath(import.meta.url);
-const dirname = path.dirname(filename);
-export const BASE_DATA_DIR = path.join(dirname, 'data');
+// Point to data directory at repository root (CommonJS)
+export const BASE_DATA_DIR = path.join(__dirname, '../../../../data');
 
 /**
  * Loads and parses JSON data from a file

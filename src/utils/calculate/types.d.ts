@@ -78,3 +78,5 @@ export type PercentileDataYearItem = {
 export type LineGraphDatasets = { label: string; data: number[]; borderColor: string; backgroundColor: string }[];
 
 export type BarChartDataset = { label: string; data: number[]; backgroundColor: string };
+
+export type RMDTableType = Record<number, number>;

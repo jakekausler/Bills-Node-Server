@@ -5,7 +5,7 @@ const LOG_FILE = '/storage/programs/billsV2/log.txt';
 
 /**
  * Logs a message to a file with optional reset flag
- * 
+ *
  * @param message - The message to log to the file
  * @param reset - If true, overwrites the file; if false, appends to the file
  */
@@ -23,26 +23,26 @@ function _getIndent() {
 
 /**
  * Starts timing for a function (currently disabled)
- * 
+ *
  * TODO: Needs to handle recursive calls
  * @param _fn - Function or function name to start timing for
  */
-export function startTiming(_fn: (() => void) | string) {
-  // const name = fn instanceof Function ? fn.name : fn;
+export function startTiming(_fn: Function | string) {
+  // const name = _fn instanceof Function ? _fn.name : _fn;
   // functionTimings[name] = Date.now();
-  // console.log(`=== ${getIndent()}|  ${name} started`);
+  // console.log(`=== ${_getIndent()}|  ${name} started`);
 }
 
 /**
  * Ends timing for a function (currently disabled)
- * 
+ *
  * @param _fn - Function or function name to end timing for
  */
-export function endTiming(_fn: (() => void) | string) {
-  // const name = fn instanceof Function ? fn.name : fn;
+export function endTiming(_fn: Function | string) {
+  // const name = _fn instanceof Function ? _fn.name : _fn;
   // const startTime = functionTimings[name];
   // const endTime = Date.now();
-  // console.log(`=== ${getIndent()}|  ${name} took ${Math.round(endTime - startTime) / 1000}s`);
+  // console.log(`=== ${_getIndent()}|  ${name} took ${Math.round(endTime - startTime) / 1000}s`);
   // delete functionTimings[name];
 }
 
@@ -51,7 +51,7 @@ let progressBar: cliProgress.SingleBar;
 
 /**
  * Initializes a progress bar for tracking simulation progress
- * 
+ *
  * @param nDays - Total number of days to process
  * @param nSimulation - Current simulation number (0-indexed, -1 for single simulation)
  * @param nSimulations - Total number of simulations (-1 for single simulation)
