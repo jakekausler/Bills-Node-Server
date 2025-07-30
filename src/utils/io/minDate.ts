@@ -17,7 +17,7 @@ export function minDate() {
       if (minDate > bill.startDate) {
         minDate = bill.startDate;
       }
-      if (minDate > bill.endDate) {
+      if (bill.endDate && minDate > bill.endDate) {
         minDate = bill.endDate;
       }
     }
@@ -33,10 +33,10 @@ export function minDate() {
     }
   }
   for (const transfer of transfers.bills) {
-    if (minDate > transfer.date) {
-      minDate = transfer.date;
+    if (minDate > transfer.startDate) {
+      minDate = transfer.startDate;
     }
-    if (minDate > transfer.endDate) {
+    if (transfer.endDate && minDate > transfer.endDate) {
       minDate = transfer.endDate;
     }
   }

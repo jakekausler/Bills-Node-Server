@@ -3,7 +3,7 @@ import { AccountsAndTransfers } from '../../data/account/types';
 type NamesWithCounts = Record<string, CategoriesWithCounts>;
 type CategoriesWithCounts = Record<string, number>;
 
-type NamesWithCategories = Record<string, string[]>;
+type NamesWithCategories = Record<string, string | string[]>;
 
 const addToNames = (names: NamesWithCounts, name: string, category: string) => {
   if (!names[name]) {

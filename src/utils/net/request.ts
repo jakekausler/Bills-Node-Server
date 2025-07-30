@@ -63,7 +63,12 @@ function getPath(request: Request, defaultPath: string[]): string[] {
 
 export function getData<T>(
   request: Request,
-  defaults: DefaultData = {
+  defaults: Partial<DefaultData> = {},
+  options: Options = {
+    updateCache: false,
+  },
+): RequestData<T> {
+  const fullDefaults: DefaultData = {
     defaultSimulation: 'Default',
     defaultStartDate: new Date(),
     defaultEndDate: dayjs.utc().add(6, 'month').toDate(),
@@ -73,18 +78,15 @@ export function getData<T>(
     defaultAsActivity: false,
     defaultSkip: false,
     defaultPath: [],
-  },
-  options: Options = {
-    updateCache: false,
-  },
-): RequestData<T> {
-  const simulation = getSimulation(request, defaults.defaultSimulation);
-  const startDate = getStartDate(request, defaults.defaultStartDate);
-  const endDate = getEndDate(request, defaults.defaultEndDate);
-  const selectedAccounts = getSelectedAccounts(request, defaults.defaultSelectedAccounts);
-  const selectedSimulations = getSelectedSimulations(request, defaults.defaultSelectedSimulations);
-  const isTransfer = getIsTransfer(request, defaults.defaultIsTransfer);
-  const skip = getSkip(request, defaults.defaultSkip);
+    ...defaults,
+  };
+  const simulation = getSimulation(request, fullDefaults.defaultSimulation);
+  const startDate = getStartDate(request, fullDefaults.defaultStartDate);
+  const endDate = getEndDate(request, fullDefaults.defaultEndDate);
+  const selectedAccounts = getSelectedAccounts(request, fullDefaults.defaultSelectedAccounts);
+  const selectedSimulations = getSelectedSimulations(request, fullDefaults.defaultSelectedSimulations);
+  const isTransfer = getIsTransfer(request, fullDefaults.defaultIsTransfer);
+  const skip = getSkip(request, fullDefaults.defaultSkip);
   const accountsAndTransfers = loadData(
     options.overrideStartDateForCalculations || startDate,
     endDate,
@@ -92,7 +94,7 @@ export function getData<T>(
     options.updateCache,
   );
   const { socialSecurities, pensions } = loadPensionsAndSocialSecurity(simulation);
-  const asActivity = getAsActivity(request, defaults.defaultAsActivity);
+  const asActivity = getAsActivity(request, fullDefaults.defaultAsActivity);
   // Parse the value to JSON if possible
   let data = request.body;
   try {
@@ -100,7 +102,7 @@ export function getData<T>(
   } catch (_) {
     // Pass the raw value if it's not JSON
   }
-  const path = getPath(request, defaults.defaultPath);
+  const path = getPath(request, fullDefaults.defaultPath);
 
   return {
     simulation,

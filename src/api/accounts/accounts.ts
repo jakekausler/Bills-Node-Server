@@ -80,6 +80,9 @@ export function updateAccounts(request: Request) {
       if (newAccount.pushAccount !== account.pushAccount) {
         account.pushAccount = newAccount.pushAccount || null;
       }
+      if (newAccount.defaultShowInGraph !== account.defaultShowInGraph) {
+        account.defaultShowInGraph = newAccount.defaultShowInGraph || false;
+      }
     }
   });
   saveData(data.accountsAndTransfers);

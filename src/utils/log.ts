@@ -1,7 +1,7 @@
 import fs from 'fs';
 import cliProgress from 'cli-progress';
 
-const LOG_FILE = '/home/jakekausler/programs/billsV2/log.txt';
+const LOG_FILE = '/storage/programs/billsV2/log.txt';
 
 export function logToFile(message: string, reset: boolean = false) {
   const logFile = fs.createWriteStream(LOG_FILE, { flags: reset ? 'w' : 'a' });
@@ -11,22 +11,22 @@ export function logToFile(message: string, reset: boolean = false) {
 
 let functionTimings: Record<string, number> = {};
 
-function getIndent() {
+function _getIndent() {
   return '|  '.repeat(Object.keys(functionTimings).length);
 }
 
 // TODO: Needs to handle recursive calls
-export function startTiming(fn: Function | string) {
-  // const name = fn instanceof Function ? fn.name : fn;
+export function startTiming(_fn: Function | string) {
+  // const name = _fn instanceof Function ? _fn.name : _fn;
   // functionTimings[name] = Date.now();
-  // console.log(`=== ${getIndent()}|  ${name} started`);
+  // console.log(`=== ${_getIndent()}|  ${name} started`);
 }
 
-export function endTiming(fn: Function | string) {
-  // const name = fn instanceof Function ? fn.name : fn;
+export function endTiming(_fn: Function | string) {
+  // const name = _fn instanceof Function ? _fn.name : _fn;
   // const startTime = functionTimings[name];
   // const endTime = Date.now();
-  // console.log(`=== ${getIndent()}|  ${name} took ${Math.round(endTime - startTime) / 1000}s`);
+  // console.log(`=== ${_getIndent()}|  ${name} took ${Math.round(endTime - startTime) / 1000}s`);
   // delete functionTimings[name];
 }
 

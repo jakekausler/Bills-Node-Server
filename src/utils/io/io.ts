@@ -1,10 +1,8 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const filename = fileURLToPath(import.meta.url);
-const dirname = path.dirname(filename);
-export const BASE_DATA_DIR = path.join(dirname, 'data');
+// Point to data directory at repository root (CommonJS)
+export const BASE_DATA_DIR = path.join(__dirname, '../../../../data');
 
 export function load<T>(fn: string): T {
   const data = readFileSync(path.join(BASE_DATA_DIR, fn), 'utf8');

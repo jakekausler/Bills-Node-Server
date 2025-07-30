@@ -44,6 +44,7 @@ export type AccountData = {
   pushStart?: string | null;
   pushEnd?: string | null;
   pushAccount?: string | null;
+  defaultShowInGraph: boolean;
 };
 
 export type TransfersData = {

@@ -17,7 +17,7 @@ export function maxDate() {
       if (maxDate < bill.startDate) {
         maxDate = bill.startDate;
       }
-      if (maxDate < bill.endDate) {
+      if (bill.endDate && maxDate < bill.endDate) {
         maxDate = bill.endDate;
       }
     }
@@ -33,10 +33,10 @@ export function maxDate() {
     }
   }
   for (const transfer of transfers.bills) {
-    if (maxDate < transfer.date) {
-      maxDate = transfer.date;
+    if (maxDate < transfer.startDate) {
+      maxDate = transfer.startDate;
     }
-    if (maxDate < transfer.endDate) {
+    if (transfer.endDate && maxDate < transfer.endDate) {
       maxDate = transfer.endDate;
     }
   }
