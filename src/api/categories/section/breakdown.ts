@@ -14,8 +14,8 @@ import { getData } from '../../../utils/net/request';
  * @param request - Express request object with section parameter
  * @returns Object mapping subcategory names to their total spending amounts
  */
-export function getCategorySectionBreakdown(request: Request) {
-  const data = getData(request);
+export async function getCategorySectionBreakdown(request: Request) {
+  const data = await getData(request);
   const section = request.params.section as string;
   const accounts = data.accountsAndTransfers.accounts;
 

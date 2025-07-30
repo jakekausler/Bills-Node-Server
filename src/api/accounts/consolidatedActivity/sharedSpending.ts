@@ -7,9 +7,9 @@ import utc from 'dayjs/plugin/utc';
 
 dayjs.extend(utc);
 
-export function getSharedSpending(request: Request) {
+export async function getSharedSpending(request: Request) {
   console.log('Request:', request);
-  const data = getData(request, { defaultEndDate: dayjs.utc().add(12, 'month').toDate() });
+  const data = await getData(request, { defaultEndDate: dayjs.utc().add(12, 'month').toDate() });
   console.log('Data:', data);
   const account = data.accountsAndTransfers.accounts.find((a: Account) => a.name === 'Costco');
   if (!account) {

@@ -12,8 +12,8 @@ import { getMoneyMovement, getMoneyMovementChartData } from '../../utils/moneyMo
  * @param req - Express request object with optional query parameters
  * @returns Chart data object with labels and datasets for money movement visualization
  */
-export function getMoneyMovementChart(req: Request) {
-  const data = getData(req);
+export async function getMoneyMovementChart(req: Request) {
+  const data = await getData(req);
   const startDate = data.startDate;
   const endDate = data.endDate;
   const accountsAndTransfers = data.accountsAndTransfers;

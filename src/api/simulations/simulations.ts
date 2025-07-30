@@ -74,8 +74,8 @@ export function getSimulations(_request: Request) {
  * const updatedSimulations = updateSimulations(request);
  * ```
  */
-export function updateSimulations(request: Request) {
-  const data = getData<Simulations>(request);
+export async function updateSimulations(request: Request) {
+  const data = await getData<Simulations>(request);
   saveSimulations(data.data);
   return data.data;
 }

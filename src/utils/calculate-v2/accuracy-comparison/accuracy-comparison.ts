@@ -302,7 +302,7 @@ export async function runAccuracyComparison(): Promise<void> {
             );
           } else if (comparison.differences.significant) {
             scenarioDiscrepancies++;
-            console.log(`    ⚠️  ${comparison.accountName}: Discrepancy`);
+            console.log(`    ⚠️ ${comparison.accountName}: Discrepancy`);
             console.log(
               `       Activity count: ${comparison.original.activityCount} → ${comparison.calculated.activityCount} (${comparison.differences.activityCountDiff >= 0 ? '+' : ''}${comparison.differences.activityCountDiff})`,
             );

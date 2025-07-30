@@ -28,6 +28,9 @@ import { Interest } from '../../data/interest/interest';
 // Transfer data is handled through AccountsAndTransfers.transfers
 import { loadVariable } from '../simulation/variable';
 import { nextDate } from '../calculate/helpers';
+import { debug } from './logger';
+import { format } from 'util';
+import { formatDate, isAfterOrSame, isBefore, isBeforeOrSame } from '../date/date';
 
 dayjs.extend(utc);
 
@@ -150,6 +153,7 @@ export class Timeline {
 
       // Calculate next occurrence
       currentDate = nextDate(currentDate, bill.periods, bill.everyN);
+      currentDate = bill.checkAnnualDates(currentDate);
       eventCount++;
 
       // Safety check to prevent infinite loops
@@ -157,6 +161,26 @@ export class Timeline {
         throw new Error(`Too many bill events generated for bill ${bill.id}`);
       }
     }
+  }
+
+  /**
+   * Calculates the number of years between two dates, considering increaseByDate
+   */
+  private yearIncreases(startDate: Date, endDate: Date, increaseDate: { day: number; month: number }): number {
+    let count = 0;
+
+    // Start from the first possible increase date after startDate
+    const startYear = startDate.getUTCFullYear();
+    const endYear = endDate.getUTCFullYear();
+
+    for (let year = startYear; year <= endYear; year++) {
+      const milestone = new Date(year, increaseDate.month, increaseDate.day);
+      if (isAfterOrSame(milestone, startDate) && isBeforeOrSame(milestone, endDate)) {
+        count++;
+      }
+    }
+
+    return count;
   }
 
   /**
@@ -173,15 +197,21 @@ export class Timeline {
       }
     }
 
-    // Apply inflation if configured
-    if (bill.inflationRate && bill.inflationRate > 0) {
-      const yearsDiff = dayjs.utc(date).diff(dayjs.utc(bill.startDate), 'year', true);
-      amount = amount * Math.pow(1 + bill.inflationRate / 100, yearsDiff);
-    }
-
     // Apply ceilingMultiple if configured
     if (bill.ceilingMultiple && bill.ceilingMultiple > 0) {
       amount = Math.ceil(amount / bill.ceilingMultiple) * bill.ceilingMultiple;
+    }
+
+    // Apply inflation if configured
+    if (bill.increaseBy && bill.increaseBy > 0) {
+      const yearsDiff = this.yearIncreases(bill.startDate, date, bill.increaseByDate);
+      for (let i = 0; i < yearsDiff; i++) {
+        amount *= 1 + bill.increaseBy;
+        // Apply ceilingMultiple if configured
+        if (bill.ceilingMultiple && bill.ceilingMultiple > 0) {
+          amount = Math.ceil(amount / bill.ceilingMultiple) * bill.ceilingMultiple;
+        }
+      }
     }
 
     return amount;
@@ -284,28 +314,21 @@ export class Timeline {
       }
     }
 
-    // Apply inflation if configured (similar to original bill logic)
-    if (typeof amount === 'number' && transfer.increaseBy && transfer.increaseBy > 0 && transfer.startDate) {
-      // Calculate if we need to apply inflation increase based on increaseByDate
-      const shouldApplyIncrease = this.shouldApplyInflationIncrease(transfer, date);
-
-      if (shouldApplyIncrease) {
-        const increaseRate =
-          transfer.increaseByIsVariable && transfer.increaseByVariable
-            ? this.getVariableIncreaseRate(transfer.increaseByVariable, simulation)
-            : transfer.increaseBy;
-
-        // Calculate years since start date
-        const yearsDiff = dayjs.utc(date).diff(dayjs.utc(transfer.startDate), 'year', true);
-        if (yearsDiff > 0) {
-          amount = amount * Math.pow(1 + increaseRate, Math.floor(yearsDiff));
-        }
-      }
-    }
-
     // Apply ceilingMultiple if configured
     if (typeof amount === 'number' && transfer.ceilingMultiple && transfer.ceilingMultiple > 0) {
       amount = Math.ceil(amount / transfer.ceilingMultiple) * transfer.ceilingMultiple;
+    }
+
+    // Apply inflation if configured (similar to original bill logic)
+    if (transfer.increaseBy && transfer.increaseBy > 0) {
+      const yearsDiff = this.yearIncreases(transfer.startDate, date, transfer.increaseByDate);
+      for (let i = 0; i < yearsDiff; i++) {
+        amount *= 1 + transfer.increaseBy;
+        // Apply ceilingMultiple if configured
+        if (typeof amount === 'number' && transfer.ceilingMultiple && transfer.ceilingMultiple > 0) {
+          amount = Math.ceil(amount / transfer.ceilingMultiple) * transfer.ceilingMultiple;
+        }
+      }
     }
 
     return amount;

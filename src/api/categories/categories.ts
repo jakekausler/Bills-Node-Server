@@ -45,8 +45,8 @@ export function getCategories(_request: Request) {
  * // Returns: { ...existing, "Housing": ["Rent", ...sorted items] }
  * ```
  */
-export function addCategory(request: Request) {
-  const data = getData(request);
+export async function addCategory(request: Request) {
+  const data = await getData(request);
   const categories = loadCategories();
   const path = data.path;
 
@@ -98,8 +98,8 @@ export function addCategory(request: Request) {
  * // Returns: categories with Rent removed from Housing
  * ```
  */
-export function deleteCategory(request: Request) {
-  const data = getData(request);
+export async function deleteCategory(request: Request) {
+  const data = await getData(request);
   const categories = loadCategories();
   const path = data.path;
 

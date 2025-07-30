@@ -51,7 +51,7 @@ describe('Log Utilities', () => {
       logToFile(message);
 
       expect(fs.createWriteStream).toHaveBeenCalledWith(
-        '/home/jakekausler/programs/billsV2/log.txt',
+        '/storage/programs/billsV2/log.txt',
         { flags: 'a' }
       );
       expect(mockWriteStream.write).toHaveBeenCalledWith(message + '\n');
@@ -64,7 +64,7 @@ describe('Log Utilities', () => {
       logToFile(message, true);
 
       expect(fs.createWriteStream).toHaveBeenCalledWith(
-        '/home/jakekausler/programs/billsV2/log.txt',
+        '/storage/programs/billsV2/log.txt',
         { flags: 'w' }
       );
       expect(mockWriteStream.write).toHaveBeenCalledWith(message + '\n');

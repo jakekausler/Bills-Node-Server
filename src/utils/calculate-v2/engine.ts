@@ -41,6 +41,7 @@ import crypto from 'crypto';
 import { debug, err, log, warn } from './logger';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { formatDate } from '../date/date';
+import { todayBalance } from '../../data/account/account';
 
 dayjs.extend(utc);
 
@@ -68,8 +69,6 @@ export class CalculationEngine {
    */
   async calculate(accountsAndTransfers: AccountsAndTransfers, options: CalculationOptions): Promise<CalculationResult> {
     const startTime = new Date();
-
-    debug('Test logging', { prop1: 'value1', prop2: 'value2' });
 
     try {
       // Initialize performance metrics
@@ -114,7 +113,7 @@ export class CalculationEngine {
       const result = await this.performCalculation(accountsAndTransfers, options);
 
       // Round values and format dates
-      result.accounts.forEach((account) => {
+      result.accountsAndTransfers.accounts.forEach((account) => {
         // The accounts from getUpdatedAccounts have consolidatedActivity, not activity
         if (account.consolidatedActivity) {
           account.consolidatedActivity.forEach((activity) => {
@@ -124,11 +123,6 @@ export class CalculationEngine {
               err('Error rounding activity amount:', activity.amount);
             }
             activity.balance = Math.round(activity.balance * 100) / 100; // Round to 2 decimal places
-            try {
-              activity.date = formatDate(activity.date);
-            } catch {
-              err('Error formatting activity date:', activity.date);
-            }
           });
         }
       });
@@ -248,16 +242,19 @@ export class CalculationEngine {
       const result = {
         success: !this.processingState!.error,
         error: this.processingState!.error?.message || null,
-        accounts: updatedAccounts,
+        accountsAndTransfers: {
+          accounts: updatedAccounts,
+          transfers: accountsAndTransfers.transfers,
+        },
         finalBalances,
         metrics,
         metadata,
       };
 
       // Test accessing the first account
-      if (result.accounts && result.accounts.length > 0) {
+      if (result.accountsAndTransfers.accounts && result.accountsAndTransfers.accounts.length > 0) {
         try {
-          const firstAccount = result.accounts[0];
+          const firstAccount = result.accountsAndTransfers.accounts[0];
         } catch (accountError) {
           err('[Engine] Error accessing first account:', accountError);
         }
@@ -389,7 +386,7 @@ export class CalculationEngine {
           await this.calculator.processActivityEvent(event as ActivityEvent, segmentResult);
           break;
         case EventType.bill:
-          await this.calculator.processBillEvent(event as BillEvent, segmentResult);
+          await this.calculator.processBillEvent(event as BillEvent, segmentResult, options.simulation);
           break;
         case EventType.interest:
           await this.calculator.processInterestEvent(event as InterestEvent, segmentResult);
@@ -410,7 +407,7 @@ export class CalculationEngine {
           await this.calculator.processRMDEvent(event as RMDEvent, segmentResult);
           break;
         case EventType.pushPullCheck:
-          await this.calculator.processPushPullEvent(
+          this.calculator.processPushPullEvent(
             event as PushPullEvent,
             accountsAndTransfers,
             {

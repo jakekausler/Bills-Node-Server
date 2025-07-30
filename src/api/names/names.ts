@@ -12,7 +12,7 @@ import { loadNameCategories } from '../../utils/names/names';
  * @param request - Express request object with optional query parameters
  * @returns Object mapping transaction names to their most frequent categories
  */
-export function getNameCategories(request: Request) {
-  const data = getData(request);
+export async function getNameCategories(request: Request) {
+  const data = await getData(request);
   return loadNameCategories(data.accountsAndTransfers);
 }

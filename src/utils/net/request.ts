@@ -122,13 +122,13 @@ function getPath(request: Request, defaultPath: string[]): string[] {
  * @param options - Processing options for data loading and caching
  * @returns Complete request data object with parsed parameters, loaded financial data, and metadata
  */
-export function getData<T>(
+export async function getData<T>(
   request: Request,
   partialDefaults: PartialDefaultData = {},
   options: Options = {
     updateCache: false,
   },
-): RequestData<T> {
+): Promise<RequestData<T>> {
   const defaults: DefaultData = {
     defaultSimulation: 'Default',
     defaultStartDate: new Date(),
@@ -148,11 +148,10 @@ export function getData<T>(
   const selectedSimulations = getSelectedSimulations(request, defaults.defaultSelectedSimulations);
   const isTransfer = getIsTransfer(request, defaults.defaultIsTransfer);
   const skip = getSkip(request, defaults.defaultSkip);
-  const accountsAndTransfers = loadData(
+  const accountsAndTransfers = await loadData(
     options.overrideStartDateForCalculations || startDate,
     endDate,
     simulation,
-    options.updateCache,
   );
   const { socialSecurities, pensions } = loadPensionsAndSocialSecurity(simulation);
   const asActivity = getAsActivity(request, defaults.defaultAsActivity);

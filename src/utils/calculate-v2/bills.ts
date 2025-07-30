@@ -13,7 +13,7 @@ import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { formatDate } from '../date/date';
 import { loadVariable } from '../simulation/variable';
 import { nextDate } from '../calculate/helpers';
-import { warn } from './logger';
+import { debug, warn } from './logger';
 
 dayjs.extend(utc);
 
@@ -691,4 +691,3 @@ export class BillProcessor {
     return occurrences;
   }
 }
-

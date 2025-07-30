@@ -11,8 +11,8 @@ import { AccountData } from '../../data/account/types';
  * @param request - Express request object with accountId parameter
  * @returns Simplified account object containing basic account information
  */
-export function getAccount(request: Request) {
-  const data = getData(request);
+export async function getAccount(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   return account.simpleAccount();
 }
@@ -23,8 +23,8 @@ export function getAccount(request: Request) {
  * @param request - Express request object with accountId parameter and account data
  * @returns Updated simplified account object
  */
-export function updateAccount(request: Request) {
-  const data = getData<AccountData>(request);
+export async function updateAccount(request: Request) {
+  const data = await getData<AccountData>(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   account.name = data.data.name;
   saveData(data.accountsAndTransfers);
@@ -37,8 +37,8 @@ export function updateAccount(request: Request) {
  * @param request - Express request object with accountId parameter
  * @returns The ID of the removed account
  */
-export function removeAccount(request: Request) {
-  const data = getData<AccountData>(request);
+export async function removeAccount(request: Request) {
+  const data = await getData<AccountData>(request);
   data.accountsAndTransfers.accounts = data.accountsAndTransfers.accounts.filter(
     (a) => a.id !== request.params.accountId,
   );

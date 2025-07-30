@@ -24,8 +24,8 @@ import { getData } from '../../utils/net/request';
  * // }
  * ```
  */
-export function getCategoryBreakdown(request: Request) {
-  const data = getData(request);
+export async function getCategoryBreakdown(request: Request) {
+  const data = await getData(request);
   const accounts = data.accountsAndTransfers.accounts;
   const selectedAccounts = data.selectedAccounts;
 

@@ -15,8 +15,8 @@ import { Activity } from '../../../../data/activity/activity';
  * @param request - Express request object with section and item parameters
  * @returns Array of serialized activity objects for the specific category item
  */
-export function getCategorySectionItemTransactions(request: Request) {
-  const data = getData(request);
+export async function getCategorySectionItemTransactions(request: Request) {
+  const data = await getData(request);
   const section = request.params.section;
   const item = request.params.item;
   const accounts = data.accountsAndTransfers.accounts;

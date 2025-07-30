@@ -13,8 +13,8 @@ import { Account } from '../../data/account/account';
  * @param request - Express request object containing account ID in params
  * @returns The current balance of the specified account
  */
-export function getTodayBalance(request: Request) {
-  const data = getData(request);
+export async function getTodayBalance(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   return todayBalance(account);
 }

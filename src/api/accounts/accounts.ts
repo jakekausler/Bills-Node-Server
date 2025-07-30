@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { Account } from '../../data/account/account';
+import { Account, todayBalance } from '../../data/account/account';
 import { AccountData } from '../../data/account/types';
 import { saveData } from '../../utils/io/accountsAndTransfers';
 import { getData } from '../../utils/net/request';
@@ -11,9 +11,15 @@ import { DateString } from '../../utils/date/types';
  * @param request - Express request object containing user authentication
  * @returns Array of simplified account objects
  */
-export function getSimpleAccounts(request: Request) {
-  const data = getData(request);
-  return data.accountsAndTransfers.accounts.map((account) => account.simpleAccount());
+export async function getSimpleAccounts(request: Request) {
+  const data = await getData(request, {
+    defaultStartDate: new Date(2024, 0, 1),
+  });
+  return data.accountsAndTransfers.accounts.map((account) => {
+    const simpleAccount = account.simpleAccount();
+    simpleAccount.balance = todayBalance(account);
+    return simpleAccount;
+  });
 }
 
 /**
@@ -21,8 +27,8 @@ export function getSimpleAccounts(request: Request) {
  * @param request - Express request object containing account data
  * @returns ID of the newly created account
  */
-export function addAccount(request: Request) {
-  const data = getData<AccountData>(request);
+export async function addAccount(request: Request) {
+  const data = await getData<AccountData>(request);
   data.accountsAndTransfers.accounts.push(new Account(data.data, data.simulation));
   saveData(data.accountsAndTransfers);
   return data.accountsAndTransfers.accounts[data.accountsAndTransfers.accounts.length - 1].id;
@@ -134,16 +140,16 @@ function updateSingleAccount(account: Account, newAccount: AccountData): void {
  * @param request - Express request object containing account updates
  * @returns Updated accounts array
  */
-export function updateAccounts(request: Request) {
-  const data = getData<AccountData[]>(request);
-  
+export async function updateAccounts(request: Request) {
+  const data = await getData<AccountData[]>(request);
+
   data.accountsAndTransfers.accounts.forEach((account) => {
     const newAccount = data.data.find((a) => a.id === account.id);
     if (newAccount) {
       updateSingleAccount(account, newAccount);
     }
   });
-  
+
   saveData(data.accountsAndTransfers);
   return data.accountsAndTransfers.accounts;
 }

@@ -13,8 +13,8 @@ import { saveData } from '../../../utils/io/accountsAndTransfers';
  * @param request - Express request object with activityId parameter and optional accountId
  * @returns The specific activity object
  */
-export function getSpecificActivity(request: Request) {
-  const data = getData(request);
+export async function getSpecificActivity(request: Request) {
+  const data = await getData(request);
   if (data.isTransfer) {
     return getById<Activity>(data.accountsAndTransfers.transfers.activity, request.params.activityId);
   } else {
@@ -32,8 +32,8 @@ export function getSpecificActivity(request: Request) {
  * @param request - Express request object with activityId parameter and activity data
  * @returns The ID of the updated activity
  */
-export function updateSpecificActivity(request: Request) {
-  const data = getData<ActivityData>(request);
+export async function updateSpecificActivity(request: Request) {
+  const data = await getData<ActivityData>(request);
   let activity: Activity;
   let activityIdx: number;
   let originalIsTransfer = false;
@@ -104,8 +104,8 @@ export function updateSpecificActivity(request: Request) {
  * @param request - Express request object with activityId parameter and optional accountId
  * @returns The ID of the deleted activity
  */
-export function deleteSpecificActivity(request: Request) {
-  const data = getData(request);
+export async function deleteSpecificActivity(request: Request) {
+  const data = await getData(request);
   let activity: Activity;
   let activityIdx: number;
   if (data.isTransfer) {
@@ -138,8 +138,8 @@ export function deleteSpecificActivity(request: Request) {
  * @param request - Express request object with activityId, accountId, and newAccountId parameters
  * @returns The ID of the activity that was moved
  */
-export function changeAccountForActivity(request: Request) {
-  const data = getData(request);
+export async function changeAccountForActivity(request: Request) {
+  const data = await getData(request);
   const oldAccount = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   let activity: Activity;
 

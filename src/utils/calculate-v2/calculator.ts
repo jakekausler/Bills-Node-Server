@@ -29,6 +29,7 @@ import { formatDate } from '../date/date';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { loadVariable } from '../simulation/variable';
 import { debug, err, log, warn } from './logger';
+import { Account } from '../../data/account/account';
 
 dayjs.extend(utc);
 
@@ -72,13 +73,6 @@ export class Calculator {
       // Update balance in segment result
       const balanceChange = activity.amount as number;
       const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
-      debug('Activity Event', {
-        accountId,
-        date: formatDate(event.date),
-        balanceChange: balanceChange.toFixed(2),
-        currentChange: currentChange.toFixed(2),
-        newBalance: (currentChange + balanceChange).toFixed(2),
-      });
       segmentResult.balanceChanges.set(accountId, currentChange + balanceChange);
     } catch (error) {
       err(`[Calculator] Error processing activity event ${event.id}:`, error);
@@ -89,28 +83,16 @@ export class Calculator {
   /**
    * Processes a bill event (recurring payment/income)
    */
-  processBillEvent(event: BillEvent, segmentResult: SegmentResult): void {
+  processBillEvent(event: BillEvent, segmentResult: SegmentResult, simultation: string): void {
     const bill = event.bill;
     const accountId = event.accountId;
     const amount = event.amount;
 
     // Create consolidated activity for the bill
-    const billActivity = new ConsolidatedActivity({
-      id: `BILL-${bill.id}-${event.date.getTime()}`,
-      name: bill.name,
-      amount: amount,
-      amountIsVariable: event.isVariable,
-      amountVariable: bill.amountVariable,
-      date: formatDate(event.date),
-      dateIsVariable: false,
-      dateVariable: null,
-      from: null,
-      to: null,
-      isTransfer: false,
-      category: bill.category,
-      flag: bill.flag || false,
-      flagColor: bill.flagColor || null,
-    });
+    const billActivity = new ConsolidatedActivity(
+      bill.toActivity(bill.id, simultation, amount, event.date).serialize(),
+      { billId: bill.id },
+    );
 
     // Add to segment result
     if (!segmentResult.activitiesAdded.has(accountId)) {
@@ -120,13 +102,6 @@ export class Calculator {
 
     // Update balance
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
-    debug('Bill Event', {
-      accountId,
-      date: formatDate(event.date),
-      balanceChange: amount.toFixed(2),
-      currentChange: currentChange.toFixed(2),
-      newBalance: (currentChange + amount).toFixed(2),
-    });
     segmentResult.balanceChanges.set(accountId, currentChange + amount);
   }
 
@@ -148,32 +123,26 @@ export class Calculator {
       return;
     }
 
-    debug({
-      accountId,
-      date: formatDate(event.date),
-      amount: interestAmount.toFixed(2),
-      interestRate: event.rate,
-      compounded: interest.compounded,
-      usingBalance: currentBalance.toFixed(2),
-    });
-
     // Create consolidated activity for interest
-    const interestActivity = new ConsolidatedActivity({
-      id: `INTEREST-${interest.id}-${event.date.getTime()}`,
-      name: `Interest - ${interest.id}`,
-      amount: interestAmount,
-      amountIsVariable: false,
-      amountVariable: null,
-      date: formatDate(event.date),
-      dateIsVariable: false,
-      dateVariable: null,
-      from: null,
-      to: null,
-      isTransfer: false,
-      category: 'Banking.Interest',
-      flag: false,
-      flagColor: null,
-    });
+    const interestActivity = new ConsolidatedActivity(
+      {
+        id: `INTEREST-${interest.id}-${event.date.getTime()}`,
+        name: `Interest - ${interest.id}`,
+        amount: interestAmount,
+        amountIsVariable: false,
+        amountVariable: null,
+        date: formatDate(event.date),
+        dateIsVariable: false,
+        dateVariable: null,
+        from: null,
+        to: null,
+        isTransfer: false,
+        category: 'Banking.Interest',
+        flag: false,
+        flagColor: null,
+      },
+      { interestId: interest.id },
+    );
 
     // Add to segment result
     if (!segmentResult.activitiesAdded.has(accountId)) {
@@ -184,13 +153,6 @@ export class Calculator {
     // Update balance
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + interestAmount);
-    debug('Interest Event', {
-      accountId,
-      date: formatDate(event.date),
-      balanceChange: interestAmount.toFixed(2),
-      currentChange: currentChange.toFixed(2),
-      newBalance: (currentChange + interestAmount).toFixed(2),
-    });
 
     // Track taxable interest if not tax-deferred
     if (!event.taxDeferred) {
@@ -201,7 +163,7 @@ export class Calculator {
   /**
    * Processes a transfer event (money movement between accounts)
    */
-  processTransferEvent(event: TransferEvent, segmentResult: SegmentResult): void {
+  processTransferEvent(event: TransferEvent, segmentResult: SegmentResult, simulation: string): void {
     const transfer = event.transfer;
     const fromAccountId = event.fromAccountId;
     const toAccountId = event.toAccountId;
@@ -209,9 +171,10 @@ export class Calculator {
     // Calculate actual transfer amount, resolving {FULL} and {HALF} based on current balance
     let amount = event.amount;
 
+    const toAccountBalance = this.getCurrentAccountBalance(toAccountId, segmentResult);
+    const fromAccountBalance = this.getCurrentAccountBalance(fromAccountId, segmentResult);
     // Check if this is a {FULL} or {HALF} transfer that needs balance resolution
     if ((transfer.amountIsVariable && transfer.amountVariable) || typeof transfer.amount === 'string') {
-      const toAccountBalance = this.getCurrentAccountBalance(toAccountId, segmentResult);
 
       // Handle variable amounts
       if (transfer.amountIsVariable && transfer.amountVariable) {
@@ -257,45 +220,99 @@ export class Calculator {
       }
     }
 
+    // Apply transfer limitations based on account types
+    const fromAccount = this.balanceTracker.accounts.find((acc: Account) => acc.id === fromAccountId);
+    const toAccount = this.balanceTracker.accounts.find((acc: Account) => acc.id === toAccountId);
+
+    if (fromAccount && toAccount) {
+      // Handle "to" account limits for Loan/Credit accounts
+      if (toAccount.type === 'Loan' || toAccount.type === 'Credit') {
+        const maxTransfer = Math.abs(toAccountBalance);
+        amount = Math.min(Math.abs(amount), maxTransfer);
+        amount = amount > 0 ? amount : 0; // Ensure non-negative
+        debug({
+          fromAccount,
+          toAccount,
+          toAccountBalance,
+          amount,
+        })
+      }
+
+      // Handle "from" account limits for non-Loan/Credit accounts transferring to Savings/Investment
+      if (
+        fromAccount.type !== 'Loan' &&
+        fromAccount.type !== 'Credit' &&
+        (toAccount.type === 'Savings' || toAccount.type === 'Investment')
+      ) {
+        if (Math.abs(amount) > fromAccountBalance) {
+          amount = Math.min(Math.abs(amount), fromAccountBalance > 0 ? -fromAccountBalance : 0);
+        }
+        debug({
+          fromAccount,
+          toAccount,
+          fromAccountBalance,
+          amount,
+        })
+      }
+    }
+
     // Only create activities for non-zero amounts (filter out zeros and floating-point noise)
     if (Math.abs(amount) <= 0.00001) {
       return;
     }
 
-    // Create activities for both accounts
-    const fromActivity = new ConsolidatedActivity({
-      id: `TRANSFER-${transfer.id}-${event.date.getTime()}-FROM`,
-      name: transfer.name, // Use the original transfer name
-      amount: -amount,
-      amountIsVariable: transfer.amountIsVariable || false,
-      amountVariable: transfer.amountVariable || null,
-      date: formatDate(event.date),
-      dateIsVariable: false,
-      dateVariable: null,
-      from: transfer.from,
-      to: transfer.to,
-      isTransfer: true,
-      category: 'Ignore.Transfer',
-      flag: transfer.flag || false,
-      flagColor: transfer.flagColor || 'blue',
-    });
+    const isBill = !!transfer.startDate;
+    const fromActivity = new ConsolidatedActivity(
+      isBill
+        ? transfer
+          .toActivity(`TRANSFER-${transfer.id}-${event.date.getTime()}-FROM`, simulation, -amount, event.date)
+          .serialize()
+        : {
+          id: `TRANSFER-${transfer.id}-${event.date.getTime()}-FROM`,
+          name: transfer.name, // Use the original transfer name
+          amount: -amount,
+          amountIsVariable: transfer.amountIsVariable || false,
+          amountVariable: transfer.amountVariable || null,
+          date: formatDate(event.date),
+          dateIsVariable: false,
+          dateVariable: null,
+          from: transfer.from,
+          to: transfer.to,
+          isTransfer: true,
+          category: transfer.category || 'Ignore.Transfer',
+          flag: transfer.flag || false,
+          flagColor: transfer.flagColor || 'blue',
+        },
+      {
+        billId: isBill ? transfer.id : undefined,
+      },
+    );
 
-    const toActivity = new ConsolidatedActivity({
-      id: `TRANSFER-${transfer.id}-${event.date.getTime()}-TO`,
-      name: transfer.name, // Use the original transfer name
-      amount: amount,
-      amountIsVariable: transfer.amountIsVariable || false,
-      amountVariable: transfer.amountVariable || null,
-      date: formatDate(event.date),
-      dateIsVariable: false,
-      dateVariable: null,
-      from: transfer.from,
-      to: transfer.to,
-      isTransfer: true,
-      category: 'Ignore.Transfer',
-      flag: transfer.flag || false,
-      flagColor: transfer.flagColor || 'blue',
-    });
+    const toActivity = new ConsolidatedActivity(
+      isBill
+        ? transfer
+          .toActivity(`TRANSFER-${transfer.id}-${event.date.getTime()}-TO`, simulation, amount, event.date)
+          .serialize()
+        : {
+          id: `TRANSFER-${transfer.id}-${event.date.getTime()}-TO`,
+          name: transfer.name, // Use the original transfer name
+          amount: amount,
+          amountIsVariable: transfer.amountIsVariable || false,
+          amountVariable: transfer.amountVariable || null,
+          date: formatDate(event.date),
+          dateIsVariable: false,
+          dateVariable: null,
+          from: transfer.from,
+          to: transfer.to,
+          isTransfer: true,
+          category: transfer.category || 'Ignore.Transfer',
+          flag: transfer.flag || false,
+          flagColor: transfer.flagColor || 'blue',
+        },
+      {
+        billId: isBill ? transfer.id : undefined,
+      },
+    );
 
     // Add activities to segment result
     if (!segmentResult.activitiesAdded.has(fromAccountId)) {
@@ -311,17 +328,6 @@ export class Calculator {
     // Update balances
     const fromCurrentChange = segmentResult.balanceChanges.get(fromAccountId) || 0;
     const toCurrentChange = segmentResult.balanceChanges.get(toAccountId) || 0;
-    debug('Transfer Event', {
-      fromAccountId,
-      toAccountId,
-      date: formatDate(event.date),
-      fromBalanceChange: (-amount).toFixed(2),
-      toBalanceChange: amount.toFixed(2),
-      fromCurrentChange: fromCurrentChange.toFixed(2),
-      toCurrentChange: toCurrentChange.toFixed(2),
-      fromNewBalance: (fromCurrentChange - amount).toFixed(2),
-      toNewBalance: (toCurrentChange + amount).toFixed(2),
-    });
 
     segmentResult.balanceChanges.set(fromAccountId, fromCurrentChange - amount);
     segmentResult.balanceChanges.set(toAccountId, toCurrentChange + amount);
@@ -366,12 +372,12 @@ export class Calculator {
   /**
    * Processes a push/pull check event (monthly balance optimization)
    */
-  async processPushPullEvent(
+  processPushPullEvent(
     event: PushPullEvent,
     accountsAndTransfers: AccountsAndTransfers,
     options: PushPullOptions,
     segmentResult: SegmentResult,
-  ): Promise<void> {
+  ): void {
     // Get the SmartPushPullProcessor from the engine
     const pushPullProcessor = options.pushPullProcessor;
     if (!pushPullProcessor) {
@@ -390,7 +396,7 @@ export class Calculator {
 
     try {
       // Process monthly push/pull operations
-      const result = await pushPullProcessor.processMonthlyPushPull(context);
+      const result = pushPullProcessor.processMonthlyPushPull(context);
 
       // Apply the results to segment result
       if (result.executed) {
@@ -407,13 +413,6 @@ export class Calculator {
         // Apply balance changes
         for (const [accountId, change] of result.balanceChanges) {
           const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
-          debug('Push/Pull Event', {
-            accountId,
-            date: formatDate(event.date),
-            balanceChange: change.toFixed(2),
-            currentChange: currentChange.toFixed(2),
-            newBalance: (currentChange + change).toFixed(2),
-          });
           segmentResult.balanceChanges.set(accountId, currentChange + change);
         }
 
@@ -446,8 +445,8 @@ export class Calculator {
       const activityAmount = typeof activity.amount === 'number' ? activity.amount : 0;
 
       // Find the accounts by name
-      const fromAccount = segmentResult.accountsAndTransfers?.accounts?.find((acc: any) => acc.name === activity.fro);
-      const toAccount = segmentResult.accountsAndTransfers?.accounts?.find((acc: any) => acc.name === activity.to);
+      const fromAccount = this.balanceTracker.accounts?.find((acc: any) => acc.name === activity.fro);
+      const toAccount = this.balanceTracker.accounts?.find((acc: any) => acc.name === activity.to);
 
       if (fromAccount) {
         if (!segmentResult.activitiesAdded.has(fromAccount.id)) {

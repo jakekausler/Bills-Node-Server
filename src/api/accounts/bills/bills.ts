@@ -11,8 +11,8 @@ import { saveData } from '../../../utils/io/accountsAndTransfers';
  * @param request - Express request object containing account ID in params
  * @returns Array of serialized bill objects
  */
-export function getAccountBills(request: Request) {
-  const data = getData(request);
+export async function getAccountBills(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   return account.bills.map((bill) => bill.serialize());
 }
@@ -22,8 +22,8 @@ export function getAccountBills(request: Request) {
  * @param request - Express request object containing bill data and account ID
  * @returns The ID of the newly created bill
  */
-export function addBill(request: Request) {
-  const data = getData<BillData>(request);
+export async function addBill(request: Request) {
+  const data = await getData<BillData>(request);
   const bill = new Bill(data.data, data.simulation);
   if (data.data.isTransfer) {
     data.accountsAndTransfers.transfers.bills.push(bill);

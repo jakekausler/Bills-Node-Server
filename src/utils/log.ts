@@ -1,7 +1,7 @@
 import fs from 'fs';
 import cliProgress from 'cli-progress';
 
-const LOG_FILE = '/home/jakekausler/programs/billsV2/log.txt';
+const LOG_FILE = '/storage/programs/billsV2/log.txt';
 
 /**
  * Logs a message to a file with optional reset flag

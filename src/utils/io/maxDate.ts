@@ -15,12 +15,12 @@ import { MAX_DATE, setMaxDate } from './cache';
  * 
  * @returns The maximum date found across all financial data, or current date if no data exists
  */
-export function maxDate() {
+export async function maxDate() {
   if (MAX_DATE) {
     return MAX_DATE;
   }
   let maxDate = new Date(0); // Start with Unix epoch (earliest possible date)
-  const { accounts, transfers } = loadData(new Date(), new Date());
+  const { accounts, transfers } = await loadData(new Date(), new Date());
   for (const account of accounts) {
     for (const activity of account.activity) {
       if (maxDate < activity.date) {

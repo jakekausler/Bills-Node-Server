@@ -23,7 +23,7 @@ import { loadUsedVariables } from '../../utils/simulation/loadUsedVariables';
  * // ]
  * ```
  */
-export function getUsedVariables(request: Request) {
-  const data = getData(request);
+export async function getUsedVariables(request: Request) {
+  const data = await getData(request);
   return loadUsedVariables(data.accountsAndTransfers, data.socialSecurities, data.pensions);
 }

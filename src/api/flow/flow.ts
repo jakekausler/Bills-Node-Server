@@ -11,8 +11,8 @@ import { getData } from '../../utils/net/request';
  * @param request - Express request object with optional query parameters
  * @returns Empty object (placeholder implementation)
  */
-export function getFlow(request: Request) {
-  const data = getData(request);
+export async function getFlow(request: Request) {
+  const data = await getData(request);
   return {};
   // return loadFlow(data.accountsAndTransfers, data.selectedAccounts, data.startDate, data.endDate);
 }

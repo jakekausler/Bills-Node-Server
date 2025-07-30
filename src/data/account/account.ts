@@ -47,18 +47,18 @@ export class Account {
     this.name = data.name;
     this.interests = data.interests
       ? data.interests
-          .map((interest) => new Interest(interest, simulation))
-          .sort((a, b) => a.applicableDate.getTime() - b.applicableDate.getTime())
+        .map((interest) => new Interest(interest, simulation))
+        .sort((a, b) => a.applicableDate.getTime() - b.applicableDate.getTime())
       : [];
     this.activity = data.activity
       ? data.activity
-          .map((activity) => new Activity(activity, simulation))
-          .sort((a, b) => a.date.getUTCDate() - b.date.getUTCDate())
+        .map((activity) => new Activity(activity, simulation))
+        .sort((a, b) => a.date.getUTCDate() - b.date.getUTCDate())
       : [];
     this.bills = data.bills
       ? data.bills
-          .map((bill) => new Bill(bill, simulation))
-          .sort((a, b) => a.startDate.getUTCDate() - b.startDate.getUTCDate())
+        .map((bill) => new Bill(bill, simulation))
+        .sort((a, b) => a.startDate.getUTCDate() - b.startDate.getUTCDate())
       : [];
     this.consolidatedActivity = [];
     this.todayBalance = 0;

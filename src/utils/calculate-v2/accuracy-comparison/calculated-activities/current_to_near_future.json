@@ -4,7 +4,7 @@
     "name": "Kendall",
     "consolidatedActivity": [
       {
-        "id": "BILL-cce39f97-834a-474a-b93a-5dba4e963b41-1752883200000",
+        "id": "cce39f97-834a-474a-b93a-5dba4e963b41",
         "name": "Cricut Access",
         "category": "Shopping.Electronics & Software",
         "flagColor": "red",
@@ -31,6 +31,7 @@
         "flagColor": "blue",
         "flag": true,
         "isTransfer": true,
+        "fro": "Kendall",
         "to": "Kendall Chase",
         "amount": -885,
         "amountIsVariable": false,
@@ -45,7 +46,7 @@
         "balance": 4890.58
       },
       {
-        "id": "BILL-d82dc889-bfd7-4940-afeb-a17f781703a4-1753315200000",
+        "id": "d82dc889-bfd7-4940-afeb-a17f781703a4",
         "name": "Apopo",
         "category": "Gifts.Charity",
         "flagColor": "red",
@@ -66,7 +67,7 @@
         "balance": 4880.58
       },
       {
-        "id": "BILL-1d23f1ef-d035-4976-96b6-b953a7ffa80e-1753660800000",
+        "id": "1d23f1ef-d035-4976-96b6-b953a7ffa80e",
         "name": "Lunch Budget",
         "category": "Food.Restaurants",
         "flagColor": "orange",
@@ -93,6 +94,7 @@
         "flagColor": "blue",
         "flag": true,
         "isTransfer": true,
+        "fro": "Kendall",
         "to": "Costco",
         "amount": -2372.48,
         "amountIsVariable": false,
@@ -107,7 +109,7 @@
         "balance": 2328.1
       },
       {
-        "id": "BILL-be3dbf9c-3f61-4661-90d7-b17a4274e877-1753920000000",
+        "id": "be3dbf9c-3f61-4661-90d7-b17a4274e877",
         "name": "Kendall Income",
         "category": "Income.Salary",
         "flagColor": "teal",
@@ -116,7 +118,7 @@
         "fro": null,
         "to": null,
         "amount": 1440,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_PAY",
         "date": "2025-07-31",
         "dateIsVariable": false,
@@ -128,7 +130,7 @@
         "balance": 3768.1
       },
       {
-        "id": "BILL-6489179f-a8b2-4384-9564-02c9cacd29d2-1753920000000",
+        "id": "6489179f-a8b2-4384-9564-02c9cacd29d2",
         "name": "Transfer from Kendall to Ben",
         "category": "Ignore.Transfer",
         "flagColor": "blue",
@@ -137,7 +139,7 @@
         "fro": null,
         "to": null,
         "amount": -100,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_TRANSFER_TO_BEN",
         "date": "2025-07-31",
         "dateIsVariable": false,
@@ -149,7 +151,7 @@
         "balance": 3668.1
       },
       {
-        "id": "BILL-46c755c7-4961-4d01-a374-eb97edb25bf5-1754179200000",
+        "id": "46c755c7-4961-4d01-a374-eb97edb25bf5",
         "name": "NC Abortion Fund",
         "category": "Gifts.Charity",
         "flagColor": "red",
@@ -170,7 +172,7 @@
         "balance": 3643.1
       },
       {
-        "id": "BILL-afc47479-e2a4-4f59-86f3-163cb2d0d411-1754524800000",
+        "id": "afc47479-e2a4-4f59-86f3-163cb2d0d411",
         "name": "Apple Storage",
         "category": "Shopping.Electronics & Software",
         "flagColor": "red",
@@ -191,7 +193,7 @@
         "balance": 3642.1
       },
       {
-        "id": "BILL-be3dbf9c-3f61-4661-90d7-b17a4274e877-1755129600000",
+        "id": "be3dbf9c-3f61-4661-90d7-b17a4274e877",
         "name": "Kendall Income",
         "category": "Income.Salary",
         "flagColor": "teal",
@@ -200,7 +202,7 @@
         "fro": null,
         "to": null,
         "amount": 1440,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_PAY",
         "date": "2025-08-14",
         "dateIsVariable": false,
@@ -212,7 +214,7 @@
         "balance": 5082.1
       },
       {
-        "id": "BILL-6489179f-a8b2-4384-9564-02c9cacd29d2-1755129600000",
+        "id": "6489179f-a8b2-4384-9564-02c9cacd29d2",
         "name": "Transfer from Kendall to Ben",
         "category": "Ignore.Transfer",
         "flagColor": "blue",
@@ -221,7 +223,7 @@
         "fro": null,
         "to": null,
         "amount": -100,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_TRANSFER_TO_BEN",
         "date": "2025-08-14",
         "dateIsVariable": false,
@@ -233,7 +235,7 @@
         "balance": 4982.1
       },
       {
-        "id": "BILL-cce39f97-834a-474a-b93a-5dba4e963b41-1755561600000",
+        "id": "cce39f97-834a-474a-b93a-5dba4e963b41",
         "name": "Cricut Access",
         "category": "Shopping.Electronics & Software",
         "flagColor": "red",
@@ -260,6 +262,7 @@
         "flagColor": "blue",
         "flag": true,
         "isTransfer": true,
+        "fro": "Kendall",
         "to": "Kendall Chase",
         "amount": -885,
         "amountIsVariable": false,
@@ -281,7 +284,7 @@
     "name": "Jake",
     "consolidatedActivity": [
       {
-        "id": "BILL-7cca8bb6-9661-4792-adc5-1f0d1c7eb258-1753401600000",
+        "id": "7cca8bb6-9661-4792-adc5-1f0d1c7eb258",
         "name": "Nearpod",
         "category": "Income.Salary",
         "flagColor": "gray",
@@ -308,6 +311,7 @@
         "flagColor": "blue",
         "flag": true,
         "isTransfer": true,
+        "fro": "Jake",
         "to": "Costco",
         "amount": -2372.48,
         "amountIsVariable": false,
@@ -322,7 +326,7 @@
         "balance": 3631.4
       },
       {
-        "id": "BILL-92eb73da-f5b6-49b2-a11a-aa566173bc21-1753660800000",
+        "id": "92eb73da-f5b6-49b2-a11a-aa566173bc21",
         "name": "Nearpod Internet",
         "category": "Utilities.Internet & Cable",
         "flagColor": "grape",
@@ -343,7 +347,7 @@
         "balance": 3681.4
       },
       {
-        "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-1753833600000",
+        "id": "2b3ec713-c7bd-492f-b958-0f8a01d97025",
         "name": "City of Raleigh Kendall",
         "category": "Income.Salary",
         "flagColor": "gray",
@@ -352,7 +356,7 @@
         "fro": null,
         "to": null,
         "amount": 950,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_TRANSFER_TO_JAKE",
         "date": "2025-07-30",
         "dateIsVariable": false,
@@ -387,10 +391,11 @@
       {
         "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-1754006400000-FROM",
         "name": "Mortgage",
-        "category": "Ignore.Transfer",
+        "category": "Housing.Mortgage",
         "flagColor": "gray",
         "flag": true,
         "isTransfer": true,
+        "fro": "Jake",
         "to": "Mortgage",
         "amount": -4100,
         "amountIsVariable": false,
@@ -405,7 +410,7 @@
         "balance": 531.4
       },
       {
-        "id": "BILL-977cbb1b-1171-4438-a977-c4f418800486-1754438400000",
+        "id": "977cbb1b-1171-4438-a977-c4f418800486",
         "name": "Garmin Inreach",
         "category": "Shopping.Electronics & Software",
         "flagColor": "red",
@@ -426,7 +431,7 @@
         "balance": 501.45
       },
       {
-        "id": "BILL-7cca8bb6-9661-4792-adc5-1f0d1c7eb258-1754611200000",
+        "id": "7cca8bb6-9661-4792-adc5-1f0d1c7eb258",
         "name": "Nearpod",
         "category": "Income.Salary",
         "flagColor": "gray",
@@ -447,7 +452,7 @@
         "balance": 3492.51
       },
       {
-        "id": "BILL-82a02207-d488-4d90-8ef3-4dd238a3ca87-1754956800000",
+        "id": "82a02207-d488-4d90-8ef3-4dd238a3ca87",
         "name": "Peacock TV",
         "category": "Amusement.Movies & TV",
         "flagColor": "red",
@@ -468,7 +473,7 @@
         "balance": 3342.37
       },
       {
-        "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-1755043200000",
+        "id": "2b3ec713-c7bd-492f-b958-0f8a01d97025",
         "name": "City of Raleigh Kendall",
         "category": "Income.Salary",
         "flagColor": "gray",
@@ -477,7 +482,7 @@
         "fro": null,
         "to": null,
         "amount": 950,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_TRANSFER_TO_JAKE",
         "date": "2025-08-13",
         "dateIsVariable": false,
@@ -496,7 +501,7 @@
     "name": "Spending",
     "consolidatedActivity": [
       {
-        "id": "BILL-dc6bb324-25be-4868-a0a1-9cdb67d52b10-1752969600000",
+        "id": "dc6bb324-25be-4868-a0a1-9cdb67d52b10",
         "name": "Crooked Media",
         "category": "Gifts.Donations",
         "flagColor": "gray",
@@ -517,7 +522,7 @@
         "balance": 280.24
       },
       {
-        "id": "BILL-c9364085-82b9-4def-88f7-a36c1c1813c1-1753315200000",
+        "id": "c9364085-82b9-4def-88f7-a36c1c1813c1",
         "name": "Backblaze",
         "category": "Shopping.Electronics & Software",
         "flagColor": "gray",
@@ -538,7 +543,7 @@
         "balance": 275.81
       },
       {
-        "id": "BILL-da4956e5-2787-4011-903d-538fe2f76598-1754006400000",
+        "id": "da4956e5-2787-4011-903d-538fe2f76598",
         "name": "Talkiatry",
         "category": "Health.Doctor",
         "flagColor": "red",
@@ -559,7 +564,7 @@
         "balance": 255.81
       },
       {
-        "id": "BILL-4f6d649e-b581-4a4b-a3f9-7eba8a447915-1754092800000",
+        "id": "4f6d649e-b581-4a4b-a3f9-7eba8a447915",
         "name": "Angry Games",
         "category": "Gifts.Donations",
         "flagColor": "gray",
@@ -580,7 +585,7 @@
         "balance": 239.37
       },
       {
-        "id": "BILL-c1d96b82-d469-44a1-886d-35b8059d2b21-1754265600000",
+        "id": "c1d96b82-d469-44a1-886d-35b8059d2b21",
         "name": "AWS",
         "category": "Shopping.Electronics & Software",
         "flagColor": "gray",
@@ -601,7 +606,7 @@
         "balance": 238.85
       },
       {
-        "id": "BILL-283b70db-3b6c-4b37-b3db-0cf4fb2929eb-1754352000000",
+        "id": "283b70db-3b6c-4b37-b3db-0cf4fb2929eb",
         "name": "Thriveworks",
         "category": "Health.Therapy",
         "flagColor": "violet",
@@ -622,7 +627,7 @@
         "balance": 218.85
       },
       {
-        "id": "BILL-9a9ae8a9-0a41-478f-bcbd-9a3feff2a2a3-1754956800000",
+        "id": "9a9ae8a9-0a41-478f-bcbd-9a3feff2a2a3",
         "name": "Adobe",
         "category": "Shopping.Electronics & Software",
         "flagColor": "gray",
@@ -702,7 +707,7 @@
     "name": "Costco",
     "consolidatedActivity": [
       {
-        "id": "BILL-3780bfed-52c9-47e2-97e5-642ef1439bf3-1752969600000",
+        "id": "3780bfed-52c9-47e2-97e5-642ef1439bf3",
         "name": "Lawn Care",
         "category": "Housing.Maintenance & Repairs",
         "flagColor": "yellow",
@@ -723,7 +728,7 @@
         "balance": -3925.4
       },
       {
-        "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-1753228800000",
+        "id": "dd5e4670-ec56-41e5-b72f-59962bf26d37",
         "name": "Hello Fresh",
         "category": "Food.Groceries",
         "flagColor": "gray",
@@ -744,7 +749,7 @@
         "balance": -4003.87
       },
       {
-        "id": "BILL-372c0a2b-3be8-43c8-a397-7475503dea1a-1753315200000",
+        "id": "372c0a2b-3be8-43c8-a397-7475503dea1a",
         "name": "Raleigh Utility",
         "category": "Utilities.Water & Sewer",
         "flagColor": "grape",
@@ -786,7 +791,7 @@
         "balance": -4728.87
       },
       {
-        "id": "BILL-8206e6e1-70ac-4a6d-87ee-eb6521bd567a-1753488000000",
+        "id": "8206e6e1-70ac-4a6d-87ee-eb6521bd567a",
         "name": "Service Experts Heating & Air",
         "category": "Housing.Maintenance & Repairs",
         "flagColor": "grape",
@@ -813,6 +818,7 @@
         "flagColor": "blue",
         "flag": true,
         "isTransfer": true,
+        "fro": "Jake",
         "to": "Costco",
         "amount": 2372.48,
         "amountIsVariable": false,
@@ -833,6 +839,7 @@
         "flagColor": "blue",
         "flag": true,
         "isTransfer": true,
+        "fro": "Kendall",
         "to": "Costco",
         "amount": 2372.48,
         "amountIsVariable": false,
@@ -847,7 +854,7 @@
         "balance": 0
       },
       {
-        "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-1753833600000",
+        "id": "dd5e4670-ec56-41e5-b72f-59962bf26d37",
         "name": "Hello Fresh",
         "category": "Food.Groceries",
         "flagColor": "gray",
@@ -868,7 +875,7 @@
         "balance": -78.47
       },
       {
-        "id": "BILL-363bf990-971b-4184-9fda-cbbfbe467b22-1753920000000",
+        "id": "363bf990-971b-4184-9fda-cbbfbe467b22",
         "name": "Oolong Cardiology",
         "category": "Pets.Vet",
         "flagColor": "grape",
@@ -889,7 +896,7 @@
         "balance": -578.47
       },
       {
-        "id": "BILL-2e4d5ac4-f46f-442d-94ad-25ee71e6e368-1754092800000",
+        "id": "2e4d5ac4-f46f-442d-94ad-25ee71e6e368",
         "name": "Chewy - Litter",
         "category": "Pets.Supplies",
         "flagColor": "gray",
@@ -910,7 +917,7 @@
         "balance": -659.14
       },
       {
-        "id": "BILL-b4f771b3-4e57-4de1-9d59-c1ea022b44f8-1754179200000",
+        "id": "b4f771b3-4e57-4de1-9d59-c1ea022b44f8",
         "name": "Google Fiber",
         "category": "Utilities.Internet & Cable",
         "flagColor": "red",
@@ -931,7 +938,7 @@
         "balance": -729.14
       },
       {
-        "id": "BILL-b1094fd2-e18d-4e82-9a3e-c74eafced769-1754265600000",
+        "id": "b1094fd2-e18d-4e82-9a3e-c74eafced769",
         "name": "Hulu",
         "category": "Amusement.Movies & TV",
         "flagColor": "red",
@@ -952,7 +959,7 @@
         "balance": -749.51
       },
       {
-        "id": "BILL-23162451-13aa-407b-a2da-510c52b64349-1754438400000",
+        "id": "23162451-13aa-407b-a2da-510c52b64349",
         "name": "HOA",
         "category": "Housing.HOA",
         "flagColor": "gray",
@@ -973,7 +980,7 @@
         "balance": -783.51
       },
       {
-        "id": "BILL-f30e333a-e815-4f0a-9545-e2c1ec4c4ed8-1754438400000",
+        "id": "f30e333a-e815-4f0a-9545-e2c1ec4c4ed8",
         "name": "Chewy - Tea Kitty Wet",
         "category": "Pets.Food",
         "flagColor": "gray",
@@ -994,7 +1001,7 @@
         "balance": -929.28
       },
       {
-        "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-1754438400000",
+        "id": "dd5e4670-ec56-41e5-b72f-59962bf26d37",
         "name": "Hello Fresh",
         "category": "Food.Groceries",
         "flagColor": "gray",
@@ -1015,7 +1022,7 @@
         "balance": -1007.75
       },
       {
-        "id": "BILL-e10aec69-03ba-4b0f-9e40-10f491728bda-1754784000000",
+        "id": "e10aec69-03ba-4b0f-9e40-10f491728bda",
         "name": "At&t",
         "category": "Utilities.Phone",
         "flagColor": "gray",
@@ -1036,7 +1043,7 @@
         "balance": -1235.71
       },
       {
-        "id": "BILL-a4107369-199a-4679-a483-3e242cfcc1ca-1754870400000",
+        "id": "a4107369-199a-4679-a483-3e242cfcc1ca",
         "name": "Chewy - Tea Kitty Dry",
         "category": "Pets.Food",
         "flagColor": "gray",
@@ -1057,7 +1064,7 @@
         "balance": -1296.23
       },
       {
-        "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-1755043200000",
+        "id": "dd5e4670-ec56-41e5-b72f-59962bf26d37",
         "name": "Hello Fresh",
         "category": "Food.Groceries",
         "flagColor": "gray",
@@ -1078,7 +1085,7 @@
         "balance": -1374.7
       },
       {
-        "id": "BILL-a1d7d5cb-4378-4425-a697-677df7258fec-1755129600000",
+        "id": "a1d7d5cb-4378-4425-a697-677df7258fec",
         "name": "Dukeengyprogress Drafts",
         "category": "Utilities.Electricity",
         "flagColor": "indigo",
@@ -1099,7 +1106,7 @@
         "balance": -1399.7
       },
       {
-        "id": "BILL-3cb12c2d-26df-4435-85f0-6cbb34da66f4-1755302400000",
+        "id": "3cb12c2d-26df-4435-85f0-6cbb34da66f4",
         "name": "Spotify",
         "category": "Amusement.Music",
         "flagColor": "gray",
@@ -1120,7 +1127,7 @@
         "balance": -1417.92
       },
       {
-        "id": "BILL-3780bfed-52c9-47e2-97e5-642ef1439bf3-1755388800000",
+        "id": "3780bfed-52c9-47e2-97e5-642ef1439bf3",
         "name": "Lawn Care",
         "category": "Housing.Maintenance & Repairs",
         "flagColor": "yellow",
@@ -1148,7 +1155,7 @@
     "name": "REI",
     "consolidatedActivity": [
       {
-        "id": "BILL-204cd8a7-92fe-450f-bb82-d92c12a241ad-1754352000000",
+        "id": "204cd8a7-92fe-450f-bb82-d92c12a241ad",
         "name": "Open AI Plus",
         "category": "Shopping.Electronics & Software",
         "flagColor": "indigo",
@@ -1203,7 +1210,7 @@
     "name": "Kendall 401(k)",
     "consolidatedActivity": [
       {
-        "id": "BILL-759ed23d-37db-4946-9826-56abab1439a0-1753920000000",
+        "id": "759ed23d-37db-4946-9826-56abab1439a0",
         "name": "Kendall 401(k) Contribution",
         "category": "Ignore.Transfer",
         "flagColor": "teal",
@@ -1212,7 +1219,7 @@
         "fro": null,
         "to": null,
         "amount": 144,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_401K_CONTRIBUTION",
         "date": "2025-07-31",
         "dateIsVariable": false,
@@ -1224,7 +1231,7 @@
         "balance": 17097.4
       },
       {
-        "id": "BILL-73981483-c208-4bc8-8128-c326d9825d59-1753920000000",
+        "id": "73981483-c208-4bc8-8128-c326d9825d59",
         "name": "Employer Match",
         "category": "Ignore.Other",
         "flagColor": "green",
@@ -1233,7 +1240,7 @@
         "fro": null,
         "to": null,
         "amount": 109,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
         "date": "2025-07-31",
         "dateIsVariable": false,
@@ -1266,7 +1273,7 @@
         "balance": 17278.09
       },
       {
-        "id": "BILL-759ed23d-37db-4946-9826-56abab1439a0-1755129600000",
+        "id": "759ed23d-37db-4946-9826-56abab1439a0",
         "name": "Kendall 401(k) Contribution",
         "category": "Ignore.Transfer",
         "flagColor": "teal",
@@ -1275,7 +1282,7 @@
         "fro": null,
         "to": null,
         "amount": 144,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_401K_CONTRIBUTION",
         "date": "2025-08-14",
         "dateIsVariable": false,
@@ -1287,7 +1294,7 @@
         "balance": 17422.09
       },
       {
-        "id": "BILL-73981483-c208-4bc8-8128-c326d9825d59-1755129600000",
+        "id": "73981483-c208-4bc8-8128-c326d9825d59",
         "name": "Employer Match",
         "category": "Ignore.Other",
         "flagColor": "green",
@@ -1296,7 +1303,7 @@
         "fro": null,
         "to": null,
         "amount": 109,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
         "date": "2025-08-14",
         "dateIsVariable": false,
@@ -1343,7 +1350,7 @@
     "name": "Jake 401(k)",
     "consolidatedActivity": [
       {
-        "id": "BILL-ec49cfee-9d15-44c5-864b-449b4b39be95-1753401600000",
+        "id": "ec49cfee-9d15-44c5-864b-449b4b39be95",
         "name": "Employer Match",
         "category": "Ignore.Other",
         "flagColor": "green",
@@ -1364,7 +1371,7 @@
         "balance": 96835.22
       },
       {
-        "id": "BILL-7a2ceda4-4195-47f4-af64-5d08732d3359-1753401600000",
+        "id": "7a2ceda4-4195-47f4-af64-5d08732d3359",
         "name": "401(k) Contribution",
         "category": "Ignore.Transfer",
         "flagColor": "teal",
@@ -1406,7 +1413,7 @@
         "balance": 98146.47
       },
       {
-        "id": "BILL-ec49cfee-9d15-44c5-864b-449b4b39be95-1754611200000",
+        "id": "ec49cfee-9d15-44c5-864b-449b4b39be95",
         "name": "Employer Match",
         "category": "Ignore.Other",
         "flagColor": "green",
@@ -1427,7 +1434,7 @@
         "balance": 98381.8
       },
       {
-        "id": "BILL-7a2ceda4-4195-47f4-af64-5d08732d3359-1754611200000",
+        "id": "7a2ceda4-4195-47f4-af64-5d08732d3359",
         "name": "401(k) Contribution",
         "category": "Ignore.Transfer",
         "flagColor": "teal",
@@ -1476,7 +1483,7 @@
         "balance": -534136.31
       },
       {
-        "id": "BILL-74984c05-2b45-466d-beb3-fa0bb552b25f-1754006400000",
+        "id": "74984c05-2b45-466d-beb3-fa0bb552b25f",
         "name": "Escrow Payment",
         "category": "Housing.Mortgage",
         "flagColor": "gray",
@@ -1499,10 +1506,11 @@
       {
         "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-1754006400000-TO",
         "name": "Mortgage",
-        "category": "Ignore.Transfer",
+        "category": "Housing.Mortgage",
         "flagColor": "gray",
         "flag": true,
         "isTransfer": true,
+        "fro": "Jake",
         "to": "Mortgage",
         "amount": 4100,
         "amountIsVariable": false,
@@ -1579,6 +1587,7 @@
         "flagColor": "blue",
         "flag": true,
         "isTransfer": true,
+        "fro": "Kendall",
         "to": "Kendall Chase",
         "amount": 885,
         "amountIsVariable": false,
@@ -1593,7 +1602,7 @@
         "balance": 0
       },
       {
-        "id": "BILL-5d63692e-1ea8-465e-8af1-8a63553fa78f-1755475200000",
+        "id": "5d63692e-1ea8-465e-8af1-8a63553fa78f",
         "name": "Kendall Spending",
         "category": "Ignore.Other",
         "flagColor": "orange",
@@ -1602,7 +1611,7 @@
         "fro": null,
         "to": null,
         "amount": -600,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_SPENDING",
         "date": "2025-08-18",
         "dateIsVariable": false,
@@ -1614,7 +1623,7 @@
         "balance": -600
       },
       {
-        "id": "BILL-5c09233f-23ed-4368-8d58-801e3e1e0aff-1755475200000",
+        "id": "5c09233f-23ed-4368-8d58-801e3e1e0aff",
         "name": "Kendall Extra Spending",
         "category": "Shopping.Other",
         "flagColor": "orange",
@@ -1623,7 +1632,7 @@
         "fro": null,
         "to": null,
         "amount": -285,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_EXTRA_SPENDING",
         "date": "2025-08-18",
         "dateIsVariable": false,
@@ -1641,6 +1650,7 @@
         "flagColor": "blue",
         "flag": true,
         "isTransfer": true,
+        "fro": "Kendall",
         "to": "Kendall Chase",
         "amount": 885,
         "amountIsVariable": false,

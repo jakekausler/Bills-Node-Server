@@ -11,8 +11,8 @@ import { saveData } from '../../../utils/io/accountsAndTransfers';
  * @param request - Express request object containing account ID in params
  * @returns Array of serialized activity objects
  */
-export function getAccountActivity(request: Request) {
-  const data = getData(request);
+export async function getAccountActivity(request: Request) {
+  const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   return account.activity.map((activity) => activity.serialize());
 }
@@ -22,8 +22,8 @@ export function getAccountActivity(request: Request) {
  * @param request - Express request object containing activity data and account ID
  * @returns The ID of the newly created activity
  */
-export function addActivity(request: Request) {
-  const data = getData<ActivityData>(request);
+export async function addActivity(request: Request) {
+  const data = await getData<ActivityData>(request);
   const activity = new Activity(data.data, data.simulation);
   if (data.data.isTransfer) {
     data.accountsAndTransfers.transfers.activity.push(activity);

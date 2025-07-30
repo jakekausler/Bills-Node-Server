@@ -1978,7 +1978,7 @@
         "balance": 4446.58
       },
       {
-        "id": "BILL-be3dbf9c-3f61-4661-90d7-b17a4274e877-1752710400000",
+        "id": "be3dbf9c-3f61-4661-90d7-b17a4274e877",
         "name": "Kendall Income",
         "category": "Income.Salary",
         "flagColor": "teal",
@@ -1987,7 +1987,7 @@
         "fro": null,
         "to": null,
         "amount": 1440,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_PAY",
         "date": "2025-07-17",
         "dateIsVariable": false,
@@ -1999,7 +1999,7 @@
         "balance": 5886.58
       },
       {
-        "id": "BILL-6489179f-a8b2-4384-9564-02c9cacd29d2-1752710400000",
+        "id": "6489179f-a8b2-4384-9564-02c9cacd29d2",
         "name": "Transfer from Kendall to Ben",
         "category": "Ignore.Transfer",
         "flagColor": "blue",
@@ -2008,7 +2008,7 @@
         "fro": null,
         "to": null,
         "amount": -100,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_TRANSFER_TO_BEN",
         "date": "2025-07-17",
         "dateIsVariable": false,
@@ -2020,7 +2020,7 @@
         "balance": 5786.58
       },
       {
-        "id": "BILL-cce39f97-834a-474a-b93a-5dba4e963b41-1752883200000",
+        "id": "cce39f97-834a-474a-b93a-5dba4e963b41",
         "name": "Cricut Access",
         "category": "Shopping.Electronics & Software",
         "flagColor": "red",
@@ -2047,6 +2047,7 @@
         "flagColor": "blue",
         "flag": true,
         "isTransfer": true,
+        "fro": "Kendall",
         "to": "Kendall Chase",
         "amount": -885,
         "amountIsVariable": false,
@@ -14437,7 +14438,7 @@
         "balance": 62.82
       },
       {
-        "id": "BILL-2b3ec713-c7bd-492f-b958-0f8a01d97025-1752624000000",
+        "id": "2b3ec713-c7bd-492f-b958-0f8a01d97025",
         "name": "City of Raleigh Kendall",
         "category": "Income.Salary",
         "flagColor": "gray",
@@ -14446,7 +14447,7 @@
         "fro": null,
         "to": null,
         "amount": 950,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_TRANSFER_TO_JAKE",
         "date": "2025-07-16",
         "dateIsVariable": false,
@@ -17069,7 +17070,7 @@
         "balance": 349.57
       },
       {
-        "id": "BILL-dc6bb324-25be-4868-a0a1-9cdb67d52b10-1750377600000",
+        "id": "dc6bb324-25be-4868-a0a1-9cdb67d52b10",
         "name": "Crooked Media",
         "category": "Gifts.Donations",
         "flagColor": "gray",
@@ -44222,7 +44223,7 @@
         "balance": -3256.93
       },
       {
-        "id": "BILL-a18b6932-1d8f-4d11-9aa0-25d478c929a7-1752451200000",
+        "id": "a18b6932-1d8f-4d11-9aa0-25d478c929a7",
         "name": "Dukeengyprogress Drafts",
         "category": "Utilities.Electricity",
         "flagColor": "grape",
@@ -44243,7 +44244,7 @@
         "balance": -3706.93
       },
       {
-        "id": "BILL-dd5e4670-ec56-41e5-b72f-59962bf26d37-1752624000000",
+        "id": "dd5e4670-ec56-41e5-b72f-59962bf26d37",
         "name": "Hello Fresh",
         "category": "Food.Groceries",
         "flagColor": "gray",
@@ -51824,7 +51825,7 @@
         "balance": 16700.4
       },
       {
-        "id": "BILL-759ed23d-37db-4946-9826-56abab1439a0-1752710400000",
+        "id": "759ed23d-37db-4946-9826-56abab1439a0",
         "name": "Kendall 401(k) Contribution",
         "category": "Ignore.Transfer",
         "flagColor": "teal",
@@ -51833,7 +51834,7 @@
         "fro": null,
         "to": null,
         "amount": 144,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_401K_CONTRIBUTION",
         "date": "2025-07-17",
         "dateIsVariable": false,
@@ -51845,7 +51846,7 @@
         "balance": 16844.4
       },
       {
-        "id": "BILL-73981483-c208-4bc8-8128-c326d9825d59-1752710400000",
+        "id": "73981483-c208-4bc8-8128-c326d9825d59",
         "name": "Employer Match",
         "category": "Ignore.Other",
         "flagColor": "green",
@@ -51854,7 +51855,7 @@
         "fro": null,
         "to": null,
         "amount": 109,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_401K_EMPLOYER_MATCH",
         "date": "2025-07-17",
         "dateIsVariable": false,
@@ -52468,7 +52469,7 @@
         "balance": 95460.56
       },
       {
-        "id": "BILL-ec49cfee-9d15-44c5-864b-449b4b39be95-1752192000000",
+        "id": "ec49cfee-9d15-44c5-864b-449b4b39be95",
         "name": "Employer Match",
         "category": "Ignore.Other",
         "flagColor": "green",
@@ -52489,7 +52490,7 @@
         "balance": 95695.89
       },
       {
-        "id": "BILL-7a2ceda4-4195-47f4-af64-5d08732d3359-1752192000000",
+        "id": "7a2ceda4-4195-47f4-af64-5d08732d3359",
         "name": "401(k) Contribution",
         "category": "Ignore.Transfer",
         "flagColor": "teal",
@@ -53686,7 +53687,7 @@
         "balance": 0
       },
       {
-        "id": "BILL-5d63692e-1ea8-465e-8af1-8a63553fa78f-1752796800000",
+        "id": "5d63692e-1ea8-465e-8af1-8a63553fa78f",
         "name": "Kendall Spending",
         "category": "Ignore.Other",
         "flagColor": "orange",
@@ -53695,7 +53696,7 @@
         "fro": null,
         "to": null,
         "amount": -600,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_SPENDING",
         "date": "2025-07-18",
         "dateIsVariable": false,
@@ -53707,7 +53708,7 @@
         "balance": -600
       },
       {
-        "id": "BILL-5c09233f-23ed-4368-8d58-801e3e1e0aff-1752796800000",
+        "id": "5c09233f-23ed-4368-8d58-801e3e1e0aff",
         "name": "Kendall Extra Spending",
         "category": "Shopping.Other",
         "flagColor": "orange",
@@ -53716,7 +53717,7 @@
         "fro": null,
         "to": null,
         "amount": -285,
-        "amountIsVariable": true,
+        "amountIsVariable": false,
         "amountVariable": "KENDALL_EXTRA_SPENDING",
         "date": "2025-07-18",
         "dateIsVariable": false,
@@ -53734,6 +53735,7 @@
         "flagColor": "blue",
         "flag": true,
         "isTransfer": true,
+        "fro": "Kendall",
         "to": "Kendall Chase",
         "amount": 885,
         "amountIsVariable": false,

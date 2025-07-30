@@ -343,7 +343,7 @@ export interface CalculationResult {
   /** Error message if calculation failed */
   error: string | null;
   /** Updated accounts with calculated activities */
-  accounts: Account[];
+  accountsAndTransfers: AccountsAndTransfers;
   /** Final balances */
   finalBalances: Record<string, number>;
   /** Performance metrics */

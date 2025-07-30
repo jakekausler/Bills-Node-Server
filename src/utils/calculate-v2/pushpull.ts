@@ -118,7 +118,7 @@ export class SmartPushPullProcessor {
   /**
    * Processes monthly push/pull check with smart optimization
    */
-  async processMonthlyPushPull(context: PushPullContext): Promise<PushPullExecutionResult> {
+  processMonthlyPushPull(context: PushPullContext): PushPullExecutionResult {
     const { checkDate, accountsAndTransfers, balanceTracker, simulation } = context;
 
     // Find accounts that need push/pull management
@@ -131,7 +131,7 @@ export class SmartPushPullProcessor {
     const executionResults: PushPullExecutionResult[] = [];
 
     for (const account of managedAccounts) {
-      const accountResult = await this.processAccountPushPull(
+      const accountResult = this.processAccountPushPull(
         account,
         accountsAndTransfers,
         balanceTracker,
@@ -148,20 +148,20 @@ export class SmartPushPullProcessor {
   /**
    * Processes push/pull for a single account
    */
-  private async processAccountPushPull(
+  private processAccountPushPull(
     account: Account,
     accountsAndTransfers: AccountsAndTransfers,
     balanceTracker: BalanceTracker,
     checkDate: Date,
     simulation: string,
-  ): Promise<PushPullExecutionResult> {
+  ): PushPullExecutionResult {
     // Check if push/pull is active for this account
     if (!this.isPushPullActive(account, checkDate)) {
       return this.createEmptyResult(checkDate);
     }
 
     // Perform smart lookahead without deep copying
-    const lookaheadResult = await this.performSmartLookahead(
+    const lookaheadResult = this.performSmartLookahead(
       account,
       accountsAndTransfers,
       balanceTracker,
@@ -170,11 +170,11 @@ export class SmartPushPullProcessor {
     );
 
     // Make push/pull decision based on lookahead
-    const decision = this.makePushPullDecision(account, lookaheadResult, accountsAndTransfers.accounts);
+    const decision = this.makePushPullDecision(account, lookaheadResult, accountsAndTransfers.accounts, checkDate);
 
     // Execute the decision if needed
     if (decision.action !== 'none') {
-      return await this.executePushPullDecision(decision, account, accountsAndTransfers, balanceTracker, checkDate);
+      return this.executePushPullDecision(decision, account, accountsAndTransfers, balanceTracker, checkDate);
     }
 
     return this.createEmptyResult(checkDate);
@@ -183,13 +183,13 @@ export class SmartPushPullProcessor {
   /**
    * Performs smart lookahead using event-based projection instead of deep copying
    */
-  private async performSmartLookahead(
+  private performSmartLookahead(
     account: Account,
     accountsAndTransfers: AccountsAndTransfers,
     balanceTracker: BalanceTracker,
     checkDate: Date,
     simulation: string,
-  ): Promise<LookaheadResult> {
+  ): LookaheadResult {
     const cacheKey = this.generateLookaheadCacheKey(account, checkDate, simulation);
     const cached = this.patternCache.get(cacheKey);
     if (cached) {
@@ -201,13 +201,17 @@ export class SmartPushPullProcessor {
 
     // Use event-based projection instead of deep copying
     const monthEnd = dayjs.utc(checkDate).endOf('month').toDate();
-    const projections = await this.generateEventBasedProjections(
+    const projections = this.generateEventBasedProjections(
       account,
       currentBalance,
       checkDate,
       monthEnd,
       simulation,
     );
+    debug('projections', { checkDate: formatDate(checkDate), projections: projections.length });
+    projections.forEach(p => {
+      debug('performSmartLookahead', { date: formatDate(p.date), projectedBalance: p.projectedBalance, minimumBalance: p.minimumBalance, events: p.events.length, confidence: p.confidence });
+    })
 
     // Analyze risk level
     const riskLevel = this.analyzeRiskLevel(projections, account);
@@ -242,13 +246,13 @@ export class SmartPushPullProcessor {
   /**
    * Generates event-based projections without expensive deep copying
    */
-  private async generateEventBasedProjections(
+  private generateEventBasedProjections(
     account: Account,
     currentBalance: number,
     startDate: Date,
     endDate: Date,
     simulation: string,
-  ): Promise<BalanceProjection[]> {
+  ): BalanceProjection[] {
     const projections: BalanceProjection[] = [];
     let runningBalance = currentBalance;
 
@@ -416,23 +420,36 @@ export class SmartPushPullProcessor {
     account: Account,
     lookaheadResult: LookaheadResult,
     allAccounts: Account[],
+    checkDate: Date,
   ): PushPullDecision {
     const currentBalance = lookaheadResult.projections[0]?.projectedBalance || 0;
     const minimumBalance = account.minimumBalance || 0;
     const minimumPullAmount = account.minimumPullAmount || 0;
+    const excessAmount = currentBalance - minimumBalance - minimumPullAmount * 4;
+    debug({
+      account: account.name,
+      currentBalance,
+      minimumBalance,
+      minimumPullAmount,
+      excessAmount,
+      checkDate: formatDate(checkDate),
+    })
 
     // Check if pull is needed
     if (lookaheadResult.minimumBalance < minimumBalance) {
-      return this.createPullDecision(account, lookaheadResult, allAccounts);
+      const pullDecision = this.createPullDecision(account, lookaheadResult, allAccounts);
+      debug('pullDecision', pullDecision)
+      return pullDecision;
     }
 
     // Check if push is beneficial
-    const excessAmount = currentBalance - minimumBalance - minimumPullAmount * 4;
     if (excessAmount > 0 && account.performsPushes) {
-      return this.createPushDecision(account, excessAmount, allAccounts);
+      const pushDecision = this.createPushDecision(account, excessAmount, allAccounts);
+      debug('pushDecision', pushDecision)
+      return pushDecision;
     }
 
-    return {
+    const noneDecision: PushPullDecision = {
       action: 'none',
       amount: 0,
       fromAccount: null,
@@ -441,6 +458,8 @@ export class SmartPushPullProcessor {
       confidence: 0.9,
       alternatives: [],
     };
+    debug('noneDecision', noneDecision)
+    return noneDecision;
   }
 
   /**
@@ -514,20 +533,20 @@ export class SmartPushPullProcessor {
   /**
    * Executes a push/pull decision
    */
-  private async executePushPullDecision(
+  private executePushPullDecision(
     decision: PushPullDecision,
     account: Account,
     accountsAndTransfers: AccountsAndTransfers,
     balanceTracker: BalanceTracker,
     checkDate: Date,
-  ): Promise<PushPullExecutionResult> {
+  ): PushPullExecutionResult {
     const activities: ConsolidatedActivity[] = [];
     const balanceChanges = new Map<string, number>();
     const taxImplications: TaxImplication[] = [];
 
     if (decision.action === 'pull' && decision.fromAccount && decision.toAccount) {
       // Execute pull
-      const pullResult = await this.executePull(
+      const pullResult = this.executePull(
         decision.fromAccount,
         decision.toAccount,
         decision.amount,
@@ -542,7 +561,7 @@ export class SmartPushPullProcessor {
       taxImplications.push(...pullResult.taxImplications);
     } else if (decision.action === 'push' && decision.fromAccount && decision.toAccount) {
       // Execute push
-      const pushResult = await this.executePush(
+      const pushResult = this.executePush(
         decision.fromAccount,
         decision.toAccount,
         decision.amount,
@@ -569,17 +588,17 @@ export class SmartPushPullProcessor {
   /**
    * Executes a pull operation
    */
-  private async executePull(
+  private executePull(
     fromAccount: Account,
     toAccount: Account,
     amount: number,
     date: Date,
     balanceTracker: BalanceTracker,
-  ): Promise<{
+  ): {
     activities: ConsolidatedActivity[];
     balanceChanges: Map<string, number>;
     taxImplications: TaxImplication[];
-  }> {
+  } {
     const activities: ConsolidatedActivity[] = [];
     const balanceChanges = new Map<string, number>();
     const taxImplications: TaxImplication[] = [];
@@ -602,24 +621,24 @@ export class SmartPushPullProcessor {
       flagColor: 'violet',
     });
 
-    const pullToActivity = new ConsolidatedActivity({
-      id: `AUTO-PULL-${date.getTime()}-TO`,
-      name: `Auto Pull from ${fromAccount.name}`,
-      amount: amount,
-      amountIsVariable: false,
-      amountVariable: null,
-      date: formatDate(date),
-      dateIsVariable: false,
-      dateVariable: null,
-      from: fromAccount.name,
-      to: toAccount.name,
-      isTransfer: true,
-      category: 'Ignore.Transfer',
-      flag: true,
-      flagColor: 'violet',
-    });
+    // const pullToActivity = new ConsolidatedActivity({
+    //   id: `AUTO-PULL-${date.getTime()}-TO`,
+    //   name: `Auto Pull from ${fromAccount.name}`,
+    //   amount: amount,
+    //   amountIsVariable: false,
+    //   amountVariable: null,
+    //   date: formatDate(date),
+    //   dateIsVariable: false,
+    //   dateVariable: null,
+    //   from: fromAccount.name,
+    //   to: toAccount.name,
+    //   isTransfer: true,
+    //   category: 'Ignore.Transfer',
+    //   flag: true,
+    //   flagColor: 'violet',
+    // });
 
-    activities.push(pullFromActivity, pullToActivity);
+    activities.push(pullFromActivity);
 
     // Update balances
     balanceChanges.set(fromAccount.id, -amount);
@@ -652,36 +671,36 @@ export class SmartPushPullProcessor {
   /**
    * Executes a push operation
    */
-  private async executePush(
+  private executePush(
     fromAccount: Account,
     toAccount: Account,
     amount: number,
     date: Date,
     balanceTracker: BalanceTracker,
-  ): Promise<{
+  ): {
     activities: ConsolidatedActivity[];
     balanceChanges: Map<string, number>;
-  }> {
+  } {
     const activities: ConsolidatedActivity[] = [];
     const balanceChanges = new Map<string, number>();
 
     // Create push activities
-    const pushFromActivity = new ConsolidatedActivity({
-      id: `AUTO-PUSH-${date.getTime()}-FROM`,
-      name: `Auto Push to ${toAccount.name}`,
-      amount: -amount,
-      amountIsVariable: false,
-      amountVariable: null,
-      date: formatDate(date),
-      dateIsVariable: false,
-      dateVariable: null,
-      from: fromAccount.name,
-      to: toAccount.name,
-      isTransfer: true,
-      category: 'Ignore.Transfer',
-      flag: true,
-      flagColor: 'indigo',
-    });
+    // const pushFromActivity = new ConsolidatedActivity({
+    //   id: `AUTO-PUSH-${date.getTime()}-FROM`,
+    //   name: `Auto Push to ${toAccount.name}`,
+    //   amount: -amount,
+    //   amountIsVariable: false,
+    //   amountVariable: null,
+    //   date: formatDate(date),
+    //   dateIsVariable: false,
+    //   dateVariable: null,
+    //   from: fromAccount.name,
+    //   to: toAccount.name,
+    //   isTransfer: true,
+    //   category: 'Ignore.Transfer',
+    //   flag: true,
+    //   flagColor: 'indigo',
+    // });
 
     const pushToActivity = new ConsolidatedActivity({
       id: `AUTO-PUSH-${date.getTime()}-TO`,
@@ -700,7 +719,7 @@ export class SmartPushPullProcessor {
       flagColor: 'indigo',
     });
 
-    activities.push(pushFromActivity, pushToActivity);
+    activities.push(pushToActivity);
 
     // Update balances
     balanceChanges.set(fromAccount.id, -amount);
