@@ -31,17 +31,21 @@ export class ConsolidatedActivity extends Activity {
       billId = null,
       interestId = null,
       reverseAmount = false,
+      firstBill = false,
+      firstInterest = false,
     }: {
       billId?: string | null;
       interestId?: string | null;
       reverseAmount?: boolean;
+      firstBill?: boolean;
+      firstInterest?: boolean;
     } = {},
   ) {
     super(activity);
     this.billId = billId;
-    this.firstBill = false;
+    this.firstBill = firstBill;
     this.interestId = interestId;
-    this.firstInterest = false;
+    this.firstInterest = firstInterest;
     this.balance = 0;
     if (reverseAmount && typeof this.amount === 'number') {
       this.amount *= -1;

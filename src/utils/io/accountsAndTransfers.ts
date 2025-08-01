@@ -4,7 +4,7 @@ import { AccountsAndTransfers, AccountsAndTransfersData } from '../../data/accou
 import { Activity } from '../../data/activity/activity';
 import { Bill } from '../../data/bill/bill';
 import { resetCache } from './cache';
-import { calculateAllActivity } from '../calculate-v2/engine';
+import { calculateAllActivity } from '../calculate-v3/engine';
 
 export const FILE_NAME = 'data';
 
@@ -37,8 +37,18 @@ export async function loadData(
   // }
   // return getCache(CACHE_ACCOUNTS_AND_TRANSFERS, key);
   const accountsAndTransfers = getAccountsAndTransfers(simulation);
-  const result = await calculateAllActivity(accountsAndTransfers, startDate, endDate, simulation);
-  return result.accountsAndTransfers;
+  const result = await calculateAllActivity(
+    accountsAndTransfers,
+    startDate,
+    endDate,
+    simulation,
+    false,
+    0,
+    0,
+    true,
+    true,
+  );
+  return result;
 }
 
 /**

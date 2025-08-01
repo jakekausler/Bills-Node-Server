@@ -1,0 +1,31 @@
+{
+  "totalScenarios": 3,
+  "totalAccounts": 18,
+  "totalResponses": 54,
+  "successfulResponses": 53,
+  "failedResponses": 1,
+  "scenarios": [
+    {
+      "id": "historical_to_current",
+      "description": "Historical data processing (earliest to today)",
+      "accountResponses": 18,
+      "successfulAccounts": 17,
+      "failedAccounts": 1
+    },
+    {
+      "id": "current_to_near_future",
+      "description": "Near-term projection (today to 1 month)",
+      "accountResponses": 18,
+      "successfulAccounts": 18,
+      "failedAccounts": 0
+    },
+    {
+      "id": "recent_to_medium_term",
+      "description": "Medium-term projection (1 month ago to 1 year)",
+      "accountResponses": 18,
+      "successfulAccounts": 18,
+      "failedAccounts": 0
+    }
+  ],
+  "generatedAt": "2025-07-30T01:42:36.994Z"
+}
