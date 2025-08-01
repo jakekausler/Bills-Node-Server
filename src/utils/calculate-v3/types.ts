@@ -45,6 +45,10 @@ export interface SegmentResult {
   activitiesAdded: Map<string, ConsolidatedActivity[]>;
   /** Processed event IDs */
   processedEventIds: Set<string>;
+  /** Minimum day end balance for each account */
+  balanceMinimums: Map<string, number>;
+  /** Maximum day end balance for each account */
+  balanceMaximums: Map<string, number>;
   /** Tax implications */
   taxImplications?: TaxImplication[];
   /** Accounts and Transfers */

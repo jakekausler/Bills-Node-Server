@@ -173,7 +173,7 @@ export class BalanceTracker {
   /**
    * Gets current balance for a specific account
    */
-  getAccountBalance(accountId: string): number89 {
+  getAccountBalance(accountId: string): number {
     return this.balances[accountId] || 0;
   }
 

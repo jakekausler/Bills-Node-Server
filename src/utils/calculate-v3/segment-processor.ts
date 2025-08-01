@@ -70,14 +70,14 @@ export class SegmentProcessor {
     }
 
     // Process events in the segment
-    let segmentResult = this.processSegmentEvents(segment.events, options);
+    let segmentResult = this.processSegmentEvents(segment, options);
 
     // Deal with pushes and pulls
     const pushPullEventsAdded = this.pushPullHandler.handleAccountPushPulls(segmentResult, segment);
 
     // If a push or pull was added, reprocess the segment events
     if (pushPullEventsAdded) {
-      segmentResult = this.processSegmentEvents(segment.events, options);
+      segmentResult = this.processSegmentEvents(segment, options);
     }
 
     // Cache the segment result
@@ -87,19 +87,43 @@ export class SegmentProcessor {
     this.balanceTracker.applySegmentResult(segmentResult);
   }
 
-  private processSegmentEvents(events: TimelineEvent[], options: CalculationOptions): SegmentResult {
+  private processSegmentEvents(segment: Segment, options: CalculationOptions): SegmentResult {
     const segmentResult: SegmentResult = {
       balanceChanges: new Map<string, number>(),
       activitiesAdded: new Map<string, ConsolidatedActivity[]>(),
       processedEventIds: new Set<string>(),
+      balanceMinimums: new Map<string, number>(),
+      balanceMaximums: new Map<string, number>(),
     };
 
     // Group events by date for efficient processing
-    const eventsByDate = this.groupEventsByDate(events);
+    const eventsByDate = this.groupEventsByDate(segment.events);
+
+    // Get the initial balance for each affected account (before this segment)
+    const currentBalances = new Map<string, number>();
+    for (const accountId of segment.affectedAccountIds) {
+      currentBalances.set(accountId, this.balanceTracker.getAccountBalance(accountId));
+    }
 
     for (const [_, dayEvents] of eventsByDate) {
       // Process events for this date
-      this.processDayEvents(dayEvents, options, segmentResult);
+      const dayBalanceChanges = this.processDayEvents(dayEvents, options, segmentResult);
+
+      // Update current and minimum/maximum balances
+      for (const [accountId, change] of dayBalanceChanges) {
+        const currentBalance = currentBalances.get(accountId) || 0;
+        const newBalance = currentBalance + change;
+
+        // Track minimum and maximum balances
+        const minBalance = segmentResult.balanceMinimums.get(accountId) || newBalance;
+        const maxBalance = segmentResult.balanceMaximums.get(accountId) || newBalance;
+
+        segmentResult.balanceMinimums.set(accountId, Math.min(minBalance, newBalance));
+        segmentResult.balanceMaximums.set(accountId, Math.max(maxBalance, newBalance));
+
+        // Update current balance for next iteration
+        currentBalances.set(accountId, newBalance);
+      }
     }
 
     return segmentResult;
@@ -121,52 +145,70 @@ export class SegmentProcessor {
     return eventsByDate;
   }
 
-  private processDayEvents(events: TimelineEvent[], options: CalculationOptions, segmentResult: SegmentResult): void {
+  /**
+   * Processes events for a single day
+   * @param events - Events for the day
+   * @param options - Calculation options
+   * @param segmentResult - Result object to store changes
+   * @returns Map of accountId to total balance change for the day
+   */
+  private processDayEvents(
+    events: TimelineEvent[],
+    options: CalculationOptions,
+    segmentResult: SegmentResult,
+  ): Map<string, number> {
     // Sort events by priority
     const sortedEvents = [...events].sort((a, b) => a.priority - b.priority);
+    const dayBalanceChanges = new Map<string, number>();
     for (const event of sortedEvents) {
-      this.processEvent(event, options, segmentResult);
+      const balanceChanges = this.processEvent(event, options, segmentResult);
+      // Merge balance changes into the day's total
+      for (const [accountId, change] of Object.entries(balanceChanges)) {
+        const currentChange = dayBalanceChanges.get(accountId) || 0;
+        dayBalanceChanges.set(accountId, currentChange + change);
+      }
       segmentResult.processedEventIds.add(event.id);
     }
+    return dayBalanceChanges;
   }
 
   /**
    * Processes a single event
+   * @param event - The event to process
+   * @param options - Calculation options
+   * @param segmentResult - Result object to store changes
+   * @return Map of accountId to balance change for the event
    */
-  private processEvent(event: TimelineEvent, options: CalculationOptions, segmentResult: SegmentResult): void {
+  private processEvent(
+    event: TimelineEvent,
+    options: CalculationOptions,
+    segmentResult: SegmentResult,
+  ): Map<string, number> {
     if (!this.calculator) {
       throw new Error('Calculator not initialized');
     }
     switch (event.type) {
       case EventType.activity:
-        this.calculator.processActivityEvent(event as ActivityEvent, segmentResult);
-        break;
+        return this.calculator.processActivityEvent(event as ActivityEvent, segmentResult);
       case EventType.bill:
-        this.calculator.processBillEvent(event as BillEvent, segmentResult, options.simulation);
-        break;
+        return this.calculator.processBillEvent(event as BillEvent, segmentResult, options.simulation);
       case EventType.interest:
-        this.calculator.processInterestEvent(event as InterestEvent, segmentResult);
-        break;
+        return this.calculator.processInterestEvent(event as InterestEvent, segmentResult);
       case EventType.activityTransfer:
-        this.calculator.processActivityTransferEvent(event as ActivityTransferEvent, segmentResult);
-        break;
+        return this.calculator.processActivityTransferEvent(event as ActivityTransferEvent, segmentResult);
       case EventType.billTransfer:
-        this.calculator.processBillTransferEvent(event as BillTransferEvent, segmentResult);
-        break;
+        return this.calculator.processBillTransferEvent(event as BillTransferEvent, segmentResult);
       case EventType.pension:
-        this.calculator.processPensionEvent(event as PensionEvent, segmentResult);
-        break;
+        return this.calculator.processPensionEvent(event as PensionEvent, segmentResult);
       case EventType.socialSecurity:
-        this.calculator.processSocialSecurityEvent(event as SocialSecurityEvent, segmentResult);
-        break;
+        return this.calculator.processSocialSecurityEvent(event as SocialSecurityEvent, segmentResult);
       case EventType.tax:
-        this.calculator.processTaxEvent(event as TaxEvent, segmentResult);
-        break;
+        return this.calculator.processTaxEvent(event as TaxEvent, segmentResult);
       case EventType.rmd:
-        this.calculator.processRMDEvent(event as RMDEvent, segmentResult);
-        break;
+        return this.calculator.processRMDEvent(event as RMDEvent, segmentResult);
       default:
         warn(`Unknown event type: ${event.type}`);
+        return new Map<string, number>();
     }
   }
 }

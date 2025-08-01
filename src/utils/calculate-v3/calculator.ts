@@ -30,7 +30,13 @@ export class Calculator {
    * EVENT PROCESSING
    ***************************************/
 
-  processActivityEvent(event: ActivityEvent, segmentResult: SegmentResult): void {
+  /**
+   * Processes an activity event and updates the segment result.
+   * @param event - The activity event to process.
+   * @param segmentResult - The segment result to update.
+   * @return A map of account IDs to their balance changes.
+   */
+  processActivityEvent(event: ActivityEvent, segmentResult: SegmentResult): Map<string, number> {
     const activity = event.originalActivity;
     const accountId = event.accountId;
 
@@ -44,9 +50,10 @@ export class Calculator {
     const balanceChange = activity.amount as number;
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + balanceChange);
+    return new Map([[accountId, balanceChange]]);
   }
 
-  processBillEvent(event: BillEvent, segmentResult: SegmentResult, simulation: string): void {
+  processBillEvent(event: BillEvent, segmentResult: SegmentResult, simulation: string): Map<string, number> {
     const bill = event.originalBill;
     const accountId = event.accountId;
     const amount = event.amount;
@@ -62,9 +69,10 @@ export class Calculator {
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
+    return new Map([[accountId, Number(amount)]]);
   }
 
-  processInterestEvent(event: InterestEvent, segmentResult: SegmentResult): void {
+  processInterestEvent(event: InterestEvent, segmentResult: SegmentResult): Map<string, number> {
     const interest = event.originalInterest;
     const accountId = event.accountId;
 
@@ -76,7 +84,7 @@ export class Calculator {
 
     // Only create activities for non-zero amounts (filter out zeros and floating-point noise)
     if (Math.abs(interestAmount) <= 0.00001) {
-      return;
+      return new Map();
     }
 
     // Create consolidated activity for the interest
@@ -94,14 +102,21 @@ export class Calculator {
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + Number(interestAmount));
+    return new Map([[accountId, Number(interestAmount)]]);
   }
 
-  processActivityTransferEvent(event: ActivityTransferEvent, segmentResult: SegmentResult): void {
-    this.processTransferEvent(event, event.originalActivity, event.originalActivity.amount, false, segmentResult);
+  processActivityTransferEvent(event: ActivityTransferEvent, segmentResult: SegmentResult): Map<string, number> {
+    return this.processTransferEvent(
+      event,
+      event.originalActivity,
+      event.originalActivity.amount,
+      false,
+      segmentResult,
+    );
   }
 
-  processBillTransferEvent(event: BillTransferEvent, segmentResult: SegmentResult): void {
-    this.processTransferEvent(event, event.originalBill, event.amount, event.firstBill, segmentResult);
+  processBillTransferEvent(event: BillTransferEvent, segmentResult: SegmentResult): Map<string, number> {
+    return this.processTransferEvent(event, event.originalBill, event.amount, event.firstBill, segmentResult);
   }
 
   processTransferEvent(
@@ -110,7 +125,7 @@ export class Calculator {
     amount: number | '{FULL}' | '{HALF}' | '-{FULL}' | '-{HALF}',
     firstBill: boolean,
     segmentResult: SegmentResult,
-  ): void {
+  ): Map<string, number> {
     const fromAccountId = event.fromAccountId;
     const toAccountId = event.toAccountId;
 
@@ -179,7 +194,7 @@ export class Calculator {
 
     // Only create activities for non-zero amounts (filter out zeros and floating-point noise)
     if (Math.abs(internalAmount) <= 0.00001) {
-      return;
+      return new Map();
     }
 
     const isBill = original instanceof Bill;
@@ -264,22 +279,31 @@ export class Calculator {
 
     segmentResult.balanceChanges.set(fromAccountId, fromCurrentChange - internalAmount);
     segmentResult.balanceChanges.set(toAccountId, toCurrentChange + internalAmount);
+
+    return new Map([
+      [fromAccountId, -internalAmount],
+      [toAccountId, internalAmount],
+    ]);
   }
 
-  processPensionEvent(event: PensionEvent, segmentResult: SegmentResult): void {
+  processPensionEvent(event: PensionEvent, segmentResult: SegmentResult): Map<string, number> {
     // TODO: Implement
+    return new Map();
   }
 
-  processSocialSecurityEvent(event: SocialSecurityEvent, segmentResult: SegmentResult): void {
+  processSocialSecurityEvent(event: SocialSecurityEvent, segmentResult: SegmentResult): Map<string, number> {
     // TODO: Implement
+    return new Map();
   }
 
-  processTaxEvent(event: TaxEvent, segmentResult: SegmentResult): void {
+  processTaxEvent(event: TaxEvent, segmentResult: SegmentResult): Map<string, number> {
     // TODO: Implement
+    return new Map();
   }
 
-  processRMDEvent(event: RMDEvent, segmentResult: SegmentResult): void {
+  processRMDEvent(event: RMDEvent, segmentResult: SegmentResult): Map<string, number> {
     // TODO: Implement
+    return new Map();
   }
 
   /***************************************
