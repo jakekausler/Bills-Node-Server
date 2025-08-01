@@ -11,12 +11,10 @@ import {
   BillTransferEvent,
   InterestEvent,
   PensionEvent,
-  PushPullEvent,
   RMDEvent,
   SegmentResult,
   SocialSecurityEvent,
   TaxEvent,
-  TransferEvent,
 } from './types';
 
 export class Calculator {
@@ -281,10 +279,6 @@ export class Calculator {
   }
 
   processRMDEvent(event: RMDEvent, segmentResult: SegmentResult): void {
-    // TODO: Implement
-  }
-
-  processPushPullEvent(event: PushPullEvent, segmentResult: SegmentResult): void {
     // TODO: Implement
   }
 

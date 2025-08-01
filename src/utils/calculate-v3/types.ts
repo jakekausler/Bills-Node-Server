@@ -75,7 +75,6 @@ export enum EventType {
   socialSecurity = 'socialSecurity',
   tax = 'tax',
   rmd = 'rmd',
-  pushPullCheck = 'pushPullCheck',
 }
 
 export type TimelineEvent = {
@@ -136,10 +135,6 @@ export type TaxEvent = TimelineEvent & {
 
 export type RMDEvent = TimelineEvent & {
   type: EventType.rmd;
-};
-
-export type PushPullEvent = TimelineEvent & {
-  type: EventType.pushPullCheck;
 };
 
 export type Segment = {

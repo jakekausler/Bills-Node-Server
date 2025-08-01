@@ -13,7 +13,6 @@ import {
   SocialSecurityEvent,
   TaxEvent,
   RMDEvent,
-  PushPullEvent,
   TimelineEvent,
   Segment,
 } from './types';
@@ -248,9 +247,6 @@ class Engine {
         break;
       case EventType.rmd:
         await this.calculator.processRMDEvent(event as RMDEvent, segmentResult);
-        break;
-      case EventType.pushPullCheck:
-        this.calculator.processPushPullEvent(event as PushPullEvent, segmentResult);
         break;
       default:
         warn(`Unknown event type: ${event.type}`);
