@@ -34,7 +34,8 @@ export class PushPullHandler {
       }
 
       // Check if the account needs a push or pull based on its balance
-      const { min, max } = this.balanceTracker.getAccountBalanceRange(accountId, segmentResult);
+      const min = segmentResult.balanceMinimums.get(account.id) || 0;
+      const max = segmentResult.balanceMaximums.get(account.id) || 0;
       const { pushNeeded, pullNeeded } = this.checkPushPullRequirements(
         account,
         min,

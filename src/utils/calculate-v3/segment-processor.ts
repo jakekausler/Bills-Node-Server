@@ -163,7 +163,7 @@ export class SegmentProcessor {
     for (const event of sortedEvents) {
       const balanceChanges = this.processEvent(event, options, segmentResult);
       // Merge balance changes into the day's total
-      for (const [accountId, change] of Object.entries(balanceChanges)) {
+      for (const [accountId, change] of balanceChanges.entries()) {
         const currentChange = dayBalanceChanges.get(accountId) || 0;
         dayBalanceChanges.set(accountId, currentChange + change);
       }
