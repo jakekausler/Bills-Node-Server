@@ -1,4 +1,3 @@
-import { Account } from '../../data/account/account';
 import { Activity } from '../../data/activity/activity';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { Bill } from '../../data/bill/bill';

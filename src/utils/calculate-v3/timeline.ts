@@ -18,34 +18,30 @@ import { Interest } from '../../data/interest/interest';
 import { nextDate } from '../calculate/helpers';
 import { isAfterOrSame, isBeforeOrSame, isSame } from '../date/date';
 import { warn } from '../calculate-v2/logger';
+import { AccountManager } from './account-manager';
 
 export class Timeline {
+  private accountManager: AccountManager;
   private events: TimelineEvent[];
   private segments: Segment[];
   private eventIndex: Map<string, TimelineEvent>;
   private dateIndex: Map<string, TimelineEvent[]>;
-  private accountNameMap: Map<string, Account>;
-  private accountIdMap: Map<string, Account>;
 
-  constructor() {
+  constructor(accountManager: AccountManager) {
+    this.accountManager = accountManager;
     this.events = [];
     this.segments = [];
     this.eventIndex = new Map();
     this.dateIndex = new Map();
-    this.accountNameMap = new Map();
-    this.accountIdMap = new Map();
   }
 
   static fromAccountsAndTransfers(
+    accountManager: AccountManager,
     accountsAndTransfers: AccountsAndTransfers,
     startDate: Date,
     endDate: Date,
   ): Timeline {
-    const timeline = new Timeline();
-
-    // Create account map
-    timeline.accountNameMap = new Map(accountsAndTransfers.accounts.map((account) => [account.name, account]));
-    timeline.accountIdMap = new Map(accountsAndTransfers.accounts.map((account) => [account.id, account]));
+    const timeline = new Timeline(accountManager);
 
     // Add activity events
     timeline.addActivityEvents(accountsAndTransfers, endDate);
@@ -119,8 +115,8 @@ export class Timeline {
           warn('Transfer activity has no from or to account on the activity', activity);
           continue;
         }
-        const fromAccount = this.accountNameMap.get(activity.fro);
-        const toAccount = this.accountNameMap.get(activity.to);
+        const fromAccount = this.accountManager.getAccountByName(activity.fro);
+        const toAccount = this.accountManager.getAccountByName(activity.to);
         if (!fromAccount && !toAccount) {
           warn('Transfer activity has no from or to account on the account map', activity);
           continue;
@@ -148,8 +144,8 @@ export class Timeline {
         const event: ActivityTransferEvent = {
           id: `transfer_${activity.id}_from_${fromAccount?.id}_to_${toAccount?.id}`,
           type: EventType.activityTransfer,
-          fromAccountId: this.accountNameMap.get(activity.fro)?.id || '',
-          toAccountId: this.accountNameMap.get(activity.to)?.id || '',
+          fromAccountId: fromAccount?.id || '',
+          toAccountId: toAccount?.id || '',
           date: activity.date,
           accountId: fromAccount?.id || toAccount?.id || '',
           originalActivity: activity,
@@ -253,8 +249,8 @@ export class Timeline {
       return;
     }
 
-    const fromAccount = this.accountNameMap.get(bill.fro);
-    const toAccount = this.accountNameMap.get(bill.to);
+    const fromAccount = this.accountManager.getAccountByName(bill.fro);
+    const toAccount = this.accountManager.getAccountByName(bill.to);
 
     if (!fromAccount && !toAccount) {
       return;
@@ -288,8 +284,8 @@ export class Timeline {
         priority: 2,
         originalBill: bill,
         amount: this.calculateBillAmount(bill, currentDate),
-        fromAccountId: this.accountNameMap.get(bill.fro)?.id || '',
-        toAccountId: this.accountNameMap.get(bill.to)?.id || '',
+        fromAccountId: fromAccount?.id || '',
+        toAccountId: toAccount?.id || '',
         firstBill: isSame(currentDate, bill.startDate),
       };
 
@@ -470,13 +466,5 @@ export class Timeline {
 
   getSegments(): Segment[] {
     return [...this.segments];
-  }
-
-  getAccountByName(name: string): Account | undefined {
-    return this.accountNameMap.get(name);
-  }
-
-  getAccountById(id: string): Account | undefined {
-    return this.accountIdMap.get(id);
   }
 }

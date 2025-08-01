@@ -8,6 +8,7 @@ import { SegmentProcessor } from './segment-processor';
 import { Calculator } from './calculator';
 import { minDate } from '../io/minDate';
 import { PushPullHandler } from './push-pull-handler';
+import { AccountManager } from './account-manager';
 
 export class Engine {
   private config: CalculationConfig;
@@ -17,6 +18,7 @@ export class Engine {
   private segmentProcessor: SegmentProcessor;
   private calculator: Calculator;
   private pushPullHandler: PushPullHandler;
+  private accountManager: AccountManager;
 
   constructor(config: Partial<CalculationConfig> = {}) {
     this.config = this.mergeConfig(config);
@@ -75,10 +77,18 @@ export class Engine {
   }
 
   private initializeCalculation(accountsAndTransfers: AccountsAndTransfers, options: CalculationOptions): void {
+    // Initialize account manager
+    this.accountManager = new AccountManager(accountsAndTransfers.accounts);
+
     // Create timeline - always start from earliest data to get correct balances
     // but we'll filter the final output by date range
     const actualStartDate = minDate(accountsAndTransfers);
-    this.timeline = Timeline.fromAccountsAndTransfers(accountsAndTransfers, actualStartDate, options.endDate);
+    this.timeline = Timeline.fromAccountsAndTransfers(
+      this.accountManager,
+      accountsAndTransfers,
+      actualStartDate,
+      options.endDate,
+    );
 
     // Initialize balance tracker - use actual start date for processing all historical data
     this.balanceTracker = new BalanceTracker(accountsAndTransfers.accounts, this.cache, actualStartDate);
@@ -87,7 +97,7 @@ export class Engine {
     this.calculator = new Calculator(this.balanceTracker, options.simulation);
 
     // Initialize push-pull handler
-    this.pushPullHandler = new PushPullHandler(this.balanceTracker, this.timeline);
+    this.pushPullHandler = new PushPullHandler(this.accountManager, this.balanceTracker);
 
     // Initialize segment processor
     this.segmentProcessor = new SegmentProcessor(

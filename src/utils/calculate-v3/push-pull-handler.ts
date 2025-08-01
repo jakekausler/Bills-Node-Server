@@ -1,17 +1,18 @@
 import { Account } from '../../data/account/account';
 import { warn } from '../calculate-v2/logger';
 import { formatDate, isAfterOrSame, isBeforeOrSame } from '../date/date';
+import { ActivityTransferEvent, EventType, Segment, SegmentResult } from './types';
+import { AccountManager } from './account-manager';
+import { Activity } from '../../data/activity/activity';
 import { BalanceTracker } from './balance-tracker';
-import { Timeline } from './timeline';
-import { Segment, SegmentResult } from './types';
 
 export class PushPullHandler {
+  private accountManager: AccountManager;
   private balanceTracker: BalanceTracker;
-  private timeline: Timeline;
 
-  constructor(balanceTracker: BalanceTracker, timeline: Timeline) {
+  constructor(accountManager: AccountManager, balanceTracker: BalanceTracker) {
+    this.accountManager = accountManager;
     this.balanceTracker = balanceTracker;
-    this.timeline = timeline;
   }
 
   /**
@@ -20,7 +21,7 @@ export class PushPullHandler {
   handleAccountPushPulls(segmentResult: SegmentResult, segment: Segment): boolean {
     let pushPullEventAdded = false;
     for (const accountId of segment.affectedAccountIds) {
-      const account = this.timeline.getAccountById(accountId);
+      const account = this.accountManager.getAccountById(accountId);
       if (!account) {
         warn(`Account with ID ${accountId} not found in segment ${segment.id}`);
         continue;
@@ -46,7 +47,7 @@ export class PushPullHandler {
 
       // If push or pull is needed, add the corresponding event
       if (pushNeeded && performsPushes) {
-        if (this.addPushEvents(segment, account, max)) {
+        if (this.addPushEvents(segment, account, min)) {
           pushPullEventAdded = true;
         }
       } else if (pullNeeded && performsPulls) {
@@ -62,14 +63,60 @@ export class PushPullHandler {
   /**
    * Adds push events to the segment
    */
-  private addPushEvents(segment: Segment, account: Account, maxBalance: number): boolean {
+  private addPushEvents(segment: Segment, account: Account, minBalance: number): boolean {
     console.log(
-      `Adding push events for account ${account.name} with max balance ${maxBalance} on segment starting ${formatDate(segment.startDate)}`,
+      `Adding push events for account ${account.name} with min balance ${minBalance} on segment starting ${formatDate(segment.startDate)}`,
     );
-    let pushAmount = 0;
-    // TODO: Implement logic to add push events
 
-    return pushAmount > 0; // Return true if a push event was added
+    // Calculate the amount to push
+    let pushAmount = 0;
+    let toPush = minBalance - (account.minimumBalance ?? 0) - (account.minimumPullAmount ?? 0) * 4;
+    if (toPush <= 0) {
+      return false;
+    }
+    pushAmount = toPush;
+
+    // Get the account to push to
+    const pushAccount = this.accountManager.getAccountByName(account.pushAccount ?? '');
+    if (!pushAccount) {
+      warn(`Push account ${account.pushAccount} not found for account ${account.name}`);
+      return false;
+    }
+
+    // Create the push activity
+    const pushActivity = new Activity({
+      id: `AUTO-PUSH_${account.id}_${segment.startDate.getTime()}`,
+      name: `Auto Push to ${pushAccount.name}`,
+      amount: -pushAmount,
+      amountIsVariable: false,
+      amountVariable: null,
+      date: formatDate(segment.startDate),
+      dateIsVariable: false,
+      dateVariable: null,
+      from: account.name,
+      to: pushAccount.name,
+      isTransfer: true,
+      category: 'Ignore.Transfer',
+      flag: true,
+      flagColor: 'indigo',
+    });
+
+    // Create the push event
+    const pushEvent: ActivityTransferEvent = {
+      id: `AUTO-PUSH_${account.id}_${segment.startDate.getTime()}`,
+      type: EventType.activityTransfer,
+      date: segment.startDate,
+      accountId: account.id,
+      fromAccountId: account.id,
+      toAccountId: pushAccount.id,
+      priority: 0,
+      originalActivity: pushActivity,
+    };
+
+    // Add the push event to the segment
+    segment.events.push(pushEvent);
+
+    return true;
   }
 
   /**
@@ -79,10 +126,84 @@ export class PushPullHandler {
     console.log(
       `Adding pull events for account ${account.name} with min balance ${minBalance} on segment starting ${formatDate(segment.startDate)}`,
     );
+    // Calculate the amount to pull
     let pullAmount = 0;
-    // TODO: Implement logic to add pull events
+    let toPull = Math.abs(minBalance - (account.minimumBalance ?? 0));
+    if (toPull <= 0) {
+      return false;
+    }
+    toPull = Math.max(toPull, account.minimumPullAmount ?? 0);
+    const accountsChecked = new Set<string>();
+
+    // Continue pulling until the amount to pull is 0 or no more pullable accounts are found
+    while (toPull > 0) {
+      console.log(`  Pulling ${toPull}`);
+      const pullableAccount = this.getNextPullableAccount(accountsChecked);
+      accountsChecked.add(pullableAccount?.id ?? '');
+      if (!pullableAccount) {
+        break;
+      }
+
+      // Calculate the amount available to pull from the pullable account
+      const pullableAccountBalance = this.balanceTracker.getAccountBalance(pullableAccount.id);
+      const availableAmount = Math.min(toPull, pullableAccountBalance - (pullableAccount.minimumBalance ?? 0));
+
+      // If no amount is available, break
+      if (availableAmount <= 0) {
+        break;
+      }
+      console.log(`    Pulling ${availableAmount} from ${pullableAccount.name} (${pullableAccountBalance})`);
+
+      // Update the amount to pull and the amount pulled
+      pullAmount += availableAmount;
+      toPull -= availableAmount;
+
+      // Create the pull activity
+      const pullActivity = new Activity({
+        id: `AUTO-PULL_${account.id}_${segment.startDate.getTime()}`,
+        name: `Auto Pull from ${pullableAccount.name}`,
+        amount: availableAmount,
+        amountIsVariable: false,
+        amountVariable: null,
+        date: formatDate(segment.startDate),
+        dateIsVariable: false,
+        dateVariable: null,
+        from: pullableAccount.name,
+        to: account.name,
+        isTransfer: true,
+        category: 'Ignore.Transfer',
+        flag: true,
+        flagColor: 'indigo',
+      });
+
+      // Create the pull event
+      const pullEvent: ActivityTransferEvent = {
+        id: `AUTO-PULL_${account.id}_${segment.startDate.getTime()}`,
+        type: EventType.activityTransfer,
+        date: segment.startDate,
+        accountId: account.id,
+        fromAccountId: pullableAccount.id,
+        toAccountId: account.id,
+        priority: 0,
+        originalActivity: pullActivity,
+      };
+
+      // Add the pull event to the segment
+      segment.events.push(pullEvent);
+    }
 
     return pullAmount > 0; // Return true if a pull event was added
+  }
+
+  private getNextPullableAccount(accountsChecked: Set<string>): Account | undefined {
+    return (
+      this.accountManager
+        .getPullableAccounts()
+        .filter(
+          (a) => this.balanceTracker.getAccountBalance(a.id) > (a.minimumBalance ?? 0) && !accountsChecked.has(a.id),
+        )
+        .sort((a, b) => a.pullPriority - b.pullPriority)[0] ?? null
+    );
   }
 
   /**
@@ -91,11 +212,16 @@ export class PushPullHandler {
   private checkPushPullRequirements(
     account: Account,
     minBalance: number,
-    maxBalance: number,
+    _maxBalance: number,
     performsPushes: boolean,
     performsPulls: boolean,
   ): { pushNeeded: boolean; pullNeeded: boolean } {
-    let pushNeeded = performsPushes && account.minimumBalance && maxBalance > account.minimumBalance * 4;
+    // Push needed if the minimum balance is greater than the minimum balance + 4 times the minimum pull amount
+    let pushNeeded =
+      performsPushes &&
+      account.minimumBalance &&
+      minBalance > account.minimumBalance + (account.minimumPullAmount ?? 0) * 4;
+    // Pull needed if the minimum balance is less than the minimum balance
     let pullNeeded = performsPulls && account.minimumBalance && minBalance < account.minimumBalance;
 
     return {

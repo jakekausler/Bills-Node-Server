@@ -105,7 +105,7 @@ export class SegmentProcessor {
       currentBalances.set(accountId, this.balanceTracker.getAccountBalance(accountId));
     }
 
-    for (const [_, dayEvents] of eventsByDate) {
+    for (const [_, dayEvents] of [...eventsByDate.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
       // Process events for this date
       const dayBalanceChanges = this.processDayEvents(dayEvents, options, segmentResult);
 
