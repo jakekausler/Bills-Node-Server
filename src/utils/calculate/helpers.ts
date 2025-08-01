@@ -8,6 +8,13 @@ import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecur
 
 dayjs.extend(utc);
 
+/**
+ * Calculates the next date based on the period and number of periods
+ * @param date - The date to calculate the next date from
+ * @param period - The period to calculate the next date from
+ * @param nPeriods - The number of periods to calculate the next date from
+ * @returns The next date
+ */
 export function nextDate(date: Date, period: string, nPeriods: number) {
   if (period.startsWith('day')) {
     return dayjs.utc(date).add(nPeriods, 'day').toDate();

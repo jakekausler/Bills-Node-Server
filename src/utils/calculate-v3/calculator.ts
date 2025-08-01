@@ -54,9 +54,6 @@ export class Calculator {
     const amount = event.amount;
 
     // Create consolidated activity for the bill
-    if (event.firstBill) {
-      console.log('First bill', bill.name, event.date, amount);
-    }
     const billActivity = new ConsolidatedActivity(
       bill.toActivity(bill.id, simulation, amount, event.date).serialize(),
       { billId: bill.id, firstBill: event.firstBill },
@@ -69,7 +66,7 @@ export class Calculator {
     segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
   }
 
-  processInterestEvent(event: InterestEvent, segmentResult: SegmentResult, simulation: string): void {
+  processInterestEvent(event: InterestEvent, segmentResult: SegmentResult): void {
     const interest = event.originalInterest;
     const accountId = event.accountId;
 
@@ -86,7 +83,7 @@ export class Calculator {
 
     // Create consolidated activity for the interest
     const interestActivity = new ConsolidatedActivity(
-      interest.toActivity(interest.id, simulation, interestAmount, event.date).serialize(),
+      interest.toActivity(interest.id, this.simulation, interestAmount, event.date).serialize(),
       { interestId: interest.id, firstInterest: event.firstInterest },
     );
 

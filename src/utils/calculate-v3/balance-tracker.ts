@@ -4,8 +4,8 @@ import { BalanceSnapshot, SegmentResult } from './types';
 import dayjs from 'dayjs';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { minDate } from '../io/minDate';
-import { log, warn } from '../calculate-v2/logger';
-import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
+import { warn } from '../calculate-v2/logger';
+import { isSame } from '../date/date';
 
 export class BalanceTracker {
   private accounts: Account[];
@@ -173,7 +173,7 @@ export class BalanceTracker {
   /**
    * Gets current balance for a specific account
    */
-  getAccountBalance(accountId: string): number {
+  getAccountBalance(accountId: string): number89 {
     return this.balances[accountId] || 0;
   }
 
@@ -182,5 +182,47 @@ export class BalanceTracker {
    */
   findAccountById(accountId: string): Account | undefined {
     return this.accounts.find((acc) => acc.id === accountId);
+  }
+
+  /**
+   * Gets the balance range for an account based on the segment result
+   */
+  getAccountBalanceRange(accountId: string, segmentResult: SegmentResult): { min: number; max: number } {
+    // Initialize running balance, min and max with current balance
+    let balance = this.getAccountBalance(accountId);
+    let min = balance;
+    let max = balance;
+
+    // Get activities added for the account in the segment result
+    const activities = segmentResult.activitiesAdded.get(accountId) || [];
+
+    // Used to track the last activity added to the balance to check if we have a new date
+    let lastActivityDate: Date | null = null;
+
+    // Loop over all activities added in the segment result
+    // Use their amounts to calculate the new balance after each activity
+    // If the activity is the last on a day, it will be the final balance for that day
+    // Use the final balance on each day to calculate the min and max
+    for (const activity of activities) {
+      const activityDate = new Date(activity.date);
+      if (lastActivityDate && !isSame(lastActivityDate, activityDate)) {
+        // If we have a new date, finalize the last day's balance
+        if (balance !== null) {
+          min = Math.min(min, balance);
+          max = Math.max(max, balance);
+        }
+      }
+
+      // Update balance with the activity amount
+      balance += Number(activity.amount);
+      lastActivityDate = activityDate;
+    }
+    // Finalize the last day's balance
+    if (balance !== null) {
+      min = Math.min(min, balance);
+      max = Math.max(max, balance);
+    }
+
+    return { min, max };
   }
 }

@@ -471,4 +471,12 @@ export class Timeline {
   getSegments(): Segment[] {
     return [...this.segments];
   }
+
+  getAccountByName(name: string): Account | undefined {
+    return this.accountNameMap.get(name);
+  }
+
+  getAccountById(id: string): Account | undefined {
+    return this.accountIdMap.get(id);
+  }
 }
