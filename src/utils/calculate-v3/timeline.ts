@@ -610,28 +610,51 @@ export class Timeline {
 
   /**
    * Creates calculation segments for optimized processing
+   * Takes advantage of the fact that events are already sorted by date
    */
   private createSegments(startDate: Date, endDate: Date): void {
     const segmentSize = 'month'; // Create monthly segments
     let currentStart = dayjs.utc(startDate).startOf(segmentSize).toDate();
     let segmentCount = 0;
+    let eventIndex = 0; // Track our position in the sorted events array
 
     while (currentStart <= endDate) {
       const currentEnd = dayjs.utc(currentStart).endOf(segmentSize).toDate();
       const actualEnd = currentEnd > endDate ? endDate : currentEnd;
 
-      const segmentEvents = this.getEventsInRange(currentStart, actualEnd);
-      // For TransferEvents, we need both fromAccountId and toAccountId in affectedAccounts
+      const segmentEvents: TimelineEvent[] = [];
       const affectedAccountIds = new Set<string>();
-      for (const event of segmentEvents) {
-        if (event.accountId) {
-          affectedAccountIds.add(event.accountId);
+
+      // Since events are sorted, we can iterate from where we left off
+      while (eventIndex < this.events.length) {
+        const event = this.events[eventIndex];
+        
+        // If event is past the current segment, stop looking
+        if (event.date > actualEnd) {
+          break;
         }
-        // Add transfer-specific account IDs
-        if (event.type === EventType.activityTransfer || event.type === EventType.billTransfer) {
-          const transferEvent = event as unknown as TransferEvent;
-          if (transferEvent.fromAccountId) affectedAccountIds.add(transferEvent.fromAccountId);
-          if (transferEvent.toAccountId) affectedAccountIds.add(transferEvent.toAccountId);
+        
+        // If event is within the current segment, add it
+        if (event.date >= currentStart && event.date <= actualEnd) {
+          segmentEvents.push(event);
+          
+          // Track affected accounts
+          if (event.accountId) {
+            affectedAccountIds.add(event.accountId);
+          }
+          // Add transfer-specific account IDs
+          if (event.type === EventType.activityTransfer || event.type === EventType.billTransfer) {
+            const transferEvent = event as unknown as TransferEvent;
+            if (transferEvent.fromAccountId) affectedAccountIds.add(transferEvent.fromAccountId);
+            if (transferEvent.toAccountId) affectedAccountIds.add(transferEvent.toAccountId);
+          }
+        }
+        
+        // Move to next event only if it's within or before the current segment
+        if (event.date <= actualEnd) {
+          eventIndex++;
+        } else {
+          break;
         }
       }
 
