@@ -9,6 +9,7 @@ import { Calculator } from './calculator';
 import { minDate } from '../io/minDate';
 import { PushPullHandler } from './push-pull-handler';
 import { AccountManager } from './account-manager';
+import { TaxManager } from './tax-manager';
 
 export class Engine {
   private config: CalculationConfig;
@@ -19,6 +20,7 @@ export class Engine {
   private calculator: Calculator;
   private pushPullHandler: PushPullHandler;
   private accountManager: AccountManager;
+  private taxManager: TaxManager;
   private calculationBegin: number;
 
   constructor(config: Partial<CalculationConfig> = {}) {
@@ -91,6 +93,10 @@ export class Engine {
     console.log('Initializing account manager...', Date.now() - this.calculationBegin, 'ms');
     this.accountManager = new AccountManager(accountsAndTransfers.accounts, options);
 
+    // Initialize tax manager
+    console.log('Initializing tax manager...', Date.now() - this.calculationBegin, 'ms');
+    this.taxManager = new TaxManager();
+
     // Create timeline - always start from earliest data to get correct balances
     // but we'll filter the final output by date range
     console.log('Creating timeline...', Date.now() - this.calculationBegin, 'ms');
@@ -109,7 +115,7 @@ export class Engine {
 
     // Initialize calculator
     console.log('Initializing calculator...', Date.now() - this.calculationBegin, 'ms');
-    this.calculator = new Calculator(this.balanceTracker, options.simulation);
+    this.calculator = new Calculator(this.balanceTracker, this.taxManager, options.simulation);
 
     // Initialize push-pull handler
     console.log('Initializing push-pull handler...', Date.now() - this.calculationBegin, 'ms');

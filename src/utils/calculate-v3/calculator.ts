@@ -3,6 +3,7 @@ import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { Bill } from '../../data/bill/bill';
 import { formatDate } from '../date/date';
 import { BalanceTracker } from './balance-tracker';
+import { TaxManager } from './tax-manager';
 import {
   ActivityEvent,
   ActivityTransferEvent,
@@ -19,9 +20,11 @@ import {
 export class Calculator {
   private balanceTracker: BalanceTracker;
   private simulation: string;
+  private taxManager: TaxManager;
 
-  constructor(balanceTracker: BalanceTracker, simulation: string) {
+  constructor(balanceTracker: BalanceTracker, taxManager: TaxManager, simulation: string) {
     this.balanceTracker = balanceTracker;
+    this.taxManager = taxManager;
     this.simulation = simulation;
   }
 
