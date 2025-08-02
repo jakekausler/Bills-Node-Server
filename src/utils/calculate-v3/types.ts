@@ -23,17 +23,16 @@ export type CalculationOptions = {
   config: Partial<CalculationConfig>;
 };
 
-/**
- * Tax implication for push/pull
- */
-export interface TaxImplication {
-  accountId: string;
-  type: 'withdrawal' | 'earlyWithdrawal';
+export type TaxableOccurence = {
+  /** Date of the taxable event */
+  date: Date;
+  /** Year of the taxable event */
+  year: number;
+  /** Amount of the taxable event */
   amount: number;
+  /** Tax rate applied to this event */
   taxRate: number;
-  penaltyRate: number;
-  dueDate: Date;
-}
+};
 
 /**
  * Results of a calculation segment
