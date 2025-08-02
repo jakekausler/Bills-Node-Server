@@ -125,21 +125,25 @@ export type BillTransferEvent = Omit<BillEvent, 'type'> &
 
 export type PensionEvent = TimelineEvent & {
   type: EventType.pension;
-  pensionData: Pension;
+  pension: Pension;
+  ownerAge: number;
 };
 
 export type SocialSecurityEvent = TimelineEvent & {
   type: EventType.socialSecurity;
-  socialSecurityData: SocialSecurity;
+  socialSecurity: SocialSecurity;
+  ownerAge: number;
 };
 
 export type TaxEvent = TimelineEvent & {
   type: EventType.tax;
 };
 
-export type RMDEvent = TimelineEvent & {
-  type: EventType.rmd;
-};
+export type RMDEvent = TimelineEvent &
+  TransferEvent & {
+    type: EventType.rmd;
+    ownerAge: number;
+  };
 
 export type Segment = {
   /** Unique identifier */

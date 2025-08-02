@@ -19,6 +19,7 @@ export class Engine {
   private calculator: Calculator;
   private pushPullHandler: PushPullHandler;
   private accountManager: AccountManager;
+  private calculationBegin: number;
 
   constructor(config: Partial<CalculationConfig> = {}) {
     this.config = this.mergeConfig(config);
@@ -29,6 +30,9 @@ export class Engine {
     accountsAndTransfers: AccountsAndTransfers,
     options: CalculationOptions,
   ): Promise<AccountsAndTransfers> {
+    // Start timing
+    this.calculationBegin = Date.now();
+
     // Try to retrieve from cache
     if (!options.forceRecalculation) {
       const cachedResult = await this.getCachedResult(options);
@@ -38,17 +42,20 @@ export class Engine {
     }
 
     // Initialize all components
-    this.initializeCalculation(accountsAndTransfers, options);
+    await this.initializeCalculation(accountsAndTransfers, options);
 
     // Perform the calculation
     const results = await this.performCalculations(accountsAndTransfers, options);
 
     // Format the results
+    console.log('Formatting results...', Date.now() - this.calculationBegin, 'ms');
     const formattedResults = this.formatResults(results);
 
     // Store the results in cache
+    console.log('Caching results...', Date.now() - this.calculationBegin, 'ms');
     await this.cacheResult(formattedResults, options);
 
+    console.log('Calculation completed in', Date.now() - this.calculationBegin, 'ms');
     return formattedResults;
   }
 
@@ -76,30 +83,40 @@ export class Engine {
     await this.cache.set(cacheKey, result);
   }
 
-  private initializeCalculation(accountsAndTransfers: AccountsAndTransfers, options: CalculationOptions): void {
+  private async initializeCalculation(
+    accountsAndTransfers: AccountsAndTransfers,
+    options: CalculationOptions,
+  ): Promise<void> {
     // Initialize account manager
-    this.accountManager = new AccountManager(accountsAndTransfers.accounts);
+    console.log('Initializing account manager...', Date.now() - this.calculationBegin, 'ms');
+    this.accountManager = new AccountManager(accountsAndTransfers.accounts, options);
 
     // Create timeline - always start from earliest data to get correct balances
     // but we'll filter the final output by date range
+    console.log('Creating timeline...', Date.now() - this.calculationBegin, 'ms');
     const actualStartDate = minDate(accountsAndTransfers);
-    this.timeline = Timeline.fromAccountsAndTransfers(
+    this.timeline = await Timeline.fromAccountsAndTransfers(
       this.accountManager,
       accountsAndTransfers,
       actualStartDate,
       options.endDate,
+      this.calculationBegin,
     );
 
     // Initialize balance tracker - use actual start date for processing all historical data
+    console.log('Initializing balance tracker...', Date.now() - this.calculationBegin, 'ms');
     this.balanceTracker = new BalanceTracker(accountsAndTransfers.accounts, this.cache, actualStartDate);
 
     // Initialize calculator
+    console.log('Initializing calculator...', Date.now() - this.calculationBegin, 'ms');
     this.calculator = new Calculator(this.balanceTracker, options.simulation);
 
     // Initialize push-pull handler
+    console.log('Initializing push-pull handler...', Date.now() - this.calculationBegin, 'ms');
     this.pushPullHandler = new PushPullHandler(this.accountManager, this.balanceTracker);
 
     // Initialize segment processor
+    console.log('Initializing segment processor...', Date.now() - this.calculationBegin, 'ms');
     this.segmentProcessor = new SegmentProcessor(
       this.cache,
       this.balanceTracker,
@@ -115,11 +132,12 @@ export class Engine {
     if (!this.timeline || !this.balanceTracker || !this.segmentProcessor || !this.calculator) {
       throw new Error('Calculation components not initialized');
     }
+    console.log('Performing calculations...', Date.now() - this.calculationBegin, 'ms');
 
     const segments = this.timeline.getSegments();
 
     // Initialize accounts with starting balances
-    this.balanceTracker.initializeBalances(accountsAndTransfers, options.forceRecalculation);
+    await this.balanceTracker.initializeBalances(accountsAndTransfers, options.forceRecalculation);
 
     // Process segments in order
     for (const segment of segments) {

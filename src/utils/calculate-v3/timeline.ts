@@ -8,7 +8,11 @@ import {
   BillTransferEvent,
   EventType,
   InterestEvent,
+  PensionEvent,
+  RMDEvent,
   Segment,
+  SocialSecurityEvent,
+  TaxEvent,
   TimelineEvent,
   TransferEvent,
 } from './types';
@@ -19,6 +23,8 @@ import { nextDate } from '../calculate/helpers';
 import { isAfterOrSame, isBeforeOrSame, isSame } from '../date/date';
 import { warn } from '../calculate-v2/logger';
 import { AccountManager } from './account-manager';
+import { Pension } from '../../data/retirement/pension/pension';
+import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
 
 export class Timeline {
   private accountManager: AccountManager;
@@ -26,38 +32,43 @@ export class Timeline {
   private segments: Segment[];
   private eventIndex: Map<string, TimelineEvent>;
   private dateIndex: Map<string, TimelineEvent[]>;
+  private calculationBegin: number;
 
-  constructor(accountManager: AccountManager) {
+  constructor(accountManager: AccountManager, calculationBegin: number) {
     this.accountManager = accountManager;
     this.events = [];
     this.segments = [];
     this.eventIndex = new Map();
     this.dateIndex = new Map();
+    this.calculationBegin = calculationBegin;
   }
 
-  static fromAccountsAndTransfers(
+  static async fromAccountsAndTransfers(
     accountManager: AccountManager,
     accountsAndTransfers: AccountsAndTransfers,
     startDate: Date,
     endDate: Date,
-  ): Timeline {
-    const timeline = new Timeline(accountManager);
+    calculationBegin: number,
+  ): Promise<Timeline> {
+    const timeline = new Timeline(accountManager, calculationBegin);
 
-    // Add activity events
-    timeline.addActivityEvents(accountsAndTransfers, endDate);
-
-    // Add bill events
-    timeline.addBillEvents(accountsAndTransfers, endDate);
-
-    // Add interest events
-    timeline.addInterestEvents(accountsAndTransfers, endDate);
-
-    // Add transfer events
-    timeline.addTransferActivityEvents(accountsAndTransfers, endDate);
-    timeline.addTransferBillEvents(accountsAndTransfers, endDate);
+    // Parallelize all independent add* method calls
+    await Promise.all([
+      timeline.addActivityEvents(accountsAndTransfers, endDate),
+      timeline.addBillEvents(accountsAndTransfers, endDate),
+      timeline.addInterestEvents(accountsAndTransfers, endDate),
+      timeline.addTransferActivityEvents(accountsAndTransfers, endDate),
+      timeline.addTransferBillEvents(accountsAndTransfers, endDate),
+      timeline.addSocialSecurityEvents(accountsAndTransfers, startDate, endDate),
+      timeline.addPensionEvents(accountsAndTransfers, startDate, endDate),
+      timeline.addRmdEvents(accountsAndTransfers, startDate, endDate),
+      timeline.addTaxEvents(accountsAndTransfers, startDate, endDate),
+    ]);
 
     // Sort and optimize timeline
+    console.log('  Sorting events', Date.now() - timeline.calculationBegin, 'ms');
     timeline.sortEvents();
+    console.log('  Creating segments', Date.now() - timeline.calculationBegin, 'ms');
     timeline.createSegments(startDate, endDate);
 
     return timeline;
@@ -71,7 +82,7 @@ export class Timeline {
    * Adds manual activity events to the timeline
    * Excludes transfer activities since they're handled separately in addTransferEvents method
    */
-  private addActivityEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): void {
+  private async addActivityEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
     for (const account of accountsAndTransfers.accounts) {
       for (const activity of account.activity) {
         if (activity.isTransfer) {
@@ -92,23 +103,26 @@ export class Timeline {
         }
       }
     }
+    console.log('  Finished adding activity events', Date.now() - this.calculationBegin, 'ms');
   }
 
-  private addBillEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): void {
+  private async addBillEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
     for (const account of accountsAndTransfers.accounts) {
       for (const bill of account.bills) {
         this.generateBillEvents(account, bill, endDate);
       }
     }
+    console.log('  Finished adding bill events', Date.now() - this.calculationBegin, 'ms');
   }
 
-  private addInterestEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): void {
+  private async addInterestEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
     for (const account of accountsAndTransfers.accounts) {
       this.generateInterestEvents(account, account.interests, endDate);
     }
+    console.log('  Finished adding interest events');
   }
 
-  private addTransferActivityEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): void {
+  private async addTransferActivityEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
     for (const activity of accountsAndTransfers.transfers.activity) {
       if (activity.date <= endDate && activity.isTransfer) {
         if (!activity.fro || !activity.to) {
@@ -155,12 +169,58 @@ export class Timeline {
         this.addEvent(event);
       }
     }
+    console.log('  Finished adding transfer activity events', Date.now() - this.calculationBegin, 'ms');
   }
 
-  private addTransferBillEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): void {
+  private async addTransferBillEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
     for (const bill of accountsAndTransfers.transfers.bills) {
       this.generateTransferBillEvents(bill, endDate);
     }
+    console.log('  Finished adding transfer bill events', Date.now() - this.calculationBegin, 'ms');
+  }
+
+  private async addSocialSecurityEvents(
+    accountsAndTransfers: AccountsAndTransfers,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<void> {
+    for (const socialSecurity of this.accountManager.getSocialSecurities()) {
+      this.generateSocialSecurityEvents(socialSecurity, accountsAndTransfers.accounts, startDate, endDate);
+    }
+    console.log('  Finished adding social security events', Date.now() - this.calculationBegin, 'ms');
+  }
+
+  private async addPensionEvents(
+    accountsAndTransfers: AccountsAndTransfers,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<void> {
+    for (const pension of this.accountManager.getPensions()) {
+      this.generatePensionEvents(pension, accountsAndTransfers.accounts, startDate, endDate);
+    }
+    console.log('  Finished adding pension events', Date.now() - this.calculationBegin, 'ms');
+  }
+
+  private async addRmdEvents(
+    accountsAndTransfers: AccountsAndTransfers,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<void> {
+    for (const account of accountsAndTransfers.accounts) {
+      this.generateRmdEvents(account, startDate, endDate);
+    }
+    console.log('  Finished adding RMD events', Date.now() - this.calculationBegin, 'ms');
+  }
+
+  private async addTaxEvents(
+    accountsAndTransfers: AccountsAndTransfers,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<void> {
+    for (const account of accountsAndTransfers.accounts) {
+      this.generateTaxEvents(account, startDate, endDate);
+    }
+    console.log('  Finished adding tax events', Date.now() - this.calculationBegin, 'ms');
   }
 
   /**************************************************
@@ -299,6 +359,158 @@ export class Timeline {
       // Safety check to prevent infinite loops
       if (eventCount > 10000) {
         throw new Error(`Too many bill events generated for bill ${bill.id}`);
+      }
+    }
+  }
+
+  private generateSocialSecurityEvents(
+    socialSecurity: SocialSecurity,
+    accounts: Account[],
+    startDate: Date,
+    endDate: Date,
+  ): void {
+    if (!socialSecurity.startDate || socialSecurity.startDate > endDate) {
+      return;
+    }
+
+    // Find the account to pay to
+    const payToAccount = this.accountManager.getAccountByName(socialSecurity.payToAcccount);
+    if (!payToAccount) {
+      warn(`Social Security pay to account ${socialSecurity.payToAcccount} not found`);
+      return;
+    }
+
+    // Add events monthly starting from the start date
+    let currentDate = socialSecurity.startDate;
+    let eventCount = 0;
+    while (currentDate <= endDate) {
+      // Calculate the age at the current date
+      const ownerAge = dayjs.utc(currentDate).diff(socialSecurity.birthDate, 'year');
+
+      // Create the Social Security event
+      const event: SocialSecurityEvent = {
+        id: `social_security_${socialSecurity.name}_${eventCount}`,
+        type: EventType.socialSecurity,
+        date: new Date(currentDate),
+        accountId: payToAccount.id,
+        socialSecurity,
+        ownerAge: ownerAge,
+        priority: 2,
+      };
+
+      this.addEvent(event);
+
+      // Move to the next month
+      currentDate = dayjs.utc(currentDate).add(1, 'month').toDate();
+      eventCount++;
+
+      // Safety check to prevent infinite loops
+      if (eventCount > 10000) {
+        throw new Error(`Too many Social Security events generated for ${socialSecurity.name}`);
+      }
+    }
+  }
+
+  private generatePensionEvents(pension: Pension, accounts: Account[], startDate: Date, endDate: Date): void {
+    if (!pension.startDate || pension.startDate > endDate) {
+      return;
+    }
+
+    // Find the account to pay to
+    const payToAccount = this.accountManager.getAccountByName(pension.payToAcccount);
+    if (!payToAccount) {
+      warn(`Pension pay to account ${pension.payToAcccount} not found`);
+      return;
+    }
+
+    // Add events monthly starting from the start date
+    let currentDate = pension.startDate;
+    let eventCount = 0;
+    while (currentDate <= endDate) {
+      // Calculate the age at the current date
+      const ownerAge = dayjs.utc(currentDate).diff(pension.birthDate, 'year');
+
+      // Create the Pension event
+      const event: PensionEvent = {
+        id: `pension_${pension.name}_${eventCount}`,
+        type: EventType.pension,
+        date: new Date(currentDate),
+        accountId: payToAccount.id,
+        pension,
+        ownerAge: ownerAge,
+        priority: 2,
+      };
+
+      this.addEvent(event);
+
+      // Move to the next month
+      currentDate = dayjs.utc(currentDate).add(1, 'month').toDate();
+      eventCount++;
+
+      // Safety check to prevent infinite loops
+      if (eventCount > 10000) {
+        throw new Error(`Too many Social Security events generated for ${pension.name}`);
+      }
+    }
+  }
+
+  private generateRmdEvents(account: Account, startDate: Date, endDate: Date): void {
+    // Transfer RMDs on December 31st
+    const RMD_MONTH = 12;
+    const RMD_DAY = 31;
+
+    // Check if the account has RMD enabled
+    if (!account.usesRMD || !account.rmdAccount || !account.accountOwnerDOB) {
+      return;
+    }
+
+    // Add RMD event for each year in the range
+    const startYear = startDate.getUTCFullYear();
+    const endYear = endDate.getUTCFullYear();
+    for (let year = startYear; year <= endYear; year++) {
+      const rmdDate = new Date(Date.UTC(year, RMD_MONTH - 1, RMD_DAY));
+      if (isAfterOrSame(rmdDate, startDate) && isBeforeOrSame(rmdDate, endDate)) {
+        const event: RMDEvent = {
+          id: `rmd_${account.id}_${year}`,
+          type: EventType.rmd,
+          date: rmdDate,
+          accountId: account.id,
+          ownerAge: dayjs.utc(rmdDate).diff(account.accountOwnerDOB, 'year'),
+          fromAccountId: account.id,
+          toAccountId: this.accountManager.getAccountByName(account.rmdAccount)?.id || '',
+          priority: 3,
+        };
+        this.addEvent(event);
+      }
+    }
+  }
+
+  private generateTaxEvents(account: Account, startDate: Date, endDate: Date): void {
+    // Pay taxes on March 1st
+    const TAX_MONTH = 3;
+    const TAX_DAY = 1;
+
+    // Might pay taxes if the account performs pulls or is an interest-paying account
+    const paysTaxes = account.performsPulls || this.accountManager.getInterestPayAccountNames().has(account.name);
+    if (!paysTaxes) {
+      return;
+    }
+
+    // Add tax event for each year in the range
+    const startYear = startDate.getUTCFullYear();
+    const endYear = endDate.getUTCFullYear();
+
+    for (let year = startYear; year <= endYear; year++) {
+      const taxDate = new Date(Date.UTC(year, TAX_MONTH - 1, TAX_DAY));
+      if (isAfterOrSame(taxDate, startDate) && isBeforeOrSame(taxDate, endDate)) {
+        const event: TaxEvent = {
+          id: `tax_${account.id}_${year}`,
+          type: EventType.tax,
+          date: taxDate,
+          accountId: account.id,
+          priority: 3,
+        };
+        this.addEvent(event);
       }
     }
   }

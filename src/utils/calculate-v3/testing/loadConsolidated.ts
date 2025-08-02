@@ -1,26 +1,24 @@
 import { loadData } from '../../io/accountsAndTransfers';
 import { writeFileSync } from 'fs';
 
-async function main() {
-  const result = await loadData(new Date('2025-07-01'), new Date('2025-12-31'), 'Default');
-
-  // Write the result to a file
-  const filePath = 'testing/consolidatedData.json';
+async function main(runId: string) {
+  const results = await loadData(new Date('2024-01-01'), new Date('2083-12-31'), 'Default');
+  const file = `testing/consolidatedActivities/results${runId}.json`;
   writeFileSync(
-    filePath,
+    file,
     JSON.stringify(
-      result.accounts.map((a) => {
-        const consolidatedActivity = a.consolidatedActivity.map((a) => a.serialize());
+      results.accounts.map((a) => {
         return {
           account: a.name,
-          consolidatedActivity,
+          consolidatedActivity: a.consolidatedActivity.map((c) => c.serialize()),
         };
       }),
-      null,
-      2,
     ),
-    'utf-8',
   );
 }
 
-main();
+const N_RUNS = 1;
+
+for (let i = 1; i <= N_RUNS; i++) {
+  main(i.toString());
+}

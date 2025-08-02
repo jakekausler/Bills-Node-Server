@@ -64,10 +64,6 @@ export class PushPullHandler {
    * Adds push events to the segment
    */
   private addPushEvents(segment: Segment, account: Account, minBalance: number): boolean {
-    console.log(
-      `Adding push events for account ${account.name} with min balance ${minBalance} on segment starting ${formatDate(segment.startDate)}`,
-    );
-
     // Calculate the amount to push
     let pushAmount = 0;
     let toPush = minBalance - (account.minimumBalance ?? 0) - (account.minimumPullAmount ?? 0) * 4;
@@ -123,9 +119,6 @@ export class PushPullHandler {
    * Adds pull events to the segment
    */
   private addPullEvents(segment: Segment, account: Account, minBalance: number): boolean {
-    console.log(
-      `Adding pull events for account ${account.name} with min balance ${minBalance} on segment starting ${formatDate(segment.startDate)}`,
-    );
     // Calculate the amount to pull
     let pullAmount = 0;
     let toPull = Math.abs(minBalance - (account.minimumBalance ?? 0));
@@ -137,7 +130,6 @@ export class PushPullHandler {
 
     // Continue pulling until the amount to pull is 0 or no more pullable accounts are found
     while (toPull > 0) {
-      console.log(`  Pulling ${toPull}`);
       const pullableAccount = this.getNextPullableAccount(accountsChecked);
       accountsChecked.add(pullableAccount?.id ?? '');
       if (!pullableAccount) {
@@ -152,7 +144,6 @@ export class PushPullHandler {
       if (availableAmount <= 0) {
         break;
       }
-      console.log(`    Pulling ${availableAmount} from ${pullableAccount.name} (${pullableAccountBalance})`);
 
       // Update the amount to pull and the amount pulled
       pullAmount += availableAmount;

@@ -343,20 +343,8 @@ export class CacheManager {
   }
 }
 
-let globalCache: CacheManager | null = null;
-
 export function initializeCache(config: CalculationConfig): CacheManager {
-  if (!globalCache) {
-    globalCache = new CacheManager(config);
-  }
-  return globalCache;
-}
-
-export function getCache(): CacheManager {
-  if (!globalCache) {
-    throw new Error('Cache not initialized. Call initializeCache first.');
-  }
-  return globalCache;
+  return new CacheManager(config);
 }
 
 /**

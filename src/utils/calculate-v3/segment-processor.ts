@@ -64,7 +64,7 @@ export class SegmentProcessor {
     if (!options.forceRecalculation) {
       const cachedResult = await this.getCachedSegmentResult(segment);
       if (cachedResult) {
-        this.balanceTracker.applySegmentResult(cachedResult);
+        this.balanceTracker.applySegmentResult(cachedResult, segment.startDate);
         return;
       }
     }
@@ -84,7 +84,7 @@ export class SegmentProcessor {
     await this.cacheSegmentResult(segment, segmentResult);
 
     // Apply the result to balance tracker
-    this.balanceTracker.applySegmentResult(segmentResult);
+    this.balanceTracker.applySegmentResult(segmentResult, segment.startDate);
   }
 
   private processSegmentEvents(segment: Segment, options: CalculationOptions): SegmentResult {

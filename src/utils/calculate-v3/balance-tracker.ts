@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { minDate } from '../io/minDate';
 import { warn } from '../calculate-v2/logger';
-import { isSame } from '../date/date';
+import { formatDate, isSame } from '../date/date';
 
 export class BalanceTracker {
   private accounts: Account[];
@@ -19,7 +19,8 @@ export class BalanceTracker {
   private snapshotInterval: number = 30; // days
 
   constructor(accounts: Account[], cache: CacheManager, startDate: Date | null = null) {
-    this.accounts = [...accounts]; // Shallow copy to avoid mutations
+    // Deep clone accounts to avoid mutations affecting other parallel calculations
+    this.accounts = accounts.map((account) => new Account(account.serialize()));
     this.cache = cache;
     this.startDate = startDate;
   }
@@ -141,10 +142,10 @@ export class BalanceTracker {
     });
   }
 
-  applySegmentResult(segmentResult: SegmentResult): void {
+  applySegmentResult(segmentResult: SegmentResult, date: Date): void {
     // Apply balance changes
     for (const [accountId, change] of segmentResult.balanceChanges) {
-      this.updateBalance(accountId, change);
+      this.updateBalance(accountId, change, date);
     }
 
     // Apply activity additions
@@ -159,7 +160,7 @@ export class BalanceTracker {
     }
   }
 
-  updateBalance(accountId: string, amount: number): void {
+  updateBalance(accountId: string, amount: number, date: Date): void {
     if (!Object.prototype.hasOwnProperty.call(this.balances, accountId)) {
       this.balances[accountId] = 0;
     }

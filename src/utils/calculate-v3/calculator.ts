@@ -82,7 +82,7 @@ export class Calculator {
     const interestAmount = this.calculateInterestAmount(currentBalance, event.rate, interest.compounded);
 
     // Only create activities for non-zero amounts (filter out zeros and floating-point noise)
-    if (Math.abs(interestAmount) <= 0.00001) {
+    if (Math.abs(interestAmount) <= 0.001) {
       return new Map();
     }
 
