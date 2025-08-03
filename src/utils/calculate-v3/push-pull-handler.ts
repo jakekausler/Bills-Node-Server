@@ -83,7 +83,7 @@ export class PushPullHandler {
     const pushActivity = new Activity({
       id: `AUTO-PUSH_${account.id}_${segment.startDate.getTime()}`,
       name: `Auto Push to ${pushAccount.name}`,
-      amount: -pushAmount,
+      amount: pushAmount,
       amountIsVariable: false,
       amountVariable: null,
       date: formatDate(segment.startDate),

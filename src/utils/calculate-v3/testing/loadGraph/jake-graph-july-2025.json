@@ -1,0 +1,153 @@
+{
+  "type": "activity",
+  "labels": [
+    "2025-07-01",
+    "2025-07-03",
+    "2025-07-05",
+    "2025-07-07",
+    "2025-07-10",
+    "2025-07-11",
+    "2025-07-14",
+    "2025-07-15",
+    "2025-07-16",
+    "2025-07-17",
+    "2025-07-18",
+    "2025-07-24",
+    "2025-07-27",
+    "2025-07-30",
+    "2025-07-31"
+  ],
+  "datasets": [
+    {
+      "label": "Jake",
+      "data": [
+        6030.6,
+        6006.47,
+        6000.48,
+        5901.92,
+        5901.92,
+        8892.99,
+        8642.99,
+        6062.82,
+        7012.82,
+        8754.63,
+        8604.63,
+        11595.69,
+        9224.06,
+        10174.06,
+        10174.06
+      ],
+      "activity": [
+        [
+          {
+            "name": "City of Raleigh Kendall",
+            "amount": 950
+          },
+          {
+            "name": "Mortgage",
+            "amount": -4100
+          }
+        ],
+        [
+          {
+            "name": "Uber",
+            "amount": -24.13
+          }
+        ],
+        [
+          {
+            "name": "Roll20",
+            "amount": -5.99
+          }
+        ],
+        [
+          {
+            "name": "Uber",
+            "amount": -29.19
+          },
+          {
+            "name": "Transfer from Jake to Spending",
+            "amount": -50
+          },
+          {
+            "name": "Transfer from Jake to REI",
+            "amount": -19.37
+          }
+        ],
+        [
+          {
+            "name": "Venmo",
+            "amount": 500
+          },
+          {
+            "name": "Transfer from Jake to Kendall",
+            "amount": -500
+          }
+        ],
+        [
+          {
+            "name": "Nearpod",
+            "amount": 2991.07
+          }
+        ],
+        [
+          {
+            "name": "Transfer from Jake to Spending",
+            "amount": -250
+          }
+        ],
+        [
+          {
+            "name": "Transfer from Jake to Chase",
+            "amount": -2259.06
+          },
+          {
+            "name": "Transfer from Jake to REI",
+            "amount": -321.11
+          }
+        ],
+        [
+          {
+            "name": "City of Raleigh Kendall",
+            "amount": 950
+          }
+        ],
+        [
+          {
+            "name": "Nearpod Bonus",
+            "amount": 1741.81
+          }
+        ],
+        [
+          {
+            "name": "Nearpod Internet",
+            "amount": 50
+          },
+          {
+            "name": "Transfer from Jake to Costco",
+            "amount": -200
+          }
+        ],
+        [
+          {
+            "name": "Nearpod",
+            "amount": 2991.06
+          }
+        ],
+        [
+          {
+            "name": "Transfer from Jake to Costco",
+            "amount": -2371.63
+          }
+        ],
+        [
+          {
+            "name": "City of Raleigh Kendall",
+            "amount": 950
+          }
+        ],
+        []
+      ]
+    }
+  ]
+}
