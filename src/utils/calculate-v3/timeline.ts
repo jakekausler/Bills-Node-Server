@@ -59,8 +59,8 @@ export class Timeline {
       timeline.addInterestEvents(accountsAndTransfers, endDate),
       timeline.addTransferActivityEvents(accountsAndTransfers, endDate),
       timeline.addTransferBillEvents(accountsAndTransfers, endDate),
-      timeline.addSocialSecurityEvents(accountsAndTransfers, startDate, endDate),
-      timeline.addPensionEvents(accountsAndTransfers, startDate, endDate),
+      timeline.addSocialSecurityEvents(endDate),
+      timeline.addPensionEvents(endDate),
       timeline.addRmdEvents(accountsAndTransfers, startDate, endDate),
       timeline.addTaxEvents(accountsAndTransfers, startDate, endDate),
     ]);
@@ -179,24 +179,16 @@ export class Timeline {
     console.log('  Finished adding transfer bill events', Date.now() - this.calculationBegin, 'ms');
   }
 
-  private async addSocialSecurityEvents(
-    accountsAndTransfers: AccountsAndTransfers,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<void> {
+  private async addSocialSecurityEvents(endDate: Date): Promise<void> {
     for (const socialSecurity of this.accountManager.getSocialSecurities()) {
-      this.generateSocialSecurityEvents(socialSecurity, accountsAndTransfers.accounts, startDate, endDate);
+      this.generateSocialSecurityEvents(socialSecurity, endDate);
     }
     console.log('  Finished adding social security events', Date.now() - this.calculationBegin, 'ms');
   }
 
-  private async addPensionEvents(
-    accountsAndTransfers: AccountsAndTransfers,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<void> {
+  private async addPensionEvents(endDate: Date): Promise<void> {
     for (const pension of this.accountManager.getPensions()) {
-      this.generatePensionEvents(pension, accountsAndTransfers.accounts, startDate, endDate);
+      this.generatePensionEvents(pension, endDate);
     }
     console.log('  Finished adding pension events', Date.now() - this.calculationBegin, 'ms');
   }
@@ -363,12 +355,7 @@ export class Timeline {
     }
   }
 
-  private generateSocialSecurityEvents(
-    socialSecurity: SocialSecurity,
-    accounts: Account[],
-    startDate: Date,
-    endDate: Date,
-  ): void {
+  private generateSocialSecurityEvents(socialSecurity: SocialSecurity, endDate: Date): void {
     if (!socialSecurity.startDate || socialSecurity.startDate > endDate) {
       return;
     }
@@ -396,6 +383,7 @@ export class Timeline {
         socialSecurity,
         ownerAge: ownerAge,
         priority: 2,
+        firstPayment: eventCount === 0, // Mark the first payment
       };
 
       this.addEvent(event);
@@ -411,7 +399,7 @@ export class Timeline {
     }
   }
 
-  private generatePensionEvents(pension: Pension, accounts: Account[], startDate: Date, endDate: Date): void {
+  private generatePensionEvents(pension: Pension, endDate: Date): void {
     if (!pension.startDate || pension.startDate > endDate) {
       return;
     }
@@ -439,6 +427,7 @@ export class Timeline {
         pension,
         ownerAge: ownerAge,
         priority: 2,
+        firstPayment: eventCount === 0, // Mark the first payment
       };
 
       this.addEvent(event);
@@ -628,16 +617,16 @@ export class Timeline {
       // Since events are sorted, we can iterate from where we left off
       while (eventIndex < this.events.length) {
         const event = this.events[eventIndex];
-        
+
         // If event is past the current segment, stop looking
         if (event.date > actualEnd) {
           break;
         }
-        
+
         // If event is within the current segment, add it
         if (event.date >= currentStart && event.date <= actualEnd) {
           segmentEvents.push(event);
-          
+
           // Track affected accounts
           if (event.accountId) {
             affectedAccountIds.add(event.accountId);
@@ -649,7 +638,7 @@ export class Timeline {
             if (transferEvent.toAccountId) affectedAccountIds.add(transferEvent.toAccountId);
           }
         }
-        
+
         // Move to next event only if it's within or before the current segment
         if (event.date <= actualEnd) {
           eventIndex++;

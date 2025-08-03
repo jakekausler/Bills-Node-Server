@@ -3,6 +3,7 @@ import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { Bill } from '../../data/bill/bill';
 import { formatDate } from '../date/date';
 import { BalanceTracker } from './balance-tracker';
+import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
 import {
   ActivityEvent,
@@ -21,10 +22,17 @@ export class Calculator {
   private balanceTracker: BalanceTracker;
   private simulation: string;
   private taxManager: TaxManager;
+  private retirementManager: RetirementManager;
 
-  constructor(balanceTracker: BalanceTracker, taxManager: TaxManager, simulation: string) {
+  constructor(
+    balanceTracker: BalanceTracker,
+    taxManager: TaxManager,
+    retirementManager: RetirementManager,
+    simulation: string,
+  ) {
     this.balanceTracker = balanceTracker;
     this.taxManager = taxManager;
+    this.retirementManager = retirementManager;
     this.simulation = simulation;
   }
 

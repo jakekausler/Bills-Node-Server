@@ -126,12 +126,14 @@ export type PensionEvent = TimelineEvent & {
   type: EventType.pension;
   pension: Pension;
   ownerAge: number;
+  firstPayment: boolean;
 };
 
 export type SocialSecurityEvent = TimelineEvent & {
   type: EventType.socialSecurity;
   socialSecurity: SocialSecurity;
   ownerAge: number;
+  firstPayment: boolean;
 };
 
 export type TaxEvent = TimelineEvent & {
