@@ -74,6 +74,9 @@ export class Calculator {
       { billId: bill.id, firstBill: event.firstBill },
     );
 
+    if (!segmentResult.activitiesAdded.has(accountId)) {
+      segmentResult.activitiesAdded.set(accountId, []);
+    }
     segmentResult.activitiesAdded.get(accountId)?.push(billActivity);
 
     // Update balance in segment result

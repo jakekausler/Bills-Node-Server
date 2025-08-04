@@ -132,14 +132,19 @@ async function runCalculateV2(
     },
   };
 
-  const result = await calculateAllActivity(testData, new Date(startDate), new Date(endDate), 'Default');
-
-  if (!result.success) {
-    throw new Error(result.error || 'Calculate-v2 failed');
-  }
+  const newAccountsAndTransfers = await calculateAllActivity(
+    testData,
+    new Date(startDate),
+    new Date(endDate),
+    'Default',
+    false,
+    0,
+    0,
+    true,
+  );
 
   // Return the updated accounts from the calculation result
-  return result.accountsAndTransfers;
+  return newAccountsAndTransfers;
 }
 
 /**
@@ -266,17 +271,13 @@ export async function runAccuracyComparison(): Promise<void> {
           // Create account map for easier lookup
           const calculatedDataMap: Record<string, any> = {};
           calculatedResults.accounts.forEach((account) => {
+            console.log(
+              `  💾 Saving calculated data for account ${account.id} (${account.name}) - ${account.consolidatedActivity?.length || 0} activities`,
+            );
             calculatedDataMap[account.id] = {
               id: account.id,
               name: account.name,
-              consolidatedActivity:
-                account.consolidatedActivity.map((v) => {
-                  return {
-                    ...v,
-                    date: formatDate(new Date(v.date)),
-                  };
-                }) || [],
-              balance: account.balance,
+              consolidatedActivity: account.consolidatedActivity,
             };
           });
 

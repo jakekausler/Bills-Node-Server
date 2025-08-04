@@ -7,59 +7,59 @@
     {
       "scenario": "historical_to_current",
       "comparisons": 18,
-      "successful": 14,
+      "successful": 16,
       "failed": 1,
-      "discrepancies": 4,
-      "avgBalanceDiff": 4149.075000000023,
-      "avgActivityCountDiff": 66.66666666666667
+      "discrepancies": 2,
+      "avgBalanceDiff": 233.97777777780024,
+      "avgActivityCountDiff": 65.27777777777777
     },
     {
       "scenario": "current_to_near_future",
       "comparisons": 18,
-      "successful": 15,
+      "successful": 14,
       "failed": 0,
-      "discrepancies": 3,
-      "avgBalanceDiff": 3917.840944520856,
-      "avgActivityCountDiff": 0
+      "discrepancies": 4,
+      "avgBalanceDiff": 5.603106520855753,
+      "avgActivityCountDiff": 0.2222222222222222
     },
     {
       "scenario": "recent_to_medium_term",
       "comparisons": 18,
-      "successful": 13,
+      "successful": 12,
       "failed": 0,
-      "discrepancies": 5,
-      "avgBalanceDiff": 4396.463078779437,
-      "avgActivityCountDiff": 0.6666666666666666
+      "discrepancies": 6,
+      "avgBalanceDiff": 30.04776166792862,
+      "avgActivityCountDiff": 0.5
     }
   ],
   "accounts": [
     {
       "accountName": "Kendall",
       "comparisons": 3,
-      "successful": 0,
+      "successful": 2,
       "failed": 0,
-      "discrepancies": 3
+      "discrepancies": 1
     },
     {
       "accountName": "Jake",
       "comparisons": 3,
-      "successful": 0,
+      "successful": 1,
       "failed": 0,
-      "discrepancies": 3
+      "discrepancies": 2
     },
     {
       "accountName": "Spending",
       "comparisons": 3,
-      "successful": 3,
+      "successful": 0,
       "failed": 0,
-      "discrepancies": 0
+      "discrepancies": 3
     },
     {
       "accountName": "Emergency",
       "comparisons": 3,
-      "successful": 0,
+      "successful": 3,
       "failed": 0,
-      "discrepancies": 3
+      "discrepancies": 0
     },
     {
       "accountName": "Vacation",
@@ -99,9 +99,9 @@
     {
       "accountName": "REI",
       "comparisons": 3,
-      "successful": 3,
+      "successful": 1,
       "failed": 0,
-      "discrepancies": 0
+      "discrepancies": 2
     },
     {
       "accountName": "WellsFargo",
@@ -141,9 +141,9 @@
     {
       "accountName": "Fidelity Money Market",
       "comparisons": 3,
-      "successful": 2,
+      "successful": 1,
       "failed": 0,
-      "discrepancies": 1
+      "discrepancies": 2
     },
     {
       "accountName": "Kendall Chase",
