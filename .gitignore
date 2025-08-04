@@ -13,3 +13,4 @@ data/*_backup*
 data/simulations/*
 data/backup/
 **/cache
+.vscode
