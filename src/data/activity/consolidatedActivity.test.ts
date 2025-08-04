@@ -31,10 +31,10 @@ vi.mock('./activity', () => ({
         date: this.date,
         category: this.category,
         description: this.description,
-        isTransfer: this.isTransfer
+        isTransfer: this.isTransfer,
       };
     }
-  }
+  },
 }));
 
 describe('ConsolidatedActivity', () => {
@@ -45,7 +45,7 @@ describe('ConsolidatedActivity', () => {
     date: new Date('2023-06-15T12:00:00Z'),
     category: 'Testing',
     description: 'Test consolidated activity description',
-    isTransfer: false
+    isTransfer: false,
   };
 
   describe('constructor', () => {
@@ -64,7 +64,7 @@ describe('ConsolidatedActivity', () => {
 
     it('should create a consolidated activity with bill ID', () => {
       const consolidatedActivity = new ConsolidatedActivity(mockActivityData, {
-        billId: 'test-bill-id'
+        billId: 'test-bill-id',
       });
 
       expect(consolidatedActivity.billId).toBe('test-bill-id');
@@ -73,7 +73,7 @@ describe('ConsolidatedActivity', () => {
 
     it('should create a consolidated activity with interest ID', () => {
       const consolidatedActivity = new ConsolidatedActivity(mockActivityData, {
-        interestId: 'test-interest-id'
+        interestId: 'test-interest-id',
       });
 
       expect(consolidatedActivity.interestId).toBe('test-interest-id');
@@ -83,7 +83,7 @@ describe('ConsolidatedActivity', () => {
     it('should create a consolidated activity with both bill and interest IDs', () => {
       const consolidatedActivity = new ConsolidatedActivity(mockActivityData, {
         billId: 'test-bill-id',
-        interestId: 'test-interest-id'
+        interestId: 'test-interest-id',
       });
 
       expect(consolidatedActivity.billId).toBe('test-bill-id');
@@ -92,7 +92,7 @@ describe('ConsolidatedActivity', () => {
 
     it('should reverse amount when reverseAmount is true', () => {
       const consolidatedActivity = new ConsolidatedActivity(mockActivityData, {
-        reverseAmount: true
+        reverseAmount: true,
       });
 
       expect(consolidatedActivity.amount).toBe(-250);
@@ -100,7 +100,7 @@ describe('ConsolidatedActivity', () => {
 
     it('should not reverse amount when reverseAmount is false', () => {
       const consolidatedActivity = new ConsolidatedActivity(mockActivityData, {
-        reverseAmount: false
+        reverseAmount: false,
       });
 
       expect(consolidatedActivity.amount).toBe(250);
@@ -109,7 +109,7 @@ describe('ConsolidatedActivity', () => {
     it('should handle null amount when reverseAmount is true', () => {
       const activityWithNullAmount = { ...mockActivityData, amount: null };
       const consolidatedActivity = new ConsolidatedActivity(activityWithNullAmount, {
-        reverseAmount: true
+        reverseAmount: true,
       });
 
       expect(consolidatedActivity.amount).toBeNull();
@@ -118,7 +118,7 @@ describe('ConsolidatedActivity', () => {
     it('should handle zero amount when reverseAmount is true', () => {
       const activityWithZeroAmount = { ...mockActivityData, amount: 0 };
       const consolidatedActivity = new ConsolidatedActivity(activityWithZeroAmount, {
-        reverseAmount: true
+        reverseAmount: true,
       });
 
       expect(consolidatedActivity.amount).toBe(0);
@@ -129,9 +129,9 @@ describe('ConsolidatedActivity', () => {
     it('should serialize consolidated activity with all properties', () => {
       const consolidatedActivity = new ConsolidatedActivity(mockActivityData, {
         billId: 'test-bill-id',
-        interestId: 'test-interest-id'
+        interestId: 'test-interest-id',
       });
-      
+
       // Set additional properties for testing
       consolidatedActivity.balance = 1000;
       consolidatedActivity.firstBill = true;
@@ -151,7 +151,7 @@ describe('ConsolidatedActivity', () => {
         billId: 'test-bill-id',
         firstBill: true,
         interestId: 'test-interest-id',
-        firstInterest: true
+        firstInterest: true,
       });
     });
 
@@ -172,25 +172,25 @@ describe('ConsolidatedActivity', () => {
   describe('property manipulation', () => {
     it('should allow setting balance after construction', () => {
       const consolidatedActivity = new ConsolidatedActivity(mockActivityData);
-      
+
       consolidatedActivity.balance = 1500;
-      
+
       expect(consolidatedActivity.balance).toBe(1500);
     });
 
     it('should allow setting first bill flag after construction', () => {
       const consolidatedActivity = new ConsolidatedActivity(mockActivityData);
-      
+
       consolidatedActivity.firstBill = true;
-      
+
       expect(consolidatedActivity.firstBill).toBe(true);
     });
 
     it('should allow setting first interest flag after construction', () => {
       const consolidatedActivity = new ConsolidatedActivity(mockActivityData);
-      
+
       consolidatedActivity.firstInterest = true;
-      
+
       expect(consolidatedActivity.firstInterest).toBe(true);
     });
   });

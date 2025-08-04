@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { 
-  getSpecificActivity, 
-  updateSpecificActivity, 
-  deleteSpecificActivity, 
-  changeAccountForActivity 
+import {
+  getSpecificActivity,
+  updateSpecificActivity,
+  deleteSpecificActivity,
+  changeAccountForActivity,
 } from './specificActivity';
 import { getData } from '../../../utils/net/request';
 import { getById, getByIdWithIdx } from '../../../utils/array/array';
@@ -77,7 +77,9 @@ describe('Specific Activity API', () => {
       });
 
       vi.mocked(getData).mockReturnValue(mockData as any);
-      vi.mocked(getById).mockReturnValueOnce(mockAccount as any).mockReturnValueOnce(mockActivity as any);
+      vi.mocked(getById)
+        .mockReturnValueOnce(mockAccount as any)
+        .mockReturnValueOnce(mockActivity as any);
 
       const result = getSpecificActivity(mockRequest);
 
@@ -405,8 +407,8 @@ describe('Specific Activity API', () => {
       };
 
       const mockRequest = createMockRequest({
-        params: { 
-          accountId: 'account-1', 
+        params: {
+          accountId: 'account-1',
           activityId: 'activity-1',
           newAccountId: 'account-2',
         },
@@ -455,8 +457,8 @@ describe('Specific Activity API', () => {
       };
 
       const mockRequest = createMockRequest({
-        params: { 
-          accountId: 'account-1', 
+        params: {
+          accountId: 'account-1',
           activityId: 'activity-2',
           newAccountId: 'account-2',
         },

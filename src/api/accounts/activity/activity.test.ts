@@ -20,25 +20,25 @@ const mockActivityConstructor = vi.mocked(Activity);
 // Mock classes
 const mockActivityInstance = {
   id: 'activity-123',
-  serialize: vi.fn(() => ({ id: 'activity-123', amount: 100, description: 'Test Activity' }))
+  serialize: vi.fn(() => ({ id: 'activity-123', amount: 100, description: 'Test Activity' })),
 };
 
 const mockAccount = {
-  activity: [mockActivityInstance]
+  activity: [mockActivityInstance],
 };
 
 const mockData = {
   accountsAndTransfers: {
     accounts: [mockAccount],
     transfers: {
-      activity: []
-    }
+      activity: [],
+    },
   },
-  simulation: 'test-sim'
+  simulation: 'test-sim',
 };
 
 const mockRequest = {
-  params: { accountId: 'account-123' }
+  params: { accountId: 'account-123' },
 } as unknown as Request;
 
 describe('Activity API', () => {
@@ -73,15 +73,15 @@ describe('Activity API', () => {
       data: {
         amount: 250,
         description: 'New Activity',
-        isTransfer: false
+        isTransfer: false,
       },
       accountsAndTransfers: mockData.accountsAndTransfers,
-      simulation: 'test-sim'
+      simulation: 'test-sim',
     };
 
     beforeEach(() => {
       // Mock Activity constructor
-      mockActivityConstructor.mockImplementation(() => ({ id: 'new-activity-123' } as any));
+      mockActivityConstructor.mockImplementation(() => ({ id: 'new-activity-123' }) as any);
     });
 
     it('should add activity to account when not a transfer', () => {
@@ -98,7 +98,7 @@ describe('Activity API', () => {
     it('should add activity to transfers when isTransfer is true', () => {
       const transferActivityData = {
         ...mockActivityData,
-        data: { ...mockActivityData.data, isTransfer: true }
+        data: { ...mockActivityData.data, isTransfer: true },
       };
       mockGetData.mockReturnValue(transferActivityData);
 

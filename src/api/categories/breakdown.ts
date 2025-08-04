@@ -3,17 +3,17 @@ import { getData } from '../../utils/net/request';
 
 /**
  * Calculates spending breakdown by category for selected accounts.
- * 
+ *
  * Processing logic:
  * - Filters accounts based on selection and visibility
  * - Skips empty categories and 'Ignore'/'Income' sections
  * - Handles transfers with half-amount calculation to prevent double-counting
  * - Removes positive category totals (credits/refunds)
  * - Rounds amounts to nearest cent
- * 
+ *
  * @param request - Express request object containing account selection data
  * @returns Object with category sections as keys and spending totals as values
- * 
+ *
  * @example
  * ```typescript
  * const breakdown = getCategoryBreakdown(request);

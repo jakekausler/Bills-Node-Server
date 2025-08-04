@@ -1,14 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  formatDate,
-  parseDate,
-  getMinDate,
-  isBefore,
-  isSame,
-  isBeforeOrSame,
-  isAfter,
-  isAfterOrSame,
-} from './date';
+import { formatDate, parseDate, getMinDate, isBefore, isSame, isBeforeOrSame, isAfter, isAfterOrSame } from './date';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { Account } from '../../data/account/account';
 
@@ -166,10 +157,7 @@ describe('Date utilities', () => {
       const accountsAndTransfers: AccountsAndTransfers = {
         accounts: [],
         transfers: {
-          activity: [
-            { date: laterDate },
-            { date: earliestDate },
-          ],
+          activity: [{ date: laterDate }, { date: earliestDate }],
           bills: [],
         },
       };
@@ -187,10 +175,7 @@ describe('Date utilities', () => {
         accounts: [],
         transfers: {
           activity: [],
-          bills: [
-            { startDate: laterDate },
-            { startDate: earliestDate },
-          ],
+          bills: [{ startDate: laterDate }, { startDate: earliestDate }],
         },
       };
 

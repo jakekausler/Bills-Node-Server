@@ -15,20 +15,20 @@ const mockFs = vi.mocked(fs);
 // Mock path module
 vi.mock('path', () => ({
   default: {
-    join: (...args: string[]) => args.join('/')
-  }
+    join: (...args: string[]) => args.join('/'),
+  },
 }));
 
 describe('CacheManager', () => {
   let cacheManager: CacheManager;
-  
+
   const mockConfig: CalculationConfig = {
     diskCacheDir: '/tmp/test-cache',
     maxMemoryCacheMB: 100,
     enableDiskCache: true,
     cacheExpirationDays: 7,
     maxEventCount: 10000,
-    segmentSize: 'month'
+    segmentSize: 'month',
   };
 
   beforeEach(() => {
@@ -67,7 +67,7 @@ describe('CacheManager', () => {
       const key = 'large-key';
 
       await cacheManager.set(key, largeValue, { size: 6000000 });
-      
+
       // Should be stored on disk due to size
       expect(mockFs.writeFile).toHaveBeenCalled();
     });
@@ -104,27 +104,27 @@ describe('CacheManager', () => {
     it('should store and find closest balance snapshots', async () => {
       const snapshot1: BalanceSnapshot = {
         date: new Date('2024-01-01'),
-        balances: { 'acc1': 1000 },
-        activityIndices: { 'acc1': 0 },
+        balances: { acc1: 1000 },
+        activityIndices: { acc1: 0 },
         interestStates: {},
         dataHash: 'hash1',
-        processedEventIds: new Set(['event1'])
+        processedEventIds: new Set(['event1']),
       };
 
       const snapshot2: BalanceSnapshot = {
         date: new Date('2024-01-15'),
-        balances: { 'acc1': 1500 },
-        activityIndices: { 'acc1': 5 },
+        balances: { acc1: 1500 },
+        activityIndices: { acc1: 5 },
         interestStates: {},
         dataHash: 'hash2',
-        processedEventIds: new Set(['event1', 'event2'])
+        processedEventIds: new Set(['event1', 'event2']),
       };
 
       await cacheManager.storeBalanceSnapshot('2024-01-01', snapshot1);
       await cacheManager.storeBalanceSnapshot('2024-01-15', snapshot2);
 
       const closest = await cacheManager.findClosestSnapshot(new Date('2024-01-10'));
-      
+
       expect(closest).toBeTruthy();
       expect(closest!.snapshot.date).toEqual(snapshot1.date);
     });
@@ -138,16 +138,16 @@ describe('CacheManager', () => {
   describe('Cache statistics', () => {
     it('should track cache statistics correctly', async () => {
       const testValue = { test: 'data' };
-      
+
       // Cache miss
       await cacheManager.get('missing-key');
-      
+
       // Cache hit
       await cacheManager.set('test-key', testValue);
       await cacheManager.get('test-key');
 
       const stats = cacheManager.getStats();
-      
+
       expect(stats.memoryHits).toBe(1);
       expect(stats.memoryMisses).toBe(1);
       expect(stats.memorySize).toBeGreaterThan(0);
@@ -158,32 +158,32 @@ describe('CacheManager', () => {
   describe('Cache invalidation', () => {
     it('should clear all caches', async () => {
       const testValue = { test: 'data' };
-      
+
       await cacheManager.set('key1', testValue);
       await cacheManager.set('key2', testValue);
-      
+
       await cacheManager.clear();
-      
+
       const retrieved1 = await cacheManager.get('key1');
       const retrieved2 = await cacheManager.get('key2');
-      
+
       expect(retrieved1).toBeNull();
       expect(retrieved2).toBeNull();
     });
 
     it('should invalidate by pattern', async () => {
       const testValue = { test: 'data' };
-      
+
       await cacheManager.set('balance_2024_01_01', testValue);
       await cacheManager.set('balance_2024_01_02', testValue);
       await cacheManager.set('other_key', testValue);
-      
+
       await cacheManager.invalidatePattern('balance_*');
-      
+
       const balance1 = await cacheManager.get('balance_2024_01_01');
       const balance2 = await cacheManager.get('balance_2024_01_02');
       const other = await cacheManager.get('other_key');
-      
+
       expect(balance1).toBeNull();
       expect(balance2).toBeNull();
       expect(other).toEqual(testValue);

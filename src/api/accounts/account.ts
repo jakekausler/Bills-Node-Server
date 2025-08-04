@@ -7,7 +7,7 @@ import { AccountData } from '../../data/account/types';
 
 /**
  * Retrieves a simplified account object by ID
- * 
+ *
  * @param request - Express request object with accountId parameter
  * @returns Simplified account object containing basic account information
  */
@@ -19,7 +19,7 @@ export async function getAccount(request: Request) {
 
 /**
  * Updates an account's name and saves the data
- * 
+ *
  * @param request - Express request object with accountId parameter and account data
  * @returns Updated simplified account object
  */
@@ -33,7 +33,7 @@ export async function updateAccount(request: Request) {
 
 /**
  * Removes an account from the system and saves the data
- * 
+ *
  * @param request - Express request object with accountId parameter
  * @returns The ID of the removed account
  */

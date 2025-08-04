@@ -22,7 +22,7 @@ describe('SelectiveRecalculator', () => {
 
   beforeEach(() => {
     recalculator = new SelectiveRecalculator();
-    
+
     // Create test accounts
     testAccount1 = new Account({
       id: 'account1',
@@ -32,7 +32,7 @@ describe('SelectiveRecalculator', () => {
       minimumBalance: 1000,
       activities: [],
       bills: [],
-      interests: []
+      interests: [],
     });
 
     testAccount2 = new Account({
@@ -43,7 +43,7 @@ describe('SelectiveRecalculator', () => {
       minimumBalance: 500,
       activities: [],
       bills: [],
-      interests: []
+      interests: [],
     });
 
     // Mock dependencies
@@ -59,25 +59,27 @@ describe('SelectiveRecalculator', () => {
 
     mockAccountsAndTransfers = {
       accounts: [testAccount1, testAccount2],
-      transfers: []
+      transfers: [],
     } as any;
   });
 
   describe('identifyAffectedEvents', () => {
     it('should identify events in affected accounts within date range', () => {
-      const appliedTransfers: AppliedTransfer[] = [{
-        originalTransfer: {
-          type: 'push',
-          fromAccount: testAccount2,
-          toAccount: testAccount1,
-          amount: 1000,
-          insertDate: new Date('2025-01-01'),
-          reason: 'Test transfer'
-        } as RequiredTransfer,
-        createdActivities: [],
-        insertedAt: new Date('2025-01-01'),
-        affectedAccounts: ['account1', 'account2']
-      }];
+      const appliedTransfers: AppliedTransfer[] = [
+        {
+          originalTransfer: {
+            type: 'push',
+            fromAccount: testAccount2,
+            toAccount: testAccount1,
+            amount: 1000,
+            insertDate: new Date('2025-01-01'),
+            reason: 'Test transfer',
+          } as RequiredTransfer,
+          createdActivities: [],
+          insertedAt: new Date('2025-01-01'),
+          affectedAccounts: ['account1', 'account2'],
+        },
+      ];
 
       const testEvents: TimelineEvent[] = [
         {
@@ -90,7 +92,7 @@ describe('SelectiveRecalculator', () => {
           dependencies: [],
           interest: {} as Interest,
           rate: 0.05,
-          taxDeferred: false
+          taxDeferred: false,
         } as InterestEvent,
         {
           id: 'interest2',
@@ -102,7 +104,7 @@ describe('SelectiveRecalculator', () => {
           dependencies: [],
           interest: {} as Interest,
           rate: 0.05,
-          taxDeferred: false
+          taxDeferred: false,
         } as InterestEvent,
         {
           id: 'activity1',
@@ -112,8 +114,8 @@ describe('SelectiveRecalculator', () => {
           priority: 1,
           cacheable: true,
           dependencies: [],
-          activity: {} as ConsolidatedActivity
-        }
+          activity: {} as ConsolidatedActivity,
+        },
       ];
 
       (mockTimeline.getEventsInRange as any).mockReturnValue(testEvents);
@@ -126,19 +128,21 @@ describe('SelectiveRecalculator', () => {
     });
 
     it('should exclude events outside the date range', () => {
-      const appliedTransfers: AppliedTransfer[] = [{
-        originalTransfer: {
-          type: 'push',
-          fromAccount: testAccount2,
-          toAccount: testAccount1,
-          amount: 1000,
-          insertDate: new Date('2025-01-01'),
-          reason: 'Test transfer'
-        } as RequiredTransfer,
-        createdActivities: [],
-        insertedAt: new Date('2025-01-01'),
-        affectedAccounts: ['account1']
-      }];
+      const appliedTransfers: AppliedTransfer[] = [
+        {
+          originalTransfer: {
+            type: 'push',
+            fromAccount: testAccount2,
+            toAccount: testAccount1,
+            amount: 1000,
+            insertDate: new Date('2025-01-01'),
+            reason: 'Test transfer',
+          } as RequiredTransfer,
+          createdActivities: [],
+          insertedAt: new Date('2025-01-01'),
+          affectedAccounts: ['account1'],
+        },
+      ];
 
       const testEvents: TimelineEvent[] = [
         {
@@ -151,8 +155,8 @@ describe('SelectiveRecalculator', () => {
           dependencies: [],
           interest: {} as Interest,
           rate: 0.05,
-          taxDeferred: false
-        } as InterestEvent
+          taxDeferred: false,
+        } as InterestEvent,
       ];
 
       (mockTimeline.getEventsInRange as any).mockReturnValue(testEvents);
@@ -163,19 +167,21 @@ describe('SelectiveRecalculator', () => {
     });
 
     it('should include all relevant event types', () => {
-      const appliedTransfers: AppliedTransfer[] = [{
-        originalTransfer: {
-          type: 'push',
-          fromAccount: testAccount2,
-          toAccount: testAccount1,
-          amount: 1000,
-          insertDate: new Date('2025-01-01'),
-          reason: 'Test transfer'
-        } as RequiredTransfer,
-        createdActivities: [],
-        insertedAt: new Date('2025-01-01'),
-        affectedAccounts: ['account1']
-      }];
+      const appliedTransfers: AppliedTransfer[] = [
+        {
+          originalTransfer: {
+            type: 'push',
+            fromAccount: testAccount2,
+            toAccount: testAccount1,
+            amount: 1000,
+            insertDate: new Date('2025-01-01'),
+            reason: 'Test transfer',
+          } as RequiredTransfer,
+          createdActivities: [],
+          insertedAt: new Date('2025-01-01'),
+          affectedAccounts: ['account1'],
+        },
+      ];
 
       const testEvents: TimelineEvent[] = [
         {
@@ -188,7 +194,7 @@ describe('SelectiveRecalculator', () => {
           dependencies: [],
           interest: {} as Interest,
           rate: 0.05,
-          taxDeferred: false
+          taxDeferred: false,
         } as InterestEvent,
         {
           id: 'transfer1',
@@ -201,7 +207,7 @@ describe('SelectiveRecalculator', () => {
           transfer: {} as Transfer,
           fromAccountId: 'account1',
           toAccountId: 'account2',
-          amount: 500
+          amount: 500,
         } as TransferEvent,
         {
           id: 'pushpull1',
@@ -211,8 +217,8 @@ describe('SelectiveRecalculator', () => {
           priority: 1,
           cacheable: true,
           dependencies: [],
-          checkType: 'monthly'
-        }
+          checkType: 'monthly',
+        },
       ];
 
       (mockTimeline.getEventsInRange as any).mockReturnValue(testEvents);
@@ -220,11 +226,7 @@ describe('SelectiveRecalculator', () => {
       const result = recalculator.identifyAffectedEvents(appliedTransfers, mockTimeline);
 
       expect(result).toHaveLength(3);
-      expect(result.map(e => e.type)).toEqual([
-        EventType.interest,
-        EventType.transfer,
-        EventType.pushPullCheck
-      ]);
+      expect(result.map((e) => e.type)).toEqual([EventType.interest, EventType.transfer, EventType.pushPullCheck]);
     });
   });
 
@@ -241,8 +243,8 @@ describe('SelectiveRecalculator', () => {
           dependencies: [],
           interest: {} as Interest,
           rate: 0.05,
-          taxDeferred: false
-        } as InterestEvent
+          taxDeferred: false,
+        } as InterestEvent,
       ];
 
       (mockBalanceTracker.getBalance as any).mockReturnValue(10000);
@@ -267,8 +269,8 @@ describe('SelectiveRecalculator', () => {
           dependencies: [],
           interest: {} as Interest,
           rate: 0.05,
-          taxDeferred: false
-        } as InterestEvent
+          taxDeferred: false,
+        } as InterestEvent,
       ];
 
       (mockBalanceTracker.getBalance as any).mockImplementation(() => {
@@ -294,7 +296,7 @@ describe('SelectiveRecalculator', () => {
           dependencies: [],
           interest: {} as Interest,
           rate: 0.05,
-          taxDeferred: false
+          taxDeferred: false,
         } as InterestEvent,
         {
           id: 'interest1',
@@ -306,8 +308,8 @@ describe('SelectiveRecalculator', () => {
           dependencies: [],
           interest: {} as Interest,
           rate: 0.05,
-          taxDeferred: false
-        } as InterestEvent
+          taxDeferred: false,
+        } as InterestEvent,
       ];
 
       (mockBalanceTracker.getBalance as any).mockReturnValue(10000);
@@ -332,7 +334,7 @@ describe('SelectiveRecalculator', () => {
         dependencies: [],
         bill: {} as Bill,
         amount: 1000,
-        isVariable: false
+        isVariable: false,
       };
 
       (mockBalanceTracker.getBalance as any).mockReturnValue(10000);
@@ -353,7 +355,7 @@ describe('SelectiveRecalculator', () => {
 
     it('should handle empty event list for recalculation', () => {
       const result = recalculator.recalculateEvents([], mockBalanceTracker, mockAccountsAndTransfers);
-      
+
       expect(result.success).toBe(true);
       expect(result.recalculatedEvents).toHaveLength(0);
       expect(result.affectedEventIds.size).toBe(0);
@@ -371,8 +373,8 @@ describe('SelectiveRecalculator', () => {
           dependencies: [],
           interest: {} as Interest,
           rate: 0.05,
-          taxDeferred: false
-        } as InterestEvent
+          taxDeferred: false,
+        } as InterestEvent,
       ];
 
       (mockBalanceTracker.getBalance as any).mockReturnValue(null);
@@ -391,14 +393,14 @@ describe('SelectiveRecalculator', () => {
           originalTransfer: {} as RequiredTransfer,
           createdActivities: [],
           insertedAt: new Date('2025-01-01'),
-          affectedAccounts: ['account1', 'account2']
+          affectedAccounts: ['account1', 'account2'],
         },
         {
           originalTransfer: {} as RequiredTransfer,
           createdActivities: [],
           insertedAt: new Date('2025-01-15'),
-          affectedAccounts: ['account3', 'account4']
-        }
+          affectedAccounts: ['account3', 'account4'],
+        },
       ];
 
       (mockTimeline.getEventsInRange as any).mockReturnValue([]);
@@ -412,12 +414,14 @@ describe('SelectiveRecalculator', () => {
     });
 
     it('should extend end date for cascade effects', () => {
-      const appliedTransfers: AppliedTransfer[] = [{
-        originalTransfer: {} as RequiredTransfer,
-        createdActivities: [],
-        insertedAt: new Date('2025-01-01'),
-        affectedAccounts: ['account1']
-      }];
+      const appliedTransfers: AppliedTransfer[] = [
+        {
+          originalTransfer: {} as RequiredTransfer,
+          createdActivities: [],
+          insertedAt: new Date('2025-01-01'),
+          affectedAccounts: ['account1'],
+        },
+      ];
 
       (mockTimeline.getEventsInRange as any).mockReturnValue([]);
 

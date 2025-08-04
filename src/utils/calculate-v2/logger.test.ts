@@ -5,19 +5,19 @@ function testLogging() {
   log('This is an info message');
   warn('This is a warning message');
   err('This is an error message');
-  
+
   // Test the generic logger function
   logger(LogLevel.LOG, 'This is a message using the generic logger');
 }
 
 function anotherFunction() {
   log('Message from another function');
-  
+
   // Test nested function
   function nestedFunction() {
     warn('Message from nested function');
   }
-  
+
   nestedFunction();
 }
 

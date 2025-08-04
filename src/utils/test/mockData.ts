@@ -13,7 +13,7 @@ export function createMockRequest(overrides: Partial<Request> = {}): Request {
     headers: {},
     get: vi.fn(),
     header: vi.fn(),
-    ...overrides
+    ...overrides,
   } as any;
 }
 
@@ -25,9 +25,9 @@ export function createMockAccountsAndTransfers(overrides: Partial<AccountsAndTra
     accounts: [],
     transfers: {
       bills: [],
-      activity: []
+      activity: [],
     },
-    ...overrides
+    ...overrides,
   } as any;
 }
 
@@ -49,6 +49,6 @@ export function createMockRequestData(overrides: any = {}): any {
     skip: 0,
     path: [],
     data: {},
-    ...overrides
+    ...overrides,
   };
 }

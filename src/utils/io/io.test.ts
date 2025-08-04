@@ -41,7 +41,7 @@ describe('IO utilities', () => {
     it('should load and parse JSON data from file', () => {
       const mockData = { test: 'data', value: 123 };
       const mockFileContent = JSON.stringify(mockData);
-      
+
       vi.mocked(readFileSync).mockReturnValue(mockFileContent);
 
       const result = load<typeof mockData>('test.json');
@@ -97,7 +97,7 @@ describe('IO utilities', () => {
 
       expect(copyFileSync).toHaveBeenCalledWith(
         `${BASE_DATA_DIR}/test.json`,
-        `${BASE_DATA_DIR}/backup/test.json.${mockTimestamp}`
+        `${BASE_DATA_DIR}/backup/test.json.${mockTimestamp}`,
       );
     });
 
@@ -114,7 +114,7 @@ describe('IO utilities', () => {
         'test.json.1640995900000',
         'test.json.1640996000000', // 10 backups
       ];
-      
+
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readdirSync).mockReturnValue(mockBackups);
 
@@ -130,10 +130,10 @@ describe('IO utilities', () => {
       for (let i = 0; i < 9; i++) {
         expect(shouldBackup('test.json')).toBe(false);
       }
-      
+
       // 10th call should return true
       expect(shouldBackup('test.json')).toBe(true);
-      
+
       // Counter should reset, so next call returns false
       expect(shouldBackup('test.json')).toBe(false);
     });
@@ -144,7 +144,7 @@ describe('IO utilities', () => {
         expect(shouldBackup('file1.json')).toBe(false);
         expect(shouldBackup('file2.json')).toBe(false);
       }
-      
+
       // Both should reach threshold at the same time
       expect(shouldBackup('file1.json')).toBe(true);
       expect(shouldBackup('file2.json')).toBe(true);
@@ -159,10 +159,7 @@ describe('IO utilities', () => {
 
       save(mockData, 'test.json');
 
-      expect(writeFileSync).toHaveBeenCalledWith(
-        `${BASE_DATA_DIR}/test.json`,
-        JSON.stringify(mockData, null, 2)
-      );
+      expect(writeFileSync).toHaveBeenCalledWith(`${BASE_DATA_DIR}/test.json`, JSON.stringify(mockData, null, 2));
       expect(copyFileSync).not.toHaveBeenCalled();
     });
 
@@ -173,14 +170,14 @@ describe('IO utilities', () => {
 
       // Use a unique filename to avoid counter conflicts
       const uniqueFilename = 'backup-test.json';
-      
+
       // Increment counter to threshold
       for (let i = 0; i < 9; i++) {
         save(mockData, uniqueFilename);
       }
-      
+
       vi.clearAllMocks();
-      
+
       // This save should trigger backup
       save(mockData, uniqueFilename);
 
@@ -200,10 +197,7 @@ describe('IO utilities', () => {
 
       save(mockData, 'test.json');
 
-      expect(writeFileSync).toHaveBeenCalledWith(
-        `${BASE_DATA_DIR}/test.json`,
-        JSON.stringify(mockData, null, 2)
-      );
+      expect(writeFileSync).toHaveBeenCalledWith(`${BASE_DATA_DIR}/test.json`, JSON.stringify(mockData, null, 2));
     });
   });
 });

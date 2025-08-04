@@ -27,18 +27,18 @@ describe('Category Breakdown API', () => {
                 {
                   category: 'Housing.Rent',
                   amount: -1500,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   category: 'Food.Groceries',
                   amount: -300,
-                  isTransfer: false
-                }
-              ]
-            }
-          ]
+                  isTransfer: false,
+                },
+              ],
+            },
+          ],
         },
-        selectedAccounts: []
+        selectedAccounts: [],
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -47,7 +47,7 @@ describe('Category Breakdown API', () => {
 
       expect(result).toEqual({
         Housing: 1500,
-        Food: 300
+        Food: 300,
       });
     });
 
@@ -62,9 +62,9 @@ describe('Category Breakdown API', () => {
                 {
                   category: 'Housing.Rent',
                   amount: -1500,
-                  isTransfer: false
-                }
-              ]
+                  isTransfer: false,
+                },
+              ],
             },
             {
               id: 'account-2',
@@ -73,13 +73,13 @@ describe('Category Breakdown API', () => {
                 {
                   category: 'Food.Groceries',
                   amount: -300,
-                  isTransfer: false
-                }
-              ]
-            }
-          ]
+                  isTransfer: false,
+                },
+              ],
+            },
+          ],
         },
-        selectedAccounts: []
+        selectedAccounts: [],
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -87,7 +87,7 @@ describe('Category Breakdown API', () => {
       const result = getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
-        Housing: 1500
+        Housing: 1500,
       });
     });
 
@@ -102,9 +102,9 @@ describe('Category Breakdown API', () => {
                 {
                   category: 'Housing.Rent',
                   amount: -1500,
-                  isTransfer: false
-                }
-              ]
+                  isTransfer: false,
+                },
+              ],
             },
             {
               id: 'account-2',
@@ -113,13 +113,13 @@ describe('Category Breakdown API', () => {
                 {
                   category: 'Food.Groceries',
                   amount: -300,
-                  isTransfer: false
-                }
-              ]
-            }
-          ]
+                  isTransfer: false,
+                },
+              ],
+            },
+          ],
         },
-        selectedAccounts: ['account-1']
+        selectedAccounts: ['account-1'],
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -127,7 +127,7 @@ describe('Category Breakdown API', () => {
       const result = getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
-        Housing: 1500
+        Housing: 1500,
       });
     });
 
@@ -142,18 +142,18 @@ describe('Category Breakdown API', () => {
                 {
                   category: '',
                   amount: -1500,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   category: 'Housing.Rent',
                   amount: -1000,
-                  isTransfer: false
-                }
-              ]
-            }
-          ]
+                  isTransfer: false,
+                },
+              ],
+            },
+          ],
         },
-        selectedAccounts: []
+        selectedAccounts: [],
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -161,7 +161,7 @@ describe('Category Breakdown API', () => {
       const result = getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
-        Housing: 1000
+        Housing: 1000,
       });
     });
 
@@ -176,23 +176,23 @@ describe('Category Breakdown API', () => {
                 {
                   category: 'Ignore.SomeItem',
                   amount: -500,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   category: 'Income.Salary',
                   amount: 5000,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   category: 'Housing.Rent',
                   amount: -1500,
-                  isTransfer: false
-                }
-              ]
-            }
-          ]
+                  isTransfer: false,
+                },
+              ],
+            },
+          ],
         },
-        selectedAccounts: []
+        selectedAccounts: [],
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -200,7 +200,7 @@ describe('Category Breakdown API', () => {
       const result = getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
-        Housing: 1500
+        Housing: 1500,
       });
     });
 
@@ -217,9 +217,9 @@ describe('Category Breakdown API', () => {
                   amount: -1500,
                   isTransfer: true,
                   to: 'account-2',
-                  fro: 'account-1'
-                }
-              ]
+                  fro: 'account-1',
+                },
+              ],
             },
             {
               id: 'account-2',
@@ -230,13 +230,13 @@ describe('Category Breakdown API', () => {
                   amount: 1500,
                   isTransfer: true,
                   to: 'account-2',
-                  fro: 'account-1'
-                }
-              ]
-            }
-          ]
+                  fro: 'account-1',
+                },
+              ],
+            },
+          ],
         },
-        selectedAccounts: ['account-1', 'account-2']
+        selectedAccounts: ['account-1', 'account-2'],
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -263,13 +263,13 @@ describe('Category Breakdown API', () => {
                   amount: -1500,
                   isTransfer: true,
                   to: 'account-2',
-                  fro: 'account-1'
-                }
-              ]
-            }
-          ]
+                  fro: 'account-1',
+                },
+              ],
+            },
+          ],
         },
-        selectedAccounts: ['account-1'] // Only account-1 selected
+        selectedAccounts: ['account-1'], // Only account-1 selected
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -293,23 +293,23 @@ describe('Category Breakdown API', () => {
                 {
                   category: 'Housing.Rent',
                   amount: -1500,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   category: 'Income.Salary',
                   amount: 5000,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   category: 'Refund.Tax',
                   amount: 200,
-                  isTransfer: false
-                }
-              ]
-            }
-          ]
+                  isTransfer: false,
+                },
+              ],
+            },
+          ],
         },
-        selectedAccounts: []
+        selectedAccounts: [],
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -317,7 +317,7 @@ describe('Category Breakdown API', () => {
       const result = getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
-        Housing: 1500
+        Housing: 1500,
       });
       // Income and Refund should be filtered out (Income by skip logic, Refund by positive amount)
     });
@@ -333,23 +333,23 @@ describe('Category Breakdown API', () => {
                 {
                   category: 'Housing.Rent',
                   amount: -1500,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   category: 'Housing.Utilities',
                   amount: -200,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   category: 'Housing.Insurance',
                   amount: -100,
-                  isTransfer: false
-                }
-              ]
-            }
-          ]
+                  isTransfer: false,
+                },
+              ],
+            },
+          ],
         },
-        selectedAccounts: []
+        selectedAccounts: [],
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -357,7 +357,7 @@ describe('Category Breakdown API', () => {
       const result = getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
-        Housing: 1800 // Sum of all Housing expenses
+        Housing: 1800, // Sum of all Housing expenses
       });
     });
 
@@ -372,13 +372,13 @@ describe('Category Breakdown API', () => {
                 {
                   category: 'Housing.Rent',
                   amount: -1500.999,
-                  isTransfer: false
-                }
-              ]
-            }
-          ]
+                  isTransfer: false,
+                },
+              ],
+            },
+          ],
         },
-        selectedAccounts: []
+        selectedAccounts: [],
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -386,7 +386,7 @@ describe('Category Breakdown API', () => {
       const result = getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
-        Housing: 1501 // Rounded to nearest cent
+        Housing: 1501, // Rounded to nearest cent
       });
     });
 
@@ -401,18 +401,18 @@ describe('Category Breakdown API', () => {
                 {
                   category: 'Income.Salary',
                   amount: 5000,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   category: 'Ignore.Transfer',
                   amount: -100,
-                  isTransfer: false
-                }
-              ]
-            }
-          ]
+                  isTransfer: false,
+                },
+              ],
+            },
+          ],
         },
-        selectedAccounts: []
+        selectedAccounts: [],
       };
 
       mockGetData.mockReturnValue(mockData);

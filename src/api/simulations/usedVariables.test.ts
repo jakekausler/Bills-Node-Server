@@ -26,12 +26,12 @@ describe('Used Variables API', () => {
             id: 'account-1',
             name: 'Checking',
             startDateVariable: 'retirementDate',
-            endDateVariable: 'endDate'
-          }
+            endDateVariable: 'endDate',
+          },
         ],
         transfers: {
-          bills: []
-        }
+          bills: [],
+        },
       };
 
       const mockSocialSecurities = [
@@ -39,8 +39,8 @@ describe('Used Variables API', () => {
           id: 'ss-1',
           name: 'Social Security',
           startDateVariable: 'retirementDate',
-          birthDateVariable: 'birthDate'
-        }
+          birthDateVariable: 'birthDate',
+        },
       ];
 
       const mockPensions = [
@@ -49,21 +49,16 @@ describe('Used Variables API', () => {
           name: 'Company Pension',
           startDateVariable: 'retirementDate',
           birthDateVariable: 'birthDate',
-          workStartDateVariable: 'careerStartDate'
-        }
+          workStartDateVariable: 'careerStartDate',
+        },
       ];
 
-      const mockUsedVariables = [
-        'retirementDate',
-        'endDate',
-        'birthDate',
-        'careerStartDate'
-      ];
+      const mockUsedVariables = ['retirementDate', 'endDate', 'birthDate', 'careerStartDate'];
 
       mockGetData.mockReturnValue({
         accountsAndTransfers: mockAccountsAndTransfers,
         socialSecurities: mockSocialSecurities,
-        pensions: mockPensions
+        pensions: mockPensions,
       });
 
       mockLoadUsedVariables.mockReturnValue(mockUsedVariables);
@@ -72,19 +67,15 @@ describe('Used Variables API', () => {
 
       expect(result).toEqual(mockUsedVariables);
       expect(mockGetData).toHaveBeenCalledWith(mockRequest);
-      expect(mockLoadUsedVariables).toHaveBeenCalledWith(
-        mockAccountsAndTransfers,
-        mockSocialSecurities,
-        mockPensions
-      );
+      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions);
     });
 
     it('should handle empty data structures', () => {
       const mockAccountsAndTransfers = {
         accounts: [],
         transfers: {
-          bills: []
-        }
+          bills: [],
+        },
       };
 
       const mockSocialSecurities = [];
@@ -94,7 +85,7 @@ describe('Used Variables API', () => {
       mockGetData.mockReturnValue({
         accountsAndTransfers: mockAccountsAndTransfers,
         socialSecurities: mockSocialSecurities,
-        pensions: mockPensions
+        pensions: mockPensions,
       });
 
       mockLoadUsedVariables.mockReturnValue(mockUsedVariables);
@@ -102,11 +93,7 @@ describe('Used Variables API', () => {
       const result = getUsedVariables(mockRequest);
 
       expect(result).toEqual([]);
-      expect(mockLoadUsedVariables).toHaveBeenCalledWith(
-        mockAccountsAndTransfers,
-        mockSocialSecurities,
-        mockPensions
-      );
+      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions);
     });
 
     it('should handle complex data with multiple accounts and retirement plans', () => {
@@ -116,30 +103,30 @@ describe('Used Variables API', () => {
             id: 'account-1',
             name: 'Checking',
             startDateVariable: 'retirementDate',
-            endDateVariable: 'simulationEndDate'
+            endDateVariable: 'simulationEndDate',
           },
           {
             id: 'account-2',
             name: 'Savings',
             startDateVariable: 'retirementDate',
-            endDateVariable: 'simulationEndDate'
+            endDateVariable: 'simulationEndDate',
           },
           {
             id: 'account-3',
             name: '401k',
             startDateVariable: 'retirementDate',
-            endDateVariable: 'simulationEndDate'
-          }
+            endDateVariable: 'simulationEndDate',
+          },
         ],
         transfers: {
           bills: [
             {
               id: 'transfer-1',
               startDateVariable: 'retirementDate',
-              endDateVariable: 'simulationEndDate'
-            }
-          ]
-        }
+              endDateVariable: 'simulationEndDate',
+            },
+          ],
+        },
       };
 
       const mockSocialSecurities = [
@@ -147,14 +134,14 @@ describe('Used Variables API', () => {
           id: 'ss-1',
           name: 'Primary SS',
           startDateVariable: 'retirementDate',
-          birthDateVariable: 'birthDate'
+          birthDateVariable: 'birthDate',
         },
         {
           id: 'ss-2',
           name: 'Spouse SS',
           startDateVariable: 'spouseRetirementDate',
-          birthDateVariable: 'spouseBirthDate'
-        }
+          birthDateVariable: 'spouseBirthDate',
+        },
       ];
 
       const mockPensions = [
@@ -163,15 +150,15 @@ describe('Used Variables API', () => {
           name: 'Company Pension',
           startDateVariable: 'retirementDate',
           birthDateVariable: 'birthDate',
-          workStartDateVariable: 'careerStartDate'
+          workStartDateVariable: 'careerStartDate',
         },
         {
           id: 'pension-2',
           name: 'Military Pension',
           startDateVariable: 'militaryRetirementDate',
           birthDateVariable: 'birthDate',
-          workStartDateVariable: 'militaryStartDate'
-        }
+          workStartDateVariable: 'militaryStartDate',
+        },
       ];
 
       const mockUsedVariables = [
@@ -182,13 +169,13 @@ describe('Used Variables API', () => {
         'spouseRetirementDate',
         'spouseBirthDate',
         'militaryRetirementDate',
-        'militaryStartDate'
+        'militaryStartDate',
       ];
 
       mockGetData.mockReturnValue({
         accountsAndTransfers: mockAccountsAndTransfers,
         socialSecurities: mockSocialSecurities,
-        pensions: mockPensions
+        pensions: mockPensions,
       });
 
       mockLoadUsedVariables.mockReturnValue(mockUsedVariables);
@@ -196,11 +183,7 @@ describe('Used Variables API', () => {
       const result = getUsedVariables(mockRequest);
 
       expect(result).toEqual(mockUsedVariables);
-      expect(mockLoadUsedVariables).toHaveBeenCalledWith(
-        mockAccountsAndTransfers,
-        mockSocialSecurities,
-        mockPensions
-      );
+      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions);
     });
 
     it('should handle data with only accounts and no retirement plans', () => {
@@ -210,12 +193,12 @@ describe('Used Variables API', () => {
             id: 'account-1',
             name: 'Checking',
             startDateVariable: 'startDate',
-            endDateVariable: 'endDate'
-          }
+            endDateVariable: 'endDate',
+          },
         ],
         transfers: {
-          bills: []
-        }
+          bills: [],
+        },
       };
 
       const mockSocialSecurities = [];
@@ -225,7 +208,7 @@ describe('Used Variables API', () => {
       mockGetData.mockReturnValue({
         accountsAndTransfers: mockAccountsAndTransfers,
         socialSecurities: mockSocialSecurities,
-        pensions: mockPensions
+        pensions: mockPensions,
       });
 
       mockLoadUsedVariables.mockReturnValue(mockUsedVariables);
@@ -233,19 +216,15 @@ describe('Used Variables API', () => {
       const result = getUsedVariables(mockRequest);
 
       expect(result).toEqual(mockUsedVariables);
-      expect(mockLoadUsedVariables).toHaveBeenCalledWith(
-        mockAccountsAndTransfers,
-        mockSocialSecurities,
-        mockPensions
-      );
+      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions);
     });
 
     it('should handle data with only retirement plans and no accounts', () => {
       const mockAccountsAndTransfers = {
         accounts: [],
         transfers: {
-          bills: []
-        }
+          bills: [],
+        },
       };
 
       const mockSocialSecurities = [
@@ -253,8 +232,8 @@ describe('Used Variables API', () => {
           id: 'ss-1',
           name: 'Social Security',
           startDateVariable: 'retirementDate',
-          birthDateVariable: 'birthDate'
-        }
+          birthDateVariable: 'birthDate',
+        },
       ];
 
       const mockPensions = [
@@ -263,8 +242,8 @@ describe('Used Variables API', () => {
           name: 'Pension',
           startDateVariable: 'retirementDate',
           birthDateVariable: 'birthDate',
-          workStartDateVariable: 'careerStartDate'
-        }
+          workStartDateVariable: 'careerStartDate',
+        },
       ];
 
       const mockUsedVariables = ['retirementDate', 'birthDate', 'careerStartDate'];
@@ -272,7 +251,7 @@ describe('Used Variables API', () => {
       mockGetData.mockReturnValue({
         accountsAndTransfers: mockAccountsAndTransfers,
         socialSecurities: mockSocialSecurities,
-        pensions: mockPensions
+        pensions: mockPensions,
       });
 
       mockLoadUsedVariables.mockReturnValue(mockUsedVariables);
@@ -280,18 +259,14 @@ describe('Used Variables API', () => {
       const result = getUsedVariables(mockRequest);
 
       expect(result).toEqual(mockUsedVariables);
-      expect(mockLoadUsedVariables).toHaveBeenCalledWith(
-        mockAccountsAndTransfers,
-        mockSocialSecurities,
-        mockPensions
-      );
+      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions);
     });
 
     it('should handle null or undefined data gracefully', () => {
       mockGetData.mockReturnValue({
         accountsAndTransfers: null,
         socialSecurities: null,
-        pensions: null
+        pensions: null,
       });
 
       mockLoadUsedVariables.mockReturnValue([]);

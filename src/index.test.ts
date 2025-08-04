@@ -219,7 +219,7 @@ describe('Server Authentication and Middleware', () => {
 
     it('should test middleware configuration', () => {
       const app = express();
-      
+
       // Test that middleware can be added
       app.use(express.json());
       expect(app._router).toBeDefined();
@@ -229,14 +229,14 @@ describe('Server Authentication and Middleware', () => {
   describe('Route Registration', () => {
     it('should test route method availability', () => {
       const app = express();
-      
+
       // Test that route methods exist
       expect(typeof app.route).toBe('function');
       expect(typeof app.get).toBe('function');
       expect(typeof app.post).toBe('function');
       expect(typeof app.put).toBe('function');
       expect(typeof app.delete).toBe('function');
-      
+
       // Test route registration
       const accountsRoute = app.route('/api/accounts');
       expect(accountsRoute).toBeDefined();

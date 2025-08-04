@@ -1,6 +1,6 @@
 /**
  * Retirement calculation modules for pension and social security
- * 
+ *
  * This module handles complex retirement benefit calculations including
  * pension distributions, social security benefits, RMDs, and retirement
  * account management optimized for the new event-based system.
@@ -78,12 +78,50 @@ interface RetirementCalculationResult {
  * RMD table for life expectancy calculations
  */
 const RMD_TABLE: { [age: number]: number } = {
-  72: 27.4, 73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7, 77: 22.9, 78: 22.0, 79: 21.1,
-  80: 20.2, 81: 19.4, 82: 18.5, 83: 17.7, 84: 16.8, 85: 16.0, 86: 15.2, 87: 14.4,
-  88: 13.7, 89: 12.9, 90: 12.2, 91: 11.5, 92: 10.8, 93: 10.1, 94: 9.5, 95: 8.9,
-  96: 8.4, 97: 7.8, 98: 7.3, 99: 6.8, 100: 6.4, 101: 6.0, 102: 5.6, 103: 5.2,
-  104: 4.9, 105: 4.6, 106: 4.3, 107: 4.1, 108: 3.9, 109: 3.7, 110: 3.5, 111: 3.4,
-  112: 3.3, 113: 3.1, 114: 3.0, 115: 2.9
+  72: 27.4,
+  73: 26.5,
+  74: 25.5,
+  75: 24.6,
+  76: 23.7,
+  77: 22.9,
+  78: 22.0,
+  79: 21.1,
+  80: 20.2,
+  81: 19.4,
+  82: 18.5,
+  83: 17.7,
+  84: 16.8,
+  85: 16.0,
+  86: 15.2,
+  87: 14.4,
+  88: 13.7,
+  89: 12.9,
+  90: 12.2,
+  91: 11.5,
+  92: 10.8,
+  93: 10.1,
+  94: 9.5,
+  95: 8.9,
+  96: 8.4,
+  97: 7.8,
+  98: 7.3,
+  99: 6.8,
+  100: 6.4,
+  101: 6.0,
+  102: 5.6,
+  103: 5.2,
+  104: 4.9,
+  105: 4.6,
+  106: 4.3,
+  107: 4.1,
+  108: 3.9,
+  109: 3.7,
+  110: 3.5,
+  111: 3.4,
+  112: 3.3,
+  113: 3.1,
+  114: 3.0,
+  115: 2.9,
 };
 
 /**
@@ -107,7 +145,7 @@ export class RetirementCalculator {
 
     const result = await this.performPensionCalculation(context);
     this.pensionCache.set(cacheKey, result);
-    
+
     return result;
   }
 
@@ -137,7 +175,7 @@ export class RetirementCalculator {
         pensionAmount = await this.calculateFixedPension(pension, simulation);
         calculationMethod = 'Fixed amount';
         break;
-        
+
       case 'percentage':
         const percentageResult = this.calculatePercentagePension(pension, yearlyIncomes);
         pensionAmount = percentageResult.amount;
@@ -146,7 +184,7 @@ export class RetirementCalculator {
         benefitPercentage = percentageResult.benefitPercentage;
         calculationMethod = 'Percentage of salary';
         break;
-        
+
       case 'years_of_service':
         const serviceResult = this.calculateServiceBasedPension(pension, yearlyIncomes);
         pensionAmount = serviceResult.amount;
@@ -154,7 +192,7 @@ export class RetirementCalculator {
         averageSalary = serviceResult.averageSalary;
         calculationMethod = 'Years of service';
         break;
-        
+
       default:
         pensionAmount = pension.amount || 0;
         calculationMethod = 'Direct amount';
@@ -181,8 +219,8 @@ export class RetirementCalculator {
         yearsOfService,
         averageSalary,
         benefitPercentage,
-        earningsHistory: yearlyIncomes
-      }
+        earningsHistory: yearlyIncomes,
+      },
     };
   }
 
@@ -198,18 +236,23 @@ export class RetirementCalculator {
 
     const result = await this.performSocialSecurityCalculation(context);
     this.socialSecurityCache.set(cacheKey, result);
-    
+
     return result;
   }
 
   /**
    * Performs Social Security calculation
    */
-  private async performSocialSecurityCalculation(context: SocialSecurityCalculationContext): Promise<RetirementCalculationResult> {
+  private async performSocialSecurityCalculation(
+    context: SocialSecurityCalculationContext,
+  ): Promise<RetirementCalculationResult> {
     const { socialSecurity, accountId, calculationDate, simulation, accountsAndTransfers, currentAge } = context;
 
     // Check if Social Security is active
-    if (calculationDate < socialSecurity.startDate || (socialSecurity.endDate && calculationDate > socialSecurity.endDate)) {
+    if (
+      calculationDate < socialSecurity.startDate ||
+      (socialSecurity.endDate && calculationDate > socialSecurity.endDate)
+    ) {
       return this.createZeroRetirementResult('Social Security not active on this date', calculationDate);
     }
 
@@ -253,8 +296,8 @@ export class RetirementCalculator {
       activity,
       nextPaymentDate,
       metadata: {
-        earningsHistory: yearlyIncomes
-      }
+        earningsHistory: yearlyIncomes,
+      },
     };
   }
 
@@ -270,7 +313,7 @@ export class RetirementCalculator {
 
     const result = await this.performRMDCalculation(context);
     this.rmdCache.set(cacheKey, result);
-    
+
     return result;
   }
 
@@ -286,7 +329,7 @@ export class RetirementCalculator {
 
     // RMD starts at age 72 for most accounts
     const rmdStartAge = this.getRMDStartAge(account);
-    
+
     if (ageAtYearEnd < rmdStartAge) {
       return this.createZeroRetirementResult('Below RMD age requirement', calculationDate);
     }
@@ -298,7 +341,7 @@ export class RetirementCalculator {
 
     // Get life expectancy factor
     const lifeExpectancy = RMD_TABLE[ageAtYearEnd] || 3.0; // Use minimum if age not in table
-    
+
     // Calculate RMD amount
     const rmdAmount = currentBalance / lifeExpectancy;
 
@@ -315,8 +358,8 @@ export class RetirementCalculator {
       nextPaymentDate: dayjs.utc(calculationDate).add(1, 'year').endOf('year').toDate(),
       metadata: {
         rmdLifeExpectancy: lifeExpectancy,
-        rmdRequired: true
-      }
+        rmdRequired: true,
+      },
     };
   }
 
@@ -332,7 +375,10 @@ export class RetirementCalculator {
     return pension.amount || 0;
   }
 
-  private calculatePercentagePension(pension: Pension, yearlyIncomes: { year: number; amount: number }[]): {
+  private calculatePercentagePension(
+    pension: Pension,
+    yearlyIncomes: { year: number; amount: number }[],
+  ): {
     amount: number;
     yearsOfService: number;
     averageSalary: number;
@@ -346,7 +392,7 @@ export class RetirementCalculator {
     const totalEarnings = yearlyIncomes.reduce((sum, income) => sum + income.amount, 0);
     const averageSalary = totalEarnings / yearsOfService;
     const benefitPercentage = pension.benefitPercentage || 2; // Default 2% per year
-    
+
     const totalBenefitPercentage = (benefitPercentage / 100) * yearsOfService;
     const amount = averageSalary * totalBenefitPercentage;
 
@@ -354,11 +400,14 @@ export class RetirementCalculator {
       amount,
       yearsOfService,
       averageSalary,
-      benefitPercentage: totalBenefitPercentage * 100
+      benefitPercentage: totalBenefitPercentage * 100,
     };
   }
 
-  private calculateServiceBasedPension(pension: Pension, yearlyIncomes: { year: number; amount: number }[]): {
+  private calculateServiceBasedPension(
+    pension: Pension,
+    yearlyIncomes: { year: number; amount: number }[],
+  ): {
     amount: number;
     yearsOfService: number;
     averageSalary: number;
@@ -368,21 +417,21 @@ export class RetirementCalculator {
     }
 
     const yearsOfService = yearlyIncomes.length;
-    
+
     // Use highest consecutive years for calculation (typically 3-5 years)
     const highestYears = pension.highestYears || 3;
     const sortedIncomes = [...yearlyIncomes].sort((a, b) => b.amount - a.amount);
     const topIncomes = sortedIncomes.slice(0, Math.min(highestYears, sortedIncomes.length));
-    
+
     const averageSalary = topIncomes.reduce((sum, income) => sum + income.amount, 0) / topIncomes.length;
     const multiplier = pension.serviceMultiplier || 0.02; // Default 2% per year
-    
+
     const amount = averageSalary * multiplier * yearsOfService;
 
     return {
       amount,
       yearsOfService,
-      averageSalary
+      averageSalary,
     };
   }
 
@@ -414,9 +463,9 @@ export class RetirementCalculator {
   }
 
   private calculateEarningsBasedSocialSecurity(
-    socialSecurity: SocialSecurity, 
-    yearlyIncomes: { year: number; amount: number }[], 
-    currentAge: number
+    socialSecurity: SocialSecurity,
+    yearlyIncomes: { year: number; amount: number }[],
+    currentAge: number,
   ): { amount: number } {
     if (yearlyIncomes.length === 0) {
       return { amount: 0 };
@@ -424,37 +473,41 @@ export class RetirementCalculator {
 
     // Simplified Social Security calculation
     // Real calculation would use bend points, wage indexing, etc.
-    
+
     // Use highest 35 years of earnings
     const sortedIncomes = [...yearlyIncomes].sort((a, b) => b.amount - a.amount);
     const top35Years = sortedIncomes.slice(0, Math.min(35, sortedIncomes.length));
-    
+
     const totalEarnings = top35Years.reduce((sum, income) => sum + income.amount, 0);
     const averageEarnings = totalEarnings / 35; // Divide by 35 even if fewer years
-    
+
     // Simplified benefit calculation (real formula is much more complex)
-    const monthlyBenefit = averageEarnings * 0.4 / 12; // Approximately 40% of average monthly earnings
-    
+    const monthlyBenefit = (averageEarnings * 0.4) / 12; // Approximately 40% of average monthly earnings
+
     return { amount: monthlyBenefit };
   }
 
-  private applySocialSecurityAdjustments(baseAmount: number, socialSecurity: SocialSecurity, currentAge: number): number {
+  private applySocialSecurityAdjustments(
+    baseAmount: number,
+    socialSecurity: SocialSecurity,
+    currentAge: number,
+  ): number {
     let adjustedAmount = baseAmount;
 
     // Full retirement age is typically 67 for people born 1960 or later
     const fullRetirementAge = socialSecurity.fullRetirementAge || 67;
-    
+
     if (currentAge < fullRetirementAge) {
       // Early retirement reduction (approximately 6.67% per year before full retirement age)
       const yearsEarly = fullRetirementAge - currentAge;
       const reductionRate = 0.0667; // 6.67% per year
       const totalReduction = Math.min(yearsEarly * reductionRate, 0.25); // Maximum 25% reduction
-      adjustedAmount *= (1 - totalReduction);
+      adjustedAmount *= 1 - totalReduction;
     } else if (currentAge > fullRetirementAge) {
       // Delayed retirement credits (8% per year after full retirement age until age 70)
       const yearsDelayed = Math.min(currentAge - fullRetirementAge, 3); // Max 3 years (until age 70)
       const creditRate = 0.08; // 8% per year
-      adjustedAmount *= (1 + yearsDelayed * creditRate);
+      adjustedAmount *= 1 + yearsDelayed * creditRate;
     }
 
     return adjustedAmount;
@@ -484,11 +537,16 @@ export class RetirementCalculator {
       isTransfer: false,
       category: 'Income.Pension',
       flag: false,
-      flagColor: null
+      flagColor: null,
     });
   }
 
-  private createSocialSecurityActivity(accountId: string, socialSecurity: SocialSecurity, amount: number, date: Date): ConsolidatedActivity {
+  private createSocialSecurityActivity(
+    accountId: string,
+    socialSecurity: SocialSecurity,
+    amount: number,
+    date: Date,
+  ): ConsolidatedActivity {
     return new ConsolidatedActivity({
       id: `SS-${socialSecurity.id}-${date.getTime()}`,
       name: `Social Security - ${socialSecurity.name || 'Social Security'}`,
@@ -503,11 +561,16 @@ export class RetirementCalculator {
       isTransfer: false,
       category: 'Income.SocialSecurity',
       flag: false,
-      flagColor: null
+      flagColor: null,
     });
   }
 
-  private createRMDActivity(account: Account, distributionAccountId: string, amount: number, date: Date): ConsolidatedActivity {
+  private createRMDActivity(
+    account: Account,
+    distributionAccountId: string,
+    amount: number,
+    date: Date,
+  ): ConsolidatedActivity {
     return new ConsolidatedActivity({
       id: `RMD-${account.id}-${date.getTime()}`,
       name: `Required Minimum Distribution - ${account.name}`,
@@ -522,7 +585,7 @@ export class RetirementCalculator {
       isTransfer: true,
       category: 'Banking.RMD',
       flag: true,
-      flagColor: 'red'
+      flagColor: 'red',
     });
   }
 
@@ -530,23 +593,26 @@ export class RetirementCalculator {
 
   private calculateNextPensionDate(pension: Pension, currentDate: Date): Date | null {
     if (!pension.frequency) return null;
-    
+
     // Most pensions are monthly
     return dayjs.utc(currentDate).add(1, 'month').toDate();
   }
 
   private calculateNextSocialSecurityDate(socialSecurity: SocialSecurity, currentDate: Date): Date | null {
     if (!socialSecurity.frequency) return null;
-    
+
     // Social Security is typically monthly
     return dayjs.utc(currentDate).add(1, 'month').toDate();
   }
 
   // Utility methods
 
-  private getYearlyIncomesForRetirement(accountsAndTransfers: AccountsAndTransfers, retirement: Pension | SocialSecurity): { year: number; amount: number }[] {
+  private getYearlyIncomesForRetirement(
+    accountsAndTransfers: AccountsAndTransfers,
+    retirement: Pension | SocialSecurity,
+  ): { year: number; amount: number }[] {
     const cacheKey = `${retirement.id}_${retirement.workStartDate?.getTime()}_${retirement.startDate.getTime()}`;
-    
+
     let cached = this.earningsCache.get(cacheKey);
     if (cached) {
       return cached;
@@ -554,7 +620,7 @@ export class RetirementCalculator {
 
     const yearlyIncomes = getYearlyIncomes(accountsAndTransfers, retirement);
     this.earningsCache.set(cacheKey, yearlyIncomes);
-    
+
     return yearlyIncomes;
   }
 
@@ -564,7 +630,7 @@ export class RetirementCalculator {
       calculationMethod: reason,
       activity: null,
       nextPaymentDate: null,
-      metadata: {}
+      metadata: {},
     };
   }
 
@@ -597,7 +663,7 @@ export class RetirementCalculator {
       socialSecurityCalculations: this.socialSecurityCache.size,
       rmdCalculations: this.rmdCache.size,
       cacheSize: this.pensionCache.size + this.socialSecurityCache.size + this.rmdCache.size,
-      earningsCacheSize: this.earningsCache.size
+      earningsCacheSize: this.earningsCache.size,
     };
   }
 
@@ -637,7 +703,7 @@ export class RetirementCalculator {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 }

@@ -7,7 +7,7 @@ import { getMinDate } from '../date/date';
 vi.mock('../date/date');
 vi.mock('../log', () => ({
   startTiming: vi.fn(),
-  endTiming: vi.fn()
+  endTiming: vi.fn(),
 }));
 
 const mockGetMinDate = vi.mocked(getMinDate);
@@ -23,15 +23,15 @@ describe('Graph Utilities', () => {
             date: new Date('2023-01-15T12:00:00Z'),
             balance: 1000,
             name: 'Salary',
-            amount: 1000
+            amount: 1000,
           },
           {
             date: new Date('2023-06-15T12:00:00Z'),
             balance: 1500,
             name: 'Bonus',
-            amount: 500
-          }
-        ]
+            amount: 500,
+          },
+        ],
       } as any,
       {
         id: 'account-2',
@@ -41,12 +41,12 @@ describe('Graph Utilities', () => {
             date: new Date('2023-03-01T12:00:00Z'),
             balance: 2000,
             name: 'Transfer',
-            amount: 2000
-          }
-        ]
-      } as any
+            amount: 2000,
+          },
+        ],
+      } as any,
     ],
-    transfers: { activity: [], bills: [] }
+    transfers: { activity: [], bills: [] },
   };
 
   beforeEach(() => {
@@ -58,9 +58,9 @@ describe('Graph Utilities', () => {
     it('should return yearly graph for date ranges longer than MAX_DAYS_FOR_ACTIVITY', () => {
       const startDate = new Date('2023-01-01T00:00:00Z');
       const endDate = new Date('2035-12-31T23:59:59Z'); // More than 10 years
-      
+
       const result = loadGraph(mockAccountsData, startDate, endDate);
-      
+
       expect(result.type).toBe('yearly');
       expect(result.labels).toBeDefined();
       expect(result.datasets).toBeDefined();
@@ -69,9 +69,9 @@ describe('Graph Utilities', () => {
     it('should return activity graph for shorter date ranges', () => {
       const startDate = new Date('2023-01-01T00:00:00Z');
       const endDate = new Date('2023-12-31T23:59:59Z'); // Less than 10 years
-      
+
       const result = loadGraph(mockAccountsData, startDate, endDate);
-      
+
       expect(result.type).toBe('activity');
       expect(result.labels).toBeDefined();
       expect(result.datasets).toBeDefined();
@@ -81,9 +81,9 @@ describe('Graph Utilities', () => {
       const startDate = new Date('2023-01-01T00:00:00Z');
       // Just under 10 years to ensure it stays as activity graph
       const endDate = new Date('2030-01-01T23:59:59Z');
-      
+
       const result = loadGraph(mockAccountsData, startDate, endDate);
-      
+
       // Should be activity graph since it's under the max
       expect(result.type).toBe('activity');
     });
@@ -94,9 +94,9 @@ describe('Graph Utilities', () => {
       const startDate = new Date('2023-01-01T00:00:00Z');
       const endDate = new Date('2023-12-31T23:59:59Z');
       const minDate = new Date('2023-01-01T00:00:00Z');
-      
+
       const result = loadYearlyGraph(mockAccountsData, startDate, endDate, minDate);
-      
+
       expect(result.type).toBe('yearly');
       expect(result.labels.length).toBeGreaterThan(0); // Should have at least one year
       expect(result.datasets).toHaveLength(2); // Two accounts
@@ -108,7 +108,7 @@ describe('Graph Utilities', () => {
       const startDate = new Date('2023-01-01T00:00:00Z');
       const endDate = new Date('2024-12-31T23:59:59Z');
       const minDate = new Date('2023-01-01T00:00:00Z');
-      
+
       const extendedAccountsData = {
         ...mockAccountsData,
         accounts: [
@@ -120,16 +120,16 @@ describe('Graph Utilities', () => {
                 date: new Date('2024-01-15T12:00:00Z'),
                 balance: 2000,
                 name: 'New Year Bonus',
-                amount: 500
-              }
-            ]
+                amount: 500,
+              },
+            ],
           },
-          mockAccountsData.accounts[1]
-        ]
+          mockAccountsData.accounts[1],
+        ],
       };
-      
+
       const result = loadYearlyGraph(extendedAccountsData, startDate, endDate, minDate);
-      
+
       expect(result.type).toBe('yearly');
       expect(result.labels.length).toBeGreaterThanOrEqual(2); // Should have 2023 and 2024
       expect(result.datasets).toHaveLength(2);
@@ -141,18 +141,18 @@ describe('Graph Utilities', () => {
           {
             id: 'empty-account',
             name: 'Empty Account',
-            consolidatedActivity: []
-          } as any
+            consolidatedActivity: [],
+          } as any,
         ],
-        transfers: { activity: [], bills: [] }
+        transfers: { activity: [], bills: [] },
       };
-      
+
       const startDate = new Date('2023-01-01T00:00:00Z');
       const endDate = new Date('2023-12-31T23:59:59Z');
       const minDate = new Date('2023-01-01T00:00:00Z');
-      
+
       const result = loadYearlyGraph(emptyAccountsData, startDate, endDate, minDate);
-      
+
       expect(result.type).toBe('yearly');
       expect(result.datasets).toHaveLength(1);
       expect(result.datasets[0].data).toBeDefined();
@@ -162,9 +162,9 @@ describe('Graph Utilities', () => {
       const startDate = new Date('2023-06-01T00:00:00Z'); // Start after some activities
       const endDate = new Date('2023-12-31T23:59:59Z');
       const minDate = new Date('2023-01-01T00:00:00Z');
-      
+
       const result = loadYearlyGraph(mockAccountsData, startDate, endDate, minDate);
-      
+
       expect(result.type).toBe('yearly');
       expect(result.datasets).toHaveLength(2);
       // Should still process all activities but only include dates within range
@@ -173,15 +173,15 @@ describe('Graph Utilities', () => {
     it('should handle empty accounts array', () => {
       const emptyData: AccountsAndTransfers = {
         accounts: [],
-        transfers: { activity: [], bills: [] }
+        transfers: { activity: [], bills: [] },
       };
-      
+
       const startDate = new Date('2023-01-01T00:00:00Z');
       const endDate = new Date('2023-12-31T23:59:59Z');
       const minDate = new Date('2023-01-01T00:00:00Z');
-      
+
       const result = loadYearlyGraph(emptyData, startDate, endDate, minDate);
-      
+
       expect(result.type).toBe('yearly');
       expect(result.datasets).toHaveLength(0);
       expect(result.labels).toBeDefined();
@@ -200,26 +200,26 @@ describe('Graph Utilities', () => {
                 date: new Date('2023-01-01T12:00:00Z'),
                 balance: 100,
                 name: 'Initial',
-                amount: 100
+                amount: 100,
               },
               {
                 date: new Date('2023-01-01T13:00:00Z'),
                 balance: 150,
                 name: 'Same Day',
-                amount: 50
-              }
-            ]
-          } as any
+                amount: 50,
+              },
+            ],
+          } as any,
         ],
-        transfers: { activity: [], bills: [] }
+        transfers: { activity: [], bills: [] },
       };
-      
+
       const startDate = new Date('2023-01-01T00:00:00Z');
       const endDate = new Date('2023-01-01T23:59:59Z');
       const minDate = new Date('2023-01-01T00:00:00Z');
-      
+
       const result = loadYearlyGraph(accountWithMultipleActivities, startDate, endDate, minDate);
-      
+
       expect(result.datasets[0].data).toBeDefined();
       // Should track the minimum balance (100) for the year
     });

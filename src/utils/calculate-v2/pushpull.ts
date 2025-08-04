@@ -201,17 +201,17 @@ export class SmartPushPullProcessor {
 
     // Use event-based projection instead of deep copying
     const monthEnd = dayjs.utc(checkDate).endOf('month').toDate();
-    const projections = this.generateEventBasedProjections(
-      account,
-      currentBalance,
-      checkDate,
-      monthEnd,
-      simulation,
-    );
+    const projections = this.generateEventBasedProjections(account, currentBalance, checkDate, monthEnd, simulation);
     debug('projections', { checkDate: formatDate(checkDate), projections: projections.length });
-    projections.forEach(p => {
-      debug('performSmartLookahead', { date: formatDate(p.date), projectedBalance: p.projectedBalance, minimumBalance: p.minimumBalance, events: p.events.length, confidence: p.confidence });
-    })
+    projections.forEach((p) => {
+      debug('performSmartLookahead', {
+        date: formatDate(p.date),
+        projectedBalance: p.projectedBalance,
+        minimumBalance: p.minimumBalance,
+        events: p.events.length,
+        confidence: p.confidence,
+      });
+    });
 
     // Analyze risk level
     const riskLevel = this.analyzeRiskLevel(projections, account);
@@ -433,19 +433,19 @@ export class SmartPushPullProcessor {
       minimumPullAmount,
       excessAmount,
       checkDate: formatDate(checkDate),
-    })
+    });
 
     // Check if pull is needed
     if (lookaheadResult.minimumBalance < minimumBalance) {
       const pullDecision = this.createPullDecision(account, lookaheadResult, allAccounts);
-      debug('pullDecision', pullDecision)
+      debug('pullDecision', pullDecision);
       return pullDecision;
     }
 
     // Check if push is beneficial
     if (excessAmount > 0 && account.performsPushes) {
       const pushDecision = this.createPushDecision(account, excessAmount, allAccounts);
-      debug('pushDecision', pushDecision)
+      debug('pushDecision', pushDecision);
       return pushDecision;
     }
 
@@ -458,7 +458,7 @@ export class SmartPushPullProcessor {
       confidence: 0.9,
       alternatives: [],
     };
-    debug('noneDecision', noneDecision)
+    debug('noneDecision', noneDecision);
     return noneDecision;
   }
 
@@ -978,4 +978,3 @@ export class SmartPushPullProcessor {
     this.patternCache.clear();
   }
 }
-

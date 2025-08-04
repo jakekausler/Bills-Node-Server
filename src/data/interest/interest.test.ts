@@ -64,9 +64,9 @@ describe('Interest', () => {
     it('should generate UUID when id is not provided', () => {
       const dataWithoutId = { ...testInterestData };
       delete dataWithoutId.id;
-      
+
       const interest = new Interest(dataWithoutId);
-      
+
       expect(interest.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     });
 
@@ -101,7 +101,7 @@ describe('Interest', () => {
     it('should support all compounding frequencies', () => {
       const frequencies: Array<'day' | 'week' | 'month' | 'year'> = ['day', 'week', 'month', 'year'];
 
-      frequencies.forEach(frequency => {
+      frequencies.forEach((frequency) => {
         const data: InterestData = {
           ...testInterestData,
           compounded: frequency,
@@ -138,7 +138,7 @@ describe('Interest', () => {
   describe('toActivity', () => {
     it('should create an interest activity with correct properties', () => {
       const interest = new Interest(testInterestData);
-      const amount = 25.50;
+      const amount = 25.5;
       const date = new Date('2023-01-31');
 
       const activity = interest.toActivity('activity-1', 'Default', amount, date);
@@ -155,7 +155,7 @@ describe('Interest', () => {
         compounded: 'day',
         applicableDate: '2023-01-15',
       });
-      
+
       const originalDate = new Date(interest.applicableDate);
       interest.advance();
 
@@ -168,7 +168,7 @@ describe('Interest', () => {
         compounded: 'week',
         applicableDate: '2023-01-15',
       });
-      
+
       const originalDate = new Date(interest.applicableDate);
       interest.advance();
 
@@ -183,7 +183,7 @@ describe('Interest', () => {
         compounded: 'month',
         applicableDate: '2023-01-15',
       });
-      
+
       const originalMonth = interest.applicableDate.getMonth();
       interest.advance();
 
@@ -196,7 +196,7 @@ describe('Interest', () => {
         compounded: 'year',
         applicableDate: '2023-01-15',
       });
-      
+
       const originalYear = interest.applicableDate.getFullYear();
       interest.advance();
 
@@ -228,7 +228,7 @@ describe('insertInterest', () => {
       id: 'activity-1',
       name: 'Interest',
       category: 'Banking.Interest',
-      amount: 25.50,
+      amount: 25.5,
       amountIsVariable: false,
       amountVariable: null,
       date: '2023-01-31',
@@ -256,13 +256,13 @@ describe('insertInterest', () => {
       ...testInterestData,
       applicableDate: '2023-01-15',
     });
-    
+
     const originalDate = new Date(mockInterest.applicableDate);
     const mockActivityData = {
       id: 'activity-1',
       name: 'Interest',
       category: 'Banking.Interest',
-      amount: 25.50,
+      amount: 25.5,
       amountIsVariable: false,
       amountVariable: null,
       date: '2023-01-31',
@@ -303,7 +303,7 @@ describe('insertInterest', () => {
       id: 'activity-1',
       name: 'Interest',
       category: 'Banking.Interest',
-      amount: 25.50,
+      amount: 25.5,
       amountIsVariable: false,
       amountVariable: null,
       date: '2023-01-31',
@@ -359,7 +359,7 @@ describe('compoundInterest', () => {
   it('should throw error for invalid compounding frequency', () => {
     const balance = 10000;
     const apr = 0.05;
-    
+
     expect(() => {
       compoundInterest(balance, apr, 'invalid' as any);
     }).toThrow('Invalid compounded interest: invalid');

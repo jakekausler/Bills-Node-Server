@@ -7,10 +7,10 @@ describe('MonthEndAnalyzer', () => {
   let testAccount: Account;
   let checkingAccount: Account;
   let savingsAccount: Account;
-  
+
   beforeEach(() => {
     analyzer = new MonthEndAnalyzer();
-    
+
     // Create test accounts
     testAccount = new Account({
       id: 'test-account',
@@ -20,19 +20,19 @@ describe('MonthEndAnalyzer', () => {
       performsPushes: true,
       minimumBalance: 1000,
       pullPriority: 3,
-      pushAccount: 'checking'
+      pushAccount: 'checking',
     } as any);
-    
+
     checkingAccount = new Account({
       id: 'checking',
       name: 'Checking Account',
-      pullPriority: 1
+      pullPriority: 1,
     } as any);
-    
+
     savingsAccount = new Account({
       id: 'savings',
       name: 'Savings Account',
-      pullPriority: 2
+      pullPriority: 2,
     } as any);
   });
 
@@ -40,15 +40,15 @@ describe('MonthEndAnalyzer', () => {
     it('should track daily balances throughout the month', () => {
       const monthStart = new Date('2025-01-01');
       const monthEnd = new Date('2025-01-31');
-      
+
       // Record some balance changes
       analyzer.recordBalance('test-account', monthStart, 5000);
       analyzer.recordBalance('test-account', new Date('2025-01-10'), 3000);
       analyzer.recordBalance('test-account', new Date('2025-01-20'), 8000);
       analyzer.recordBalance('test-account', new Date('2025-01-31'), 4000);
-      
+
       const analysis = analyzer.analyzeMonth(testAccount, monthStart, monthEnd);
-      
+
       expect(analysis.accountId).toBe('test-account');
       expect(analysis.month).toEqual(monthStart);
       expect(analysis.minimumBalance).toBe(3000);
@@ -61,39 +61,39 @@ describe('MonthEndAnalyzer', () => {
     it('should detect minimum balance violations', () => {
       const monthStart = new Date('2025-01-01');
       const monthEnd = new Date('2025-01-31');
-      
+
       // Set balance below minimum for all days
       const currentDate = new Date(monthStart);
       while (currentDate <= monthEnd) {
         analyzer.recordBalance('test-account', new Date(currentDate), 500);
         currentDate.setDate(currentDate.getDate() + 1);
       }
-      
+
       const analysis = analyzer.analyzeMonth(testAccount, monthStart, monthEnd);
-      
+
       expect(analysis.violations).toHaveLength(31); // Every day violates
       expect(analysis.violations[0]).toEqual({
         type: 'minimum',
         date: monthStart,
         actualBalance: 500,
         requiredBalance: 1000,
-        shortfall: 500
+        shortfall: 500,
       });
     });
 
     it('should handle accounts without violations', () => {
       const monthStart = new Date('2025-01-01');
       const monthEnd = new Date('2025-01-31');
-      
+
       // Set balance well within range
       const currentDate = new Date(monthStart);
       while (currentDate <= monthEnd) {
         analyzer.recordBalance('test-account', new Date(currentDate), 5000);
         currentDate.setDate(currentDate.getDate() + 1);
       }
-      
+
       const analysis = analyzer.analyzeMonth(testAccount, monthStart, monthEnd);
-      
+
       expect(analysis.violations).toHaveLength(0);
       expect(analysis.minimumBalance).toBe(5000);
       expect(analysis.maximumBalance).toBe(5000);
@@ -110,21 +110,23 @@ describe('MonthEndAnalyzer', () => {
         maximumBalance: 500,
         maximumBalanceDate: new Date('2025-01-15'),
         dailyBalances: new Map(),
-        violations: [{
-          type: 'minimum' as const,
-          date: new Date('2025-01-15'),
-          actualBalance: 500,
-          requiredBalance: 1000,
-          shortfall: 500
-        }]
+        violations: [
+          {
+            type: 'minimum' as const,
+            date: new Date('2025-01-15'),
+            actualBalance: 500,
+            requiredBalance: 1000,
+            shortfall: 500,
+          },
+        ],
       };
-      
-      const transfers = analyzer.determineRequiredTransfers(
-        analysis,
+
+      const transfers = analyzer.determineRequiredTransfers(analysis, testAccount, [
         testAccount,
-        [testAccount, checkingAccount, savingsAccount]
-      );
-      
+        checkingAccount,
+        savingsAccount,
+      ]);
+
       expect(transfers).toHaveLength(1);
       expect(transfers[0]).toEqual({
         type: 'pull',
@@ -132,7 +134,7 @@ describe('MonthEndAnalyzer', () => {
         toAccount: testAccount,
         amount: 500,
         insertDate: analysis.month,
-        reason: 'Pull to maintain minimum balance of 1000'
+        reason: 'Pull to maintain minimum balance of 1000',
       });
     });
 
@@ -145,28 +147,28 @@ describe('MonthEndAnalyzer', () => {
         maximumBalance: 500,
         maximumBalanceDate: new Date('2025-01-15'),
         dailyBalances: new Map(),
-        violations: [{
-          type: 'minimum' as const,
-          date: new Date('2025-01-15'),
-          actualBalance: 500,
-          requiredBalance: 1000,
-          shortfall: 500
-        }]
+        violations: [
+          {
+            type: 'minimum' as const,
+            date: new Date('2025-01-15'),
+            actualBalance: 500,
+            requiredBalance: 1000,
+            shortfall: 500,
+          },
+        ],
       };
-      
+
       // Create accounts with negative pull priority (can't pull from them)
-      const emptyAccounts = [new Account({
-        id: 'empty1',
-        name: 'Empty Account 1',
-        pullPriority: -1
-      } as any)];
-      
-      const transfers = analyzer.determineRequiredTransfers(
-        analysis,
-        testAccount,
-        [testAccount, ...emptyAccounts]
-      );
-      
+      const emptyAccounts = [
+        new Account({
+          id: 'empty1',
+          name: 'Empty Account 1',
+          pullPriority: -1,
+        } as any),
+      ];
+
+      const transfers = analyzer.determineRequiredTransfers(analysis, testAccount, [testAccount, ...emptyAccounts]);
+
       expect(transfers).toHaveLength(0);
     });
 
@@ -185,24 +187,24 @@ describe('MonthEndAnalyzer', () => {
             date: new Date('2025-01-10'),
             actualBalance: 500,
             requiredBalance: 1000,
-            shortfall: 500
+            shortfall: 500,
           },
           {
             type: 'minimum' as const,
             date: new Date('2025-01-20'),
             actualBalance: 200,
             requiredBalance: 1000,
-            shortfall: 800
-          }
-        ]
+            shortfall: 800,
+          },
+        ],
       };
-      
-      const transfers = analyzer.determineRequiredTransfers(
-        analysis,
+
+      const transfers = analyzer.determineRequiredTransfers(analysis, testAccount, [
         testAccount,
-        [testAccount, checkingAccount, savingsAccount]
-      );
-      
+        checkingAccount,
+        savingsAccount,
+      ]);
+
       expect(transfers).toHaveLength(1);
       expect(transfers[0].amount).toBe(800); // Uses maximum shortfall
     });
@@ -216,15 +218,15 @@ describe('MonthEndAnalyzer', () => {
         maximumBalance: 5000,
         maximumBalanceDate: new Date('2025-01-15'),
         dailyBalances: new Map(),
-        violations: []
+        violations: [],
       };
-      
-      const transfers = analyzer.determineRequiredTransfers(
-        analysis,
+
+      const transfers = analyzer.determineRequiredTransfers(analysis, testAccount, [
         testAccount,
-        [testAccount, checkingAccount, savingsAccount]
-      );
-      
+        checkingAccount,
+        savingsAccount,
+      ]);
+
       expect(transfers).toHaveLength(0);
     });
 
@@ -234,9 +236,9 @@ describe('MonthEndAnalyzer', () => {
         name: 'Unmanaged Account',
         todayBalance: 100,
         performsPulls: false,
-        performsPushes: false
+        performsPushes: false,
       } as any);
-      
+
       const analysis = {
         accountId: 'unmanaged',
         month: new Date('2025-01-01'),
@@ -245,21 +247,23 @@ describe('MonthEndAnalyzer', () => {
         maximumBalance: 100,
         maximumBalanceDate: new Date('2025-01-15'),
         dailyBalances: new Map(),
-        violations: [{
-          type: 'minimum' as const,
-          date: new Date('2025-01-15'),
-          actualBalance: 100,
-          requiredBalance: 1000,
-          shortfall: 900
-        }]
+        violations: [
+          {
+            type: 'minimum' as const,
+            date: new Date('2025-01-15'),
+            actualBalance: 100,
+            requiredBalance: 1000,
+            shortfall: 900,
+          },
+        ],
       };
-      
-      const transfers = analyzer.determineRequiredTransfers(
-        analysis,
+
+      const transfers = analyzer.determineRequiredTransfers(analysis, unmanagedAccount, [
         unmanagedAccount,
-        [unmanagedAccount, checkingAccount, savingsAccount]
-      );
-      
+        checkingAccount,
+        savingsAccount,
+      ]);
+
       expect(transfers).toHaveLength(0);
     });
   });

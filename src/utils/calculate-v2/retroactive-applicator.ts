@@ -17,13 +17,9 @@ export class RetroactiveApplicator {
   /**
    * Applies required transfers retroactively by inserting push/pull activities at month start
    */
-  applyTransfers(
-    transfers: RequiredTransfer[],
-    timeline: Timeline,
-    balanceTracker: BalanceTracker
-  ): AppliedTransfer[] {
+  applyTransfers(transfers: RequiredTransfer[], timeline: Timeline, balanceTracker: BalanceTracker): AppliedTransfer[] {
     debug('RetroactiveApplicator.applyTransfers', 'Applying retroactive transfers', {
-      transferCount: transfers.length
+      transferCount: transfers.length,
     });
 
     const appliedTransfers: AppliedTransfer[] = [];
@@ -32,13 +28,13 @@ export class RetroactiveApplicator {
       try {
         const appliedTransfer = this.applyTransfer(transfer, timeline, balanceTracker);
         appliedTransfers.push(appliedTransfer);
-        
+
         log('RetroactiveApplicator.applyTransfers', 'Successfully applied transfer', {
           type: transfer.type,
           amount: transfer.amount,
           fromAccount: transfer.fromAccount.name,
           toAccount: transfer.toAccount.name,
-          reason: transfer.reason
+          reason: transfer.reason,
         });
       } catch (error) {
         warn('RetroactiveApplicator.applyTransfers', 'Failed to apply transfer', {
@@ -46,7 +42,7 @@ export class RetroactiveApplicator {
           amount: transfer.amount,
           fromAccount: transfer.fromAccount.name,
           toAccount: transfer.toAccount.name,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }
@@ -54,7 +50,7 @@ export class RetroactiveApplicator {
     log('RetroactiveApplicator.applyTransfers', 'Completed retroactive transfer application', {
       totalTransfers: transfers.length,
       successfulTransfers: appliedTransfers.length,
-      failedTransfers: transfers.length - appliedTransfers.length
+      failedTransfers: transfers.length - appliedTransfers.length,
     });
 
     return appliedTransfers;
@@ -66,28 +62,28 @@ export class RetroactiveApplicator {
   private applyTransfer(
     transfer: RequiredTransfer,
     timeline: Timeline,
-    balanceTracker: BalanceTracker
+    balanceTracker: BalanceTracker,
   ): AppliedTransfer {
     debug('RetroactiveApplicator.applyTransfer', 'Applying single transfer', {
       type: transfer.type,
       amount: transfer.amount,
-      insertDate: transfer.insertDate.toISOString()
+      insertDate: transfer.insertDate.toISOString(),
     });
 
     // Create the push/pull activities
     const activities = this.createPushPullActivities(transfer);
-    
+
     // Insert activities into timeline at the correct position
     this.insertActivitiesIntoTimeline(activities, transfer.insertDate, timeline);
-    
+
     // Update balance tracker with retroactive changes
     this.updateBalanceTracker(activities, transfer.insertDate, balanceTracker);
-    
+
     const appliedTransfer: AppliedTransfer = {
       originalTransfer: transfer,
       createdActivities: activities,
       insertedAt: transfer.insertDate,
-      affectedAccounts: [transfer.fromAccount.id, transfer.toAccount.id]
+      affectedAccounts: [transfer.fromAccount.id, transfer.toAccount.id],
     };
 
     return appliedTransfer;
@@ -99,7 +95,7 @@ export class RetroactiveApplicator {
   createPushPullActivities(transfer: RequiredTransfer): ConsolidatedActivity[] {
     debug('RetroactiveApplicator.createPushPullActivities', 'Creating activities for transfer', {
       type: transfer.type,
-      amount: transfer.amount
+      amount: transfer.amount,
     });
 
     const activities: ConsolidatedActivity[] = [];
@@ -114,7 +110,7 @@ export class RetroactiveApplicator {
       category: 'Transfer',
       from: transfer.fromAccount.id, // Source account for withdrawal
       to: transfer.toAccount.id,
-      isTransfer: true
+      isTransfer: true,
     });
 
     // Create deposit activity for destination account
@@ -126,7 +122,7 @@ export class RetroactiveApplicator {
       category: 'Transfer',
       from: transfer.fromAccount.id,
       to: transfer.toAccount.id,
-      isTransfer: true
+      isTransfer: true,
     });
 
     activities.push(withdrawalActivity, depositActivity);
@@ -134,7 +130,7 @@ export class RetroactiveApplicator {
     debug('RetroactiveApplicator.createPushPullActivities', 'Created activities', {
       activityCount: activities.length,
       withdrawalId: withdrawalActivity.id,
-      depositId: depositActivity.id
+      depositId: depositActivity.id,
     });
 
     return activities;
@@ -143,27 +139,23 @@ export class RetroactiveApplicator {
   /**
    * Inserts activities into the timeline at the correct chronological position
    */
-  private insertActivitiesIntoTimeline(
-    activities: ConsolidatedActivity[],
-    insertDate: Date,
-    timeline: Timeline
-  ): void {
+  private insertActivitiesIntoTimeline(activities: ConsolidatedActivity[], insertDate: Date, timeline: Timeline): void {
     debug('RetroactiveApplicator.insertActivitiesIntoTimeline', 'Inserting activities into timeline', {
       activityCount: activities.length,
-      insertDate: insertDate.toISOString()
+      insertDate: insertDate.toISOString(),
     });
-    
+
     // Convert activities to timeline events
     // We need to create separate events for withdrawal (from account) and deposit (to account)
     const timelineEvents: ActivityEvent[] = [];
-    
+
     for (let i = 0; i < activities.length; i++) {
       const activity = activities[i];
       // Determine which account this activity affects
       // For withdrawal (negative amount), it affects the 'from' account
       // For deposit (positive amount), it affects the 'to' account
       const affectedAccountId = activity.amount < 0 ? activity.fro : activity.to;
-      
+
       const event: ActivityEvent = {
         id: `retroactive_activity_${Date.now()}_${i}`,
         type: EventType.activity,
@@ -172,9 +164,9 @@ export class RetroactiveApplicator {
         priority: this.getEventPriority('retroactive-transfer'),
         cacheable: false, // Retroactive events should not be cached
         dependencies: [],
-        activity: activity
+        activity: activity,
       };
-      
+
       timelineEvents.push(event);
     }
 
@@ -182,10 +174,9 @@ export class RetroactiveApplicator {
     timeline.addRetroactiveEvents(timelineEvents);
 
     log('RetroactiveApplicator.insertActivitiesIntoTimeline', 'Inserted activities into timeline', {
-      eventCount: timelineEvents.length
+      eventCount: timelineEvents.length,
     });
   }
-
 
   /**
    * Returns priority for different event types to maintain proper ordering
@@ -193,12 +184,12 @@ export class RetroactiveApplicator {
   private getEventPriority(eventType: string): number {
     const priorities: Record<string, number> = {
       'retroactive-transfer': 1, // Highest priority - should come first on any given day
-      'activity': 2,
-      'bill': 3,
-      'interest': 4,
-      'monthEndCheck': 5
+      activity: 2,
+      bill: 3,
+      interest: 4,
+      monthEndCheck: 5,
     };
-    
+
     return priorities[eventType] || 10;
   }
 
@@ -208,11 +199,11 @@ export class RetroactiveApplicator {
   private updateBalanceTracker(
     activities: ConsolidatedActivity[],
     insertDate: Date,
-    balanceTracker: BalanceTracker
+    balanceTracker: BalanceTracker,
   ): void {
     debug('RetroactiveApplicator.updateBalanceTracker', 'Updating balance tracker', {
       activityCount: activities.length,
-      insertDate: insertDate.toISOString()
+      insertDate: insertDate.toISOString(),
     });
 
     // Apply each activity to the balance tracker
@@ -222,7 +213,7 @@ export class RetroactiveApplicator {
       const affectedAccountId = activity.amount < 0 ? activity.fro : activity.to;
       if (affectedAccountId) {
         balanceTracker.updateBalance(affectedAccountId, activity.amount);
-        
+
         // CRITICAL FIX: Also add the activity to the account's consolidatedActivity array
         // This ensures the activities appear in the final results
         balanceTracker.addActivityToAccount(affectedAccountId, activity);
@@ -230,7 +221,7 @@ export class RetroactiveApplicator {
     }
 
     log('RetroactiveApplicator.updateBalanceTracker', 'Updated balance tracker with retroactive changes', {
-      affectedAccounts: [...new Set(activities.map(a => a.amount < 0 ? a.fro : a.to).filter(Boolean))]
+      affectedAccounts: [...new Set(activities.map((a) => (a.amount < 0 ? a.fro : a.to)).filter(Boolean))],
     });
   }
 

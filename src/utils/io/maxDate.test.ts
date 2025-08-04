@@ -17,18 +17,20 @@ describe('maxDate', () => {
   it('should return cached MAX_DATE if available', () => {
     // First call will set the cache
     const mockData = {
-      accounts: [{
-        activity: [{ date: new Date('2025-12-31') }],
-        bills: [],
-        interests: [],
-      }],
+      accounts: [
+        {
+          activity: [{ date: new Date('2025-12-31') }],
+          bills: [],
+          interests: [],
+        },
+      ],
       transfers: { activity: [], bills: [] },
     };
     vi.mocked(loadData).mockReturnValue(mockData as any);
-    
+
     const firstResult = maxDate();
     const secondResult = maxDate();
-    
+
     expect(firstResult).toEqual(secondResult);
     expect(loadData).toHaveBeenCalledTimes(1); // Should only call loadData once
   });
@@ -37,10 +39,7 @@ describe('maxDate', () => {
     const mockData = {
       accounts: [
         {
-          activity: [
-            { date: new Date('2024-01-01') },
-            { date: new Date('2024-12-31') },
-          ],
+          activity: [{ date: new Date('2024-01-01') }, { date: new Date('2024-12-31') }],
           bills: [],
           interests: [],
         },
@@ -50,11 +49,11 @@ describe('maxDate', () => {
         bills: [],
       },
     };
-    
+
     vi.mocked(loadData).mockReturnValue(mockData as any);
-    
+
     const result = maxDate();
-    
+
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
@@ -75,11 +74,11 @@ describe('maxDate', () => {
         bills: [],
       },
     };
-    
+
     vi.mocked(loadData).mockReturnValue(mockData as any);
-    
+
     const result = maxDate();
-    
+
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
@@ -100,11 +99,11 @@ describe('maxDate', () => {
         bills: [],
       },
     };
-    
+
     vi.mocked(loadData).mockReturnValue(mockData as any);
-    
+
     const result = maxDate();
-    
+
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
@@ -114,10 +113,7 @@ describe('maxDate', () => {
         {
           activity: [],
           bills: [],
-          interests: [
-            { applicableDate: new Date('2024-01-01') },
-            { applicableDate: new Date('2024-12-31') },
-          ],
+          interests: [{ applicableDate: new Date('2024-01-01') }, { applicableDate: new Date('2024-12-31') }],
         },
       ],
       transfers: {
@@ -125,11 +121,11 @@ describe('maxDate', () => {
         bills: [],
       },
     };
-    
+
     vi.mocked(loadData).mockReturnValue(mockData as any);
-    
+
     const result = maxDate();
-    
+
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
@@ -137,18 +133,15 @@ describe('maxDate', () => {
     const mockData = {
       accounts: [],
       transfers: {
-        activity: [
-          { date: new Date('2024-01-01') },
-          { date: new Date('2024-12-31') },
-        ],
+        activity: [{ date: new Date('2024-01-01') }, { date: new Date('2024-12-31') }],
         bills: [],
       },
     };
-    
+
     vi.mocked(loadData).mockReturnValue(mockData as any);
-    
+
     const result = maxDate();
-    
+
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
@@ -163,11 +156,11 @@ describe('maxDate', () => {
         ],
       },
     };
-    
+
     vi.mocked(loadData).mockReturnValue(mockData as any);
-    
+
     const result = maxDate();
-    
+
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
@@ -182,11 +175,11 @@ describe('maxDate', () => {
         ],
       },
     };
-    
+
     vi.mocked(loadData).mockReturnValue(mockData as any);
-    
+
     const result = maxDate();
-    
+
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
@@ -198,11 +191,11 @@ describe('maxDate', () => {
         bills: [],
       },
     };
-    
+
     vi.mocked(loadData).mockReturnValue(mockData as any);
-    
+
     const result = maxDate();
-    
+
     // Should return a date close to now
     expect(result).toBeInstanceOf(Date);
   });
@@ -221,11 +214,11 @@ describe('maxDate', () => {
         bills: [{ startDate: new Date('2024-07-01'), endDate: new Date('2024-12-31') }],
       },
     };
-    
+
     vi.mocked(loadData).mockReturnValue(mockData as any);
-    
+
     const result = maxDate();
-    
+
     expect(result).toEqual(new Date('2024-12-31'));
   });
 });

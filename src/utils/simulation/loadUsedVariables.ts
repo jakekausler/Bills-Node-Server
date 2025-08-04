@@ -6,12 +6,12 @@ import { UsedVariables } from './types';
 
 /**
  * Loads and catalogues all variables used across the financial planning system
- * 
+ *
  * This function scans through all financial entities (accounts, transfers, bills,
  * activities, interests, social security, pensions) to identify which variables
  * are being used and where they are referenced. This is useful for variable
  * dependency tracking and validation.
- * 
+ *
  * @param accountsAndTransfers - The accounts and transfers data to scan
  * @param socialSecurity - Array of social security configurations to scan
  * @param pensions - Array of pension configurations to scan

@@ -20,21 +20,21 @@ const mockInterestConstructor = vi.mocked(Interest);
 // Mock classes
 const mockInterestInstance = {
   id: 'interest-123',
-  serialize: vi.fn(() => ({ id: 'interest-123', rate: 0.05 }))
+  serialize: vi.fn(() => ({ id: 'interest-123', rate: 0.05 })),
 };
 
 const mockAccount = {
-  interests: [mockInterestInstance]
+  interests: [mockInterestInstance],
 };
 
 const mockData = {
   accountsAndTransfers: {
-    accounts: [mockAccount]
-  }
+    accounts: [mockAccount],
+  },
 };
 
 const mockRequest = {
-  params: { accountId: 'account-123' }
+  params: { accountId: 'account-123' },
 } as unknown as Request;
 
 describe('Interests API', () => {
@@ -68,14 +68,14 @@ describe('Interests API', () => {
     const mockInterestData = {
       data: {
         rate: 0.03,
-        frequency: 'monthly'
+        frequency: 'monthly',
       },
-      accountsAndTransfers: mockData.accountsAndTransfers
+      accountsAndTransfers: mockData.accountsAndTransfers,
     };
 
     beforeEach(() => {
       // Mock Interest constructor
-      mockInterestConstructor.mockImplementation(() => ({ id: 'new-interest-123' } as any));
+      mockInterestConstructor.mockImplementation(() => ({ id: 'new-interest-123' }) as any);
     });
 
     it('should add interest to account', () => {
@@ -93,17 +93,20 @@ describe('Interests API', () => {
     const mockInterestDataArray = {
       data: [
         { rate: 0.04, frequency: 'annual' },
-        { rate: 0.05, frequency: 'monthly' }
+        { rate: 0.05, frequency: 'monthly' },
       ],
-      accountsAndTransfers: mockData.accountsAndTransfers
+      accountsAndTransfers: mockData.accountsAndTransfers,
     };
 
     beforeEach(() => {
       // Mock Interest constructor
-      mockInterestConstructor.mockImplementation((data) => ({ 
-        id: `interest-${data.rate}`,
-        rate: data.rate 
-      } as any));
+      mockInterestConstructor.mockImplementation(
+        (data) =>
+          ({
+            id: `interest-${data.rate}`,
+            rate: data.rate,
+          }) as any,
+      );
     });
 
     it('should replace all account interests with new ones', () => {

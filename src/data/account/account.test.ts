@@ -13,8 +13,8 @@ describe('Account', () => {
     type: 'checking',
     pullPriority: 1,
     interestTaxRate: 0.25,
-    withdrawalTaxRate: 0.20,
-    earlyWithdrawlPenalty: 0.10,
+    withdrawalTaxRate: 0.2,
+    earlyWithdrawlPenalty: 0.1,
     earlyWithdrawlDate: null,
     interestPayAccount: null,
     usesRMD: false,
@@ -39,8 +39,8 @@ describe('Account', () => {
       expect(account.hidden).toBe(false);
       expect(account.pullPriority).toBe(1);
       expect(account.interestTaxRate).toBe(0.25);
-      expect(account.withdrawalTaxRate).toBe(0.20);
-      expect(account.earlyWithdrawlPenalty).toBe(0.10);
+      expect(account.withdrawalTaxRate).toBe(0.2);
+      expect(account.earlyWithdrawlPenalty).toBe(0.1);
       expect(account.usesRMD).toBe(false);
       expect(account.minimumBalance).toBe(100);
       expect(account.minimumPullAmount).toBe(50);
@@ -51,9 +51,9 @@ describe('Account', () => {
     it('should generate UUID when id is not provided', () => {
       const dataWithoutId = { ...mockAccountData };
       delete dataWithoutId.id;
-      
+
       const account = new Account(dataWithoutId);
-      
+
       expect(account.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     });
 
@@ -145,7 +145,7 @@ describe('Account', () => {
     it('should return simplified account data', () => {
       const account = new Account(mockAccountData);
       account.todayBalance = 1500;
-      
+
       const simple = account.simpleAccount();
 
       expect(simple).toEqual({
@@ -156,8 +156,8 @@ describe('Account', () => {
         type: 'checking',
         pullPriority: 1,
         interestTaxRate: 0.25,
-        withdrawalTaxRate: 0.20,
-        earlyWithdrawlPenalty: 0.10,
+        withdrawalTaxRate: 0.2,
+        earlyWithdrawlPenalty: 0.1,
         earlyWithdrawlDate: null,
         interestPayAccount: null,
         usesRMD: false,
@@ -209,10 +209,7 @@ describe('todayBalance', () => {
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
     // Mock consolidated activity
-    account.consolidatedActivity = [
-      { date: yesterday, balance: 100 } as any,
-      { date: tomorrow, balance: 200 } as any,
-    ];
+    account.consolidatedActivity = [{ date: yesterday, balance: 100 } as any, { date: tomorrow, balance: 200 } as any];
 
     const balance = todayBalance(account);
 
@@ -225,10 +222,7 @@ describe('todayBalance', () => {
     const twoDaysAgo = new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000);
     const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
 
-    account.consolidatedActivity = [
-      { date: twoDaysAgo, balance: 50 } as any,
-      { date: yesterday, balance: 75 } as any,
-    ];
+    account.consolidatedActivity = [{ date: twoDaysAgo, balance: 50 } as any, { date: yesterday, balance: 75 } as any];
 
     const balance = todayBalance(account);
 

@@ -230,9 +230,7 @@ describe('Account API', () => {
     });
 
     it('should handle removing last account', () => {
-      const mockAccounts = [
-        { id: 'account-1', name: 'Only Account' },
-      ];
+      const mockAccounts = [{ id: 'account-1', name: 'Only Account' }];
 
       const mockData = {
         accountsAndTransfers: {

@@ -43,7 +43,7 @@ vi.mock('../../data/account/account', () => ({
 }));
 
 vi.mock('../../utils/date/date', () => ({
-  parseDate: vi.fn((date) => date ? new Date(date) : null),
+  parseDate: vi.fn((date) => (date ? new Date(date) : null)),
 }));
 
 import { saveData } from '../../utils/io/accountsAndTransfers';
@@ -93,7 +93,7 @@ describe('Accounts API', () => {
 
       const mockAccountsAndTransfers = {
         accounts: [],
-        transfers: { bills: [], activity: [] }
+        transfers: { bills: [], activity: [] },
       };
 
       vi.mocked(getData).mockReturnValue({

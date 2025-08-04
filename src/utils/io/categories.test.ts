@@ -13,10 +13,10 @@ describe('Categories IO Functions', () => {
   describe('loadCategories', () => {
     it('should load categories from categories.json', () => {
       const mockCategories = {
-        'Housing': ['Rent', 'Utilities', 'Insurance'],
-        'Food': ['Groceries', 'Dining', 'Takeout'],
-        'Transportation': ['Gas', 'Parking', 'Public Transit'],
-        'Entertainment': ['Movies', 'Games', 'Concerts'],
+        Housing: ['Rent', 'Utilities', 'Insurance'],
+        Food: ['Groceries', 'Dining', 'Takeout'],
+        Transportation: ['Gas', 'Parking', 'Public Transit'],
+        Entertainment: ['Movies', 'Games', 'Concerts'],
       };
 
       vi.mocked(load).mockReturnValue(mockCategories);
@@ -40,8 +40,8 @@ describe('Categories IO Functions', () => {
 
     it('should handle categories with single items', () => {
       const mockCategories = {
-        'Miscellaneous': ['Other'],
-        'Gifts': ['Birthday'],
+        Miscellaneous: ['Other'],
+        Gifts: ['Birthday'],
       };
 
       vi.mocked(load).mockReturnValue(mockCategories);
@@ -54,7 +54,7 @@ describe('Categories IO Functions', () => {
 
     it('should handle categories with many items', () => {
       const mockCategories = {
-        'Shopping': [
+        Shopping: [
           'Clothing',
           'Electronics',
           'Books',
@@ -107,9 +107,9 @@ describe('Categories IO Functions', () => {
   describe('saveCategories', () => {
     it('should save categories to categories.json', () => {
       const mockCategories = {
-        'Housing': ['Rent', 'Utilities', 'Insurance'],
-        'Food': ['Groceries', 'Dining', 'Takeout'],
-        'Transportation': ['Gas', 'Parking', 'Public Transit'],
+        Housing: ['Rent', 'Utilities', 'Insurance'],
+        Food: ['Groceries', 'Dining', 'Takeout'],
+        Transportation: ['Gas', 'Parking', 'Public Transit'],
       };
 
       saveCategories(mockCategories);
@@ -127,8 +127,8 @@ describe('Categories IO Functions', () => {
 
     it('should save categories with single items', () => {
       const mockCategories = {
-        'Travel': ['Flight'],
-        'Education': ['Books'],
+        Travel: ['Flight'],
+        Education: ['Books'],
       };
 
       saveCategories(mockCategories);
@@ -138,7 +138,7 @@ describe('Categories IO Functions', () => {
 
     it('should save categories with many items', () => {
       const mockCategories = {
-        'Business': [
+        Business: [
           'Office Rent',
           'Equipment',
           'Software',
@@ -208,12 +208,12 @@ describe('Categories IO Functions', () => {
   describe('File Operations Integration', () => {
     it('should handle load and save operations together', () => {
       const initialCategories = {
-        'Initial': ['Item 1', 'Item 2'],
+        Initial: ['Item 1', 'Item 2'],
       };
 
       const updatedCategories = {
-        'Initial': ['Item 1', 'Item 2'],
-        'New': ['Item 3', 'Item 4'],
+        Initial: ['Item 1', 'Item 2'],
+        New: ['Item 3', 'Item 4'],
       };
 
       // Mock load operation
@@ -243,7 +243,7 @@ describe('Categories IO Functions', () => {
         throw mockError;
       });
 
-      const categories = { 'Test': ['Item'] };
+      const categories = { Test: ['Item'] };
 
       expect(() => saveCategories(categories)).toThrow('Permission denied');
     });

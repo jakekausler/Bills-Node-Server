@@ -1,6 +1,6 @@
 /**
  * Segment processing system for optimized financial calculations
- * 
+ *
  * This module handles the processing of calculation segments, enabling
  * caching of intermediate results and efficient recalculation when
  * only specific time periods change.
@@ -32,9 +32,7 @@ export class SegmentProcessor {
   /**
    * Processes all segments in order
    */
-  async processAllSegments(
-    processor: (segment: CalculationSegment) => Promise<any>
-  ): Promise<Map<string, any>> {
+  async processAllSegments(processor: (segment: CalculationSegment) => Promise<any>): Promise<Map<string, any>> {
     const results = new Map<string, any>();
 
     for (const segment of this.segments) {
@@ -50,7 +48,7 @@ export class SegmentProcessor {
    */
   async processSegment(
     segment: CalculationSegment,
-    processor: (segment: CalculationSegment) => Promise<any>
+    processor: (segment: CalculationSegment) => Promise<any>,
   ): Promise<any> {
     // Check if segment result is cached
     const cachedResult = await this.getCachedSegmentResult(segment);
@@ -90,7 +88,7 @@ export class SegmentProcessor {
 
     await this.cache.set(cacheKey, result, {
       size,
-      forceDisk: size > 1024 * 1024 // Force disk for results > 1MB
+      forceDisk: size > 1024 * 1024, // Force disk for results > 1MB
     });
 
     segment.cached = true;
@@ -100,8 +98,8 @@ export class SegmentProcessor {
    * Invalidates cache for segments that depend on changed data
    */
   async invalidateSegments(changedAccountIds: Set<string>): Promise<void> {
-    const segmentsToInvalidate = this.segments.filter(segment =>
-      this.segmentAffectedByChanges(segment, changedAccountIds)
+    const segmentsToInvalidate = this.segments.filter((segment) =>
+      this.segmentAffectedByChanges(segment, changedAccountIds),
     );
 
     for (const segment of segmentsToInvalidate) {
@@ -123,18 +121,14 @@ export class SegmentProcessor {
    * Gets segments that need recalculation based on date range
    */
   getSegmentsInRange(startDate: Date, endDate: Date): CalculationSegment[] {
-    return this.segments.filter(segment =>
-      this.segmentOverlapsRange(segment, startDate, endDate)
-    );
+    return this.segments.filter((segment) => this.segmentOverlapsRange(segment, startDate, endDate));
   }
 
   /**
    * Gets segments that depend on specific accounts
    */
   getSegmentsDependingOn(accountIds: Set<string>): CalculationSegment[] {
-    return this.segments.filter(segment =>
-      this.segmentDependsOnAccounts(segment, accountIds)
-    );
+    return this.segments.filter((segment) => this.segmentDependsOnAccounts(segment, accountIds));
   }
 
   /**
@@ -143,9 +137,7 @@ export class SegmentProcessor {
   getOptimizedProcessingOrder(): CalculationSegment[] {
     // For now, process in chronological order
     // TODO: Implement dependency-based ordering
-    return [...this.segments].sort((a, b) =>
-      a.startDate.getTime() - b.startDate.getTime()
-    );
+    return [...this.segments].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
   }
 
   /**
@@ -181,16 +173,9 @@ export class SegmentProcessor {
   /**
    * Creates a new segment from a date range
    */
-  createSegment(
-    startDate: Date,
-    endDate: Date,
-    events: any[],
-    id?: string
-  ): CalculationSegment {
+  createSegment(startDate: Date, endDate: Date, events: any[], id?: string): CalculationSegment {
     const segmentId = id || `segment_${startDate.getTime()}_${endDate.getTime()}`;
-    const affectedAccounts = new Set(
-      events.map(event => event.accountId).filter(id => id)
-    );
+    const affectedAccounts = new Set(events.map((event) => event.accountId).filter((id) => id));
 
     return {
       id: segmentId,
@@ -200,7 +185,7 @@ export class SegmentProcessor {
       affectedAccounts,
       dependencies: this.calculateSegmentDependencies(events),
       cached: false,
-      cacheKey: this.generateCacheKeyFromEvents(events)
+      cacheKey: this.generateCacheKeyFromEvents(events),
     };
   }
 
@@ -212,22 +197,12 @@ export class SegmentProcessor {
       return [segment];
     }
 
-    const beforeEvents = segment.events.filter(event => event.date < splitDate);
-    const afterEvents = segment.events.filter(event => event.date >= splitDate);
+    const beforeEvents = segment.events.filter((event) => event.date < splitDate);
+    const afterEvents = segment.events.filter((event) => event.date >= splitDate);
 
-    const beforeSegment = this.createSegment(
-      segment.startDate,
-      splitDate,
-      beforeEvents,
-      `${segment.id}_before`
-    );
+    const beforeSegment = this.createSegment(segment.startDate, splitDate, beforeEvents, `${segment.id}_before`);
 
-    const afterSegment = this.createSegment(
-      splitDate,
-      segment.endDate,
-      afterEvents,
-      `${segment.id}_after`
-    );
+    const afterSegment = this.createSegment(splitDate, segment.endDate, afterEvents, `${segment.id}_after`);
 
     return [beforeSegment, afterSegment];
   }
@@ -245,9 +220,7 @@ export class SegmentProcessor {
     }
 
     // Sort segments by start date
-    const sortedSegments = [...segments].sort((a, b) =>
-      a.startDate.getTime() - b.startDate.getTime()
-    );
+    const sortedSegments = [...segments].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
     // Validate that segments are adjacent
     for (let i = 1; i < sortedSegments.length; i++) {
@@ -260,7 +233,7 @@ export class SegmentProcessor {
     }
 
     // Merge events and metadata
-    const allEvents = sortedSegments.flatMap(segment => segment.events);
+    const allEvents = sortedSegments.flatMap((segment) => segment.events);
     const allAffectedAccounts = new Set<string>();
     const allDependencies = new Set<string>();
 
@@ -274,14 +247,14 @@ export class SegmentProcessor {
     }
 
     return {
-      id: `merged_${sortedSegments.map(s => s.id).join('_')}`,
+      id: `merged_${sortedSegments.map((s) => s.id).join('_')}`,
       startDate: sortedSegments[0].startDate,
       endDate: sortedSegments[sortedSegments.length - 1].endDate,
       events: allEvents.sort((a, b) => a.date.getTime() - b.date.getTime()),
       affectedAccounts: allAffectedAccounts,
       dependencies: Array.from(allDependencies),
       cached: false,
-      cacheKey: this.generateCacheKeyFromEvents(allEvents)
+      cacheKey: this.generateCacheKeyFromEvents(allEvents),
     };
   }
 
@@ -295,18 +268,16 @@ export class SegmentProcessor {
     averageDuration: number;
     cacheHitRate: number;
   } {
-    const cachedCount = this.segments.filter(s => s.cached).length;
+    const cachedCount = this.segments.filter((s) => s.cached).length;
     const totalEvents = this.segments.reduce((sum, s) => sum + s.events.length, 0);
-    const totalDuration = this.segments.reduce((sum, s) =>
-      sum + (s.endDate.getTime() - s.startDate.getTime()), 0
-    );
+    const totalDuration = this.segments.reduce((sum, s) => sum + (s.endDate.getTime() - s.startDate.getTime()), 0);
 
     return {
       totalSegments: this.segments.length,
       cachedSegments: cachedCount,
       averageEventsPerSegment: this.segments.length > 0 ? totalEvents / this.segments.length : 0,
       averageDuration: this.segments.length > 0 ? totalDuration / this.segments.length : 0,
-      cacheHitRate: this.segments.length > 0 ? cachedCount / this.segments.length : 0
+      cacheHitRate: this.segments.length > 0 ? cachedCount / this.segments.length : 0,
     };
   }
 
@@ -341,14 +312,11 @@ export class SegmentProcessor {
   }
 
   private generateCacheKeyFromEvents(events: any[]): string {
-    const eventSummary = events.map(event =>
-      `${event.type}_${event.date.getTime()}_${event.accountId || 'global'}`
-    ).join('|');
+    const eventSummary = events
+      .map((event) => `${event.type}_${event.date.getTime()}_${event.accountId || 'global'}`)
+      .join('|');
 
-    return crypto.createHash('sha256')
-      .update(eventSummary)
-      .digest('hex')
-      .substring(0, 16);
+    return crypto.createHash('sha256').update(eventSummary).digest('hex').substring(0, 16);
   }
 
   private calculateSegmentDependencies(events: any[]): string[] {
@@ -426,7 +394,7 @@ export class SegmentProcessor {
    * Gets a specific segment by ID
    */
   getSegment(segmentId: string): CalculationSegment | undefined {
-    return this.segments.find(segment => segment.id === segmentId);
+    return this.segments.find((segment) => segment.id === segmentId);
   }
 
   /**
@@ -441,7 +409,7 @@ export class SegmentProcessor {
    * Removes a segment
    */
   async removeSegment(segmentId: string): Promise<boolean> {
-    const index = this.segments.findIndex(segment => segment.id === segmentId);
+    const index = this.segments.findIndex((segment) => segment.id === segmentId);
     if (index === -1) return false;
 
     const segment = this.segments[index];
@@ -455,7 +423,7 @@ export class SegmentProcessor {
    * Updates a segment
    */
   async updateSegment(segmentId: string, updates: Partial<CalculationSegment>): Promise<boolean> {
-    const segment = this.segments.find(s => s.id === segmentId);
+    const segment = this.segments.find((s) => s.id === segmentId);
     if (!segment) return false;
 
     // Invalidate old cache

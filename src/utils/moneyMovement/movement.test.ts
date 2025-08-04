@@ -7,7 +7,7 @@ describe('Money Movement Utility', () => {
     it('should return empty movement for empty accounts', () => {
       const emptyData: AccountsAndTransfers = {
         accounts: [],
-        transfers: { activity: [], bills: [] }
+        transfers: { activity: [], bills: [] },
       };
       const startDate = new Date('2023-01-01T00:00:00Z');
       const endDate = new Date('2023-12-31T23:59:59Z');
@@ -15,7 +15,7 @@ describe('Money Movement Utility', () => {
       const result = getMoneyMovement(emptyData, startDate, endDate);
 
       expect(result).toEqual({
-        2023: {}
+        2023: {},
       });
     });
 
@@ -26,17 +26,15 @@ describe('Money Movement Utility', () => {
             name: 'Checking',
             consolidatedActivity: [
               { date: new Date('2023-06-15T12:00:00Z'), amount: 1000 },
-              { date: new Date('2024-03-10T12:00:00Z'), amount: -500 }
-            ]
+              { date: new Date('2024-03-10T12:00:00Z'), amount: -500 },
+            ],
           } as any,
           {
             name: 'Savings',
-            consolidatedActivity: [
-              { date: new Date('2023-12-25T12:00:00Z'), amount: 2000 }
-            ]
-          } as any
+            consolidatedActivity: [{ date: new Date('2023-12-25T12:00:00Z'), amount: 2000 }],
+          } as any,
         ],
-        transfers: { activity: [], bills: [] }
+        transfers: { activity: [], bills: [] },
       };
       const startDate = new Date('2023-01-01T00:00:00Z');
       const endDate = new Date('2024-12-31T23:59:59Z');
@@ -45,13 +43,13 @@ describe('Money Movement Utility', () => {
 
       expect(result).toEqual({
         2023: {
-          'Checking': 1000,
-          'Savings': 2000
+          Checking: 1000,
+          Savings: 2000,
         },
         2024: {
-          'Checking': -500,
-          'Savings': 0
-        }
+          Checking: -500,
+          Savings: 0,
+        },
       });
     });
 
@@ -62,11 +60,11 @@ describe('Money Movement Utility', () => {
             name: 'Account1',
             consolidatedActivity: [
               { date: new Date('2023-01-15T12:00:00Z'), amount: 100 },
-              { date: new Date('2023-06-15T12:00:00Z'), amount: 200 }
-            ]
-          } as any
+              { date: new Date('2023-06-15T12:00:00Z'), amount: 200 },
+            ],
+          } as any,
         ],
-        transfers: { activity: [], bills: [] }
+        transfers: { activity: [], bills: [] },
       };
       const startDate = new Date('2023-01-01T00:00:00Z');
       const endDate = new Date('2023-12-31T23:59:59Z');
@@ -75,8 +73,8 @@ describe('Money Movement Utility', () => {
 
       expect(result).toEqual({
         2023: {
-          'Account1': 300
-        }
+          Account1: 300,
+        },
       });
     });
 
@@ -85,14 +83,14 @@ describe('Money Movement Utility', () => {
         accounts: [
           {
             name: 'Account1',
-            consolidatedActivity: []
+            consolidatedActivity: [],
           } as any,
           {
             name: 'Account2',
-            consolidatedActivity: []
-          } as any
+            consolidatedActivity: [],
+          } as any,
         ],
-        transfers: { activity: [], bills: [] }
+        transfers: { activity: [], bills: [] },
       };
       const startDate = new Date('2023-01-01T00:00:00Z');
       const endDate = new Date('2023-12-31T23:59:59Z');
@@ -101,9 +99,9 @@ describe('Money Movement Utility', () => {
 
       expect(result).toEqual({
         2023: {
-          'Account1': 0,
-          'Account2': 0
-        }
+          Account1: 0,
+          Account2: 0,
+        },
       });
     });
   });
@@ -112,13 +110,13 @@ describe('Money Movement Utility', () => {
     it('should convert movement data to chart format', () => {
       const movement: Movement = {
         2023: {
-          'Checking': 1000,
-          'Savings': 2000
+          Checking: 1000,
+          Savings: 2000,
         },
         2024: {
-          'Checking': -500,
-          'Savings': 1500
-        }
+          Checking: -500,
+          Savings: 1500,
+        },
       };
 
       const result = getMoneyMovementChartData(movement);
@@ -128,21 +126,21 @@ describe('Money Movement Utility', () => {
         datasets: [
           {
             label: 'Checking',
-            data: [1000, -500]
+            data: [1000, -500],
           },
           {
             label: 'Savings',
-            data: [2000, 1500]
-          }
-        ]
+            data: [2000, 1500],
+          },
+        ],
       });
     });
 
     it('should handle single year data', () => {
       const movement: Movement = {
         2023: {
-          'Account1': 1000
-        }
+          Account1: 1000,
+        },
       };
 
       const result = getMoneyMovementChartData(movement);
@@ -152,22 +150,22 @@ describe('Money Movement Utility', () => {
         datasets: [
           {
             label: 'Account1',
-            data: [1000]
-          }
-        ]
+            data: [1000],
+          },
+        ],
       });
     });
 
     it('should handle empty movement data', () => {
       const movement: Movement = {
-        2023: {}
+        2023: {},
       };
 
       const result = getMoneyMovementChartData(movement);
 
       expect(result).toEqual({
         labels: ['2023'],
-        datasets: []
+        datasets: [],
       });
     });
   });

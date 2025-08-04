@@ -21,7 +21,10 @@ describe('Cache Utility', () => {
   describe('resetCache', () => {
     it('should reset all cache values to initial state', () => {
       // Set some values
-      updateCache(CACHE_ACCOUNTS_AND_TRANSFERS, 'test-key', { accounts: [], transfers: { activity: [], bills: [] } } as any);
+      updateCache(CACHE_ACCOUNTS_AND_TRANSFERS, 'test-key', {
+        accounts: [],
+        transfers: { activity: [], bills: [] },
+      } as any);
       setMinDate(new Date('2024-01-01'));
       setMaxDate(new Date('2024-12-31'));
       setRMDTable({ 70: 27.4, 71: 26.5 });
@@ -110,17 +113,17 @@ describe('Cache Utility', () => {
   describe('setMinDate', () => {
     it('should set MIN_DATE', () => {
       const testDate = new Date('2024-01-01');
-      
+
       setMinDate(testDate);
-      
+
       expect(MIN_DATE).toBe(testDate);
     });
 
     it('should handle date objects correctly', () => {
       const testDate = new Date('2020-12-31');
-      
+
       setMinDate(testDate);
-      
+
       expect(MIN_DATE).toBeInstanceOf(Date);
       expect(MIN_DATE).toEqual(testDate);
     });
@@ -129,17 +132,17 @@ describe('Cache Utility', () => {
   describe('setMaxDate', () => {
     it('should set MAX_DATE', () => {
       const testDate = new Date('2024-12-31');
-      
+
       setMaxDate(testDate);
-      
+
       expect(MAX_DATE).toBe(testDate);
     });
 
     it('should handle date objects correctly', () => {
       const testDate = new Date('2030-01-01');
-      
+
       setMaxDate(testDate);
-      
+
       expect(MAX_DATE).toBeInstanceOf(Date);
       expect(MAX_DATE).toEqual(testDate);
     });
@@ -152,9 +155,9 @@ describe('Cache Utility', () => {
         71: 26.5,
         72: 25.6,
       };
-      
+
       setRMDTable(testTable);
-      
+
       expect(RMD_TABLE).toEqual(testTable);
     });
 
@@ -167,9 +170,9 @@ describe('Cache Utility', () => {
         74: 23.8,
         75: 22.9,
       };
-      
+
       setRMDTable(testTable);
-      
+
       expect(RMD_TABLE).toEqual(testTable);
       expect(Object.keys(RMD_TABLE)).toHaveLength(6);
     });
@@ -177,10 +180,10 @@ describe('Cache Utility', () => {
     it('should overwrite existing RMD table', () => {
       const table1 = { 70: 27.4, 71: 26.5 };
       const table2 = { 72: 25.6, 73: 24.7 };
-      
+
       setRMDTable(table1);
       setRMDTable(table2);
-      
+
       expect(RMD_TABLE).toEqual(table2);
     });
   });
@@ -189,9 +192,7 @@ describe('Cache Utility', () => {
     it('should work with accounts and transfers cache', () => {
       const key = getCacheKey(new Date('2024-01-01'), new Date('2024-12-31'), 'Default');
       const data = {
-        accounts: [
-          { id: '1', name: 'Checking', balance: 1000 },
-        ],
+        accounts: [{ id: '1', name: 'Checking', balance: 1000 }],
         transfers: {
           activity: [],
           bills: [],

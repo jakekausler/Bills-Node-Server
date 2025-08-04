@@ -18,22 +18,22 @@ const testAccount = new Account({
   minimumBalance: 1000, // This account needs push/pull management
   activity: [],
   bills: [],
-  interests: []
+  interests: [],
 });
 
 console.log('Test account properties:', {
   id: testAccount.id,
-  minimumBalance: testAccount.minimumBalance,  
+  minimumBalance: testAccount.minimumBalance,
   performsPulls: testAccount.performsPulls,
-  performsPushes: testAccount.performsPushes
+  performsPushes: testAccount.performsPushes,
 });
 
 const accountsAndTransfers: AccountsAndTransfers = {
   accounts: [testAccount],
   transfers: {
     activity: [],
-    bills: []
-  }
+    bills: [],
+  },
 };
 
 const startDate = new Date('2025-01-01');
@@ -42,12 +42,7 @@ const endDate = new Date('2025-03-31');
 console.log('Testing MonthEndCheckEvent creation...');
 
 // Create timeline with month-end check events
-const timeline = Timeline.fromAccountsAndTransfers(
-  accountsAndTransfers,
-  startDate,
-  endDate,
-  'default'
-);
+const timeline = Timeline.fromAccountsAndTransfers(accountsAndTransfers, startDate, endDate, 'default');
 
 // Check that month-end events were created
 const monthEndEvents = timeline.getEventsByType(EventType.monthEndCheck);

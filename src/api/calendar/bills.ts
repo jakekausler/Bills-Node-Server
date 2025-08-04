@@ -7,16 +7,16 @@ import { formatDate } from '../../utils/date/date';
 
 /**
  * Retrieves calendar bills for display in calendar view.
- * 
+ *
  * Filters bills from consolidated activity based on:
  * - Date range (startDate to endDate)
  * - Account selection (selectedAccounts)
  * - Account visibility (hidden accounts excluded if no selection)
  * - Transfer handling (only shows negative transfers to avoid double-counting)
- * 
+ *
  * @param request - Express request object containing query parameters and session data
  * @returns Array of CalendarBill objects with account, date, and bill information
- * 
+ *
  * @example
  * ```typescript
  * // Get bills for calendar display

@@ -76,6 +76,7 @@ AccountsAndTransfers
 ### Environment Variables
 
 Required environment variables (set in `.env` file):
+
 - `PORT` - Server port (defaults to 5002)
 - `JWT_SECRET` - JWT signing secret
 - `MYSQL_HOST`, `MYSQL_USERNAME`, `MYSQL_PASSWORD`, `MYSQL_DATABASE` - Database connection
@@ -83,6 +84,7 @@ Required environment variables (set in `.env` file):
 ### Data File Structure
 
 The system uses JSON files for data persistence in `src/utils/io/data/`:
+
 - `data.json` - Main accounts and transfers data
 - `simulations.json` - Monte Carlo simulation configurations
 - `variables.csv` - Simulation variables
@@ -92,6 +94,7 @@ The system uses JSON files for data persistence in `src/utils/io/data/`:
 ### Multiple Calculation Engine Versions
 
 The codebase has three versions of the calculation engine:
+
 - **calculate/**: Original implementation (legacy, still in use)
 - **calculate-v2/**: Current implementation with improved performance and caching
 - **calculate-v3/**: Development version with further optimizations (work in progress)

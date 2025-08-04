@@ -16,27 +16,27 @@ describe('RetroactiveApplicator', () => {
 
   beforeEach(() => {
     applicator = new RetroactiveApplicator();
-    
+
     // Create test accounts
     sourceAccount = new Account({
       id: 'checking',
       name: 'Checking Account',
       todayBalance: 10000,
-      pullPriority: 1
+      pullPriority: 1,
     } as any);
-    
+
     targetAccount = new Account({
       id: 'savings',
       name: 'Savings Account',
       todayBalance: 500,
       performsPulls: true,
       minimumBalance: 1000,
-      pullPriority: 3
+      pullPriority: 3,
     } as any);
 
     // Create cache manager
     cache = new CacheManager('test');
-    
+
     // Create balance tracker and timeline
     balanceTracker = new BalanceTracker([sourceAccount, targetAccount], cache);
     timeline = new Timeline();
@@ -50,15 +50,15 @@ describe('RetroactiveApplicator', () => {
         toAccount: targetAccount,
         amount: 500,
         insertDate: new Date('2025-01-01'),
-        reason: 'Maintain minimum balance'
+        reason: 'Maintain minimum balance',
       };
 
       const activities = applicator.createPushPullActivities(transfer);
 
       expect(activities).toHaveLength(2);
-      
+
       // Check withdrawal activity
-      const withdrawal = activities.find(a => a.amount < 0);
+      const withdrawal = activities.find((a) => a.amount < 0);
       expect(withdrawal).toBeDefined();
       expect(withdrawal!.amount).toBe(-500);
       expect(withdrawal!.date).toEqual(transfer.insertDate);
@@ -69,7 +69,7 @@ describe('RetroactiveApplicator', () => {
       expect(withdrawal!.isTransfer).toBe(true);
 
       // Check deposit activity
-      const deposit = activities.find(a => a.amount > 0);
+      const deposit = activities.find((a) => a.amount > 0);
       expect(deposit).toBeDefined();
       expect(deposit!.amount).toBe(500);
       expect(deposit!.date).toEqual(transfer.insertDate);
@@ -87,17 +87,17 @@ describe('RetroactiveApplicator', () => {
         toAccount: sourceAccount,
         amount: 2000,
         insertDate: new Date('2025-01-01'),
-        reason: 'Excess balance push'
+        reason: 'Excess balance push',
       };
 
       const activities = applicator.createPushPullActivities(transfer);
 
       expect(activities).toHaveLength(2);
-      
-      const withdrawal = activities.find(a => a.amount < 0);
+
+      const withdrawal = activities.find((a) => a.amount < 0);
       expect(withdrawal!.name).toContain('PUSH');
-      
-      const deposit = activities.find(a => a.amount > 0);
+
+      const deposit = activities.find((a) => a.amount > 0);
       expect(deposit!.name).toContain('PUSH');
     });
   });
@@ -110,13 +110,13 @@ describe('RetroactiveApplicator', () => {
         toAccount: targetAccount,
         amount: 500,
         insertDate: new Date('2025-01-01'),
-        reason: 'Maintain minimum balance'
+        reason: 'Maintain minimum balance',
       };
 
       const appliedTransfers = applicator.applyTransfers([transfer], timeline, balanceTracker);
 
       expect(appliedTransfers).toHaveLength(1);
-      
+
       const applied = appliedTransfers[0];
       expect(applied.originalTransfer).toBe(transfer);
       expect(applied.createdActivities).toHaveLength(2);
@@ -132,7 +132,7 @@ describe('RetroactiveApplicator', () => {
           toAccount: targetAccount,
           amount: 500,
           insertDate: new Date('2025-01-01'),
-          reason: 'First transfer'
+          reason: 'First transfer',
         },
         {
           type: 'push',
@@ -140,8 +140,8 @@ describe('RetroactiveApplicator', () => {
           toAccount: sourceAccount,
           amount: 200,
           insertDate: new Date('2025-01-15'),
-          reason: 'Second transfer'
-        }
+          reason: 'Second transfer',
+        },
       ];
 
       const appliedTransfers = applicator.applyTransfers(transfers, timeline, balanceTracker);
@@ -165,22 +165,22 @@ describe('RetroactiveApplicator', () => {
         toAccount: targetAccount,
         amount: 500,
         insertDate: new Date('2025-01-01'),
-        reason: 'Test transfer'
+        reason: 'Test transfer',
       };
 
       const initialEventCount = timeline.getEvents().length;
       applicator.applyTransfers([transfer], timeline, balanceTracker);
-      
+
       const finalEventCount = timeline.getEvents().length;
       expect(finalEventCount).toBe(initialEventCount + 2); // Two activities added
 
       const newEvents = timeline.getEventsForDate(transfer.insertDate);
       expect(newEvents.length).toBeGreaterThanOrEqual(2);
-      
+
       // Check that events have correct properties
-      const activityEvents = newEvents.filter(e => e.type === 'activity');
+      const activityEvents = newEvents.filter((e) => e.type === 'activity');
       expect(activityEvents).toHaveLength(2);
-      
+
       for (const event of activityEvents) {
         expect(event.date).toEqual(transfer.insertDate);
         expect(event.cacheable).toBe(false);
@@ -193,7 +193,7 @@ describe('RetroactiveApplicator', () => {
   describe('integration with BalanceTracker', () => {
     it('should update balances correctly', async () => {
       await balanceTracker.initializeBalances();
-      
+
       const initialSourceBalance = balanceTracker.getAccountBalance(sourceAccount.id);
       const initialTargetBalance = balanceTracker.getAccountBalance(targetAccount.id);
 
@@ -203,7 +203,7 @@ describe('RetroactiveApplicator', () => {
         toAccount: targetAccount,
         amount: 500,
         insertDate: new Date('2025-01-01'),
-        reason: 'Test transfer'
+        reason: 'Test transfer',
       };
 
       applicator.applyTransfers([transfer], timeline, balanceTracker);

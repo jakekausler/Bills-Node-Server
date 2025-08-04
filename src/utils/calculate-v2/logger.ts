@@ -173,4 +173,3 @@ export function err(...args: any[]): void {
 export function logger(level: LogLevel, ...args: any[]): void {
   logMessage(level, ...args);
 }
-

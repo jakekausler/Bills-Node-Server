@@ -3,16 +3,16 @@ import { MAX_DATE, setMaxDate } from './cache';
 
 /**
  * Finds the maximum date across all financial data (activities, bills, interests, and transfers)
- * 
+ *
  * This function scans through all accounts and transfers to find the latest date from:
  * - Account activities
  * - Account bills (start and end dates)
  * - Account interests (applicable dates)
  * - Transfer activities
  * - Transfer bills (start and end dates)
- * 
+ *
  * The result is cached for performance, so subsequent calls return the cached value.
- * 
+ *
  * @returns The maximum date found across all financial data, or current date if no data exists
  */
 export async function maxDate() {

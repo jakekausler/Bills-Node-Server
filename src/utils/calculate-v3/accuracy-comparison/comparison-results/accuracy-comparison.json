@@ -560,9 +560,7 @@
       "percentageDiff": 100,
       "significant": true
     },
-    "errors": [
-      "Original API error: terminated"
-    ],
+    "errors": ["Original API error: terminated"],
     "success": false
   },
   {

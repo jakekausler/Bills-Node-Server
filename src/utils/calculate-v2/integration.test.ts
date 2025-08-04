@@ -19,10 +19,10 @@ vi.mock('./engine', () => ({
         eventCount: 10,
         segmentCount: 5,
         cacheHits: 3,
-        cacheMisses: 2
-      }
-    })
-  }))
+        cacheMisses: 2,
+      },
+    }),
+  })),
 }));
 
 // Mock the legacy calculation
@@ -38,11 +38,11 @@ vi.mock('../calculate/calculate', () => ({
         name: 'Legacy Calculation',
         amount: 100,
         date: new Date(),
-        category: 'Test'
+        category: 'Test',
       });
     });
     return Promise.resolve();
-  })
+  }),
 }));
 
 describe('CalculationAPIWrapper', () => {
@@ -60,9 +60,9 @@ describe('CalculationAPIWrapper', () => {
           activity: [],
           bills: [],
           interests: [],
-          consolidatedActivity: []
-        }
-      ]
+          consolidatedActivity: [],
+        },
+      ],
     });
     vi.clearAllMocks();
   });
@@ -71,11 +71,7 @@ describe('CalculationAPIWrapper', () => {
     it('should use legacy calculation when new system is disabled', async () => {
       wrapper.enableNewCalculationSystem(false);
 
-      await wrapper.calculateAllActivity(
-        mockAccountsAndTransfers,
-        new Date('2024-01-01'),
-        new Date('2024-12-31')
-      );
+      await wrapper.calculateAllActivity(mockAccountsAndTransfers, new Date('2024-01-01'), new Date('2024-12-31'));
 
       // Should have called legacy calculation
       expect(mockAccountsAndTransfers.accounts[0].consolidatedActivity).toHaveLength(1);
@@ -85,11 +81,7 @@ describe('CalculationAPIWrapper', () => {
     it('should use new calculation when enabled', async () => {
       wrapper.enableNewCalculationSystem(true);
 
-      await wrapper.calculateAllActivity(
-        mockAccountsAndTransfers,
-        new Date('2024-01-01'),
-        new Date('2024-12-31')
-      );
+      await wrapper.calculateAllActivity(mockAccountsAndTransfers, new Date('2024-01-01'), new Date('2024-12-31'));
 
       // New calculation system should be used (mocked to return success)
       expect(mockAccountsAndTransfers.accounts[0].consolidatedActivity).toHaveLength(0); // New system doesn't modify in place
@@ -100,11 +92,7 @@ describe('CalculationAPIWrapper', () => {
     it('should respect rollout percentage for gradual adoption', async () => {
       wrapper.setRolloutPercentage(0); // 0% rollout
 
-      await wrapper.calculateAllActivity(
-        mockAccountsAndTransfers,
-        new Date('2024-01-01'),
-        new Date('2024-12-31')
-      );
+      await wrapper.calculateAllActivity(mockAccountsAndTransfers, new Date('2024-01-01'), new Date('2024-12-31'));
 
       // Should use legacy system
       expect(mockAccountsAndTransfers.accounts[0].consolidatedActivity).toHaveLength(1);
@@ -126,14 +114,10 @@ describe('CalculationAPIWrapper', () => {
       wrapper.enablePerformanceComparison(true);
       wrapper.enableNewCalculationSystem(true);
 
-      await wrapper.calculateAllActivity(
-        mockAccountsAndTransfers,
-        new Date('2024-01-01'),
-        new Date('2024-12-31')
-      );
+      await wrapper.calculateAllActivity(mockAccountsAndTransfers, new Date('2024-01-01'), new Date('2024-12-31'));
 
       const metrics = wrapper.getPerformanceMetrics();
-      
+
       expect(metrics.newSystemCalls).toBe(1);
       expect(metrics.averageNewSystemTime).toBeGreaterThan(0);
     });
@@ -143,22 +127,14 @@ describe('CalculationAPIWrapper', () => {
 
       // Test new system
       wrapper.enableNewCalculationSystem(true);
-      await wrapper.calculateAllActivity(
-        mockAccountsAndTransfers,
-        new Date('2024-01-01'),
-        new Date('2024-12-31')
-      );
+      await wrapper.calculateAllActivity(mockAccountsAndTransfers, new Date('2024-01-01'), new Date('2024-12-31'));
 
       // Test legacy system
       wrapper.enableNewCalculationSystem(false);
-      await wrapper.calculateAllActivity(
-        mockAccountsAndTransfers,
-        new Date('2024-01-01'),
-        new Date('2024-12-31')
-      );
+      await wrapper.calculateAllActivity(mockAccountsAndTransfers, new Date('2024-01-01'), new Date('2024-12-31'));
 
       const comparison = wrapper.getPerformanceComparison();
-      
+
       expect(comparison.newSystemAverage).toBeDefined();
       expect(comparison.legacySystemAverage).toBeDefined();
       expect(comparison.speedupFactor).toBeDefined();
@@ -169,21 +145,17 @@ describe('CalculationAPIWrapper', () => {
     it('should fallback to legacy system on new system errors', async () => {
       const mockEngine = await import('./engine');
       (mockEngine.CalculationEngine as any).mockImplementation(() => ({
-        calculate: vi.fn().mockRejectedValue(new Error('New system error'))
+        calculate: vi.fn().mockRejectedValue(new Error('New system error')),
       }));
 
       wrapper.enableNewCalculationSystem(true);
       wrapper.enableFallbackOnError(true);
 
-      await wrapper.calculateAllActivity(
-        mockAccountsAndTransfers,
-        new Date('2024-01-01'),
-        new Date('2024-12-31')
-      );
+      await wrapper.calculateAllActivity(mockAccountsAndTransfers, new Date('2024-01-01'), new Date('2024-12-31'));
 
       // Should fallback to legacy system
       expect(mockAccountsAndTransfers.accounts[0].consolidatedActivity).toHaveLength(1);
-      
+
       const errorMetrics = wrapper.getErrorMetrics();
       expect(errorMetrics.newSystemErrors).toBe(1);
       expect(errorMetrics.fallbackUsed).toBe(1);
@@ -192,18 +164,14 @@ describe('CalculationAPIWrapper', () => {
     it('should track error rates for monitoring', async () => {
       const mockEngine = await import('./engine');
       (mockEngine.CalculationEngine as any).mockImplementation(() => ({
-        calculate: vi.fn().mockRejectedValue(new Error('Test error'))
+        calculate: vi.fn().mockRejectedValue(new Error('Test error')),
       }));
 
       wrapper.enableNewCalculationSystem(true);
       wrapper.enableFallbackOnError(false); // Disable fallback to test error tracking
 
       try {
-        await wrapper.calculateAllActivity(
-          mockAccountsAndTransfers,
-          new Date('2024-01-01'),
-          new Date('2024-12-31')
-        );
+        await wrapper.calculateAllActivity(mockAccountsAndTransfers, new Date('2024-01-01'), new Date('2024-12-31'));
       } catch (error) {
         // Expected to throw
       }
@@ -217,19 +185,19 @@ describe('CalculationAPIWrapper', () => {
   describe('Data validation and migration', () => {
     it('should validate data compatibility between systems', async () => {
       const isCompatible = await wrapper.validateDataCompatibility(mockAccountsAndTransfers);
-      
+
       expect(typeof isCompatible).toBe('boolean');
     });
 
     it('should identify data transformation needs', async () => {
       const issues = await wrapper.identifyDataIssues(mockAccountsAndTransfers);
-      
+
       expect(Array.isArray(issues)).toBe(true);
     });
 
     it('should provide data migration utilities', async () => {
       const migrated = await wrapper.migrateDataForNewSystem(mockAccountsAndTransfers);
-      
+
       expect(migrated).toBeDefined();
       expect(migrated.accounts).toBeDefined();
     });
@@ -245,20 +213,16 @@ describe('CalculationAPIWrapper', () => {
           new Date('2024-12-31'),
           'TestSimulation',
           false, // monteCarlo
-          1,    // simulationNumber
-          100   // nSimulations
-        )
+          1, // simulationNumber
+          100, // nSimulations
+        ),
       ).resolves.not.toThrow();
     });
 
     it('should handle optional parameters correctly', async () => {
       // Test with minimal parameters
       await expect(
-        wrapper.calculateAllActivity(
-          mockAccountsAndTransfers,
-          new Date('2024-01-01'),
-          new Date('2024-12-31')
-        )
+        wrapper.calculateAllActivity(mockAccountsAndTransfers, new Date('2024-01-01'), new Date('2024-12-31')),
       ).resolves.not.toThrow();
     });
 
@@ -266,12 +230,8 @@ describe('CalculationAPIWrapper', () => {
       wrapper.enableNewCalculationSystem(false); // Use legacy for this test
 
       const originalCount = mockAccountsAndTransfers.accounts[0].consolidatedActivity.length;
-      
-      await wrapper.calculateAllActivity(
-        mockAccountsAndTransfers,
-        new Date('2024-01-01'),
-        new Date('2024-12-31')
-      );
+
+      await wrapper.calculateAllActivity(mockAccountsAndTransfers, new Date('2024-01-01'), new Date('2024-12-31'));
 
       expect(mockAccountsAndTransfers.accounts[0].consolidatedActivity.length).toBeGreaterThan(originalCount);
     });
@@ -286,9 +246,9 @@ describe('CalculationAPIWrapper', () => {
         new Date('2024-01-01'),
         new Date('2024-12-31'),
         'Default',
-        true,  // monteCarlo = true
-        5,     // simulationNumber
-        1000   // nSimulations
+        true, // monteCarlo = true
+        5, // simulationNumber
+        1000, // nSimulations
       );
 
       // Should execute without throwing

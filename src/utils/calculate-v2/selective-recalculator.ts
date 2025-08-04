@@ -24,7 +24,7 @@ export interface RecalculationResult {
 
 /**
  * SelectiveRecalculator efficiently recalculates only events affected by retroactive changes
- * 
+ *
  * This class implements the selective recalculation strategy outlined in the Push-Pull_Rework.md:
  * - Identifies events that depend on account balances
  * - Recalculates interest events with new balance history
@@ -32,31 +32,27 @@ export interface RecalculationResult {
  * - Propagates changes to subsequent months
  */
 export class SelectiveRecalculator {
-  
   /**
    * Identifies events that are affected by the applied retroactive transfers
    */
-  identifyAffectedEvents(
-    appliedTransfers: AppliedTransfer[],
-    timeline: Timeline
-  ): TimelineEvent[] {
+  identifyAffectedEvents(appliedTransfers: AppliedTransfer[], timeline: Timeline): TimelineEvent[] {
     debug('SelectiveRecalculator.identifyAffectedEvents', 'Identifying events affected by transfers', {
-      transferCount: appliedTransfers.length
+      transferCount: appliedTransfers.length,
     });
 
     const affectedEvents: TimelineEvent[] = [];
     const scope = this.calculateRecalculationScope(appliedTransfers);
-    
+
     log('SelectiveRecalculator.identifyAffectedEvents', 'Calculated recalculation scope', {
       affectedAccounts: Array.from(scope.affectedAccounts),
       startDate: scope.startDate.toISOString(),
       endDate: scope.endDate.toISOString(),
-      eventTypes: Array.from(scope.eventTypes)
+      eventTypes: Array.from(scope.eventTypes),
     });
 
     // Get all events from the timeline within the scope
     const allEvents = timeline.getEventsInRange(scope.startDate, scope.endDate);
-    
+
     for (const event of allEvents) {
       if (this.isEventAffected(event, scope)) {
         affectedEvents.push(event);
@@ -64,14 +60,14 @@ export class SelectiveRecalculator {
           eventId: event.id,
           eventType: event.type,
           accountId: event.accountId,
-          date: event.date.toISOString()
+          date: event.date.toISOString(),
         });
       }
     }
 
     log('SelectiveRecalculator.identifyAffectedEvents', 'Identified affected events', {
       totalEventsInRange: allEvents.length,
-      affectedEventCount: affectedEvents.length
+      affectedEventCount: affectedEvents.length,
     });
 
     return affectedEvents;
@@ -83,17 +79,17 @@ export class SelectiveRecalculator {
   recalculateEvents(
     events: TimelineEvent[],
     balanceTracker: BalanceTracker,
-    accountsAndTransfers: AccountsAndTransfers
+    accountsAndTransfers: AccountsAndTransfers,
   ): RecalculationResult {
     debug('SelectiveRecalculator.recalculateEvents', 'Starting recalculation of affected events', {
-      eventCount: events.length
+      eventCount: events.length,
     });
 
     const result: RecalculationResult = {
       success: true,
       recalculatedEvents: [],
       balanceChanges: new Map(),
-      affectedEventIds: new Set()
+      affectedEventIds: new Set(),
     };
 
     try {
@@ -102,11 +98,11 @@ export class SelectiveRecalculator {
 
       for (const event of sortedEvents) {
         const recalculatedEvent = this.recalculateEvent(event, balanceTracker, accountsAndTransfers);
-        
+
         if (recalculatedEvent) {
           result.recalculatedEvents.push(recalculatedEvent);
           result.affectedEventIds.add(event.id);
-          
+
           // Track balance changes if this is a balance-affecting event
           if (this.isBalanceAffectingEvent(recalculatedEvent)) {
             const balanceChange = this.calculateBalanceChange(recalculatedEvent, event);
@@ -118,7 +114,7 @@ export class SelectiveRecalculator {
           debug('SelectiveRecalculator.recalculateEvents', 'Event recalculated', {
             eventId: event.id,
             eventType: event.type,
-            accountId: event.accountId
+            accountId: event.accountId,
           });
         }
       }
@@ -126,16 +122,15 @@ export class SelectiveRecalculator {
       log('SelectiveRecalculator.recalculateEvents', 'Completed event recalculation', {
         totalEvents: events.length,
         recalculatedEvents: result.recalculatedEvents.length,
-        affectedAccounts: Array.from(result.balanceChanges.keys())
+        affectedAccounts: Array.from(result.balanceChanges.keys()),
       });
-
     } catch (error) {
       result.success = false;
       result.errorMessage = error instanceof Error ? error.message : 'Unknown error during recalculation';
-      
+
       warn('SelectiveRecalculator.recalculateEvents', 'Recalculation failed', {
         error: result.errorMessage,
-        processedEvents: result.recalculatedEvents.length
+        processedEvents: result.recalculatedEvents.length,
       });
     }
 
@@ -156,14 +151,14 @@ export class SelectiveRecalculator {
         affectedAccounts,
         startDate: new Date(),
         endDate: new Date(),
-        eventTypes: new Set()
+        eventTypes: new Set(),
       };
     }
 
     // Collect all affected accounts and determine date range
     for (const transfer of appliedTransfers) {
-      transfer.affectedAccounts.forEach(accountId => affectedAccounts.add(accountId));
-      
+      transfer.affectedAccounts.forEach((accountId) => affectedAccounts.add(accountId));
+
       if (transfer.insertedAt < earliestDate) {
         earliestDate = transfer.insertedAt;
       }
@@ -178,19 +173,19 @@ export class SelectiveRecalculator {
 
     // Event types that are sensitive to balance changes
     const eventTypes = new Set<EventType>([
-      EventType.interest,      // Interest calculations depend on balance
-      EventType.transfer,      // Transfers may have balance restrictions
+      EventType.interest, // Interest calculations depend on balance
+      EventType.transfer, // Transfers may have balance restrictions
       EventType.pushPullCheck, // Push/pull decisions depend on balance projections
-      EventType.bill,          // Some bills may have balance-dependent amounts
-      EventType.tax,           // Tax calculations may depend on balances
-      EventType.rmd            // RMDs depend on account balances
+      EventType.bill, // Some bills may have balance-dependent amounts
+      EventType.tax, // Tax calculations may depend on balances
+      EventType.rmd, // RMDs depend on account balances
     ]);
 
     return {
       affectedAccounts,
       startDate: earliestDate,
       endDate,
-      eventTypes
+      eventTypes,
     };
   }
 
@@ -218,19 +213,19 @@ export class SelectiveRecalculator {
       case EventType.interest:
         // Interest events are always affected if in scope
         return true;
-        
+
       case EventType.transfer:
         // Transfer events are affected if they have balance restrictions
         return this.hasBalanceRestrictions(event as TransferEvent);
-        
+
       case EventType.pushPullCheck:
         // Push/pull checks are always affected as they depend on balance projections
         return true;
-        
+
       case EventType.bill:
         // Bills are affected if they have variable amounts based on balance
         return this.hasBalanceDependentAmount(event as BillEvent);
-        
+
       default:
         return true; // Conservative approach - include if in doubt
     }
@@ -242,18 +237,18 @@ export class SelectiveRecalculator {
   private recalculateEvent(
     event: TimelineEvent,
     balanceTracker: BalanceTracker,
-    accountsAndTransfers: AccountsAndTransfers
+    accountsAndTransfers: AccountsAndTransfers,
   ): TimelineEvent | null {
     switch (event.type) {
       case EventType.interest:
         return this.recalculateInterestEvent(event as InterestEvent, balanceTracker, accountsAndTransfers);
-        
+
       case EventType.transfer:
         return this.recalculateTransferEvent(event as TransferEvent, balanceTracker, accountsAndTransfers);
-        
+
       case EventType.bill:
         return this.recalculateBillEvent(event as BillEvent, balanceTracker, accountsAndTransfers);
-        
+
       default:
         // For other event types, return the original event (no recalculation needed)
         return event;
@@ -266,22 +261,22 @@ export class SelectiveRecalculator {
   private recalculateInterestEvent(
     event: InterestEvent,
     balanceTracker: BalanceTracker,
-    accountsAndTransfers: AccountsAndTransfers
+    accountsAndTransfers: AccountsAndTransfers,
   ): InterestEvent {
     debug('SelectiveRecalculator.recalculateInterestEvent', 'Recalculating interest event', {
       eventId: event.id,
       accountId: event.accountId,
-      originalRate: event.rate
+      originalRate: event.rate,
     });
 
     // Get the current balance at the time of interest calculation
     const currentBalance = balanceTracker.getBalance(event.accountId);
-    
+
     // Interest rate typically doesn't change, but we might need to recalculate
     // the actual interest amount based on the new balance
-    // For now, return the event unchanged as the interest calculation 
+    // For now, return the event unchanged as the interest calculation
     // will be handled by the interest processor with the updated balance
-    
+
     return event;
   }
 
@@ -291,21 +286,21 @@ export class SelectiveRecalculator {
   private recalculateTransferEvent(
     event: TransferEvent,
     balanceTracker: BalanceTracker,
-    accountsAndTransfers: AccountsAndTransfers
+    accountsAndTransfers: AccountsAndTransfers,
   ): TransferEvent {
     debug('SelectiveRecalculator.recalculateTransferEvent', 'Recalculating transfer event', {
       eventId: event.id,
       fromAccount: event.fromAccountId,
       toAccount: event.toAccountId,
-      originalAmount: event.amount
+      originalAmount: event.amount,
     });
 
     // Check if the transfer amount needs to be adjusted based on available balance
     const fromAccountBalance = balanceTracker.getBalance(event.fromAccountId);
-    
+
     // If the transfer amount exceeds available balance, we might need to adjust
     // For now, return the event unchanged and let the transfer processor handle it
-    
+
     return event;
   }
 
@@ -315,13 +310,13 @@ export class SelectiveRecalculator {
   private recalculateBillEvent(
     event: BillEvent,
     balanceTracker: BalanceTracker,
-    accountsAndTransfers: AccountsAndTransfers
+    accountsAndTransfers: AccountsAndTransfers,
   ): BillEvent {
     debug('SelectiveRecalculator.recalculateBillEvent', 'Recalculating bill event', {
       eventId: event.id,
       accountId: event.accountId,
       originalAmount: event.amount,
-      isVariable: event.isVariable
+      isVariable: event.isVariable,
     });
 
     // If the bill has a variable amount that depends on balance, recalculate it
@@ -329,7 +324,7 @@ export class SelectiveRecalculator {
       // This would require evaluating the variable expression with current balance
       // For now, return the event unchanged
     }
-    
+
     return event;
   }
 
@@ -362,7 +357,7 @@ export class SelectiveRecalculator {
       EventType.pension,
       EventType.socialSecurity,
       EventType.tax,
-      EventType.rmd
+      EventType.rmd,
     ].includes(event.type);
   }
 
@@ -372,26 +367,26 @@ export class SelectiveRecalculator {
   private calculateBalanceChange(recalculatedEvent: TimelineEvent, originalEvent: TimelineEvent): number {
     // This is a simplified implementation - actual balance change calculation
     // would need to look at the specific event types and their amounts
-    
+
     if (recalculatedEvent.type === EventType.interest) {
       const recalc = recalculatedEvent as InterestEvent;
       const original = originalEvent as InterestEvent;
       // Interest amount calculation would need to be done here
       return 0; // Placeholder
     }
-    
+
     if (recalculatedEvent.type === EventType.transfer) {
       const recalc = recalculatedEvent as TransferEvent;
       const original = originalEvent as TransferEvent;
       return recalc.amount - original.amount;
     }
-    
+
     if (recalculatedEvent.type === EventType.bill) {
       const recalc = recalculatedEvent as BillEvent;
       const original = originalEvent as BillEvent;
       return recalc.amount - original.amount;
     }
-    
+
     return 0;
   }
 }

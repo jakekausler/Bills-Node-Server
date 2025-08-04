@@ -4,11 +4,11 @@ import { VariableValue } from './types';
 
 /**
  * Sets and normalizes a variable value, ensuring proper type conversion
- * 
+ *
  * This function processes variable values to ensure they are in the correct
  * format. It handles conversion of string amounts to numbers and string dates
  * to Date objects while preserving the original type information.
- * 
+ *
  * @param value - The variable value to set and normalize
  * @returns The normalized variable value with proper type conversion
  * @throws Error if the value type is invalid

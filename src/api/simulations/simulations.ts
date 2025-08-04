@@ -6,13 +6,13 @@ import { formatDate } from '../../utils/date/date';
 
 /**
  * Retrieves all simulation configurations with formatted variables.
- * 
+ *
  * Date variables are formatted as strings using formatDate utility.
  * Other variable types (number, string, boolean) are returned as-is.
- * 
+ *
  * @param _request - Express request object (unused)
  * @returns Array of simulation objects with formatted variables
- * 
+ *
  * @example
  * ```typescript
  * const simulations = getSimulations(request);
@@ -48,12 +48,12 @@ export function getSimulations(_request: Request) {
 
 /**
  * Updates simulation configurations with new data.
- * 
+ *
  * Saves the provided simulation data to storage and returns the saved data.
- * 
+ *
  * @param request - Express request object containing simulation data
  * @returns The updated simulation data that was saved
- * 
+ *
  * @example
  * ```typescript
  * // Request body should contain:
@@ -70,7 +70,7 @@ export function getSimulations(_request: Request) {
  * //     }
  * //   ]
  * // }
- * 
+ *
  * const updatedSimulations = updateSimulations(request);
  * ```
  */

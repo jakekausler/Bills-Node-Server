@@ -22,15 +22,11 @@ describe('getNameCategories', () => {
             { name: 'Grocery Store', category: 'Food' },
             { name: 'Gas Station', category: 'Transportation' },
           ],
-          bills: [
-            { name: 'Electric Bill', category: 'Utilities' },
-          ],
+          bills: [{ name: 'Electric Bill', category: 'Utilities' }],
         },
       ],
       transfers: {
-        activity: [
-          { name: 'Bank Transfer', category: 'Transfer' },
-        ],
+        activity: [{ name: 'Bank Transfer', category: 'Transfer' }],
         bills: [],
       },
     };
@@ -166,25 +162,17 @@ describe('getNameCategories', () => {
             { name: 'Restaurant', category: 'Food' },
             { name: 'Movie Theater', category: 'Entertainment' },
           ],
-          bills: [
-            { name: 'Monthly Subscription', category: 'Subscriptions' },
-          ],
+          bills: [{ name: 'Monthly Subscription', category: 'Subscriptions' }],
         },
         {
           id: 'savings',
-          activity: [
-            { name: 'Interest Payment', category: 'Income' },
-          ],
+          activity: [{ name: 'Interest Payment', category: 'Income' }],
           bills: [],
         },
       ],
       transfers: {
-        activity: [
-          { name: 'Transfer to Savings', category: 'Transfer' },
-        ],
-        bills: [
-          { name: 'Auto Transfer', category: 'Transfer' },
-        ],
+        activity: [{ name: 'Transfer to Savings', category: 'Transfer' }],
+        bills: [{ name: 'Auto Transfer', category: 'Transfer' }],
       },
     };
 
@@ -193,7 +181,7 @@ describe('getNameCategories', () => {
     };
 
     const mockNameCategories = {
-      'Restaurant': 'Food',
+      Restaurant: 'Food',
       'Movie Theater': 'Entertainment',
       'Monthly Subscription': 'Subscriptions',
       'Interest Payment': 'Income',

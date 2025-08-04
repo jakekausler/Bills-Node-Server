@@ -18,7 +18,7 @@ describe('SocialSecurity', () => {
     startDateVariable: 'retirementDate',
     birthDateVariable: 'birthDate',
     priorAnnualNetIncomes: [50000, 52000, 54000, 56000, 58000],
-    priorAnnualNetIncomeYears: [2019, 2020, 2021, 2022, 2023]
+    priorAnnualNetIncomeYears: [2019, 2020, 2021, 2022, 2023],
   };
 
   beforeEach(() => {
@@ -138,7 +138,7 @@ describe('SocialSecurity', () => {
       const dataWithEmptyArrays = {
         ...mockSocialSecurityData,
         priorAnnualNetIncomes: [],
-        priorAnnualNetIncomeYears: []
+        priorAnnualNetIncomeYears: [],
       };
 
       mockLoadVariable
@@ -156,7 +156,7 @@ describe('SocialSecurity', () => {
         ...mockSocialSecurityData,
         paycheckNames: ['SS Payment 1', 'SS Payment 2'],
         paycheckAccounts: ['account-1', 'account-2'],
-        paycheckCategories: ['Income', 'Retirement Income']
+        paycheckCategories: ['Income', 'Retirement Income'],
       };
 
       mockLoadVariable

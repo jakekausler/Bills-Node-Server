@@ -26,7 +26,11 @@ export async function getSharedSpending(request: Request) {
   console.log('Shared spending:', months);
   const entries = Object.entries(months).map(([month, activities]) => ({
     month,
-    spending: Math.round((activities.reduce((sum, a) => sum + (typeof a.amount === 'number' ? a.amount : 0), 0) / activities.length) * 100) / 100,
+    spending:
+      Math.round(
+        (activities.reduce((sum, a) => sum + (typeof a.amount === 'number' ? a.amount : 0), 0) / activities.length) *
+          100,
+      ) / 100,
   }));
   console.log('Shared spending:', entries);
   const lines = entries.map(

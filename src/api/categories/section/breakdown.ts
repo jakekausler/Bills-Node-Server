@@ -3,14 +3,14 @@ import { getData } from '../../../utils/net/request';
 
 /**
  * Retrieves expense breakdown by subcategory within a specific category section
- * 
+ *
  * This endpoint analyzes consolidated activities to calculate spending amounts
  * for each subcategory within a given category section. It handles:
  * - Account filtering (selected accounts and hidden accounts)
  * - Transfer activity adjustments (half amount for internal transfers)
  * - Exclusion of positive amounts (credits/refunds)
  * - Rounding to 2 decimal places
- * 
+ *
  * @param request - Express request object with section parameter
  * @returns Object mapping subcategory names to their total spending amounts
  */

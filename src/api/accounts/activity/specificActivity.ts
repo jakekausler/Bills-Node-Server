@@ -9,7 +9,7 @@ import { saveData } from '../../../utils/io/accountsAndTransfers';
 
 /**
  * Retrieves a specific activity by ID, handling both transfer and regular activities
- * 
+ *
  * @param request - Express request object with activityId parameter and optional accountId
  * @returns The specific activity object
  */
@@ -25,10 +25,10 @@ export async function getSpecificActivity(request: Request) {
 
 /**
  * Updates a specific activity with new data, handling conversions between transfer and regular activities
- * 
+ *
  * This function handles complex scenarios where activities can be converted between transfer and regular types,
  * moving them between the appropriate storage locations (transfers.activity vs account.activity).
- * 
+ *
  * @param request - Express request object with activityId parameter and activity data
  * @returns The ID of the updated activity
  */
@@ -100,7 +100,7 @@ export async function updateSpecificActivity(request: Request) {
 
 /**
  * Deletes a specific activity from the system
- * 
+ *
  * @param request - Express request object with activityId parameter and optional accountId
  * @returns The ID of the deleted activity
  */
@@ -131,10 +131,10 @@ export async function deleteSpecificActivity(request: Request) {
 
 /**
  * Changes the account association for a specific activity
- * 
+ *
  * For transfer activities, this updates the 'from' account reference.
  * For regular activities, this moves the activity from one account to another.
- * 
+ *
  * @param request - Express request object with activityId, accountId, and newAccountId parameters
  * @returns The ID of the activity that was moved
  */

@@ -62,9 +62,7 @@ describe('getFlow', () => {
   it('should handle different request configurations', () => {
     const mockData = {
       accountsAndTransfers: {
-        accounts: [
-          { id: 'account-1', name: 'Test Account' },
-        ],
+        accounts: [{ id: 'account-1', name: 'Test Account' }],
         transfers: { activity: [], bills: [] },
       },
       selectedAccounts: ['account-1'],

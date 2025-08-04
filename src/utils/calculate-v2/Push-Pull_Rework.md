@@ -7,18 +7,22 @@ The current push-pull implementation in calculate-v2 has accuracy issues due to 
 ## Current Implementation Problems
 
 ### 1. Inaccurate Balance Projections
+
 The current system uses `generateEventBasedProjections` to predict future balances, but this approach:
+
 - Doesn't account for interest calculations that depend on actual daily balances
 - Misses transfer restrictions based on account balances
 - Ignores cascading effects of balance changes
 - Cannot accurately predict variable amounts or conditional transactions
 
 ### 2. Inefficient Processing
+
 - The original implementation creates deep copies of all data structures for look-ahead
 - The new implementation tries to avoid deep copies but loses accuracy
 - Both approaches process the same time period multiple times
 
 ### 3. Timing Issues
+
 - Push/pull decisions are made at month start based on predictions
 - This leads to unnecessary transfers when predictions don't match reality
 - The system cannot adapt to unexpected transactions during the month
@@ -26,7 +30,9 @@ The current system uses `generateEventBasedProjections` to predict future balanc
 ## Proposed Solution: Retroactive Push-Pull System
 
 ### Core Concept
+
 Instead of predicting the future at month start, we will:
+
 1. Process all events normally through the month
 2. At month end, analyze actual min/max balances achieved
 3. If violations occurred, retroactively insert push/pull at month start
@@ -63,11 +69,13 @@ Recalculate affected events:
 **Purpose**: Track and analyze balance patterns throughout the month
 
 **Key Features**:
+
 - Maintain min/max balance records per account per month
 - Identify balance violations against account rules
 - Calculate optimal transfer amounts to prevent violations
 
 **Implementation Details**:
+
 ```typescript
 interface BalanceAnalysis {
   accountId: string;
@@ -89,17 +97,9 @@ interface BalanceViolation {
 }
 
 class MonthEndAnalyzer {
-  analyzeMonth(
-    account: Account,
-    monthStart: Date,
-    monthEnd: Date,
-    balanceTracker: BalanceTracker
-  ): BalanceAnalysis;
-  
-  determineRequiredTransfers(
-    analysis: BalanceAnalysis,
-    account: Account
-  ): RequiredTransfer[];
+  analyzeMonth(account: Account, monthStart: Date, monthEnd: Date, balanceTracker: BalanceTracker): BalanceAnalysis;
+
+  determineRequiredTransfers(analysis: BalanceAnalysis, account: Account): RequiredTransfer[];
 }
 ```
 
@@ -108,12 +108,14 @@ class MonthEndAnalyzer {
 **Purpose**: Apply push/pull decisions retroactively at month start
 
 **Key Features**:
+
 - Insert push/pull activities at the correct position in timeline
 - Update balance tracker with retroactive changes
 - Maintain event ordering and consistency
 - Handle multi-account transfer scenarios
 
 **Implementation Details**:
+
 ```typescript
 interface RequiredTransfer {
   type: 'push' | 'pull';
@@ -125,15 +127,9 @@ interface RequiredTransfer {
 }
 
 class RetroactiveApplicator {
-  applyTransfers(
-    transfers: RequiredTransfer[],
-    timeline: Timeline,
-    balanceTracker: BalanceTracker
-  ): AppliedTransfer[];
-  
-  createPushPullActivities(
-    transfer: RequiredTransfer
-  ): ConsolidatedActivity[];
+  applyTransfers(transfers: RequiredTransfer[], timeline: Timeline, balanceTracker: BalanceTracker): AppliedTransfer[];
+
+  createPushPullActivities(transfer: RequiredTransfer): ConsolidatedActivity[];
 }
 ```
 
@@ -142,12 +138,14 @@ class RetroactiveApplicator {
 **Purpose**: Efficiently recalculate only events affected by retroactive changes
 
 **Key Features**:
+
 - Identify events that depend on account balances
 - Recalculate interest events with new balance history
 - Update transfers that may be affected by balance changes
 - Propagate changes to subsequent months
 
 **Implementation Details**:
+
 ```typescript
 interface RecalculationScope {
   affectedAccounts: Set<string>;
@@ -157,15 +155,12 @@ interface RecalculationScope {
 }
 
 class SelectiveRecalculator {
-  identifyAffectedEvents(
-    appliedTransfers: AppliedTransfer[],
-    timeline: Timeline
-  ): TimelineEvent[];
-  
+  identifyAffectedEvents(appliedTransfers: AppliedTransfer[], timeline: Timeline): TimelineEvent[];
+
   recalculateEvents(
     events: TimelineEvent[],
     balanceTracker: BalanceTracker,
-    accountsAndTransfers: AccountsAndTransfers
+    accountsAndTransfers: AccountsAndTransfers,
   ): RecalculationResult;
 }
 ```
@@ -173,6 +168,7 @@ class SelectiveRecalculator {
 ### 4. Timeline Modifications
 
 **Changes Required**:
+
 - Replace `PushPullEvent` with `MonthEndCheckEvent`
 - Generate month-end events instead of month-start
 - Add support for retroactive event insertion
@@ -189,6 +185,7 @@ export interface MonthEndCheckEvent extends TimelineEvent {
 ### 5. Engine Integration
 
 **Changes to CalculationEngine**:
+
 - Add month-end processing phase
 - Implement retroactive application workflow
 - Handle recalculation passes
@@ -211,27 +208,32 @@ case EventType.monthEndCheck:
 ## Implementation Steps
 
 ### Phase 1: Create Core Components
+
 1. Implement `MonthEndAnalyzer` with balance tracking
 2. Create `RetroactiveApplicator` for transfer insertion
 3. Build `SelectiveRecalculator` for efficient recalculation
 
 ### Phase 2: Update Timeline System
+
 1. Replace `PushPullEvent` with `MonthEndCheckEvent`
 2. Modify timeline generation to create month-end events
 3. Add support for retroactive event insertion
 
 ### Phase 3: Integrate with Engine
+
 1. Update `CalculationEngine` to handle month-end events
 2. Implement retroactive application workflow
 3. Add recalculation pass management
 
 ### Phase 4: Handle Edge Cases
+
 1. Transfer limits and restrictions
 2. Tax implications for retirement accounts
 3. Multiple account dependencies
 4. Cross-month effects
 
 ### Phase 5: Testing and Validation
+
 1. Update accuracy comparison tests
 2. Verify retroactive calculations match original
 3. Performance benchmarking
@@ -240,22 +242,26 @@ case EventType.monthEndCheck:
 ## Key Considerations
 
 ### 1. Event Ordering
+
 - Maintain strict chronological ordering when inserting retroactive events
 - Ensure balance consistency throughout the timeline
 - Handle same-day event priorities correctly
 
 ### 2. Performance Optimization
+
 - Cache month-end analysis results
 - Minimize recalculation scope
 - Use incremental balance updates
 - Avoid unnecessary event regeneration
 
 ### 3. Tax Implications
+
 - Track tax events for retirement account withdrawals
 - Ensure tax calculations use correct withdrawal amounts
 - Handle early withdrawal penalties appropriately
 
 ### 4. Multi-Account Scenarios
+
 - Handle push/pull priorities correctly
 - Prevent circular transfers
 - Respect account minimums during transfers
@@ -271,17 +277,20 @@ case EventType.monthEndCheck:
 ## Testing Strategy
 
 ### Unit Tests
+
 - `MonthEndAnalyzer`: Balance tracking and violation detection
 - `RetroactiveApplicator`: Event insertion and ordering
 - `SelectiveRecalculator`: Affected event identification
 
 ### Integration Tests
+
 - Full month processing with push/pull
 - Multi-account transfer scenarios
 - Tax calculation accuracy
 - Cross-month dependencies
 
 ### Accuracy Tests
+
 - Compare results with original implementation
 - Verify all test scenarios pass
 - Check edge cases and boundary conditions

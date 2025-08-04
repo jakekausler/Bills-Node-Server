@@ -37,11 +37,11 @@ export class MonthEndAnalyzer {
    */
   recordBalance(accountId: string, date: Date, balance: number): void {
     const dateKey = date.toISOString().split('T')[0];
-    
+
     if (!this.dailyBalanceRecords.has(accountId)) {
       this.dailyBalanceRecords.set(accountId, new Map());
     }
-    
+
     const accountBalances = this.dailyBalanceRecords.get(accountId)!;
     accountBalances.set(dateKey, balance);
   }
@@ -49,22 +49,18 @@ export class MonthEndAnalyzer {
   /**
    * Analyzes a month's worth of balance data for an account
    */
-  analyzeMonth(
-    account: Account,
-    monthStart: Date,
-    monthEnd: Date
-  ): BalanceAnalysis {
+  analyzeMonth(account: Account, monthStart: Date, monthEnd: Date): BalanceAnalysis {
     debug('MonthEndAnalyzer.analyzeMonth', 'Analyzing month for account', {
       accountId: account.id,
       accountName: account.name,
       monthStart: monthStart.toISOString(),
-      monthEnd: monthEnd.toISOString()
+      monthEnd: monthEnd.toISOString(),
     });
 
     const accountBalances = this.dailyBalanceRecords.get(account.id) || new Map();
     const dailyBalances = new Map<string, number>();
     const violations: BalanceViolation[] = [];
-    
+
     let minimumBalance = Infinity;
     let minimumBalanceDate = monthStart;
     let maximumBalance = -Infinity;
@@ -75,7 +71,7 @@ export class MonthEndAnalyzer {
     while (currentDate <= monthEnd) {
       const dateKey = currentDate.toISOString().split('T')[0];
       const balance = accountBalances.get(dateKey) || account.balance;
-      
+
       dailyBalances.set(dateKey, balance);
 
       // Track min/max balances
@@ -95,10 +91,10 @@ export class MonthEndAnalyzer {
           date: new Date(currentDate),
           actualBalance: balance,
           requiredBalance: account.minimumBalance,
-          shortfall: account.minimumBalance - balance
+          shortfall: account.minimumBalance - balance,
         });
       }
-      
+
       // For pushes, we need to check if balance is above a certain threshold
       // The original code seems to handle this differently, so we'll need to understand the push logic better
       // For now, we'll skip maximum balance violations
@@ -115,7 +111,7 @@ export class MonthEndAnalyzer {
       maximumBalance,
       maximumBalanceDate,
       dailyBalances,
-      violations
+      violations,
     };
 
     if (violations.length > 0) {
@@ -123,60 +119,56 @@ export class MonthEndAnalyzer {
         accountId: account.id,
         accountName: account.name,
         violationCount: violations.length,
-        firstViolation: violations[0]
+        firstViolation: violations[0],
       });
     }
 
     return analysis;
   }
 
-  determineRequiredTransfers(
-    analysis: BalanceAnalysis,
-    account: Account,
-    allAccounts: Account[]
-  ): RequiredTransfer[] {
+  determineRequiredTransfers(analysis: BalanceAnalysis, account: Account, allAccounts: Account[]): RequiredTransfer[] {
     debug('MonthEndAnalyzer.determineRequiredTransfers', 'Determining required transfers', {
       accountId: account.id,
-      violationCount: analysis.violations.length
+      violationCount: analysis.violations.length,
     });
 
     const transfers: RequiredTransfer[] = [];
-    
+
     if (analysis.violations.length === 0) {
       return transfers;
     }
-    
+
     // Check if account performs pulls/pushes
     if (!account.performsPulls && !account.performsPushes) {
       return transfers;
     }
 
     // Group violations by type to find the maximum shortfall
-    const minViolations = analysis.violations.filter(v => v.type === 'minimum');
-    const maxViolations = analysis.violations.filter(v => v.type === 'maximum');
+    const minViolations = analysis.violations.filter((v) => v.type === 'minimum');
+    const maxViolations = analysis.violations.filter((v) => v.type === 'maximum');
 
     // Handle minimum balance violations (need to pull money in)
     if (minViolations.length > 0) {
-      const maxShortfall = Math.max(...minViolations.map(v => v.shortfall));
+      const maxShortfall = Math.max(...minViolations.map((v) => v.shortfall));
       const pullFromAccounts = this.findPullAccounts(account, allAccounts);
-      
+
       if (pullFromAccounts.length > 0) {
         // For now, pull from the first available account
         // TODO: Implement more sophisticated logic for choosing source accounts
         const sourceAccount = pullFromAccounts[0];
-        
+
         transfers.push({
           type: 'pull',
           fromAccount: sourceAccount,
           toAccount: account,
           amount: maxShortfall,
           insertDate: analysis.month,
-          reason: `Pull to maintain minimum balance of ${account.minimumBalance}`
+          reason: `Pull to maintain minimum balance of ${account.minimumBalance}`,
         });
       } else {
         warn('MonthEndAnalyzer.determineRequiredTransfers', 'No accounts available to pull from', {
           accountId: account.id,
-          requiredAmount: maxShortfall
+          requiredAmount: maxShortfall,
         });
       }
     }
@@ -190,44 +182,44 @@ export class MonthEndAnalyzer {
 
   private findPullAccounts(targetAccount: Account, allAccounts: Account[]): Account[] {
     debug('MonthEndAnalyzer.findPullAccounts', 'Finding accounts to pull from', {
-      targetAccountId: targetAccount.id
+      targetAccountId: targetAccount.id,
     });
 
     // Sort accounts by pull priority
     const sortedAccounts = [...allAccounts].sort((a, b) => a.pullPriority - b.pullPriority);
-    
-    return sortedAccounts.filter(acc => {
+
+    return sortedAccounts.filter((acc) => {
       // Don't pull from the same account
       if (acc.id === targetAccount.id) {
         return false;
       }
-      
+
       // For now, we'll assume accounts with priority >= 0 are valid pull sources
       // In the real implementation, this would check the account's balance at the time
       if (acc.pullPriority < 0) {
         return false;
       }
-      
+
       // TODO: Add more checks here:
       // - Check actual account balance at the relevant time
       // - Check if pulling would violate source account's minimum
       // - Consider tax implications for retirement accounts
-      
+
       return true;
     });
   }
 
   private findPushAccounts(sourceAccount: Account, allAccounts: Account[]): Account[] {
     debug('MonthEndAnalyzer.findPushAccounts', 'Finding accounts to push to', {
-      sourceAccountId: sourceAccount.id
+      sourceAccountId: sourceAccount.id,
     });
 
     // If pushAccount is specified, use that
     if (sourceAccount.pushAccount) {
-      const pushAccount = allAccounts.find(acc => acc.id === sourceAccount.pushAccount);
+      const pushAccount = allAccounts.find((acc) => acc.id === sourceAccount.pushAccount);
       return pushAccount ? [pushAccount] : [];
     }
-    
+
     // Otherwise, we might need to implement more logic
     return [];
   }
@@ -244,7 +236,7 @@ export class MonthEndAnalyzer {
     if (startDate && endDate) {
       const startKey = startDate.toISOString().split('T')[0];
       const endKey = endDate.toISOString().split('T')[0];
-      
+
       for (const [accountId, balances] of this.dailyBalanceRecords) {
         for (const dateKey of balances.keys()) {
           if (dateKey >= startKey && dateKey <= endKey) {

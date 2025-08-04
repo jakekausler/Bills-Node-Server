@@ -34,17 +34,17 @@ describe('Simulations API', () => {
           variables: {
             retirementDate: {
               value: new Date('2030-01-01'),
-              type: 'date' as const
+              type: 'date' as const,
             },
             initialBalance: {
               value: 100000,
-              type: 'number' as const
+              type: 'number' as const,
             },
             riskProfile: {
               value: 'conservative',
-              type: 'string' as const
-            }
-          }
+              type: 'string' as const,
+            },
+          },
         },
         {
           name: 'Optimistic Scenario',
@@ -53,14 +53,14 @@ describe('Simulations API', () => {
           variables: {
             retirementDate: {
               value: new Date('2025-01-01'),
-              type: 'date' as const
+              type: 'date' as const,
             },
             initialBalance: {
               value: 150000,
-              type: 'number' as const
-            }
-          }
-        }
+              type: 'number' as const,
+            },
+          },
+        },
       ];
 
       mockLoadSimulations.mockReturnValue(mockSimulations);
@@ -76,17 +76,17 @@ describe('Simulations API', () => {
           variables: {
             retirementDate: {
               value: '2030-01-01',
-              type: 'date'
+              type: 'date',
             },
             initialBalance: {
               value: 100000,
-              type: 'number'
+              type: 'number',
             },
             riskProfile: {
               value: 'conservative',
-              type: 'string'
-            }
-          }
+              type: 'string',
+            },
+          },
         },
         {
           name: 'Optimistic Scenario',
@@ -95,14 +95,14 @@ describe('Simulations API', () => {
           variables: {
             retirementDate: {
               value: '2025-01-01',
-              type: 'date'
+              type: 'date',
             },
             initialBalance: {
               value: 150000,
-              type: 'number'
-            }
-          }
-        }
+              type: 'number',
+            },
+          },
+        },
       ]);
       expect(mockLoadSimulations).toHaveBeenCalledOnce();
       expect(mockFormatDate).toHaveBeenCalledTimes(2);
@@ -114,8 +114,8 @@ describe('Simulations API', () => {
           name: 'Empty Scenario',
           enabled: false,
           selected: false,
-          variables: {}
-        }
+          variables: {},
+        },
       ];
 
       mockLoadSimulations.mockReturnValue(mockSimulations);
@@ -127,8 +127,8 @@ describe('Simulations API', () => {
           name: 'Empty Scenario',
           enabled: false,
           selected: false,
-          variables: {}
-        }
+          variables: {},
+        },
       ]);
       expect(mockLoadSimulations).toHaveBeenCalledOnce();
     });
@@ -142,18 +142,18 @@ describe('Simulations API', () => {
           variables: {
             salary: {
               value: 80000,
-              type: 'number' as const
+              type: 'number' as const,
             },
             taxRate: {
               value: 0.25,
-              type: 'number' as const
+              type: 'number' as const,
             },
             category: {
               value: 'high-earner',
-              type: 'string' as const
-            }
-          }
-        }
+              type: 'string' as const,
+            },
+          },
+        },
       ];
 
       mockLoadSimulations.mockReturnValue(mockSimulations);
@@ -168,18 +168,18 @@ describe('Simulations API', () => {
           variables: {
             salary: {
               value: 80000,
-              type: 'number'
+              type: 'number',
             },
             taxRate: {
               value: 0.25,
-              type: 'number'
+              type: 'number',
             },
             category: {
               value: 'high-earner',
-              type: 'string'
-            }
-          }
-        }
+              type: 'string',
+            },
+          },
+        },
       ]);
       expect(mockFormatDate).not.toHaveBeenCalled();
     });
@@ -202,26 +202,26 @@ describe('Simulations API', () => {
           variables: {
             startDate: {
               value: new Date('2024-01-01'),
-              type: 'date' as const
+              type: 'date' as const,
             },
             endDate: {
               value: new Date('2024-12-31'),
-              type: 'date' as const
+              type: 'date' as const,
             },
             amount: {
               value: 1000,
-              type: 'number' as const
+              type: 'number' as const,
             },
             description: {
               value: 'test scenario',
-              type: 'string' as const
+              type: 'string' as const,
             },
             isActive: {
               value: true,
-              type: 'boolean' as const
-            }
-          }
-        }
+              type: 'boolean' as const,
+            },
+          },
+        },
       ];
 
       mockLoadSimulations.mockReturnValue(mockSimulations);
@@ -232,24 +232,24 @@ describe('Simulations API', () => {
       expect(result[0].variables).toEqual({
         startDate: {
           value: '2024-01-01',
-          type: 'date'
+          type: 'date',
         },
         endDate: {
           value: '2024-12-31',
-          type: 'date'
+          type: 'date',
         },
         amount: {
           value: 1000,
-          type: 'number'
+          type: 'number',
         },
         description: {
           value: 'test scenario',
-          type: 'string'
+          type: 'string',
         },
         isActive: {
           value: true,
-          type: 'boolean'
-        }
+          type: 'boolean',
+        },
       });
       expect(mockFormatDate).toHaveBeenCalledTimes(2);
     });
@@ -265,14 +265,14 @@ describe('Simulations API', () => {
           variables: {
             retirementDate: {
               value: new Date('2030-01-01'),
-              type: 'date'
+              type: 'date',
             },
             initialBalance: {
               value: 200000,
-              type: 'number'
-            }
-          }
-        }
+              type: 'number',
+            },
+          },
+        },
       ];
 
       mockGetData.mockReturnValue({ data: mockSimulationsData });
@@ -304,13 +304,13 @@ describe('Simulations API', () => {
           variables: {
             riskTolerance: {
               value: 'low',
-              type: 'string'
+              type: 'string',
             },
             expectedReturn: {
               value: 0.05,
-              type: 'number'
-            }
-          }
+              type: 'number',
+            },
+          },
         },
         {
           name: 'Aggressive',
@@ -319,20 +319,20 @@ describe('Simulations API', () => {
           variables: {
             riskTolerance: {
               value: 'high',
-              type: 'string'
+              type: 'string',
             },
             expectedReturn: {
               value: 0.12,
-              type: 'number'
-            }
-          }
+              type: 'number',
+            },
+          },
         },
         {
           name: 'Disabled Scenario',
           enabled: false,
           selected: false,
-          variables: {}
-        }
+          variables: {},
+        },
       ];
 
       mockGetData.mockReturnValue({ data: mockSimulationsData });
@@ -352,30 +352,30 @@ describe('Simulations API', () => {
           variables: {
             startDate: {
               value: new Date('2024-01-01'),
-              type: 'date'
+              type: 'date',
             },
             endDate: {
               value: new Date('2029-12-31'),
-              type: 'date'
+              type: 'date',
             },
             portfolioValue: {
               value: 500000,
-              type: 'number'
+              type: 'number',
             },
             inflationRate: {
               value: 0.03,
-              type: 'number'
+              type: 'number',
             },
             strategy: {
               value: 'balanced',
-              type: 'string'
+              type: 'string',
             },
             rebalanceAnnually: {
               value: true,
-              type: 'boolean'
-            }
-          }
-        }
+              type: 'boolean',
+            },
+          },
+        },
       ];
 
       mockGetData.mockReturnValue({ data: mockSimulationsData });

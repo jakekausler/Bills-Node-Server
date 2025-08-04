@@ -1,6 +1,6 @@
 /**
  * API compatibility layer for the new calculate-v2 system
- * 
+ *
  * This module provides seamless integration between the existing API
  * and the new optimized calculation engine, maintaining backwards
  * compatibility while enabling the performance improvements.
@@ -27,7 +27,7 @@ export class CalculationAPIWrapper {
     newSystemCalls: 0,
     legacySystemCalls: 0,
     averageNewSystemTime: 0,
-    averageLegacyTime: 0
+    averageLegacyTime: 0,
   };
 
   private constructor(config: Partial<CalculationConfig> = {}) {
@@ -51,7 +51,6 @@ export class CalculationAPIWrapper {
   static reset(): void {
     CalculationAPIWrapper.instance = null;
   }
-
 
   /**
    * Enable or disable the new calculation system
@@ -102,7 +101,6 @@ export class CalculationAPIWrapper {
     this.rolloutPercentage = Math.max(0, Math.min(100, percentage));
   }
 
-
   /**
    * Main calculation method that maintains API compatibility
    */
@@ -113,10 +111,10 @@ export class CalculationAPIWrapper {
     simulation: string = 'Default',
     monteCarlo: boolean = false,
     simulationNumber: number = 1,
-    nSimulations: number = 1
+    nSimulations: number = 1,
   ): Promise<void> {
     const startTime = performance.now();
-    
+
     try {
       if (this.useNewSystem) {
         // Use the new calculation engine
@@ -128,29 +126,33 @@ export class CalculationAPIWrapper {
           monteCarlo,
           simulationNumber,
           nSimulations,
-          this.config
+          this.config,
         );
-        
+
         const endTime = performance.now();
         this.performanceMetrics.newSystemCalls++;
-        this.performanceMetrics.averageNewSystemTime = 
-          (this.performanceMetrics.averageNewSystemTime * (this.performanceMetrics.newSystemCalls - 1) + (endTime - startTime)) / this.performanceMetrics.newSystemCalls;
-        
+        this.performanceMetrics.averageNewSystemTime =
+          (this.performanceMetrics.averageNewSystemTime * (this.performanceMetrics.newSystemCalls - 1) +
+            (endTime - startTime)) /
+          this.performanceMetrics.newSystemCalls;
+
         // Apply results back to the original structure for compatibility
         this.applyResultsToLegacyStructure(accountsAndTransfers, result);
       } else {
         // Simulate legacy calculation (placeholder)
         const endTime = performance.now();
         this.performanceMetrics.legacySystemCalls++;
-        this.performanceMetrics.averageLegacyTime = 
-          (this.performanceMetrics.averageLegacyTime * (this.performanceMetrics.legacySystemCalls - 1) + (endTime - startTime)) / this.performanceMetrics.legacySystemCalls;
-        
+        this.performanceMetrics.averageLegacyTime =
+          (this.performanceMetrics.averageLegacyTime * (this.performanceMetrics.legacySystemCalls - 1) +
+            (endTime - startTime)) /
+          this.performanceMetrics.legacySystemCalls;
+
         // In a real implementation, this would call the legacy calculateAllActivity
         console.log('Using legacy calculation system (placeholder)');
       }
     } catch (error) {
       console.error('Calculation failed:', error);
-      
+
       if (this.fallbackOnError && this.useNewSystem) {
         console.log('Falling back to legacy system...');
         // In a real implementation, this would call the legacy system
@@ -161,8 +163,6 @@ export class CalculationAPIWrapper {
     }
   }
 
-
-
   /**
    * Performance comparison utility
    */
@@ -170,7 +170,7 @@ export class CalculationAPIWrapper {
     accountsAndTransfers: AccountsAndTransfers,
     startDate: Date,
     endDate: Date,
-    simulation: string = 'Default'
+    simulation: string = 'Default',
   ): Promise<{
     newSystemTime: number;
     legacySystemTime: number;
@@ -192,7 +192,7 @@ export class CalculationAPIWrapper {
       false,
       1,
       1,
-      this.config
+      this.config,
     );
     const newEndTime = process.hrtime.bigint();
     const newSystemTime = Number(newEndTime - newStartTime) / 1e6; // Convert to milliseconds
@@ -212,7 +212,7 @@ export class CalculationAPIWrapper {
       legacySystemTime: legacySystemTime || 1, // Prevent division by zero
       speedupFactor: (legacySystemTime || 1) / newSystemTime,
       resultsMatch: comparison.match,
-      differences: comparison.differences
+      differences: comparison.differences,
     };
   }
 
@@ -256,25 +256,22 @@ export class CalculationAPIWrapper {
       diskCacheDir: './cache/calculate-v2',
       enableParallelProcessing: false, // TODO: Enable after implementing
       maxWorkerThreads: 4,
-      enablePerfMetrics: true
+      enablePerfMetrics: true,
     };
 
     return { ...defaults, ...overrides };
   }
 
-  private applyResultsToLegacyStructure(
-    accountsAndTransfers: AccountsAndTransfers,
-    result: CalculationResult
-  ): void {
+  private applyResultsToLegacyStructure(accountsAndTransfers: AccountsAndTransfers, result: CalculationResult): void {
     // Update accounts with calculated activities and balances
     for (let i = 0; i < accountsAndTransfers.accounts.length; i++) {
       const originalAccount = accountsAndTransfers.accounts[i];
-      const calculatedAccount = result.accounts.find(acc => acc.id === originalAccount.id);
-      
+      const calculatedAccount = result.accounts.find((acc) => acc.id === originalAccount.id);
+
       if (calculatedAccount) {
         // Update consolidated activities
         originalAccount.consolidatedActivity = calculatedAccount.consolidatedActivity;
-        
+
         // Update final balance using CalculationAccount interface
         const calcAccount = originalAccount as CalculationAccount;
         calcAccount.balance = result.finalBalances[originalAccount.id] || calcAccount.balance || 0;
@@ -282,7 +279,10 @@ export class CalculationAPIWrapper {
     }
   }
 
-  private compareResults(newAccounts: any[], legacyAccounts: any[]): {
+  private compareResults(
+    newAccounts: any[],
+    legacyAccounts: any[],
+  ): {
     match: boolean;
     differences: any[];
   } {
@@ -294,20 +294,20 @@ export class CalculationAPIWrapper {
       differences.push({
         type: 'account_count',
         new: newAccounts.length,
-        legacy: legacyAccounts.length
+        legacy: legacyAccounts.length,
       });
       match = false;
     }
 
     // Compare each account
     for (const newAccount of newAccounts) {
-      const legacyAccount = legacyAccounts.find(acc => acc.id === newAccount.id);
-      
+      const legacyAccount = legacyAccounts.find((acc) => acc.id === newAccount.id);
+
       if (!legacyAccount) {
         differences.push({
           type: 'missing_account',
           accountId: newAccount.id,
-          message: 'Account exists in new system but not legacy'
+          message: 'Account exists in new system but not legacy',
         });
         match = false;
         continue;
@@ -315,13 +315,14 @@ export class CalculationAPIWrapper {
 
       // Compare final balances
       const balanceDiff = Math.abs(newAccount.balance - legacyAccount.balance);
-      if (balanceDiff > 0.01) { // Allow for small rounding differences
+      if (balanceDiff > 0.01) {
+        // Allow for small rounding differences
         differences.push({
           type: 'balance_difference',
           accountId: newAccount.id,
           new: newAccount.balance,
           legacy: legacyAccount.balance,
-          difference: balanceDiff
+          difference: balanceDiff,
         });
         match = false;
       }
@@ -332,16 +333,20 @@ export class CalculationAPIWrapper {
           type: 'activity_count',
           accountId: newAccount.id,
           new: newAccount.consolidatedActivity.length,
-          legacy: legacyAccount.consolidatedActivity.length
+          legacy: legacyAccount.consolidatedActivity.length,
         });
         match = false;
       }
 
       // Compare individual activities
-      for (let i = 0; i < Math.min(newAccount.consolidatedActivity.length, legacyAccount.consolidatedActivity.length); i++) {
+      for (
+        let i = 0;
+        i < Math.min(newAccount.consolidatedActivity.length, legacyAccount.consolidatedActivity.length);
+        i++
+      ) {
         const newActivity = newAccount.consolidatedActivity[i];
         const legacyActivity = legacyAccount.consolidatedActivity[i];
-        
+
         const activityBalanceDiff = Math.abs(newActivity.balance - legacyActivity.balance);
         if (activityBalanceDiff > 0.01) {
           differences.push({
@@ -351,7 +356,7 @@ export class CalculationAPIWrapper {
             activityName: newActivity.name,
             new: newActivity.balance,
             legacy: legacyActivity.balance,
-            difference: activityBalanceDiff
+            difference: activityBalanceDiff,
           });
           match = false;
         }
@@ -395,7 +400,7 @@ export async function legacyCalculateAllActivity(
   simulation: string = 'Default',
   monteCarlo: boolean = false,
   simulationNumber: number = 1,
-  nSimulations: number = 1
+  nSimulations: number = 1,
 ): Promise<void> {
   const wrapper = getCalculationSystem();
   return await wrapper.calculateAllActivity(
@@ -405,7 +410,7 @@ export async function legacyCalculateAllActivity(
     simulation,
     monteCarlo,
     simulationNumber,
-    nSimulations
+    nSimulations,
   );
 }
 
@@ -423,7 +428,7 @@ const defaultFeatureFlags: CalculationFeatureFlags = {
   useNewCalculationEngine: false, // Start with legacy by default
   enablePerformanceComparison: false,
   fallbackToLegacyOnError: true,
-  enableDetailedLogging: false
+  enableDetailedLogging: false,
 };
 
 let currentFeatureFlags = { ...defaultFeatureFlags };
@@ -452,7 +457,7 @@ export async function smartCalculateAllActivity(
   simulation: string = 'Default',
   monteCarlo: boolean = false,
   simulationNumber: number = 1,
-  nSimulations: number = 1
+  nSimulations: number = 1,
 ): Promise<{
   success: boolean;
   usedNewEngine: boolean;
@@ -460,27 +465,22 @@ export async function smartCalculateAllActivity(
   error?: string;
 }> {
   const flags = getCalculationFeatureFlags();
-  
+
   if (flags.useNewCalculationEngine) {
     try {
       const wrapper = getCalculationSystem();
-      
+
       if (flags.enablePerformanceComparison) {
-        const comparison = await wrapper.compareWithLegacy(
-          accountsAndTransfers,
-          startDate,
-          endDate,
-          simulation
-        );
-        
+        const comparison = await wrapper.compareWithLegacy(accountsAndTransfers, startDate, endDate, simulation);
+
         if (flags.enableDetailedLogging) {
           console.log('Performance comparison:', comparison);
         }
-        
+
         return {
           success: true,
           usedNewEngine: true,
-          performanceData: comparison
+          performanceData: comparison,
         };
       } else {
         await wrapper.calculateAllActivity(
@@ -490,12 +490,12 @@ export async function smartCalculateAllActivity(
           simulation,
           monteCarlo,
           simulationNumber,
-          nSimulations
+          nSimulations,
         );
-        
+
         return {
           success: true,
-          usedNewEngine: true
+          usedNewEngine: true,
         };
       }
     } catch (error) {
@@ -505,7 +505,7 @@ export async function smartCalculateAllActivity(
         return {
           success: true,
           usedNewEngine: false,
-          error: (error as Error).message
+          error: (error as Error).message,
         };
       } else {
         throw error;
@@ -515,7 +515,7 @@ export async function smartCalculateAllActivity(
     // TODO: Call legacy system
     return {
       success: true,
-      usedNewEngine: false
+      usedNewEngine: false,
     };
   }
 }
@@ -540,7 +540,7 @@ export class DataMigrationUtilities {
       if (!account.id) {
         issues.push(`Account missing ID: ${account.name}`);
       }
-      
+
       if (!account.type) {
         issues.push(`Account missing type: ${account.name || account.id}`);
       }
@@ -550,7 +550,7 @@ export class DataMigrationUtilities {
         if (!activity.id) {
           warnings.push(`Activity missing ID in account ${account.name}`);
         }
-        
+
         if (!activity.date) {
           issues.push(`Activity missing date in account ${account.name}`);
         }
@@ -561,7 +561,7 @@ export class DataMigrationUtilities {
         if (!bill.id) {
           warnings.push(`Bill missing ID in account ${account.name}`);
         }
-        
+
         if ((!bill.periods || !bill.everyN) && bill.startDate) {
           warnings.push(`Bill missing periods or everyN in account ${account.name}: ${bill.name}`);
         }
@@ -578,7 +578,7 @@ export class DataMigrationUtilities {
     return {
       compatible: issues.length === 0,
       issues,
-      warnings
+      warnings,
     };
   }
 
@@ -635,7 +635,7 @@ export class DataMigrationUtilities {
     return {
       fixed: remainingIssues.length === 0,
       fixesApplied,
-      remainingIssues
+      remainingIssues,
     };
   }
 }

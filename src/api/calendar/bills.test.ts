@@ -34,8 +34,8 @@ describe('Calendar Bills API', () => {
                   date: new Date('2024-01-15'),
                   billId: 'bill-1',
                   amount: -500,
-                  isTransfer: false
-                }
+                  isTransfer: false,
+                },
               ],
               bills: [
                 {
@@ -43,19 +43,19 @@ describe('Calendar Bills API', () => {
                   serialize: vi.fn(() => ({
                     id: 'bill-1',
                     name: 'Rent',
-                    category: 'Housing'
-                  }))
-                }
-              ]
-            }
+                    category: 'Housing',
+                  })),
+                },
+              ],
+            },
           ],
           transfers: {
-            bills: []
-          }
+            bills: [],
+          },
         },
         selectedAccounts: [],
         startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-01-31')
+        endDate: new Date('2024-01-31'),
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -70,7 +70,7 @@ describe('Calendar Bills API', () => {
         id: 'bill-1',
         name: 'Rent',
         category: 'Housing',
-        amount: -500
+        amount: -500,
       });
     });
 
@@ -87,42 +87,42 @@ describe('Calendar Bills API', () => {
                   date: new Date('2023-12-31'), // Before start date
                   billId: 'bill-1',
                   amount: -500,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   date: new Date('2024-01-15'), // Within range
                   billId: 'bill-2',
                   amount: -300,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   date: new Date('2024-02-01'), // After end date
                   billId: 'bill-3',
                   amount: -200,
-                  isTransfer: false
-                }
+                  isTransfer: false,
+                },
               ],
               bills: [
                 {
                   id: 'bill-1',
-                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Old Bill' }))
+                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Old Bill' })),
                 },
                 {
                   id: 'bill-2',
-                  serialize: vi.fn(() => ({ id: 'bill-2', name: 'Current Bill' }))
+                  serialize: vi.fn(() => ({ id: 'bill-2', name: 'Current Bill' })),
                 },
                 {
                   id: 'bill-3',
-                  serialize: vi.fn(() => ({ id: 'bill-3', name: 'Future Bill' }))
-                }
-              ]
-            }
+                  serialize: vi.fn(() => ({ id: 'bill-3', name: 'Future Bill' })),
+                },
+              ],
+            },
           ],
-          transfers: { bills: [] }
+          transfers: { bills: [] },
         },
         selectedAccounts: [],
         startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-01-31')
+        endDate: new Date('2024-01-31'),
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -146,15 +146,15 @@ describe('Calendar Bills API', () => {
                   date: new Date('2024-01-15'),
                   billId: 'bill-1',
                   amount: -500,
-                  isTransfer: false
-                }
+                  isTransfer: false,
+                },
               ],
               bills: [
                 {
                   id: 'bill-1',
-                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Selected Bill' }))
-                }
-              ]
+                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Selected Bill' })),
+                },
+              ],
             },
             {
               id: 'account-2',
@@ -165,22 +165,22 @@ describe('Calendar Bills API', () => {
                   date: new Date('2024-01-15'),
                   billId: 'bill-2',
                   amount: -300,
-                  isTransfer: false
-                }
+                  isTransfer: false,
+                },
               ],
               bills: [
                 {
                   id: 'bill-2',
-                  serialize: vi.fn(() => ({ id: 'bill-2', name: 'Non-Selected Bill' }))
-                }
-              ]
-            }
+                  serialize: vi.fn(() => ({ id: 'bill-2', name: 'Non-Selected Bill' })),
+                },
+              ],
+            },
           ],
-          transfers: { bills: [] }
+          transfers: { bills: [] },
         },
         selectedAccounts: ['account-1'],
         startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-01-31')
+        endDate: new Date('2024-01-31'),
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -204,15 +204,15 @@ describe('Calendar Bills API', () => {
                   date: new Date('2024-01-15'),
                   billId: 'bill-1',
                   amount: -500,
-                  isTransfer: false
-                }
+                  isTransfer: false,
+                },
               ],
               bills: [
                 {
                   id: 'bill-1',
-                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Visible Bill' }))
-                }
-              ]
+                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Visible Bill' })),
+                },
+              ],
             },
             {
               id: 'account-2',
@@ -223,22 +223,22 @@ describe('Calendar Bills API', () => {
                   date: new Date('2024-01-15'),
                   billId: 'bill-2',
                   amount: -300,
-                  isTransfer: false
-                }
+                  isTransfer: false,
+                },
               ],
               bills: [
                 {
                   id: 'bill-2',
-                  serialize: vi.fn(() => ({ id: 'bill-2', name: 'Hidden Bill' }))
-                }
-              ]
-            }
+                  serialize: vi.fn(() => ({ id: 'bill-2', name: 'Hidden Bill' })),
+                },
+              ],
+            },
           ],
-          transfers: { bills: [] }
+          transfers: { bills: [] },
         },
         selectedAccounts: [],
         startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-01-31')
+        endDate: new Date('2024-01-31'),
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -262,10 +262,10 @@ describe('Calendar Bills API', () => {
                   date: new Date('2024-01-15'),
                   billId: 'transfer-bill-1',
                   amount: -500, // Negative transfer (outgoing)
-                  isTransfer: true
-                }
+                  isTransfer: true,
+                },
               ],
-              bills: []
+              bills: [],
             },
             {
               id: 'account-2',
@@ -276,11 +276,11 @@ describe('Calendar Bills API', () => {
                   date: new Date('2024-01-15'),
                   billId: 'transfer-bill-1',
                   amount: 500, // Positive transfer (incoming)
-                  isTransfer: true
-                }
+                  isTransfer: true,
+                },
               ],
-              bills: []
-            }
+              bills: [],
+            },
           ],
           transfers: {
             bills: [
@@ -289,15 +289,15 @@ describe('Calendar Bills API', () => {
                 serialize: vi.fn(() => ({
                   id: 'transfer-bill-1',
                   name: 'Monthly Transfer',
-                  category: 'Transfer'
-                }))
-              }
-            ]
-          }
+                  category: 'Transfer',
+                })),
+              },
+            ],
+          },
         },
         selectedAccounts: [],
         startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-01-31')
+        endDate: new Date('2024-01-31'),
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -313,7 +313,7 @@ describe('Calendar Bills API', () => {
         id: 'transfer-bill-1',
         name: 'Monthly Transfer',
         category: 'Transfer',
-        amount: -500
+        amount: -500,
       });
     });
 
@@ -330,28 +330,28 @@ describe('Calendar Bills API', () => {
                   date: new Date('2024-01-15'),
                   billId: null, // No bill ID
                   amount: -100,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   date: new Date('2024-01-15'),
                   billId: 'bill-1',
                   amount: -500,
-                  isTransfer: false
-                }
+                  isTransfer: false,
+                },
               ],
               bills: [
                 {
                   id: 'bill-1',
-                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Valid Bill' }))
-                }
-              ]
-            }
+                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Valid Bill' })),
+                },
+              ],
+            },
           ],
-          transfers: { bills: [] }
+          transfers: { bills: [] },
         },
         selectedAccounts: [],
         startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-01-31')
+        endDate: new Date('2024-01-31'),
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -375,22 +375,22 @@ describe('Calendar Bills API', () => {
                   date: new Date('2023-12-31'), // Outside date range
                   billId: 'bill-1',
                   amount: -500,
-                  isTransfer: false
-                }
+                  isTransfer: false,
+                },
               ],
               bills: [
                 {
                   id: 'bill-1',
-                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Old Bill' }))
-                }
-              ]
-            }
+                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Old Bill' })),
+                },
+              ],
+            },
           ],
-          transfers: { bills: [] }
+          transfers: { bills: [] },
         },
         selectedAccounts: [],
         startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-01-31')
+        endDate: new Date('2024-01-31'),
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -413,25 +413,25 @@ describe('Calendar Bills API', () => {
                   date: new Date('2024-01-15'),
                   billId: 'bill-1',
                   amount: -500,
-                  isTransfer: false
+                  isTransfer: false,
                 },
                 {
                   date: new Date('2024-01-20'),
                   billId: 'bill-2',
                   amount: -300,
-                  isTransfer: false
-                }
+                  isTransfer: false,
+                },
               ],
               bills: [
                 {
                   id: 'bill-1',
-                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Rent' }))
+                  serialize: vi.fn(() => ({ id: 'bill-1', name: 'Rent' })),
                 },
                 {
                   id: 'bill-2',
-                  serialize: vi.fn(() => ({ id: 'bill-2', name: 'Utilities' }))
-                }
-              ]
+                  serialize: vi.fn(() => ({ id: 'bill-2', name: 'Utilities' })),
+                },
+              ],
             },
             {
               id: 'account-2',
@@ -442,22 +442,22 @@ describe('Calendar Bills API', () => {
                   date: new Date('2024-01-25'),
                   billId: 'bill-3',
                   amount: 1000,
-                  isTransfer: false
-                }
+                  isTransfer: false,
+                },
               ],
               bills: [
                 {
                   id: 'bill-3',
-                  serialize: vi.fn(() => ({ id: 'bill-3', name: 'Salary' }))
-                }
-              ]
-            }
+                  serialize: vi.fn(() => ({ id: 'bill-3', name: 'Salary' })),
+                },
+              ],
+            },
           ],
-          transfers: { bills: [] }
+          transfers: { bills: [] },
         },
         selectedAccounts: [],
         startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-01-31')
+        endDate: new Date('2024-01-31'),
       };
 
       mockGetData.mockReturnValue(mockData);
@@ -465,7 +465,7 @@ describe('Calendar Bills API', () => {
       const result = getCalendarBills(mockRequest);
 
       expect(result).toHaveLength(3);
-      expect(result.map(bill => bill.name)).toEqual(['Rent', 'Utilities', 'Salary']);
+      expect(result.map((bill) => bill.name)).toEqual(['Rent', 'Utilities', 'Salary']);
     });
   });
 });

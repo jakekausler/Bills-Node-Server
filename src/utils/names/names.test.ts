@@ -9,8 +9,8 @@ describe('Names Utility', () => {
         accounts: [],
         transfers: {
           activity: [],
-          bills: []
-        }
+          bills: [],
+        },
       };
 
       const result = loadNameCategories(emptyData);
@@ -25,22 +25,18 @@ describe('Names Utility', () => {
               { name: 'Grocery Store', category: 'Food' },
               { name: 'Grocery Store', category: 'Food' },
               { name: 'Grocery Store', category: 'Household' },
-              { name: 'Gas Station', category: 'Transportation' }
+              { name: 'Gas Station', category: 'Transportation' },
             ],
             bills: [
               { name: 'Electric Bill', category: 'Utilities' },
-              { name: 'Electric Bill', category: 'Utilities' }
-            ]
-          } as any
+              { name: 'Electric Bill', category: 'Utilities' },
+            ],
+          } as any,
         ],
         transfers: {
-          activity: [
-            { name: 'Bank Transfer', category: 'Transfer' }
-          ],
-          bills: [
-            { name: 'Rent', category: 'Housing' }
-          ]
-        }
+          activity: [{ name: 'Bank Transfer', category: 'Transfer' }],
+          bills: [{ name: 'Rent', category: 'Housing' }],
+        },
       };
 
       const result = loadNameCategories(mockData);
@@ -50,7 +46,7 @@ describe('Names Utility', () => {
         'Gas Station': 'Transportation',
         'Electric Bill': 'Utilities',
         'Bank Transfer': 'Transfer',
-        'Rent': 'Housing'
+        Rent: 'Housing',
       });
     });
 
@@ -59,17 +55,17 @@ describe('Names Utility', () => {
         accounts: [
           {
             activity: [{ name: 'Coffee Shop', category: 'Food' }],
-            bills: []
+            bills: [],
           } as any,
           {
             activity: [{ name: 'Coffee Shop', category: 'Entertainment' }],
-            bills: []
-          } as any
+            bills: [],
+          } as any,
         ],
         transfers: {
           activity: [],
-          bills: []
-        }
+          bills: [],
+        },
       };
 
       const result = loadNameCategories(mockData);
@@ -84,15 +80,15 @@ describe('Names Utility', () => {
           {
             activity: [
               { name: 'Restaurant', category: 'Food' },
-              { name: 'Restaurant', category: 'Entertainment' }
+              { name: 'Restaurant', category: 'Entertainment' },
             ],
-            bills: []
-          } as any
+            bills: [],
+          } as any,
         ],
         transfers: {
           activity: [],
-          bills: []
-        }
+          bills: [],
+        },
       };
 
       const result = loadNameCategories(mockData);

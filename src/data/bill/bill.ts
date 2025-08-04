@@ -122,7 +122,7 @@ export class Bill {
         amountIsVariable: increaseByIsVariable,
         amountVariable: increaseByVariable,
       } = loadNumberOrVariable(data.increaseBy, data.increaseByIsVariable, data.increaseByVariable, simulation);
-      
+
       this.increaseBy = [true, false].includes(increaseByIsVariable) ? (increaseBy as number) : 0.03;
       this.increaseByIsVariable = [true, false].includes(increaseByIsVariable) ? increaseByIsVariable : true;
       this.increaseByVariable = increaseByVariable || 'INFLATION';
@@ -154,7 +154,7 @@ export class Bill {
       dateIsVariable: startDateIsVariable,
       dateVariable: startDateVariable,
     } = loadDateOrVariable(data.startDate, data.startDateIsVariable, data.startDateVariable, simulation);
-    
+
     this.startDate = startDate;
     this.startDateIsVariable = startDateIsVariable;
     this.startDateVariable = startDateVariable;
@@ -165,7 +165,7 @@ export class Bill {
         dateIsVariable: endDateIsVariable,
         dateVariable: endDateVariable,
       } = loadDateOrVariable(data.endDate, data.endDateIsVariable, data.endDateVariable, simulation);
-      
+
       this.endDate = endDate;
       this.endDateIsVariable = endDateIsVariable;
       this.endDateVariable = endDateVariable;
@@ -187,7 +187,7 @@ export class Bill {
       data.amountVariable,
       simulation,
     );
-    
+
     this.amount = amount;
     this.amountIsVariable = amountIsVariable;
     this.amountVariable = amountVariable;

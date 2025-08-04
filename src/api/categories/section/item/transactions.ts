@@ -4,14 +4,14 @@ import { Activity } from '../../../../data/activity/activity';
 
 /**
  * Retrieves all transactions for a specific category section item
- * 
+ *
  * This endpoint returns a list of all consolidated activities that belong
  * to the specified category section item (e.g., "Food.Groceries"). It handles:
  * - Account filtering (selected accounts and hidden accounts)
  * - Exact category matching (section.item)
  * - Transaction deduplication by ID
  * - Serialization of activity objects for API response
- * 
+ *
  * @param request - Express request object with section and item parameters
  * @returns Array of serialized activity objects for the specific category item
  */

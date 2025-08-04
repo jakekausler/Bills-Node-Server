@@ -64,9 +64,9 @@ describe('Activity', () => {
     it('should generate UUID when id is not provided', () => {
       const dataWithoutId = { ...mockActivityData };
       delete dataWithoutId.id;
-      
+
       const activity = new Activity(dataWithoutId);
-      
+
       expect(activity.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     });
 

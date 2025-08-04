@@ -21,7 +21,7 @@ describe('DependencyGraph', () => {
       graph.addNode('event2', 'event');
       graph.addNode('account1', 'account');
       graph.addNode('account2', 'account');
-      
+
       graph.addDependency('event1', 'account1');
       graph.addDependency('event1', 'account2');
       graph.addDependency('event2', 'account1');
@@ -41,7 +41,7 @@ describe('DependencyGraph', () => {
     it('should not duplicate dependencies', () => {
       graph.addNode('event1', 'event');
       graph.addNode('account1', 'account');
-      
+
       graph.addDependency('event1', 'account1');
       graph.addDependency('event1', 'account1'); // Duplicate
 
@@ -125,20 +125,20 @@ describe('buildDependencyGraph', () => {
   const mockAccount1 = {
     id: 'acc1',
     name: 'Checking',
-    type: 'Checking'
+    type: 'Checking',
   } as Account;
 
   const mockAccount2 = {
     id: 'acc2',
     name: 'Savings',
-    type: 'Savings'
+    type: 'Savings',
   } as Account;
 
   const mockAccount3 = {
     id: 'acc3',
     name: 'IRA',
     type: 'IRA',
-    rmdAccount: 'Checking'
+    rmdAccount: 'Checking',
   } as Account;
 
   it('should build dependency graph for activity events', () => {
@@ -150,8 +150,8 @@ describe('buildDependencyGraph', () => {
         accountId: 'acc1',
         priority: 1,
         cacheable: true,
-        dependencies: []
-      }
+        dependencies: [],
+      },
     ];
 
     const graph = buildDependencyGraph(events, [mockAccount1, mockAccount2]);
@@ -170,7 +170,7 @@ describe('buildDependencyGraph', () => {
       cacheable: true,
       dependencies: [],
       fromAccountId: 'acc1',
-      toAccountId: 'acc2'
+      toAccountId: 'acc2',
     };
 
     const graph = buildDependencyGraph([transferEvent], [mockAccount1, mockAccount2]);
@@ -188,7 +188,7 @@ describe('buildDependencyGraph', () => {
       accountId: 'acc3',
       priority: 1,
       cacheable: true,
-      dependencies: []
+      dependencies: [],
     };
 
     const graph = buildDependencyGraph([rmdEvent], [mockAccount1, mockAccount3]);
@@ -204,7 +204,7 @@ describe('buildDependencyGraph', () => {
       name: 'Checking',
       type: 'Checking',
       performsPulls: true,
-      performsPushes: true
+      performsPushes: true,
     } as Account;
 
     const pushPullEvent: TimelineEvent = {
@@ -214,7 +214,7 @@ describe('buildDependencyGraph', () => {
       accountId: 'acc1',
       priority: 1,
       cacheable: true,
-      dependencies: []
+      dependencies: [],
     };
 
     const graph = buildDependencyGraph([pushPullEvent], [pushPullAccount]);

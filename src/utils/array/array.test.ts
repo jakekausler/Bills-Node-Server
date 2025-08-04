@@ -57,7 +57,7 @@ describe('Array utilities', () => {
         { id: 'duplicate', name: 'First Duplicate', value: 1 },
         { id: 'duplicate', name: 'Second Duplicate', value: 2 },
       ];
-      
+
       const result = getByIdWithIdx(arrayWithDuplicates, 'duplicate');
 
       expect(result.item).toEqual({ id: 'duplicate', name: 'First Duplicate', value: 1 });

@@ -44,8 +44,8 @@ describe('getMoneyMovementChart', () => {
 
     const mockMovement = {
       2024: {
-        'Checking': 50,
-        'Savings': 350,
+        Checking: 50,
+        Savings: 350,
       },
     };
 
@@ -80,7 +80,7 @@ describe('getMoneyMovementChart', () => {
     expect(getMoneyMovement).toHaveBeenCalledWith(
       mockAccountsAndTransfers,
       new Date('2024-01-01'),
-      new Date('2024-12-31')
+      new Date('2024-12-31'),
     );
     expect(getMoneyMovementChartData).toHaveBeenCalledWith(mockMovement);
     expect(result).toEqual(mockChartData);
@@ -117,7 +117,7 @@ describe('getMoneyMovementChart', () => {
     expect(getMoneyMovement).toHaveBeenCalledWith(
       mockAccountsAndTransfers,
       new Date('2024-01-01'),
-      new Date('2024-12-31')
+      new Date('2024-12-31'),
     );
     expect(getMoneyMovementChartData).toHaveBeenCalledWith(mockMovement);
     expect(result).toEqual(mockChartData);
@@ -147,10 +147,10 @@ describe('getMoneyMovementChart', () => {
 
     const mockMovement = {
       2023: {
-        'Investment': 1000,
+        Investment: 1000,
       },
       2024: {
-        'Investment': 750,
+        Investment: 750,
       },
     };
 
@@ -181,7 +181,7 @@ describe('getMoneyMovementChart', () => {
     expect(getMoneyMovement).toHaveBeenCalledWith(
       mockAccountsAndTransfers,
       new Date('2023-01-01'),
-      new Date('2024-12-31')
+      new Date('2024-12-31'),
     );
     expect(getMoneyMovementChartData).toHaveBeenCalledWith(mockMovement);
     expect(result).toEqual(mockChartData);
@@ -267,7 +267,7 @@ describe('getMoneyMovementChart', () => {
     expect(getMoneyMovement).toHaveBeenCalledWith(
       mockAccountsAndTransfers,
       new Date('2024-01-01'),
-      new Date('2024-12-31')
+      new Date('2024-12-31'),
     );
     expect(getMoneyMovementChartData).toHaveBeenCalledWith(mockMovement);
     expect(result).toEqual(mockChartData);

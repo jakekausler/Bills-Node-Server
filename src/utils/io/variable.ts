@@ -11,13 +11,13 @@ const FILE_PATH = 'variables.csv';
 
 /**
  * Loads variables for a specific simulation from the variables.csv file.
- * 
+ *
  * Parses the CSV file and extracts variables for the specified simulation,
  * converting string values to their appropriate types (date, number, string).
- * 
+ *
  * @param simulation - Name of the simulation to load variables for
  * @returns Variables object with typed values
- * 
+ *
  * @example
  * ```typescript
  * const variables = loadVariables('Base Scenario');
@@ -44,13 +44,13 @@ export function loadVariables(simulation: string): Variables {
 
 /**
  * Saves variables for all simulations to the variables.csv file.
- * 
+ *
  * Creates a CSV file with variables as rows and simulations as columns.
  * Handles backup creation and proper formatting of different data types.
  * Date values are formatted using formatDate utility.
- * 
+ *
  * @param simulations - Array of simulation objects containing variables
- * 
+ *
  * @example
  * ```typescript
  * const simulations = [

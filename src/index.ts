@@ -78,6 +78,8 @@ const isTokenValid = (token?: string) => {
 };
 
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+  // next();
+  // return;
   const token = req.headers.authorization;
   const userId = isTokenValid(token);
   if (!userId) {
@@ -218,9 +220,13 @@ app.get('/api/accounts/:accountId/consolidated_activity', verifyToken, async (re
   res.json(await getConsolidatedActivity(req));
 });
 
-app.get('/api/accounts/:accountId/consolidated_activity/:activityId', verifyToken, async (req: Request, res: Response) => {
-  res.json(await getSpecificConsolidatedActivity(req));
-});
+app.get(
+  '/api/accounts/:accountId/consolidated_activity/:activityId',
+  verifyToken,
+  async (req: Request, res: Response) => {
+    res.json(await getSpecificConsolidatedActivity(req));
+  },
+);
 
 // Category routes
 app

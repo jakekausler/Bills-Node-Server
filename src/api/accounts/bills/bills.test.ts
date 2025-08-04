@@ -20,25 +20,25 @@ const mockBillConstructor = vi.mocked(Bill);
 // Mock classes
 const mockBillInstance = {
   id: 'bill-123',
-  serialize: vi.fn(() => ({ id: 'bill-123', name: 'Test Bill' }))
+  serialize: vi.fn(() => ({ id: 'bill-123', name: 'Test Bill' })),
 };
 
 const mockAccount = {
-  bills: [mockBillInstance]
+  bills: [mockBillInstance],
 };
 
 const mockData = {
   accountsAndTransfers: {
     accounts: [mockAccount],
     transfers: {
-      bills: []
-    }
+      bills: [],
+    },
   },
-  simulation: 'test-sim'
+  simulation: 'test-sim',
 };
 
 const mockRequest = {
-  params: { accountId: 'account-123' }
+  params: { accountId: 'account-123' },
 } as unknown as Request;
 
 describe('Bills API', () => {
@@ -72,15 +72,15 @@ describe('Bills API', () => {
     const mockBillData = {
       data: {
         name: 'New Bill',
-        isTransfer: false
+        isTransfer: false,
       },
       accountsAndTransfers: mockData.accountsAndTransfers,
-      simulation: 'test-sim'
+      simulation: 'test-sim',
     };
 
     beforeEach(() => {
       // Mock Bill constructor
-      mockBillConstructor.mockImplementation(() => ({ id: 'new-bill-123' } as any));
+      mockBillConstructor.mockImplementation(() => ({ id: 'new-bill-123' }) as any);
     });
 
     it('should add bill to account when not a transfer', () => {
@@ -97,7 +97,7 @@ describe('Bills API', () => {
     it('should add bill to transfers when isTransfer is true', () => {
       const transferBillData = {
         ...mockBillData,
-        data: { ...mockBillData.data, isTransfer: true }
+        data: { ...mockBillData.data, isTransfer: true },
       };
       mockGetData.mockReturnValue(transferBillData);
 

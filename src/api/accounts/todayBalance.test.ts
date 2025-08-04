@@ -36,14 +36,14 @@ describe('getTodayBalance', () => {
 
     vi.mocked(getData).mockReturnValue(mockData as any);
     vi.mocked(getById).mockReturnValue(mockAccount as any);
-    vi.mocked(todayBalance).mockReturnValue(1250.50);
+    vi.mocked(todayBalance).mockReturnValue(1250.5);
 
     const result = getTodayBalance(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-1');
     expect(todayBalance).toHaveBeenCalledWith(mockAccount);
-    expect(result).toBe(1250.50);
+    expect(result).toBe(1250.5);
   });
 
   it('should handle different account types', () => {
@@ -157,10 +157,10 @@ describe('getTodayBalance', () => {
 
     const mockRequest = createMockRequest({
       params: { accountId: 'account-1' },
-      query: { 
+      query: {
         startDate: '2024-01-01',
         endDate: '2024-12-31',
-        simulation: 'TestSim'
+        simulation: 'TestSim',
       },
     });
 

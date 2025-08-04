@@ -88,9 +88,9 @@ describe('Bill', () => {
     it('should generate UUID when id is not provided', () => {
       const dataWithoutId = { ...mockBillData };
       delete dataWithoutId.id;
-      
+
       const bill = new Bill(dataWithoutId);
-      
+
       expect(bill.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     });
 
@@ -222,7 +222,7 @@ describe('Bill', () => {
         ...mockBillData,
         increaseByDate: '03/15',
       });
-      
+
       const serialized = bill.serialize();
 
       expect(serialized.increaseByDate).toBe('03/15');
@@ -258,7 +258,7 @@ describe('Bill', () => {
         ...mockBillData,
         annualStartDate: '03/01',
       });
-      
+
       const testDate = new Date('2023-02-15'); // Before annual start
 
       const result = billWithAnnualStart.checkAnnualDates(testDate);
@@ -273,7 +273,7 @@ describe('Bill', () => {
         ...mockBillData,
         annualEndDate: '10/31',
       });
-      
+
       const testDate = new Date('2023-11-15'); // After annual end
 
       const result = billWithAnnualEnd.checkAnnualDates(testDate);
@@ -291,7 +291,7 @@ describe('Bill', () => {
         periods: 'day',
         everyN: 7,
       });
-      
+
       const originalDate = new Date(bill.startDate);
       bill.advance();
 
@@ -307,7 +307,7 @@ describe('Bill', () => {
         periods: 'week',
         everyN: 2,
       });
-      
+
       const originalDate = new Date(bill.startDate);
       bill.advance();
 
@@ -323,7 +323,7 @@ describe('Bill', () => {
         periods: 'month',
         everyN: 1,
       });
-      
+
       const originalMonth = bill.startDate.getMonth();
       bill.advance();
 
@@ -336,7 +336,7 @@ describe('Bill', () => {
         periods: 'year',
         everyN: 1,
       });
-      
+
       const originalYear = bill.startDate.getFullYear();
       bill.advance();
 

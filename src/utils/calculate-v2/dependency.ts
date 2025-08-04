@@ -1,6 +1,6 @@
 /**
  * Dependency tracking system for optimized calculation ordering
- * 
+ *
  * This module manages dependencies between accounts, events, and calculations
  * to enable parallel processing and minimize recalculation when data changes.
  */
@@ -25,7 +25,7 @@ export class DependencyGraph {
       dependencies: new Set(),
       dependents: new Set(),
       priority,
-      processed: false
+      processed: false,
     };
 
     this.nodes.set(id, node);
@@ -74,7 +74,7 @@ export class DependencyGraph {
    * Gets all nodes of a specific type
    */
   getNodesByType(type: 'account' | 'event' | 'segment'): DependencyNode[] {
-    return Array.from(this.nodes.values()).filter(node => node.type === type);
+    return Array.from(this.nodes.values()).filter((node) => node.type === type);
   }
 
   /**
@@ -141,8 +141,7 @@ export class DependencyGraph {
 
       if (readyNodes.length === 0) {
         // Check for circular dependencies
-        const unprocessed = Array.from(this.nodes.keys())
-          .filter(id => !this.processedNodes.has(id));
+        const unprocessed = Array.from(this.nodes.keys()).filter((id) => !this.processedNodes.has(id));
 
         if (unprocessed.length > 0) {
           throw new Error(`Circular dependency detected involving nodes: ${unprocessed.join(', ')}`);
@@ -171,8 +170,7 @@ export class DependencyGraph {
       const readyNodes = this.getReadyNodes();
 
       if (readyNodes.length === 0) {
-        const unprocessed = Array.from(this.nodes.keys())
-          .filter(id => !this.processedNodes.has(id));
+        const unprocessed = Array.from(this.nodes.keys()).filter((id) => !this.processedNodes.has(id));
 
         if (unprocessed.length > 0) {
           throw new Error(`Circular dependency detected involving nodes: ${unprocessed.join(', ')}`);
@@ -180,7 +178,7 @@ export class DependencyGraph {
         break;
       }
 
-      const batch = readyNodes.map(node => node.id);
+      const batch = readyNodes.map((node) => node.id);
       batches.push(batch);
 
       // Mark all nodes in this batch as processed
@@ -290,7 +288,7 @@ export class DependencyGraph {
 
     return {
       valid: cycles.length === 0,
-      cycles
+      cycles,
     };
   }
 
@@ -314,15 +312,15 @@ export class DependencyGraph {
 
     const maxDepth = this.calculateMaxDependencyDepth();
     const batches = this.getParallelProcessingBatches();
-    const avgBatchSize = batches.length > 0 ?
-      batches.reduce((sum, batch) => sum + batch.length, 0) / batches.length : 0;
+    const avgBatchSize =
+      batches.length > 0 ? batches.reduce((sum, batch) => sum + batch.length, 0) / batches.length : 0;
 
     return {
       totalNodes: this.nodes.size,
       nodesByType,
       totalDependencies,
       maxDependencyDepth: maxDepth,
-      parallelizationFactor: avgBatchSize
+      parallelizationFactor: avgBatchSize,
     };
   }
 
@@ -404,10 +402,7 @@ export class DependencyGraph {
 /**
  * Builds a dependency graph from timeline events and accounts
  */
-export function buildDependencyGraph(
-  events: TimelineEvent[],
-  accounts: Account[]
-): DependencyGraph {
+export function buildDependencyGraph(events: TimelineEvent[], accounts: Account[]): DependencyGraph {
   const graph = new DependencyGraph();
 
   // Add account nodes
@@ -467,11 +462,7 @@ function getEventPriority(event: TimelineEvent): number {
 /**
  * Adds type-specific dependencies for events
  */
-function addTypeSpecificDependencies(
-  graph: DependencyGraph,
-  event: TimelineEvent,
-  accounts: Account[]
-): void {
+function addTypeSpecificDependencies(graph: DependencyGraph, event: TimelineEvent, accounts: Account[]): void {
   switch (event.type) {
     case EventType.transfer:
       // Transfer events depend on both source and destination accounts
@@ -485,13 +476,12 @@ function addTypeSpecificDependencies(
     case EventType.pushPullCheck:
       // Push/pull checks depend on all checking accounts and their push/pull targets
       for (const account of accounts) {
-        if (account.type === 'Checking' &&
-          (account.performsPulls || account.performsPushes)) {
+        if (account.type === 'Checking' && (account.performsPulls || account.performsPushes)) {
           graph.addDependency(event.id, account.id);
 
           // Add dependency on push account if it exists
           if (account.pushAccount) {
-            const pushAccount = accounts.find(a => a.name === account.pushAccount);
+            const pushAccount = accounts.find((a) => a.name === account.pushAccount);
             if (pushAccount) {
               graph.addDependency(event.id, pushAccount.id);
             }
@@ -514,7 +504,7 @@ function addTypeSpecificDependencies(
           graph.addDependency(event.id, account.id);
           // Also depend on the account where RMD is transferred to
           if (account.rmdAccount) {
-            const targetAccount = accounts.find(acc => acc.name === account.rmdAccount);
+            const targetAccount = accounts.find((acc) => acc.name === account.rmdAccount);
             if (targetAccount) {
               graph.addDependency(event.id, targetAccount.id);
             }
@@ -561,10 +551,7 @@ export function optimizeDependencyGraph(graph: DependencyGraph): void {
 /**
  * Identifies accounts that can be calculated independently
  */
-export function findIndependentAccounts(
-  graph: DependencyGraph,
-  accounts: Account[]
-): Account[][] {
+export function findIndependentAccounts(graph: DependencyGraph, accounts: Account[]): Account[][] {
   const accountGroups: Account[][] = [];
   const processedAccounts = new Set<string>();
 
@@ -597,7 +584,7 @@ export function findIndependentAccounts(
     addRelatedAccounts(account.id);
 
     // Create a group with all related accounts
-    const group = accounts.filter(acc => relatedAccountIds.has(acc.id));
+    const group = accounts.filter((acc) => relatedAccountIds.has(acc.id));
     if (group.length > 0) {
       accountGroups.push(group);
 

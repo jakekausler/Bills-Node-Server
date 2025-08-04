@@ -13,12 +13,12 @@ const mockLoadPensionsAndSocialSecurity = vi.mocked(loadPensionsAndSocialSecurit
 
 const mockAccountsData = {
   accounts: [],
-  transfers: { activity: [], bills: [] }
+  transfers: { activity: [], bills: [] },
 };
 
 const mockRetirementData = {
   socialSecurities: [],
-  pensions: []
+  pensions: [],
 };
 
 describe('Request Utility', () => {
@@ -31,7 +31,7 @@ describe('Request Utility', () => {
   describe('getSelectedSimulations', () => {
     it('should return default simulations when query param is not provided', () => {
       const mockRequest = {
-        query: {}
+        query: {},
       } as Request;
       const defaultSimulations = ['Default', 'Conservative'];
 
@@ -43,8 +43,8 @@ describe('Request Utility', () => {
     it('should parse comma-separated simulations from query param', () => {
       const mockRequest = {
         query: {
-          selectedSimulations: 'Aggressive,Conservative,Default'
-        }
+          selectedSimulations: 'Aggressive,Conservative,Default',
+        },
       } as Request;
       const defaultSimulations = ['Default'];
 
@@ -56,8 +56,8 @@ describe('Request Utility', () => {
     it('should handle single simulation in query param', () => {
       const mockRequest = {
         query: {
-          selectedSimulations: 'Custom'
-        }
+          selectedSimulations: 'Custom',
+        },
       } as Request;
       const defaultSimulations = ['Default'];
 
@@ -71,7 +71,7 @@ describe('Request Utility', () => {
     it('should return complete request data with defaults', () => {
       const mockRequest = {
         query: {},
-        body: '{"test": "value"}'
+        body: '{"test": "value"}',
       } as Request;
 
       const result = getData(mockRequest);
@@ -86,7 +86,7 @@ describe('Request Utility', () => {
         accountsAndTransfers: mockAccountsData,
         socialSecurities: [],
         pensions: [],
-        data: { test: 'value' }
+        data: { test: 'value' },
       });
       expect(result.startDate).toBeInstanceOf(Date);
       expect(result.endDate).toBeInstanceOf(Date);
@@ -103,9 +103,9 @@ describe('Request Utility', () => {
           isTransfer: 'true',
           asActivity: 'false',
           skip: 'true',
-          path: 'root.level.deep'
+          path: 'root.level.deep',
         },
-        body: 'raw data'
+        body: 'raw data',
       } as Request;
 
       const result = getData(mockRequest);
@@ -125,9 +125,9 @@ describe('Request Utility', () => {
         query: {
           isTransfer: 'TRUE',
           asActivity: 'False',
-          skip: 'false'
+          skip: 'false',
         },
-        body: ''
+        body: '',
       } as Request;
 
       const result = getData(mockRequest);
@@ -140,21 +140,21 @@ describe('Request Utility', () => {
     it('should parse JSON body when valid', () => {
       const mockRequest = {
         query: {},
-        body: '{"amount": 100, "description": "test transaction"}'
+        body: '{"amount": 100, "description": "test transaction"}',
       } as Request;
 
       const result = getData(mockRequest);
 
       expect(result.data).toEqual({
         amount: 100,
-        description: 'test transaction'
+        description: 'test transaction',
       });
     });
 
     it('should handle non-JSON body gracefully', () => {
       const mockRequest = {
         query: {},
-        body: 'invalid json {'
+        body: 'invalid json {',
       } as Request;
 
       const result = getData(mockRequest);
@@ -165,7 +165,7 @@ describe('Request Utility', () => {
     it('should use custom defaults when provided', () => {
       const mockRequest = {
         query: {},
-        body: ''
+        body: '',
       } as Request;
 
       const customDefaults = {
@@ -177,7 +177,7 @@ describe('Request Utility', () => {
         defaultIsTransfer: true,
         defaultAsActivity: true,
         defaultSkip: true,
-        defaultPath: ['custom', 'path']
+        defaultPath: ['custom', 'path'],
       };
 
       const result = getData(mockRequest, customDefaults);
@@ -195,14 +195,14 @@ describe('Request Utility', () => {
         query: {
           simulation: 'TestSim',
           startDate: '2023-01-01',
-          endDate: '2023-12-31'
+          endDate: '2023-12-31',
         },
-        body: ''
+        body: '',
       } as Request;
 
       const options = {
         updateCache: true,
-        overrideStartDateForCalculations: new Date('2022-01-01')
+        overrideStartDateForCalculations: new Date('2022-01-01'),
       };
 
       getData(mockRequest, undefined, options);
@@ -211,7 +211,7 @@ describe('Request Utility', () => {
         new Date('2022-01-01'), // overrideStartDateForCalculations
         expect.any(Date), // endDate
         'TestSim',
-        true // updateCache
+        true, // updateCache
       );
       expect(mockLoadPensionsAndSocialSecurity).toHaveBeenCalledWith('TestSim');
     });

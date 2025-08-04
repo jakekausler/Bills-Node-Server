@@ -11,12 +11,10 @@ const mockLoadVariable = vi.mocked(loadVariable);
 describe('Pension', () => {
   const mockBenefitRequirements: BenefitRequirement[] = [
     { age: 65, yearsWorked: 30 },
-    { age: 60, yearsWorked: 35 }
+    { age: 60, yearsWorked: 35 },
   ];
 
-  const mockReducedRequirements: BenefitRequirement[] = [
-    { age: 55, yearsWorked: 25 }
-  ];
+  const mockReducedRequirements: BenefitRequirement[] = [{ age: 55, yearsWorked: 25 }];
 
   const mockPensionData: PensionData = {
     name: 'Test Pension Plan',
@@ -35,8 +33,8 @@ describe('Pension', () => {
     accrualFactor: 0.02,
     reducedRateByAgeThenYearsOfService: {
       55: { 25: 0.8, 30: 0.9 },
-      60: { 25: 0.85, 30: 0.95 }
-    }
+      60: { 25: 0.85, 30: 0.95 },
+    },
   };
 
   beforeEach(() => {
@@ -128,7 +126,7 @@ describe('Pension', () => {
 
       expect(pension.reducedRateByAgeThenYearsOfService).toEqual({
         55: { 25: 0.8, 30: 0.9 },
-        60: { 25: 0.85, 30: 0.95 }
+        60: { 25: 0.85, 30: 0.95 },
       });
       // Verify keys are actually numbers
       expect(typeof Object.keys(pension.reducedRateByAgeThenYearsOfService)[0]).toBe('string');
@@ -151,11 +149,11 @@ describe('Pension', () => {
 
   describe('calculateReductionFactor', () => {
     it('should return 1 for unreduced benefits when age and years requirements are met', () => {
-      // Setup for 65 years old with 35 years of service  
+      // Setup for 65 years old with 35 years of service
       vi.clearAllMocks();
       mockLoadVariable
         .mockReturnValueOnce(new Date('2025-01-01T00:00:00Z')) // startDate
-        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate  
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
         .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
 
       const pension = new Pension(mockPensionData);
@@ -172,8 +170,8 @@ describe('Pension', () => {
         reducedRateByAgeThenYearsOfService: {
           55: { 25: 0.8, 30: 0.9 },
           57: { 25: 0.85, 30: 0.95 },
-          60: { 25: 0.85, 30: 0.95 }
-        }
+          60: { 25: 0.85, 30: 0.95 },
+        },
       };
 
       vi.clearAllMocks();
@@ -212,8 +210,8 @@ describe('Pension', () => {
         reducedRequirements: [{ age: 55, yearsWorked: 0 }],
         reducedRateByAgeThenYearsOfService: {
           55: { 0: 0.8 },
-          65: { 0: 1.0 }
-        }
+          65: { 0: 1.0 },
+        },
       };
 
       vi.clearAllMocks();
@@ -231,7 +229,7 @@ describe('Pension', () => {
       const dataWithYearsOnlyRequirement = {
         ...mockPensionData,
         unreducedRequirements: [{ yearsWorked: 35 }], // Only years requirement
-        reducedRequirements: [{ yearsWorked: 25 }]
+        reducedRequirements: [{ yearsWorked: 25 }],
       };
 
       vi.clearAllMocks();
@@ -251,8 +249,8 @@ describe('Pension', () => {
         reducedRequirements: [{ age: 55, yearsWorked: 25 }],
         reducedRateByAgeThenYearsOfService: {
           60: { 25: 0.8, 30: 0.9 },
-          65: { 25: 0.85, 30: 0.95 }
-        }
+          65: { 25: 0.85, 30: 0.95 },
+        },
       };
 
       vi.clearAllMocks();
@@ -308,8 +306,8 @@ describe('Pension', () => {
         accrualFactor: 0.02,
         reducedRateByAgeThenYearsOfService: {
           55: { 25: 0.8, 30: 0.9 },
-          60: { 25: 0.85, 30: 0.95 }
-        }
+          60: { 25: 0.85, 30: 0.95 },
+        },
       });
     });
   });

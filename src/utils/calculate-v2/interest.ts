@@ -486,4 +486,3 @@ export class InterestCalculator {
     }
   }
 }
-

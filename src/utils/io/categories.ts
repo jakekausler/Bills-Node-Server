@@ -5,9 +5,9 @@ const FILE_NAME = 'categories';
 
 /**
  * Loads category configuration from the categories.json file.
- * 
+ *
  * @returns Categories object containing category sections and items
- * 
+ *
  * @example
  * ```typescript
  * const categories = loadCategories();
@@ -23,9 +23,9 @@ export function loadCategories() {
 
 /**
  * Saves category configuration to the categories.json file.
- * 
+ *
  * @param data - Categories object to save
- * 
+ *
  * @example
  * ```typescript
  * const categories = {

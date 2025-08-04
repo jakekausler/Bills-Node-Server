@@ -53,8 +53,8 @@ describe('getCategorySectionBreakdown', () => {
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(result).toEqual({
-      'Groceries': 125,
-      'Restaurants': 50,
+      Groceries: 125,
+      Restaurants: 50,
     });
   });
 
@@ -101,7 +101,7 @@ describe('getCategorySectionBreakdown', () => {
     const result = getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
-      'Groceries': 100,
+      Groceries: 100,
     });
   });
 
@@ -148,7 +148,7 @@ describe('getCategorySectionBreakdown', () => {
     const result = getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
-      'Groceries': 100,
+      Groceries: 100,
     });
   });
 
@@ -185,7 +185,7 @@ describe('getCategorySectionBreakdown', () => {
     const result = getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
-      'Transfer': 100, // Half of 200
+      Transfer: 100, // Half of 200
     });
   });
 
@@ -222,7 +222,7 @@ describe('getCategorySectionBreakdown', () => {
     const result = getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
-      'Transfer': 200, // Full amount
+      Transfer: 200, // Full amount
     });
   });
 
@@ -267,8 +267,8 @@ describe('getCategorySectionBreakdown', () => {
     const result = getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
-      'Groceries': 100,
-      'Restaurants': 25,
+      Groceries: 100,
+      Restaurants: 25,
     });
   });
 
@@ -308,7 +308,7 @@ describe('getCategorySectionBreakdown', () => {
     const result = getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
-      'Groceries': 100,
+      Groceries: 100,
       // 'Refund' should be excluded because it's positive
     });
   });
@@ -387,7 +387,7 @@ describe('getCategorySectionBreakdown', () => {
     const result = getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
-      'Groceries': 25,
+      Groceries: 25,
     });
   });
 });

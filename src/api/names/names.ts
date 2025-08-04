@@ -4,11 +4,11 @@ import { loadNameCategories } from '../../utils/names/names';
 
 /**
  * Retrieves name-to-category mappings based on financial data analysis
- * 
+ *
  * This endpoint analyzes all activities and bills across accounts and transfers
  * to determine the most frequently used category for each transaction name.
  * This is useful for auto-categorization and pattern recognition.
- * 
+ *
  * @param request - Express request object with optional query parameters
  * @returns Object mapping transaction names to their most frequent categories
  */

@@ -9,12 +9,12 @@ const FILE_PATH = 'simulations.json';
 
 /**
  * Loads simulation configurations from storage.
- * 
+ *
  * Reads simulation metadata from simulations.json and loads variables
  * for each simulation from the variables.csv file.
- * 
+ *
  * @returns Array of simulation objects with loaded variables
- * 
+ *
  * @example
  * ```typescript
  * const simulations = loadSimulations();
@@ -49,12 +49,12 @@ export function loadSimulations() {
 
 /**
  * Saves simulation configurations to storage.
- * 
+ *
  * Saves simulation metadata to simulations.json and variables to variables.csv.
  * Also resets the cache after saving.
- * 
+ *
  * @param simulations - Array of simulation objects to save
- * 
+ *
  * @example
  * ```typescript
  * const simulations = [

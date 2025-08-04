@@ -23,11 +23,11 @@ describe('Timeline', () => {
         accountId: 'acc1',
         priority: 1,
         cacheable: true,
-        dependencies: []
+        dependencies: [],
       };
 
       timeline.addEvent(event);
-      
+
       expect(timeline.getAllEvents()).toHaveLength(1);
       expect(timeline.getAllEvents()[0]).toEqual(event);
     });
@@ -40,7 +40,7 @@ describe('Timeline', () => {
         accountId: 'acc1',
         priority: 1,
         cacheable: true,
-        dependencies: []
+        dependencies: [],
       };
 
       const event2: TimelineEvent = {
@@ -50,7 +50,7 @@ describe('Timeline', () => {
         accountId: 'acc2',
         priority: 2,
         cacheable: true,
-        dependencies: []
+        dependencies: [],
       };
 
       timeline.addEvent(event1);
@@ -70,7 +70,7 @@ describe('Timeline', () => {
         accountId: 'acc1',
         priority: 2,
         cacheable: true,
-        dependencies: []
+        dependencies: [],
       };
 
       const event2: TimelineEvent = {
@@ -80,7 +80,7 @@ describe('Timeline', () => {
         accountId: 'acc1',
         priority: 1, // Higher priority (lower number)
         cacheable: true,
-        dependencies: []
+        dependencies: [],
       };
 
       const event3: TimelineEvent = {
@@ -90,13 +90,13 @@ describe('Timeline', () => {
         accountId: 'acc1',
         priority: 1,
         cacheable: true,
-        dependencies: []
+        dependencies: [],
       };
 
       timeline.addEvent(event1);
       timeline.addEvent(event2);
       timeline.addEvent(event3);
-      
+
       timeline.sortEvents();
       const sorted = timeline.getAllEvents();
 
@@ -116,7 +116,7 @@ describe('Timeline', () => {
           accountId: 'acc1',
           priority: 1,
           cacheable: true,
-          dependencies: []
+          dependencies: [],
         },
         {
           id: 'event2',
@@ -125,7 +125,7 @@ describe('Timeline', () => {
           accountId: 'acc2',
           priority: 1,
           cacheable: true,
-          dependencies: []
+          dependencies: [],
         },
         {
           id: 'event3',
@@ -134,28 +134,25 @@ describe('Timeline', () => {
           accountId: 'acc1',
           priority: 1,
           cacheable: true,
-          dependencies: []
-        }
+          dependencies: [],
+        },
       ];
 
-      events.forEach(event => timeline.addEvent(event));
+      events.forEach((event) => timeline.addEvent(event));
     });
 
     it('should get events in date range', () => {
-      const events = timeline.getEventsInRange(
-        new Date('2024-01-01'),
-        new Date('2024-01-31')
-      );
+      const events = timeline.getEventsInRange(new Date('2024-01-01'), new Date('2024-01-31'));
 
       expect(events).toHaveLength(2);
-      expect(events.map(e => e.id)).toEqual(['event1', 'event2']);
+      expect(events.map((e) => e.id)).toEqual(['event1', 'event2']);
     });
 
     it('should get events by account', () => {
       const events = timeline.getEventsByAccount('acc1');
 
       expect(events).toHaveLength(2);
-      expect(events.map(e => e.id)).toEqual(['event1', 'event3']);
+      expect(events.map((e) => e.id)).toEqual(['event1', 'event3']);
     });
 
     it('should get events by type', () => {
@@ -177,7 +174,7 @@ describe('Timeline', () => {
           accountId: 'acc1',
           priority: 1,
           cacheable: true,
-          dependencies: []
+          dependencies: [],
         },
         {
           id: 'feb_event',
@@ -186,7 +183,7 @@ describe('Timeline', () => {
           accountId: 'acc1',
           priority: 1,
           cacheable: true,
-          dependencies: []
+          dependencies: [],
         },
         {
           id: 'mar_event',
@@ -195,11 +192,11 @@ describe('Timeline', () => {
           accountId: 'acc1',
           priority: 1,
           cacheable: true,
-          dependencies: []
-        }
+          dependencies: [],
+        },
       ];
 
-      events.forEach(event => timeline.addEvent(event));
+      events.forEach((event) => timeline.addEvent(event));
     });
 
     it('should create monthly segments', () => {
@@ -210,14 +207,14 @@ describe('Timeline', () => {
       const segments = timeline.getSegments();
 
       expect(segments).toHaveLength(3);
-      
+
       // Check that each segment contains the correct events
       expect(segments[0].events).toHaveLength(1);
       expect(segments[0].events[0].id).toBe('jan_event');
-      
+
       expect(segments[1].events).toHaveLength(1);
       expect(segments[1].events[0].id).toBe('feb_event');
-      
+
       expect(segments[2].events).toHaveLength(1);
       expect(segments[2].events[0].id).toBe('mar_event');
     });
@@ -230,7 +227,7 @@ describe('Timeline', () => {
       const segments = timeline.getSegments();
 
       expect(segments).toHaveLength(4);
-      
+
       // First quarter should contain jan, feb, mar events
       expect(segments[0].events).toHaveLength(3);
     });
@@ -246,11 +243,11 @@ describe('Timeline', () => {
         cacheable: true,
         dependencies: [],
         fromAccountId: 'acc1',
-        toAccountId: 'acc2'
+        toAccountId: 'acc2',
       };
 
       timeline.addEvent(transferEvent);
-      
+
       const startDate = new Date('2024-01-01');
       const endDate = new Date('2024-01-31');
 
@@ -272,7 +269,7 @@ describe('Timeline', () => {
         accountId: 'acc1',
         priority: 1,
         cacheable: true,
-        dependencies: []
+        dependencies: [],
       };
 
       const event2: TimelineEvent = {
@@ -282,14 +279,14 @@ describe('Timeline', () => {
         accountId: 'acc1',
         priority: 1,
         cacheable: true,
-        dependencies: []
+        dependencies: [],
       };
 
       timeline.addEvent(event1);
       timeline.addEvent(event2);
 
       timeline.optimize();
-      
+
       expect(timeline.getAllEvents()).toHaveLength(2); // Both kept for now (may change optimization logic)
     });
   });
