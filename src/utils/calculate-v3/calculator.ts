@@ -300,13 +300,77 @@ export class Calculator {
   }
 
   processPensionEvent(event: PensionEvent, segmentResult: SegmentResult): Map<string, number> {
-    // TODO: Implement
-    return new Map();
+    const pension = event.pension;
+    const accountId = event.accountId;
+    if (event.firstPayment) {
+      this.retirementManager.calculatePensionMonthlyPay(pension);
+    }
+    const amount = this.retirementManager.getPensionMonthlyPay(pension.name);
+
+    // Create consolidated activity for the bill
+    const pensionActivity = new ConsolidatedActivity({
+      id: `PENSION-${pension.name}-${formatDate(event.date)}`,
+      name: pension.name,
+      amount: amount,
+      amountIsVariable: false,
+      amountVariable: null,
+      date: formatDate(event.date),
+      dateIsVariable: false,
+      dateVariable: null,
+      from: null,
+      to: null,
+      isTransfer: false,
+      category: 'Income.Retirement',
+      flag: true,
+      flagColor: 'green',
+    });
+
+    if (!segmentResult.activitiesAdded.has(accountId)) {
+      segmentResult.activitiesAdded.set(accountId, []);
+    }
+    segmentResult.activitiesAdded.get(accountId)?.push(pensionActivity);
+
+    // Update balance in segment result
+    const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+    segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
+    return new Map([[accountId, Number(amount)]]);
   }
 
   processSocialSecurityEvent(event: SocialSecurityEvent, segmentResult: SegmentResult): Map<string, number> {
-    // TODO: Implement
-    return new Map();
+    const socialSecurity = event.socialSecurity;
+    const accountId = event.accountId;
+    if (event.firstPayment) {
+      this.retirementManager.calculateSocialSecurityMonthlyPay(socialSecurity);
+    }
+    const amount = this.retirementManager.getSocialSecurityMonthlyPay(socialSecurity.name);
+
+    // Create consolidated activity for the bill
+    const socialSecurityActivity = new ConsolidatedActivity({
+      id: `SOCIAL-SECURITY-${socialSecurity.name}-${formatDate(event.date)}`,
+      name: socialSecurity.name,
+      amount: amount,
+      amountIsVariable: false,
+      amountVariable: null,
+      date: formatDate(event.date),
+      dateIsVariable: false,
+      dateVariable: null,
+      from: null,
+      to: null,
+      isTransfer: false,
+      category: 'Income.Retirement',
+      flag: true,
+      flagColor: 'green',
+    });
+
+    if (!segmentResult.activitiesAdded.has(accountId)) {
+      segmentResult.activitiesAdded.set(accountId, []);
+    }
+    segmentResult.activitiesAdded.get(accountId)?.push(socialSecurityActivity);
+
+    // Update balance in segment result
+    const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+    segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
+    return new Map([[accountId, Number(amount)]]);
   }
 
   processTaxEvent(event: TaxEvent, segmentResult: SegmentResult): Map<string, number> {

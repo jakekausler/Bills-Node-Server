@@ -120,7 +120,12 @@ export class Engine {
 
     // Initialize balance tracker - use actual start date for processing all historical data
     console.log('Initializing balance tracker...', Date.now() - this.calculationBegin, 'ms');
-    this.balanceTracker = new BalanceTracker(accountsAndTransfers.accounts, this.cache, actualStartDate);
+    this.balanceTracker = new BalanceTracker(
+      accountsAndTransfers.accounts,
+      this.cache,
+      actualStartDate,
+      this.retirementManager,
+    );
 
     // Initialize calculator
     console.log('Initializing calculator...', Date.now() - this.calculationBegin, 'ms');

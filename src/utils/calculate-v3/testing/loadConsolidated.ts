@@ -2,7 +2,7 @@ import { loadData } from '../../io/accountsAndTransfers';
 import { writeFileSync } from 'fs';
 
 async function main(runId: string) {
-  const results = await loadData(new Date('2024-01-01'), new Date('2025-12-31'), 'Default');
+  const results = await loadData(new Date('2024-01-01'), new Date('2070-12-31'), 'Default');
   const file = `testing/consolidatedActivities/results${runId}.json`;
   writeFileSync(
     file,

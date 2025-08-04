@@ -1,9 +1,18 @@
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
+import { formatDate } from '../date/date';
 import { loadAverageWageIndex } from '../io/averageWageIndex';
 import { loadBendPoints } from '../io/bendPoints';
 
 export class RetirementManager {
+  // List of social securities
+  private socialSecurities: SocialSecurity[];
+  // List of pensions
+  private pensions: Pension[];
+  // A map of valid income names to their social security
+  private validIncomeNamesToSocialSecurity: Map<string, SocialSecurity> = new Map();
+  // A map of valid income names to their pension
+  private validIncomeNamesToPension: Map<string, Pension> = new Map();
   // A map of annual incomes for each social security indexed by social security name and year
   private socialSecurityAnnualIncomes: Map<string, Map<number, number>> = new Map();
   // A map of annual incomes for each pension indexed by pension name and year
@@ -14,12 +23,14 @@ export class RetirementManager {
   private pensionMonthlyPay: Map<string, number> = new Map();
 
   constructor(socialSecurities: SocialSecurity[], pensions: Pension[]) {
-    this.initializeSocialSecurity(socialSecurities);
-    this.initializePension(pensions);
+    this.socialSecurities = socialSecurities;
+    this.pensions = pensions;
+    this.initializeSocialSecurity();
+    this.initializePension();
   }
 
-  private initializeSocialSecurity(socialSecurities: SocialSecurity[]) {
-    socialSecurities.forEach((socialSecurity) => {
+  private initializeSocialSecurity() {
+    this.socialSecurities.forEach((socialSecurity) => {
       // Fiil the annual incomes for each year from the minimum year in the data to the docial security start date year
       const minYear = Math.min(...socialSecurity.priorAnnualNetIncomeYears);
       for (let year = minYear; year <= socialSecurity.startDate.getUTCFullYear(); year++) {
@@ -30,11 +41,15 @@ export class RetirementManager {
       }
       // Initialize the monthly pay for this social security
       this.socialSecurityMonthlyPay.set(socialSecurity.name, 0);
+      // Add the social security to the valid income names to social security map
+      socialSecurity.paycheckNames.forEach((paycheckName) => {
+        this.validIncomeNamesToSocialSecurity.set(paycheckName, socialSecurity);
+      });
     });
   }
 
-  private initializePension(pensions: Pension[]) {
-    pensions.forEach((pension) => {
+  private initializePension() {
+    this.pensions.forEach((pension) => {
       // Fill the annual incomes for each year from the minimum year in the data to the pension start date year
       const minYear = Math.min(...pension.priorAnnualNetIncomeYears);
       for (let year = minYear; year <= pension.startDate.getUTCFullYear(); year++) {
@@ -45,7 +60,23 @@ export class RetirementManager {
       }
       // Initialize the monthly pay for this pension
       this.pensionMonthlyPay.set(pension.name, 0);
+      // Add the pension to the valid income names to pension map
+      pension.paycheckNames.forEach((paycheckName) => {
+        this.validIncomeNamesToPension.set(paycheckName, pension);
+      });
     });
+  }
+
+  public tryAddToAnnualIncomes(activityName: string, date: Date, income: number) {
+    this.tryAddSocialSecurityAnnualIncome(activityName, date, income);
+    this.tryAddPensionAnnualIncome(activityName, date, income);
+  }
+
+  private tryAddSocialSecurityAnnualIncome(activityName: string, date: Date, income: number) {
+    const socialSecurity = this.validIncomeNamesToSocialSecurity.get(activityName);
+    if (socialSecurity) {
+      this.addSocialSecurityAnnualIncome(socialSecurity.name, date.getUTCFullYear(), income);
+    }
   }
 
   private addSocialSecurityAnnualIncome(name: string, year: number, income: number) {
@@ -56,6 +87,13 @@ export class RetirementManager {
     // Add the income for the year, summing with any prior balance
     const priorBalance = this.socialSecurityAnnualIncomes.get(name)?.get(year) || 0;
     this.socialSecurityAnnualIncomes.get(name)?.set(year, income + priorBalance);
+  }
+
+  private tryAddPensionAnnualIncome(activityName: string, date: Date, income: number) {
+    const pension = this.validIncomeNamesToPension.get(activityName);
+    if (pension) {
+      this.addPensionAnnualIncome(pension.name, date.getUTCFullYear(), income);
+    }
   }
 
   private addPensionAnnualIncome(name: string, year: number, income: number) {
