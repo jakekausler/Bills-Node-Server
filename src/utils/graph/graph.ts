@@ -24,17 +24,76 @@ const MAX_DAYS_FOR_ACTIVITY = 365 * 10;
  * @param accountsAndTransfers - Complete financial data structure
  * @param startDate - Start date for graph data
  * @param endDate - End date for graph data
+ * @param asOne - Whether to combine all accounts into one dataset
  * @returns Graph data optimized for the date range (yearly for large ranges, daily for smaller ranges)
  */
-export function loadGraph(accountsAndTransfers: AccountsAndTransfers, startDate: Date, endDate: Date): GraphData {
+export function loadGraph(
+  accountsAndTransfers: AccountsAndTransfers,
+  startDate: Date,
+  endDate: Date,
+  asOne: boolean = false,
+): GraphData {
   const minDate = getMinDate(accountsAndTransfers);
   const daySpan = (endDate.getTime() - Math.max(startDate.getTime(), minDate.getTime())) / (1000 * 60 * 60 * 24);
-  
+
   if (daySpan > MAX_DAYS_FOR_ACTIVITY) {
-    return loadYearlyGraph(accountsAndTransfers, startDate, endDate, minDate);
+    const yearlyGraph = loadYearlyGraph(accountsAndTransfers, startDate, endDate, minDate);
+    if (asOne) {
+      yearlyGraph.datasets = combineYearlyDatasets(yearlyGraph.datasets);
+    }
+    return yearlyGraph;
   } else {
-    return loadActivityGraph(accountsAndTransfers, startDate, endDate, minDate);
+    const activityGraph = loadActivityGraph(accountsAndTransfers, startDate, endDate, minDate);
+    if (asOne) {
+      activityGraph.datasets = combineActivityDatasets(activityGraph.datasets);
+    }
+    return activityGraph;
   }
+}
+
+function combineYearlyDatasets(datasets: YearlyDataset[]): YearlyDataset[] {
+  return [
+    {
+      label: 'All Accounts',
+      data: (() => {
+        // If there are no datasets, return empty array
+        if (datasets.length === 0) return [];
+        // Assume all datasets have the same length and matching years in the same order
+        // (as produced by loadYearlyGraph)
+        // We'll sum the values for each year across all datasets
+        const length = datasets[0].data.length;
+        return Array.from({ length }, (_, i) => {
+          // For each index, sum the value from each dataset
+          // Use the year from the first dataset
+          const value = datasets.reduce((sum, d) => sum + (d.data[i] ?? 0), 0);
+          return value;
+        });
+      })(),
+    },
+  ];
+}
+
+function combineActivityDatasets(datasets: ActivityDataset[]): ActivityDataset[] {
+  return [
+    {
+      label: 'All Accounts',
+      data: (() => {
+        // If there are no datasets, return empty array
+        if (datasets.length === 0) return [];
+        // Assume all datasets have the same length and matching years in the same order
+        // (as produced by loadYearlyGraph)
+        // We'll sum the values for each year across all datasets
+        const length = datasets[0].data.length;
+        return Array.from({ length }, (_, i) => {
+          // For each index, sum the value from each dataset
+          // Use the year from the first dataset
+          const value = datasets.reduce((sum, d) => sum + (d.data[i] ?? 0), 0);
+          return value;
+        });
+      })(),
+      activity: datasets.map((d) => d.activity).flat(),
+    },
+  ];
 }
 
 /**
@@ -46,13 +105,13 @@ function initializeYearlyGraphData(accounts: any[]) {
   const yearBalance: YearBalances = {};
   const balanceMap: Record<string, number> = {};
   const idxMap: Record<string, number> = {};
-  
+
   for (const acc of accounts) {
     balanceMap[acc.id] = 0;
     idxMap[acc.id] = 0;
     yearBalance[acc.id] = {};
   }
-  
+
   return { yearBalance, balanceMap, idxMap };
 }
 
@@ -65,7 +124,7 @@ function initializeYearlyGraphData(accounts: any[]) {
  */
 function processAccountActivitiesForDate(account: any, currDate: Date, idxMap: Record<string, number>): number[] {
   const activity: number[] = [];
-  
+
   while (
     idxMap[account.id] < account.consolidatedActivity.length &&
     isSame(account.consolidatedActivity[idxMap[account.id]].date, currDate)
@@ -73,7 +132,7 @@ function processAccountActivitiesForDate(account: any, currDate: Date, idxMap: R
     activity.push(account.consolidatedActivity[idxMap[account.id]].balance);
     idxMap[account.id]++;
   }
-  
+
   return activity;
 }
 
@@ -85,10 +144,10 @@ function processAccountActivitiesForDate(account: any, currDate: Date, idxMap: R
  * @param finalBalance - Final balance from activities
  */
 function updateYearBalance(
-  yearBalance: YearBalances, 
-  accountId: string, 
-  currentYear: number, 
-  finalBalance: number
+  yearBalance: YearBalances,
+  accountId: string,
+  currentYear: number,
+  finalBalance: number,
 ): void {
   if (yearBalance[accountId][currentYear] === null) {
     yearBalance[accountId][currentYear] = [finalBalance, finalBalance];
@@ -115,7 +174,7 @@ function initializeNewYear(
   currentYear: number,
   labels: string[],
   yearBalance: YearBalances,
-  accounts: any[]
+  accounts: any[],
 ): number {
   const newYear = currDate.getFullYear();
   if (newYear !== currentYear) {
@@ -132,7 +191,7 @@ function initializeNewYear(
  * Generates yearly graph data showing account balance trends over years
  * @param accountsAndTransfers - Complete financial data structure
  * @param startDate - Start date for graph data
- * @param endDate - End date for graph data  
+ * @param endDate - End date for graph data
  * @param minDate - Minimum date from all account data
  * @returns Yearly graph data with min/max balances per year
  */
@@ -143,7 +202,7 @@ export function loadYearlyGraph(
   minDate: Date,
 ): YearlyGraphData {
   startTiming('loadYearlyGraph');
-  
+
   const labels: string[] = [];
   let currDate = minDate;
   let currentYear = 0;
@@ -160,18 +219,18 @@ export function loadYearlyGraph(
     // Process each account for the current date
     for (const acc of accountsAndTransfers.accounts) {
       const activities = processAccountActivitiesForDate(acc, currDate, idxMap);
-      
+
       if (activities.length > 0) {
         const finalBalance = activities[activities.length - 1];
         updateYearBalance(yearBalance, acc.id, currentYear, finalBalance);
       }
     }
-    
+
     currDate = dayjs.utc(currDate).add(1, 'day').toDate();
   }
 
   // Build datasets with minimum balances for each year
-  const datasets: YearlyDataset[] = accountsAndTransfers.accounts.map(acc => ({
+  const datasets: YearlyDataset[] = accountsAndTransfers.accounts.map((acc) => ({
     label: acc.name,
     data: Object.values(yearBalance[acc.id]).map((year) => (year ? year[0] : 0)),
   }));
@@ -214,10 +273,10 @@ function processAccountActivitiesForActivityGraph(
   account: any,
   currDate: Date,
   idxMap: Record<string, number>,
-  balanceMap: Record<string, number>
+  balanceMap: Record<string, number>,
 ): ActivityNameAndAmount[] {
   const activity: ActivityNameAndAmount[] = [];
-  
+
   while (
     idxMap[account.id] < account.consolidatedActivity.length &&
     isSame(account.consolidatedActivity[idxMap[account.id]].date, currDate)
@@ -230,7 +289,7 @@ function processAccountActivitiesForActivityGraph(
     balanceMap[account.id] = Math.round(currentActivity.balance * 100) / 100;
     idxMap[account.id]++;
   }
-  
+
   return activity;
 }
 
@@ -247,7 +306,7 @@ function removeEmptyDays(labels: string[], datasets: ActivityDataset[]): void {
       toRemove.push(i);
     }
   }
-  
+
   // Remove empty days in reverse order to maintain indices
   for (let i = toRemove.length - 1; i >= 0; i--) {
     labels.splice(toRemove[i], 1);
@@ -256,7 +315,7 @@ function removeEmptyDays(labels: string[], datasets: ActivityDataset[]): void {
       dataset.activity.splice(toRemove[i], 1);
     }
   }
-  
+
   // Remove the first day if it's empty and there are other days
   if (labels.length > 1 && datasets[0].activity[0].length === 0) {
     labels.shift();
@@ -299,11 +358,11 @@ function loadActivityGraph(
       datasets[index].data.push(balanceMap[acc.id]);
       datasets[index].activity.push(activity);
     });
-    
+
     currDate = dayjs.utc(currDate).add(1, 'day').toDate();
   }
 
   removeEmptyDays(labels, datasets);
-  
+
   return { type: 'activity', labels, datasets };
 }

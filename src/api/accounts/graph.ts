@@ -13,7 +13,12 @@ import { GraphData } from '../../utils/graph/types';
 export async function getAccountGraph(request: Request) {
   const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
-  return loadGraph({ accounts: [account], transfers: { activity: [], bills: [] } }, data.startDate, data.endDate);
+  return loadGraph(
+    { accounts: [account], transfers: { activity: [], bills: [] } },
+    data.startDate,
+    data.endDate,
+    data.combineGraphAccounts,
+  );
 }
 
 /**
@@ -31,14 +36,16 @@ export async function getGraphForAccounts(request: Request) {
     const selectedAccounts = data.selectedAccounts;
 
     // Use selected accounts or all non-hidden accounts if none specified
-    const accounts = selectedAccounts.length > 0
-      ? selectedAccounts.map((accountId: string) => getById<Account>(data.accountsAndTransfers.accounts, accountId))
-      : data.accountsAndTransfers.accounts.filter((account: Account) => !account.hidden);
+    const accounts =
+      selectedAccounts.length > 0
+        ? selectedAccounts.map((accountId: string) => getById<Account>(data.accountsAndTransfers.accounts, accountId))
+        : data.accountsAndTransfers.accounts.filter((account: Account) => !account.hidden);
 
     simulationGraphs[simulation] = loadGraph(
       { accounts, transfers: { activity: [], bills: [] } },
       data.startDate,
       data.endDate,
+      data.combineGraphAccounts,
     );
   }
 

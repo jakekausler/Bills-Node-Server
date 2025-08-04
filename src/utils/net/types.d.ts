@@ -12,6 +12,7 @@ export type DefaultData = {
   defaultAsActivity: boolean;
   defaultSkip: boolean;
   defaultPath: string[];
+  defaultCombineGraphAccounts: boolean;
 };
 
 export type PartialDefaultData = Partial<DefaultData>;
@@ -29,6 +30,7 @@ export type RequestData<T = undefined> = {
   selectedSimulations: string[];
   isTransfer: boolean;
   skip: boolean;
+  combineGraphAccounts: boolean;
   accountsAndTransfers: AccountsAndTransfers;
   asActivity: boolean;
   data: T;

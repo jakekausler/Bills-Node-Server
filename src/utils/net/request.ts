@@ -103,6 +103,19 @@ function getSkip(request: Request, defaultSkip: boolean): boolean {
 }
 
 /**
+ * Extracts combine graph accounts flag from request query parameters
+ * @param request - Express request object
+ * @param defaultCombineGraphAccounts - Default combine graph accounts flag to use if none specified
+ * @returns Boolean indicating if graph accounts should be combined
+ */
+function getCombineGraphAccounts(request: Request, defaultCombineGraphAccounts: boolean): boolean {
+  if (!request.query.combineGraphAccounts) {
+    return defaultCombineGraphAccounts;
+  }
+  return (request.query.combineGraphAccounts as string).toLowerCase() === 'true';
+}
+
+/**
  * Extracts path array from request query parameters
  * @param request - Express request object
  * @param defaultPath - Default path to use if none specified
@@ -139,6 +152,7 @@ export async function getData<T>(
     defaultAsActivity: false,
     defaultSkip: false,
     defaultPath: [],
+    defaultCombineGraphAccounts: false,
     ...defaults,
   };
   const simulation = getSimulation(request, fullDefaults.defaultSimulation);
@@ -148,6 +162,7 @@ export async function getData<T>(
   const selectedSimulations = getSelectedSimulations(request, fullDefaults.defaultSelectedSimulations);
   const isTransfer = getIsTransfer(request, fullDefaults.defaultIsTransfer);
   const skip = getSkip(request, fullDefaults.defaultSkip);
+  const combineGraphAccounts = getCombineGraphAccounts(request, fullDefaults.defaultCombineGraphAccounts);
   const accountsAndTransfers = await loadData(
     options.overrideStartDateForCalculations || startDate,
     endDate,
@@ -172,6 +187,7 @@ export async function getData<T>(
     selectedSimulations,
     isTransfer,
     skip,
+    combineGraphAccounts,
     accountsAndTransfers,
     asActivity,
     data,
