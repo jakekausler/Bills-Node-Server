@@ -62,6 +62,11 @@ The system tests 5 comprehensive scenarios covering different time ranges:
 - `extended_projection`: 2025-05-19 to 2035-07-19
 - `far_future_projection`: 2045-07-19 to 2075-07-19
 
+# Notes on Accuracy Comparison
+
+- Some activities on the same date may be in different orders between the original and calculate-v2 results. The order of activities is not significant as long as they are on the same date. This might lead to balance differences, but the balance at the end of the date should match.
+- Some transfers may have different amounts, since they are processed in a slightly different order than the original.
+
 # Logging ans Debugging
 
 You can use the logging utility in this folder to log messages and debug information. Available functions are `debug`, `log`, `warn`, and `error`. Each of these functions takes multiple string arguments and an optional final argument that can be an object. When processed through the `log-reader`, the messages will be formatted as follows:
@@ -74,6 +79,8 @@ The scenario can be run and logs filtered sucinctly using a command similar to t
 ```bash
 npx tsx accuracy-comparison/accuracy-comparison.ts 2>&1 | tee /tmp/log && bat --plain /tmp/log | npx tsx accuracy-comparison/log-reader.ts --color="never" "DEBUG.*calculate.*prop1"
 ```
+
+Prefer using your typescript-lsp mcp to navigate and debug the code, as it will be easier to find references and definitions than using grep.
 
 Memories:
 - As results improve, commit the new changes

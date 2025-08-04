@@ -13,7 +13,7 @@ import { BalanceSnapshot, InterestState, CalculationAccount } from './types';
 import { CacheManager } from './cache';
 import { Account } from '../../data/account/account';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
-import { debug, err, warn } from './logger';
+import { debug, err, log, warn } from './logger';
 import { formatDate } from '../date/date';
 
 dayjs.extend(utc);
@@ -295,6 +295,49 @@ export class BalanceTracker {
     }
 
     return null;
+  }
+
+  /**
+   * Adds a retroactive activity to an account's consolidatedActivity array
+   * This is used when retroactive push-pull activities are inserted
+   */
+  addActivityToAccount(accountId: string, activity: ConsolidatedActivity): void {
+    debug('[BalanceTracker]', 'Adding retroactive activity to account', {
+      accountId,
+      activityId: activity.id,
+      activityName: activity.name,
+      amount: activity.amount,
+      date: activity.date,
+    });
+
+    const account = this.accounts.find((acc) => acc.id === accountId);
+    if (!account) {
+      warn('[BalanceTracker]', 'Account not found for retroactive activity', { accountId });
+      return;
+    }
+
+    // Initialize consolidatedActivity if it doesn't exist
+    if (!account.consolidatedActivity) {
+      account.consolidatedActivity = [];
+    }
+
+    // Insert the activity in chronological order
+    const activityDate = new Date(activity.date);
+    let insertIndex = account.consolidatedActivity.findIndex((existing) => new Date(existing.date) > activityDate);
+
+    if (insertIndex === -1) {
+      // Insert at the end if no later activity found
+      insertIndex = account.consolidatedActivity.length;
+    }
+
+    account.consolidatedActivity.splice(insertIndex, 0, activity);
+
+    log('[BalanceTracker]', 'Successfully added retroactive activity to account', {
+      accountId,
+      activityName: activity.name,
+      insertIndex,
+      totalActivities: account.consolidatedActivity.length,
+    });
   }
 
   /**

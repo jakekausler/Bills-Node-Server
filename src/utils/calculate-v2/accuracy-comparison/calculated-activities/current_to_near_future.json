@@ -22,7 +22,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 5775.58
+        "balance": 40020.23
       },
       {
         "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1752883200000-FROM",
@@ -43,7 +43,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4890.58
+        "balance": 39135.23
       },
       {
         "id": "d82dc889-bfd7-4940-afeb-a17f781703a4",
@@ -64,7 +64,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4880.58
+        "balance": 39125.23
       },
       {
         "id": "1d23f1ef-d035-4976-96b6-b953a7ffa80e",
@@ -85,7 +85,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4700.58
+        "balance": 38945.23
       },
       {
         "id": "TRANSFER-4645420d-4ac3-48f0-9a44-7641199ca61c-1753660800000-FROM",
@@ -106,7 +106,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 2328.95
+        "balance": 36573.6
       },
       {
         "id": "be3dbf9c-3f61-4661-90d7-b17a4274e877",
@@ -127,7 +127,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3768.95
+        "balance": 38013.6
       },
       {
         "id": "6489179f-a8b2-4384-9564-02c9cacd29d2",
@@ -148,7 +148,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3668.95
+        "balance": 37913.6
       },
       {
         "id": "46c755c7-4961-4d01-a374-eb97edb25bf5",
@@ -169,7 +169,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3643.95
+        "balance": 37888.6
       },
       {
         "id": "afc47479-e2a4-4f59-86f3-163cb2d0d411",
@@ -190,7 +190,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3642.95
+        "balance": 37887.6
       },
       {
         "id": "be3dbf9c-3f61-4661-90d7-b17a4274e877",
@@ -211,7 +211,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 5082.95
+        "balance": 39327.6
       },
       {
         "id": "6489179f-a8b2-4384-9564-02c9cacd29d2",
@@ -232,7 +232,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4982.95
+        "balance": 39227.6
       },
       {
         "id": "cce39f97-834a-474a-b93a-5dba4e963b41",
@@ -253,7 +253,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4971.95
+        "balance": 39216.6
       },
       {
         "id": "TRANSFER-0a9afe14-1609-426a-9aac-1dbff0a31a3f-1755561600000-FROM",
@@ -274,10 +274,10 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4086.95
+        "balance": 38331.6
       }
     ],
-    "balance": 4086.9499999999985
+    "balance": 38331.600000000006
   },
   "f2eba978-1ba4-40da-87eb-7671e73c0ad0": {
     "id": "f2eba978-1ba4-40da-87eb-7671e73c0ad0",
@@ -302,7 +302,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 11595.69
+        "balance": 12596.91
       },
       {
         "id": "TRANSFER-46d51036-f4b1-412d-84f7-270738800da0-1753574400000-FROM",
@@ -323,7 +323,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 9224.06
+        "balance": 10225.28
       },
       {
         "id": "2b3ec713-c7bd-492f-b958-0f8a01d97025",
@@ -344,7 +344,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 10174.06
+        "balance": 11175.28
       },
       {
         "id": "171a8774-f86f-48e3-930a-903321fd198f",
@@ -365,7 +365,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4174.06
+        "balance": 5175.28
       },
       {
         "id": "52862d96-9d70-4748-8618-587fcd21b06e",
@@ -386,7 +386,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4174.06
+        "balance": 5175.28
       },
       {
         "id": "62225af1-16d2-4543-bb22-754375e22fe1",
@@ -407,7 +407,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4134.06
+        "balance": 5135.28
       },
       {
         "id": "TRANSFER-f324322c-a3e2-4e07-bffb-a0e3cdd98328-1754006400000-FROM",
@@ -428,7 +428,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 34.06
+        "balance": 1035.28
       },
       {
         "id": "977cbb1b-1171-4438-a977-c4f418800486",
@@ -449,7 +449,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 4.11
+        "balance": 1005.33
       },
       {
         "id": "7cca8bb6-9661-4792-adc5-1f0d1c7eb258",
@@ -470,7 +470,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 2995.17
+        "balance": 3996.39
       },
       {
         "id": "82a02207-d488-4d90-8ef3-4dd238a3ca87",
@@ -491,7 +491,7 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 2845.03
+        "balance": 3846.25
       },
       {
         "id": "2b3ec713-c7bd-492f-b958-0f8a01d97025",
@@ -512,10 +512,10 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 3795.03
+        "balance": 4796.25
       }
     ],
-    "balance": 3795.0299999999997
+    "balance": 4796.250000000023
   },
   "a458bdf3-8d66-4769-b40c-516b38028d75": {
     "id": "a458bdf3-8d66-4769-b40c-516b38028d75",
@@ -705,7 +705,7 @@
         "isTransfer": false,
         "fro": null,
         "to": null,
-        "amount": 1.69,
+        "amount": -27.69,
         "amountIsVariable": false,
         "amountVariable": null,
         "date": "2025-07-28",
@@ -715,10 +715,10 @@
         "firstBill": false,
         "interestId": null,
         "firstInterest": false,
-        "balance": 2025
+        "balance": -33250.25
       }
     ],
-    "balance": 2024.9960916666666
+    "balance": -33250.245466666674
   },
   "a9d6dfc1-493c-4b25-a734-dde33ee97b68": {
     "id": "a9d6dfc1-493c-4b25-a734-dde33ee97b68",

@@ -610,4 +610,3 @@ export function createEventKey(eventType: string, accountId: string, date: Date,
 
   return parts.join('_');
 }
-

@@ -1,44 +1,44 @@
 {
   "totalComparisons": 54,
-  "successfulComparisons": 40,
-  "failedComparisons": 0,
-  "significantDiscrepancies": 14,
+  "successfulComparisons": 42,
+  "failedComparisons": 1,
+  "significantDiscrepancies": 12,
   "scenarios": [
     {
       "scenario": "historical_to_current",
       "comparisons": 18,
-      "successful": 15,
-      "failed": 0,
-      "discrepancies": 3,
-      "avgBalanceDiff": 421.73722222224353,
-      "avgActivityCountDiff": 1.1666666666666667
+      "successful": 14,
+      "failed": 1,
+      "discrepancies": 4,
+      "avgBalanceDiff": 4149.075000000023,
+      "avgActivityCountDiff": 66.66666666666667
     },
     {
       "scenario": "current_to_near_future",
       "comparisons": 18,
-      "successful": 13,
+      "successful": 15,
       "failed": 0,
-      "discrepancies": 5,
-      "avgBalanceDiff": 290.4816500578925,
-      "avgActivityCountDiff": 1
+      "discrepancies": 3,
+      "avgBalanceDiff": 3917.840944520856,
+      "avgActivityCountDiff": 0
     },
     {
       "scenario": "recent_to_medium_term",
       "comparisons": 18,
-      "successful": 12,
+      "successful": 13,
       "failed": 0,
-      "discrepancies": 6,
-      "avgBalanceDiff": 2541.4564836015584,
-      "avgActivityCountDiff": 1.5
+      "discrepancies": 5,
+      "avgBalanceDiff": 4396.463078779437,
+      "avgActivityCountDiff": 0.6666666666666666
     }
   ],
   "accounts": [
     {
       "accountName": "Kendall",
       "comparisons": 3,
-      "successful": 1,
+      "successful": 0,
       "failed": 0,
-      "discrepancies": 2
+      "discrepancies": 3
     },
     {
       "accountName": "Jake",
@@ -50,16 +50,16 @@
     {
       "accountName": "Spending",
       "comparisons": 3,
-      "successful": 1,
+      "successful": 3,
       "failed": 0,
-      "discrepancies": 2
+      "discrepancies": 0
     },
     {
       "accountName": "Emergency",
       "comparisons": 3,
-      "successful": 3,
+      "successful": 0,
       "failed": 0,
-      "discrepancies": 0
+      "discrepancies": 3
     },
     {
       "accountName": "Vacation",
@@ -92,16 +92,16 @@
     {
       "accountName": "Costco",
       "comparisons": 3,
-      "successful": 0,
-      "failed": 0,
-      "discrepancies": 3
+      "successful": 1,
+      "failed": 1,
+      "discrepancies": 2
     },
     {
       "accountName": "REI",
       "comparisons": 3,
-      "successful": 0,
+      "successful": 3,
       "failed": 0,
-      "discrepancies": 3
+      "discrepancies": 0
     },
     {
       "accountName": "WellsFargo",

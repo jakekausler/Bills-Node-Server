@@ -21,6 +21,7 @@ import {
   InterestEvent,
   TransferEvent,
   PushPullEvent,
+  MonthEndCheckEvent,
   PensionEvent,
   SocialSecurityEvent,
   TaxEvent,
@@ -36,6 +37,9 @@ import { BalanceTracker } from './balance-tracker';
 import { SegmentProcessor } from './segments';
 import { Calculator } from './calculator';
 import { SmartPushPullProcessor } from './pushpull';
+import { MonthEndAnalyzer, RequiredTransfer } from './month-end-analyzer';
+import { RetroactiveApplicator, AppliedTransfer } from './retroactive-applicator';
+import { SelectiveRecalculator, RecalculationResult } from './selective-recalculator';
 import { startTiming, endTiming } from '../log';
 import crypto from 'crypto';
 import { debug, err, log, warn } from './logger';
@@ -57,6 +61,9 @@ export class CalculationEngine {
   private segmentProcessor: SegmentProcessor | null = null;
   private calculator: Calculator | null = null;
   private pushPullProcessor: SmartPushPullProcessor | null = null;
+  private monthEndAnalyzer: MonthEndAnalyzer | null = null;
+  private retroactiveApplicator: RetroactiveApplicator | null = null;
+  private selectiveRecalculator: SelectiveRecalculator | null = null;
   private processingState: ProcessingState | null = null;
 
   constructor(config: Partial<CalculationConfig> = {}) {
@@ -107,7 +114,7 @@ export class CalculationEngine {
       }
 
       // Initialize calculation components
-      await this.initializeCalculation(accountsAndTransfers, options);
+      this.initializeCalculation(accountsAndTransfers, options);
 
       // Perform the calculation
       const result = await this.performCalculation(accountsAndTransfers, options);
@@ -118,7 +125,7 @@ export class CalculationEngine {
         if (account.consolidatedActivity) {
           account.consolidatedActivity.forEach((activity) => {
             try {
-              activity.amount = Math.round(activity.amount * 100) / 100; // Round to 2 decimal places
+              activity.amount = Math.round(Number(activity.amount) * 100) / 100; // Round to 2 decimal places
             } catch {
               err('Error rounding activity amount:', activity.amount);
             }
@@ -180,6 +187,11 @@ export class CalculationEngine {
 
     // Initialize push/pull processor
     this.pushPullProcessor = new SmartPushPullProcessor(this.cache);
+
+    // Initialize month-end components for retroactive push-pull
+    this.monthEndAnalyzer = new MonthEndAnalyzer();
+    this.retroactiveApplicator = new RetroactiveApplicator();
+    this.selectiveRecalculator = new SelectiveRecalculator();
 
     endTiming('initializeCalculation');
   }
@@ -362,6 +374,16 @@ export class CalculationEngine {
         throw error;
       }
     }
+
+    // After processing all events for this day, record current balances for month-end analysis
+    if (this.monthEndAnalyzer && this.balanceTracker) {
+      const currentBalances = this.balanceTracker.getCurrentBalances();
+      const currentDate = this.processingState!.currentDate;
+
+      for (const [accountId, balance] of Object.entries(currentBalances)) {
+        this.monthEndAnalyzer.recordBalance(accountId, currentDate, balance);
+      }
+    }
   }
 
   /**
@@ -418,6 +440,9 @@ export class CalculationEngine {
             segmentResult,
           );
           break;
+        case EventType.monthEndCheck:
+          await this.processMonthEndEvent(event as MonthEndCheckEvent, accountsAndTransfers, options, segmentResult);
+          break;
         default:
           warn(`Unknown event type: ${event.type}`);
       }
@@ -429,6 +454,111 @@ export class CalculationEngine {
         this.processingState!.metrics.operationTimes[event.type] = 0;
       }
       // Note: Actual timing would need to be retrieved from the timing system
+    }
+  }
+
+  /**
+   * Processes a month-end check event using the retroactive push-pull system
+   */
+  private async processMonthEndEvent(
+    event: MonthEndCheckEvent,
+    accountsAndTransfers: AccountsAndTransfers,
+    options: CalculationOptions,
+    segmentResult: SegmentResult,
+  ): Promise<void> {
+    if (
+      !this.balanceTracker ||
+      !this.monthEndAnalyzer ||
+      !this.retroactiveApplicator ||
+      !this.selectiveRecalculator ||
+      !this.timeline
+    ) {
+      throw new Error('Month-end processing components not initialized');
+    }
+
+    debug('[Engine]', 'Processing month-end check event', {
+      monthStart: formatDate(event.monthStart),
+      monthEnd: formatDate(event.monthEnd),
+      managedAccounts: event.managedAccounts,
+    });
+
+    // Analyze balance violations for each managed account
+    let allRequiredTransfers: RequiredTransfer[] = [];
+
+    for (const accountId of event.managedAccounts) {
+      const account = accountsAndTransfers.accounts.find((acc) => acc.id === accountId);
+      if (!account) {
+        warn('[Engine]', 'Account not found for month-end analysis', { accountId });
+        continue;
+      }
+
+      // Analyze balance patterns for this account during the month
+      const analysis = this.monthEndAnalyzer.analyzeMonth(
+        account,
+        event.monthStart,
+        event.monthEnd,
+        this.balanceTracker,
+      );
+
+      if (analysis.violations.length > 0) {
+        debug('[Engine]', 'Found balance violations', {
+          accountId,
+          violationCount: analysis.violations.length,
+          violations: analysis.violations,
+        });
+
+        // Determine required transfers to prevent violations
+        const requiredTransfers = this.monthEndAnalyzer.determineRequiredTransfers(
+          analysis,
+          account,
+          accountsAndTransfers.accounts,
+        );
+
+        allRequiredTransfers.push(...requiredTransfers);
+      }
+    }
+
+    // If no transfers are required, we're done
+    if (allRequiredTransfers.length === 0) {
+      debug('[Engine]', 'No balance violations found, no transfers required');
+      return;
+    }
+
+    // Apply required transfers retroactively at month start
+    log('[Engine]', 'Applying retroactive push-pull transfers', {
+      transferCount: allRequiredTransfers.length,
+    });
+
+    const appliedTransfers = this.retroactiveApplicator.applyTransfers(
+      allRequiredTransfers,
+      this.timeline,
+      this.balanceTracker,
+    );
+
+    // If transfers were applied, recalculate affected events
+    if (appliedTransfers.length > 0) {
+      log('[Engine]', 'Recalculating events affected by retroactive transfers');
+
+      const affectedEvents = this.selectiveRecalculator.identifyAffectedEvents(appliedTransfers, this.timeline);
+
+      if (affectedEvents.length > 0) {
+        const recalculationResult = this.selectiveRecalculator.recalculateEvents(
+          affectedEvents,
+          this.balanceTracker,
+          accountsAndTransfers,
+        );
+
+        if (!recalculationResult.success) {
+          warn('[Engine]', 'Recalculation failed', {
+            error: recalculationResult.errorMessage,
+          });
+        } else {
+          log('[Engine]', 'Successfully recalculated affected events', {
+            recalculatedEventCount: recalculationResult.recalculatedEvents.length,
+            affectedEventIds: Array.from(recalculationResult.affectedEventIds),
+          });
+        }
+      }
     }
   }
 

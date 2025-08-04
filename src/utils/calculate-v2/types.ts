@@ -63,6 +63,7 @@ export enum EventType {
   tax = 'tax',
   rmd = 'rmd',
   pushPullCheck = 'push_pull_check',
+  monthEndCheck = 'month_end_check',
 }
 
 /**
@@ -142,6 +143,19 @@ export interface PushPullEvent extends TimelineEvent {
   type: EventType.pushPullCheck;
   /** Type of check (monthly lookahead) */
   checkType: 'monthly';
+}
+
+/**
+ * Month-end check event (retroactive balance analysis)
+ */
+export interface MonthEndCheckEvent extends TimelineEvent {
+  type: EventType.monthEndCheck;
+  /** Start of the month being analyzed */
+  monthStart: Date;
+  /** End of the month being analyzed */
+  monthEnd: Date;
+  /** Account IDs to check for balance violations */
+  managedAccounts: string[];
 }
 
 /**

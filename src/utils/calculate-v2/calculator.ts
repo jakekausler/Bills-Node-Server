@@ -175,7 +175,6 @@ export class Calculator {
     const fromAccountBalance = this.getCurrentAccountBalance(fromAccountId, segmentResult);
     // Check if this is a {FULL} or {HALF} transfer that needs balance resolution
     if ((transfer.amountIsVariable && transfer.amountVariable) || typeof transfer.amount === 'string') {
-
       // Handle variable amounts
       if (transfer.amountIsVariable && transfer.amountVariable) {
         switch (transfer.amountVariable) {
@@ -235,7 +234,7 @@ export class Calculator {
           toAccount,
           toAccountBalance,
           amount,
-        })
+        });
       }
 
       // Handle "from" account limits for non-Loan/Credit accounts transferring to Savings/Investment
@@ -252,7 +251,7 @@ export class Calculator {
           toAccount,
           fromAccountBalance,
           amount,
-        })
+        });
       }
     }
 
@@ -265,24 +264,24 @@ export class Calculator {
     const fromActivity = new ConsolidatedActivity(
       isBill
         ? transfer
-          .toActivity(`TRANSFER-${transfer.id}-${event.date.getTime()}-FROM`, simulation, -amount, event.date)
-          .serialize()
+            .toActivity(`TRANSFER-${transfer.id}-${event.date.getTime()}-FROM`, simulation, -amount, event.date)
+            .serialize()
         : {
-          id: `TRANSFER-${transfer.id}-${event.date.getTime()}-FROM`,
-          name: transfer.name, // Use the original transfer name
-          amount: -amount,
-          amountIsVariable: transfer.amountIsVariable || false,
-          amountVariable: transfer.amountVariable || null,
-          date: formatDate(event.date),
-          dateIsVariable: false,
-          dateVariable: null,
-          from: transfer.from,
-          to: transfer.to,
-          isTransfer: true,
-          category: transfer.category || 'Ignore.Transfer',
-          flag: transfer.flag || false,
-          flagColor: transfer.flagColor || 'blue',
-        },
+            id: `TRANSFER-${transfer.id}-${event.date.getTime()}-FROM`,
+            name: transfer.name, // Use the original transfer name
+            amount: -amount,
+            amountIsVariable: transfer.amountIsVariable || false,
+            amountVariable: transfer.amountVariable || null,
+            date: formatDate(event.date),
+            dateIsVariable: false,
+            dateVariable: null,
+            from: transfer.from,
+            to: transfer.to,
+            isTransfer: true,
+            category: transfer.category || 'Ignore.Transfer',
+            flag: transfer.flag || false,
+            flagColor: transfer.flagColor || 'blue',
+          },
       {
         billId: isBill ? transfer.id : undefined,
       },
@@ -291,24 +290,24 @@ export class Calculator {
     const toActivity = new ConsolidatedActivity(
       isBill
         ? transfer
-          .toActivity(`TRANSFER-${transfer.id}-${event.date.getTime()}-TO`, simulation, amount, event.date)
-          .serialize()
+            .toActivity(`TRANSFER-${transfer.id}-${event.date.getTime()}-TO`, simulation, amount, event.date)
+            .serialize()
         : {
-          id: `TRANSFER-${transfer.id}-${event.date.getTime()}-TO`,
-          name: transfer.name, // Use the original transfer name
-          amount: amount,
-          amountIsVariable: transfer.amountIsVariable || false,
-          amountVariable: transfer.amountVariable || null,
-          date: formatDate(event.date),
-          dateIsVariable: false,
-          dateVariable: null,
-          from: transfer.from,
-          to: transfer.to,
-          isTransfer: true,
-          category: transfer.category || 'Ignore.Transfer',
-          flag: transfer.flag || false,
-          flagColor: transfer.flagColor || 'blue',
-        },
+            id: `TRANSFER-${transfer.id}-${event.date.getTime()}-TO`,
+            name: transfer.name, // Use the original transfer name
+            amount: amount,
+            amountIsVariable: transfer.amountIsVariable || false,
+            amountVariable: transfer.amountVariable || null,
+            date: formatDate(event.date),
+            dateIsVariable: false,
+            dateVariable: null,
+            from: transfer.from,
+            to: transfer.to,
+            isTransfer: true,
+            category: transfer.category || 'Ignore.Transfer',
+            flag: transfer.flag || false,
+            flagColor: transfer.flagColor || 'blue',
+          },
       {
         billId: isBill ? transfer.id : undefined,
       },

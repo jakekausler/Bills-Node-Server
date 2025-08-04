@@ -17,6 +17,7 @@ import {
   InterestEvent,
   TransferEvent,
   PushPullEvent,
+  MonthEndCheckEvent,
   CalculationSegment,
   Transfer,
 } from './types';
@@ -66,8 +67,8 @@ export class Timeline {
     // Add transfer events
     timeline.addTransferEvents(accountsAndTransfers, endDate, simulation);
 
-    // Add monthly push/pull check events
-    timeline.addPushPullEvents(startDate, endDate);
+    // Add monthly month-end check events for retroactive balance analysis
+    timeline.addMonthEndCheckEvents(accountsAndTransfers, startDate, endDate);
 
     // Sort and optimize timeline
     timeline.sortEvents();
@@ -510,6 +511,43 @@ export class Timeline {
   }
 
   /**
+   * Adds monthly month-end check events for retroactive balance analysis
+   */
+  private addMonthEndCheckEvents(accountsAndTransfers: AccountsAndTransfers, startDate: Date, endDate: Date): void {
+    let currentDate = dayjs.utc(startDate).startOf('month').toDate();
+    let eventCount = 0;
+
+    // Find accounts that need push/pull management
+    const managedAccounts = accountsAndTransfers.accounts
+      .filter((account) => account.minimumBalance !== null || account.performsPulls || account.performsPushes)
+      .map((account) => account.id);
+
+    while (currentDate <= endDate) {
+      const monthStart = new Date(currentDate);
+      const monthEnd = dayjs.utc(currentDate).endOf('month').toDate();
+      const actualMonthEnd = monthEnd > endDate ? endDate : monthEnd;
+
+      const event: MonthEndCheckEvent = {
+        id: `monthend_${eventCount}`,
+        type: EventType.monthEndCheck,
+        date: new Date(actualMonthEnd), // Process at month end
+        accountId: '', // Affects all managed accounts
+        priority: 10, // Lowest priority - process last
+        cacheable: false, // Cannot cache due to retroactive logic
+        dependencies: managedAccounts, // Depends on all managed accounts
+        monthStart,
+        monthEnd: actualMonthEnd,
+        managedAccounts,
+      };
+
+      this.addEvent(event);
+
+      currentDate = dayjs.utc(currentDate).add(1, 'month').toDate();
+      eventCount++;
+    }
+  }
+
+  /**
    * Adds an event to the timeline
    */
   private addEvent(event: TimelineEvent): void {
@@ -693,6 +731,27 @@ export class Timeline {
    */
   getEventsByType(type: EventType): TimelineEvent[] {
     return this.events.filter((event) => event.type === type);
+  }
+
+  /**
+   * Adds events retroactively and maintains proper ordering
+   */
+  addRetroactiveEvents(events: TimelineEvent[]): void {
+    debug('Timeline.addRetroactiveEvents', 'Adding retroactive events', {
+      eventCount: events.length,
+    });
+
+    // Add events using the private addEvent method
+    for (const event of events) {
+      this.addEvent(event);
+    }
+
+    // Re-sort and rebuild indices to maintain proper ordering
+    this.sortEvents();
+
+    debug('Timeline.addRetroactiveEvents', 'Completed adding retroactive events', {
+      totalEvents: this.events.length,
+    });
   }
 
   /**
