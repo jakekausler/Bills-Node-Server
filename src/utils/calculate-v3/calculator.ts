@@ -1,8 +1,9 @@
 import { Activity } from '../../data/activity/activity';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { Bill } from '../../data/bill/bill';
-import { formatDate } from '../date/date';
+import { formatDate, isBefore } from '../date/date';
 import { BalanceTracker } from './balance-tracker';
+import { AccountManager } from './account-manager';
 import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
 import {
@@ -15,6 +16,7 @@ import {
   RMDEvent,
   SegmentResult,
   SocialSecurityEvent,
+  TaxableOccurence,
   TaxEvent,
 } from './types';
 
@@ -23,17 +25,19 @@ export class Calculator {
   private simulation: string;
   private taxManager: TaxManager;
   private retirementManager: RetirementManager;
-
+  private accountManager: AccountManager;
   constructor(
     balanceTracker: BalanceTracker,
     taxManager: TaxManager,
     retirementManager: RetirementManager,
+    accountManager: AccountManager,
     simulation: string,
   ) {
     this.balanceTracker = balanceTracker;
     this.taxManager = taxManager;
     this.retirementManager = retirementManager;
     this.simulation = simulation;
+    this.accountManager = accountManager;
   }
 
   /***************************************
@@ -88,6 +92,10 @@ export class Calculator {
   processInterestEvent(event: InterestEvent, segmentResult: SegmentResult): Map<string, number> {
     const interest = event.originalInterest;
     const accountId = event.accountId;
+    const account = this.balanceTracker.findAccountById(accountId);
+    if (!account) {
+      throw new Error(`Account ${accountId} not found`);
+    }
 
     // Get the current balance of the account
     const currentBalance = this.getCurrentAccountBalance(accountId, segmentResult);
@@ -111,6 +119,20 @@ export class Calculator {
       segmentResult.activitiesAdded.set(accountId, []);
     }
     segmentResult.activitiesAdded.get(accountId)?.push(interestActivity);
+
+    // Add taxable occurence to segment result
+    if (account.interestPayAccount && account.interestTaxRate !== 0) {
+      const taxableOccurence: TaxableOccurence = {
+        date: event.date,
+        year: event.date.getFullYear(),
+        amount: interestAmount,
+        taxRate: account.interestTaxRate,
+      };
+      if (!segmentResult.taxableOccurences.has(account.interestPayAccount)) {
+        segmentResult.taxableOccurences.set(account.interestPayAccount, []);
+      }
+      segmentResult.taxableOccurences.get(account.interestPayAccount)?.push(taxableOccurence);
+    }
 
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
@@ -286,6 +308,48 @@ export class Calculator {
     segmentResult.activitiesAdded.get(fromAccountId)?.push(fromActivity);
     segmentResult.activitiesAdded.get(toAccountId)?.push(toActivity);
 
+    // If the activity is an AUTO-PULL or RMD, add a taxable occurence to the segment result
+    if (original.id.startsWith('AUTO-PULL') || original.id.startsWith('RMD')) {
+      // Handle Withdrawal Tax
+      const taxRate = fromAccount?.withdrawalTaxRate ?? 0;
+      if (taxRate !== 0) {
+        const taxableOccurence: TaxableOccurence = {
+          date: fromActivity.date,
+          year: fromActivity.date.getFullYear(),
+          amount: internalAmount,
+          taxRate,
+        };
+        const taxPayAccount = toAccount?.name;
+        if (!taxPayAccount) {
+          throw new Error(`Account ${toAccountId} has no name`);
+        }
+        if (!segmentResult.taxableOccurences.has(taxPayAccount)) {
+          segmentResult.taxableOccurences.set(taxPayAccount, []);
+        }
+        segmentResult.taxableOccurences.get(taxPayAccount)?.push(taxableOccurence);
+      }
+
+      // Handle Early Withdrawl Penalty
+      const earlyWithdrawlPenalty = fromAccount?.earlyWithdrawlPenalty ?? 0;
+      const earlyWithdrawlDate = fromAccount?.earlyWithdrawlDate;
+      if (earlyWithdrawlPenalty !== 0 && earlyWithdrawlDate && isBefore(fromActivity.date, earlyWithdrawlDate)) {
+        const taxableOccurence: TaxableOccurence = {
+          date: fromActivity.date,
+          year: fromActivity.date.getFullYear(),
+          amount: internalAmount,
+          taxRate: earlyWithdrawlPenalty,
+        };
+        const taxPayAccount = toAccount?.name;
+        if (!taxPayAccount) {
+          throw new Error(`Account ${toAccountId} has no name`);
+        }
+        if (!segmentResult.taxableOccurences.has(taxPayAccount)) {
+          segmentResult.taxableOccurences.set(taxPayAccount, []);
+        }
+        segmentResult.taxableOccurences.get(taxPayAccount)?.push(taxableOccurence);
+      }
+    }
+
     // Update balances
     const fromCurrentChange = segmentResult.balanceChanges.get(fromAccountId) || 0;
     const toCurrentChange = segmentResult.balanceChanges.get(toAccountId) || 0;
@@ -374,13 +438,121 @@ export class Calculator {
   }
 
   processTaxEvent(event: TaxEvent, segmentResult: SegmentResult): Map<string, number> {
-    // TODO: Implement
-    return new Map();
+    // Get the account for this event
+    const account = this.balanceTracker.findAccountById(event.accountId);
+    if (!account) {
+      throw new Error(`Account ${event.accountId} not found`);
+    }
+    const accountId = account.id;
+
+    // Calculate the tax amount
+    const amount = -this.taxManager.calculateTotalTaxOwed(accountId, event.date.getFullYear() - 1);
+    if (amount === 0) {
+      return new Map();
+    }
+
+    // Create the tax activity
+    const taxActivity = new ConsolidatedActivity({
+      id: `TAX-${accountId}-${formatDate(event.date)}`,
+      name: 'Auto Calculated Tax',
+      amount: amount,
+      amountIsVariable: false,
+      amountVariable: null,
+      date: formatDate(event.date),
+      dateIsVariable: false,
+      dateVariable: null,
+      from: null,
+      to: null,
+      isTransfer: false,
+      category: 'Taxes.Federal',
+      flag: true,
+      flagColor: 'red',
+    });
+
+    // Add the tax activity to the segment result
+    if (!segmentResult.activitiesAdded.has(accountId)) {
+      segmentResult.activitiesAdded.set(accountId, []);
+    }
+    segmentResult.activitiesAdded.get(accountId)?.push(taxActivity);
+
+    // Update the balance in the segment result
+    const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+    segmentResult.balanceChanges.set(accountId, currentChange + amount);
+    return new Map([[accountId, amount]]);
   }
 
   processRMDEvent(event: RMDEvent, segmentResult: SegmentResult): Map<string, number> {
-    // TODO: Implement
-    return new Map();
+    // Get the event (from) account
+    const account = this.balanceTracker.findAccountById(event.accountId);
+    if (!account) {
+      throw new Error(`Account ${event.accountId} not found`);
+    }
+    if (!account.usesRMD) {
+      return new Map();
+    }
+
+    // Get the RMD (to) account
+    if (!account.rmdAccount) {
+      throw new Error(`Account ${account.id} has no RMD account`);
+    }
+    const rmdAccount = this.accountManager.getAccountByName(account.rmdAccount);
+    if (!rmdAccount) {
+      throw new Error(`Account ${account.rmdAccount} not found`);
+    }
+
+    // Calculate the RMD amount
+    const balance = this.balanceTracker.getAccountBalance(account.id);
+    const rmdAmount = this.retirementManager.rmd(balance, event.ownerAge);
+    console.log(
+      `[Calculator] RMD amount for ${account.name} at owner age ${event.ownerAge} in ${event.date.getFullYear()} from ${balance}: ${rmdAmount}`,
+    );
+    if (rmdAmount <= 0) {
+      return new Map();
+    }
+
+    // Create the RMD From Activity
+    const rmdFromActivity = new ConsolidatedActivity({
+      id: `RMD-${account.id}-${formatDate(event.date)}`,
+      name: 'RMD',
+      amount: -rmdAmount,
+      amountIsVariable: false,
+      amountVariable: null,
+      date: formatDate(event.date),
+      dateIsVariable: false,
+      dateVariable: null,
+      from: account.name,
+      to: account.rmdAccount,
+      isTransfer: true,
+      category: 'Ignore.Transfer',
+      flag: true,
+      flagColor: 'grape',
+    });
+
+    // Create the RMD To Activity
+    const rmdToActivity = new ConsolidatedActivity({
+      ...rmdFromActivity.serialize(),
+      amount: rmdAmount,
+    });
+
+    // Add activities to segment result
+    if (!segmentResult.activitiesAdded.has(account.id)) {
+      segmentResult.activitiesAdded.set(account.id, []);
+    }
+    if (!segmentResult.activitiesAdded.has(rmdAccount.id)) {
+      segmentResult.activitiesAdded.set(rmdAccount.id, []);
+    }
+    segmentResult.activitiesAdded.get(account.id)?.push(rmdFromActivity);
+    segmentResult.activitiesAdded.get(rmdAccount.id)?.push(rmdToActivity);
+
+    // Update balance in segment result
+    const fromCurrentChange = segmentResult.balanceChanges.get(account.id) || 0;
+    const toCurrentChange = segmentResult.balanceChanges.get(rmdAccount.id) || 0;
+    segmentResult.balanceChanges.set(account.id, fromCurrentChange - rmdAmount);
+    segmentResult.balanceChanges.set(rmdAccount.id, toCurrentChange + rmdAmount);
+    return new Map([
+      [account.id, -rmdAmount],
+      [rmdAccount.id, rmdAmount],
+    ]);
   }
 
   /***************************************

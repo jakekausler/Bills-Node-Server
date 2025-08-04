@@ -486,7 +486,7 @@ export class Timeline {
     }
 
     // Add tax event for each year in the range
-    const startYear = startDate.getUTCFullYear();
+    const startYear = Math.max(new Date().getUTCFullYear(), startDate.getUTCFullYear());
     const endYear = endDate.getUTCFullYear();
 
     for (let year = startYear; year <= endYear; year++) {

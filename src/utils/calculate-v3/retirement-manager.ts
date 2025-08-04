@@ -1,8 +1,9 @@
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
-import { formatDate } from '../date/date';
+import { RMDTableType } from '../calculate/types';
 import { loadAverageWageIndex } from '../io/averageWageIndex';
 import { loadBendPoints } from '../io/bendPoints';
+import { load } from '../io/io';
 
 export class RetirementManager {
   // List of social securities
@@ -21,12 +22,15 @@ export class RetirementManager {
   private socialSecurityMonthlyPay: Map<string, number> = new Map();
   // the monthly pay for each pension indexed by pension name
   private pensionMonthlyPay: Map<string, number> = new Map();
+  // RMD table
+  private rmdTable: RMDTableType;
 
   constructor(socialSecurities: SocialSecurity[], pensions: Pension[]) {
     this.socialSecurities = socialSecurities;
     this.pensions = pensions;
     this.initializeSocialSecurity();
     this.initializePension();
+    this.rmdTable = this.loadRMDTable();
   }
 
   private initializeSocialSecurity() {
@@ -285,5 +289,20 @@ export class RetirementManager {
 
     // Return highest average, or 0 if no valid averages
     return averageConsecutiveYearPays.length > 0 ? Math.max(...averageConsecutiveYearPays) : 0;
+  }
+
+  /**************
+   * RMD Calculations
+   ***************/
+  private loadRMDTable() {
+    const rmdTable = load<RMDTableType>('rmd.json');
+    return Object.fromEntries(Object.entries(rmdTable).map(([k, v]) => [parseInt(k), v]));
+  }
+
+  public rmd(balance: number, age: number) {
+    if (age in this.rmdTable) {
+      return balance / this.rmdTable[age];
+    }
+    return 0;
   }
 }

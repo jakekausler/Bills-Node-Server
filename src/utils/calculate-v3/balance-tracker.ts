@@ -6,13 +6,11 @@ import { AccountsAndTransfers } from '../../data/account/types';
 import { minDate } from '../io/minDate';
 import { warn } from '../calculate-v2/logger';
 import { isSame } from '../date/date';
-import { RetirementManager } from './retirement-manager';
 
 export class BalanceTracker {
   private accounts: Account[];
   private cache: CacheManager;
   private startDate: Date | null;
-  private retirementManager: RetirementManager;
 
   // Current state
   private balances: Record<string, number> = {};
@@ -20,16 +18,10 @@ export class BalanceTracker {
   private lastSnapshotDate: Date | null = null;
   private snapshotInterval: number = 30; // days
 
-  constructor(
-    accounts: Account[],
-    cache: CacheManager,
-    startDate: Date | null = null,
-    retirementManager: RetirementManager,
-  ) {
+  constructor(accounts: Account[], cache: CacheManager, startDate: Date | null = null) {
     // Deep clone accounts to avoid mutations affecting other parallel calculations
     this.accounts = accounts.map((account) => new Account(account.serialize()));
     this.cache = cache;
-    this.retirementManager = retirementManager;
     this.startDate = startDate;
   }
 
@@ -162,11 +154,6 @@ export class BalanceTracker {
       if (account) {
         account.consolidatedActivity.push(...activities);
         this.updateActivityIndex(accountId, activities.length);
-        // Add relevant activities to retirement incomes
-        activities.forEach((activity) => {
-          // Add the income to the retirement manager if it is a valid income name
-          this.retirementManager.tryAddToAnnualIncomes(activity.name, activity.date, activity.amount as number);
-        });
       } else {
         warn(`[BalanceTracker] Account ${accountId} not found for applying activities`);
       }

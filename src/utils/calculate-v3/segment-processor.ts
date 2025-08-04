@@ -13,6 +13,7 @@ import {
   TaxEvent,
   RMDEvent,
   TimelineEvent,
+  TaxableOccurence,
 } from './types';
 import { CacheManager } from './cache';
 import { BalanceTracker } from './balance-tracker';
@@ -21,23 +22,35 @@ import { PushPullHandler } from './push-pull-handler';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import dayjs from 'dayjs';
 import { warn } from '../calculate-v2/logger';
+import { RetirementManager } from './retirement-manager';
+import { TaxManager } from './tax-manager';
+import { AccountManager } from './account-manager';
 
 export class SegmentProcessor {
   private cache: CacheManager;
   private balanceTracker: BalanceTracker;
   private calculator: Calculator;
   private pushPullHandler: PushPullHandler;
+  private retirementManager: RetirementManager;
+  private taxManager: TaxManager;
+  private accountManager: AccountManager;
 
   constructor(
     cache: CacheManager,
     balanceTracker: BalanceTracker,
     calculator: Calculator,
     pushPullHandler: PushPullHandler,
+    retirementManager: RetirementManager,
+    taxManager: TaxManager,
+    accountManager: AccountManager,
   ) {
     this.cache = cache;
     this.balanceTracker = balanceTracker;
     this.calculator = calculator;
     this.pushPullHandler = pushPullHandler;
+    this.retirementManager = retirementManager;
+    this.taxManager = taxManager;
+    this.accountManager = accountManager;
   }
 
   async getCachedSegmentResult(segment: Segment): Promise<SegmentResult | null> {
@@ -85,6 +98,24 @@ export class SegmentProcessor {
 
     // Apply the result to balance tracker
     this.balanceTracker.applySegmentResult(segmentResult, segment.startDate);
+
+    // Add relevant activities to retirement incomes
+    for (const [_accountId, activities] of segmentResult.activitiesAdded) {
+      activities.forEach((activity) => {
+        // Add the income to the retirement manager if it is a valid income name
+        this.retirementManager.tryAddToAnnualIncomes(activity.name, activity.date, activity.amount as number);
+      });
+    }
+
+    // Add taxable occurences to tax manager
+    for (const [accountName, taxableOccurences] of segmentResult.taxableOccurences) {
+      const account = this.accountManager.getAccountByName(accountName);
+      if (account) {
+        this.taxManager.addTaxableOccurences(account.id, taxableOccurences);
+      } else {
+        warn(`[SegmentProcessor] Account ${accountName} not found for adding taxable occurences`);
+      }
+    }
   }
 
   private processSegmentEvents(segment: Segment, options: CalculationOptions): SegmentResult {
@@ -94,6 +125,7 @@ export class SegmentProcessor {
       processedEventIds: new Set<string>(),
       balanceMinimums: new Map<string, number>(),
       balanceMaximums: new Map<string, number>(),
+      taxableOccurences: new Map<string, TaxableOccurence[]>(),
     };
 
     // Group events by date for efficient processing

@@ -120,16 +120,17 @@ export class Engine {
 
     // Initialize balance tracker - use actual start date for processing all historical data
     console.log('Initializing balance tracker...', Date.now() - this.calculationBegin, 'ms');
-    this.balanceTracker = new BalanceTracker(
-      accountsAndTransfers.accounts,
-      this.cache,
-      actualStartDate,
-      this.retirementManager,
-    );
+    this.balanceTracker = new BalanceTracker(accountsAndTransfers.accounts, this.cache, actualStartDate);
 
     // Initialize calculator
     console.log('Initializing calculator...', Date.now() - this.calculationBegin, 'ms');
-    this.calculator = new Calculator(this.balanceTracker, this.taxManager, this.retirementManager, options.simulation);
+    this.calculator = new Calculator(
+      this.balanceTracker,
+      this.taxManager,
+      this.retirementManager,
+      this.accountManager,
+      options.simulation,
+    );
 
     // Initialize push-pull handler
     console.log('Initializing push-pull handler...', Date.now() - this.calculationBegin, 'ms');
@@ -142,6 +143,9 @@ export class Engine {
       this.balanceTracker,
       this.calculator,
       this.pushPullHandler,
+      this.retirementManager,
+      this.taxManager,
+      this.accountManager,
     );
   }
 

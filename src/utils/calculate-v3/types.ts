@@ -48,8 +48,8 @@ export interface SegmentResult {
   balanceMinimums: Map<string, number>;
   /** Maximum day end balance for each account */
   balanceMaximums: Map<string, number>;
-  /** Tax implications */
-  taxImplications?: TaxImplication[];
+  /** Taxable occurences indexed by account name */
+  taxableOccurences: Map<string, TaxableOccurence[]>;
   /** Accounts and Transfers */
   accountsAndTransfers?: AccountsAndTransfers;
 }
