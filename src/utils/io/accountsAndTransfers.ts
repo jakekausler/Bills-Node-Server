@@ -5,6 +5,7 @@ import { Activity } from '../../data/activity/activity';
 import { Bill } from '../../data/bill/bill';
 import { resetCache } from './cache';
 import { calculateAllActivity } from '../calculate-v3/engine';
+import { CalculationConfig } from '../calculate-v3/types';
 
 export const FILE_NAME = 'data';
 
@@ -25,6 +26,7 @@ export async function loadData(
   startDate: Date,
   endDate: Date,
   simulation: string = 'Default',
+  calculationConfig: Partial<CalculationConfig> = {},
 ): Promise<AccountsAndTransfers> {
   // const key = getCacheKey(startDate, endDate, simulation);
   // if (updateCache) {
@@ -47,6 +49,7 @@ export async function loadData(
     0,
     true,
     true,
+    calculationConfig,
   );
   return result;
 }
