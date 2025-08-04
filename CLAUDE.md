@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
-- **Development server**: `npm run dev` - Starts the server with hot reloading using tsx
+- **Development server**: `npm run dev` - Starts the server with hot reloading using tsx watch with debugging enabled
 - **Build**: `npm run build` - Compiles TypeScript to JavaScript in the dist/ directory
 - **Production**: `npm start` - Runs the compiled JavaScript from dist/index.js
 - **Lint**: `npm run lint` - Runs ESLint on all TypeScript files in src/
@@ -22,7 +22,7 @@ This is a financial planning and bill management API server built with Node.js, 
 1. **Data Storage**: JSON files in `src/utils/io/data/` serve as the database
 2. **Data Models**: Located in `src/data/` with classes for Account, Bill, Activity, Interest, etc.
 3. **API Layer**: Express routes in `src/api/` organized by feature (accounts, bills, categories, etc.)
-4. **Calculation Engine**: Complex financial calculations in `src/utils/calculate/`
+4. **Calculation Engine**: Complex financial calculations in `src/utils/calculate/` (legacy) and `src/utils/calculate-v2/` (current) and `src/utils/calculate-v3/` (development)
 5. **I/O Layer**: File operations and data persistence in `src/utils/io/`
 
 ### Key Architecture Components
@@ -50,7 +50,9 @@ AccountsAndTransfers
 ### Critical File Locations
 
 - Main entry point: `src/index.ts`
-- Core calculation engine: `src/utils/calculate/calculate.ts`
+- Core calculation engine: `src/utils/calculate/calculate.ts` (legacy)
+- Calculate v2 engine: `src/utils/calculate-v2/engine.ts` (current)
+- Calculate v3 engine: `src/utils/calculate-v3/engine.ts` (in development)
 - Data persistence: `src/utils/io/io.ts`
 - Account model: `src/data/account/account.ts`
 - API route definitions: All routes defined in `src/index.ts`
@@ -60,7 +62,7 @@ AccountsAndTransfers
 - **Test Framework**: Vitest with coverage reporting via v8
 - **Test Files**: Located alongside source files with `.test.ts` extension
 - **Test Configuration**: `vitest.config.ts` - includes coverage settings and path aliases
-- **Coverage Exclusions**: `calculate` utility folder is excluded from coverage as it's being overhauled
+- **Coverage Exclusions**: `src/utils/calculate/**` folder is excluded from coverage as it's being overhauled
 - **Mock Strategy**: Extensive use of vi.mock() for dependency isolation in unit tests
 
 ### Authentication & Security
@@ -69,10 +71,11 @@ AccountsAndTransfers
 - All API endpoints (except auth) require valid JWT token
 - Registration is disabled in production
 - Uses bcrypt for password hashing
+- Environment variables stored in `.env` file
 
 ### Environment Variables
 
-Required environment variables:
+Required environment variables (set in `.env` file):
 - `PORT` - Server port (defaults to 5002)
 - `JWT_SECRET` - JWT signing secret
 - `MYSQL_HOST`, `MYSQL_USERNAME`, `MYSQL_PASSWORD`, `MYSQL_DATABASE` - Database connection
@@ -86,9 +89,9 @@ The system uses JSON files for data persistence in `src/utils/io/data/`:
 - `pension_and_social_security.json` - Retirement data
 - Automatic backups created every 10 saves in `backup/` directory
 
-### Code Quality & Maintenance
+### Multiple Calculation Engine Versions
 
-- **Documentation**: JSDoc comments added to all public functions, classes, and methods
-- **Refactoring**: Large functions broken down into smaller, testable units (e.g., `updateAccounts` function)
-- **Test Coverage**: Comprehensive unit tests for data models, API endpoints, and utility functions
-- **Type Safety**: Full TypeScript implementation with strict type checking
+The codebase has three versions of the calculation engine:
+- **calculate/**: Original implementation (legacy, still in use)
+- **calculate-v2/**: Current implementation with improved performance and caching
+- **calculate-v3/**: Development version with further optimizations (work in progress)
