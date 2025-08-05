@@ -15,6 +15,7 @@ export type ActivityData = {
   isTransfer: boolean;
   from: string | null;
   to: string | null;
+  balance?: number;
 };
 
 export type ConsolidatedActivityData = ActivityData & {

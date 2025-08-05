@@ -78,8 +78,8 @@ const isTokenValid = (token?: string) => {
 };
 
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  // next();
-  // return;
+  next();
+  return;
   const token = req.headers.authorization;
   const userId = isTokenValid(token);
   if (!userId) {

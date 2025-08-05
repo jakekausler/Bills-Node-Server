@@ -72,7 +72,7 @@ export class Engine {
   private mergeConfig(config: Partial<CalculationConfig>): CalculationConfig {
     const defaultConfig: CalculationConfig = {
       snapshotInterval: 'monthly',
-      useDiskCache: true,
+      useDiskCache: false,
       diskCacheDir: './cache',
     };
     return {

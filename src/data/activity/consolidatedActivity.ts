@@ -46,7 +46,7 @@ export class ConsolidatedActivity extends Activity {
     this.firstBill = firstBill;
     this.interestId = interestId;
     this.firstInterest = firstInterest;
-    this.balance = 0;
+    this.balance = activity.balance || 0;
     if (reverseAmount && typeof this.amount === 'number') {
       this.amount *= -1;
       // Convert -0 to 0 for cleaner semantics
@@ -61,7 +61,7 @@ export class ConsolidatedActivity extends Activity {
    * @returns Serialized consolidated activity data including all base activity properties plus consolidated-specific fields
    */
   serialize(): ConsolidatedActivityData {
-    return {
+    const serialized = {
       ...super.serialize(),
       balance: this.balance,
       billId: this.billId,
@@ -69,5 +69,7 @@ export class ConsolidatedActivity extends Activity {
       interestId: this.interestId,
       firstInterest: this.firstInterest,
     };
+
+    return serialized;
   }
 }

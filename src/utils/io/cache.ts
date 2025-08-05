@@ -8,7 +8,7 @@ import { CacheManager } from '../calculate-v3/cache';
  */
 export function resetCache(date?: Date) {
   const cacheManager = new CacheManager(
-    { useDiskCache: true, diskCacheDir: 'cache', snapshotInterval: 'monthly' },
+    { useDiskCache: false, diskCacheDir: 'cache', snapshotInterval: 'monthly' },
     'Default',
   );
   if (date) {

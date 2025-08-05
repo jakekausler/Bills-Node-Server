@@ -62,9 +62,17 @@ export class Account {
           .sort((a, b) => a.startDate.getUTCDate() - b.startDate.getUTCDate())
       : [];
     this.consolidatedActivity = data.consolidatedActivity
-      ? data.consolidatedActivity.map((activity) => new ConsolidatedActivity(activity))
+      ? data.consolidatedActivity.map(
+          (activity) =>
+            new ConsolidatedActivity(activity, {
+              billId: activity.billId,
+              firstBill: activity.firstBill,
+              interestId: activity.interestId,
+              firstInterest: activity.firstInterest,
+            }),
+        )
       : [];
-    this.todayBalance = 0;
+    this.todayBalance = data.balance || 0;
     this.hidden = data.hidden || false;
     this.type = data.type;
     this.pullPriority = data.pullPriority === undefined ? -1 : data.pullPriority;
@@ -119,6 +127,7 @@ export class Account {
       pushEnd: this.pushEnd ? formatDate(this.pushEnd) : null,
       pushAccount: this.pushAccount,
       defaultShowInGraph: this.defaultShowInGraph,
+      balance: this.todayBalance,
     };
   }
 
