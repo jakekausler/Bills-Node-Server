@@ -26,6 +26,7 @@ export type AccountData = {
   interests: InterestData[];
   activity: ActivityData[];
   bills: BillData[];
+  consolidatedActivity?: ConsolidatedActivityData[];
   hidden: boolean;
   type: string;
   pullPriority?: number;

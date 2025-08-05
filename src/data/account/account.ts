@@ -61,7 +61,9 @@ export class Account {
           .map((bill) => new Bill(bill, simulation))
           .sort((a, b) => a.startDate.getUTCDate() - b.startDate.getUTCDate())
       : [];
-    this.consolidatedActivity = [];
+    this.consolidatedActivity = data.consolidatedActivity
+      ? data.consolidatedActivity.map((activity) => new ConsolidatedActivity(activity))
+      : [];
     this.todayBalance = 0;
     this.hidden = data.hidden || false;
     this.type = data.type;
@@ -88,13 +90,16 @@ export class Account {
    * Serializes the account to a plain object for storage
    * @returns Serialized account data
    */
-  serialize(): AccountData {
+  serialize(includeConsolidatedActivity: boolean = false): AccountData {
     return {
       id: this.id,
       name: this.name,
       interests: this.interests.map((interest) => interest.serialize()),
       activity: this.activity.map((activity) => activity.serialize()),
       bills: this.bills.map((bill) => bill.serialize()),
+      consolidatedActivity: includeConsolidatedActivity
+        ? this.consolidatedActivity.map((activity) => activity.serialize())
+        : undefined,
       hidden: this.hidden,
       type: this.type,
       pullPriority: this.pullPriority,

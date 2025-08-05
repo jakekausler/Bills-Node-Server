@@ -1,5 +1,4 @@
 import { loadData } from './accountsAndTransfers';
-import { MAX_DATE, setMaxDate } from './cache';
 
 /**
  * Finds the maximum date across all financial data (activities, bills, interests, and transfers)
@@ -16,9 +15,6 @@ import { MAX_DATE, setMaxDate } from './cache';
  * @returns The maximum date found across all financial data, or current date if no data exists
  */
 export async function maxDate() {
-  if (MAX_DATE) {
-    return MAX_DATE;
-  }
   let maxDate = new Date(0); // Start with Unix epoch (earliest possible date)
   const { accounts, transfers } = await loadData(new Date(), new Date());
   for (const account of accounts) {
@@ -58,6 +54,5 @@ export async function maxDate() {
   if (maxDate.getTime() === 0) {
     maxDate = new Date();
   }
-  setMaxDate(maxDate);
   return maxDate;
 }

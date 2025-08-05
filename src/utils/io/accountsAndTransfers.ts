@@ -28,16 +28,6 @@ export async function loadData(
   simulation: string = 'Default',
   calculationConfig: Partial<CalculationConfig> = {},
 ): Promise<AccountsAndTransfers> {
-  // const key = getCacheKey(startDate, endDate, simulation);
-  // if (updateCache) {
-  //   console.log('Resetting cache - ', key);
-  //   resetCache();
-  // }
-  // if (!getCache(CACHE_ACCOUNTS_AND_TRANSFERS, key)) {
-  //   console.log('Updating cache - ', key);
-  //   doUpdateCache(CACHE_ACCOUNTS_AND_TRANSFERS, key, getAccountsAndTransfers(startDate, endDate, simulation));
-  // }
-  // return getCache(CACHE_ACCOUNTS_AND_TRANSFERS, key);
   const accountsAndTransfers = getAccountsAndTransfers(simulation);
   const result = await calculateAllActivity(
     accountsAndTransfers,
@@ -47,8 +37,8 @@ export async function loadData(
     false,
     0,
     0,
-    true,
-    true,
+    false,
+    false,
     calculationConfig,
   );
   return result;

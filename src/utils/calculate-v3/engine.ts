@@ -1,6 +1,6 @@
 import { AccountsAndTransfers } from '../../data/account/types';
 import { CalculationConfig, CalculationOptions } from './types';
-import { CacheManager, initializeCache, createCalculationKey } from './cache';
+import { CacheManager, initializeCache } from './cache';
 import { err } from '../calculate-v2/logger';
 import { Timeline } from './timeline';
 import { BalanceTracker } from './balance-tracker';
@@ -25,9 +25,9 @@ export class Engine {
   private retirementManager: RetirementManager;
   private calculationBegin: number;
 
-  constructor(config: Partial<CalculationConfig> = {}) {
+  constructor(simulation: string, config: Partial<CalculationConfig> = {}) {
     this.config = this.mergeConfig(config);
-    this.cache = initializeCache(this.config);
+    this.cache = initializeCache(this.config, simulation);
   }
 
   async calculate(
@@ -52,14 +52,20 @@ export class Engine {
     const results = await this.performCalculations(accountsAndTransfers, options);
 
     // Format the results
-    console.log('Formatting results...', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Formatting results...', Date.now() - this.calculationBegin, 'ms');
+    }
     const formattedResults = this.formatResults(results);
 
     // Store the results in cache
-    console.log('Caching results...', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Caching results...', Date.now() - this.calculationBegin, 'ms');
+    }
     await this.cacheResult(formattedResults, options);
 
-    console.log('Calculation completed in', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Calculation completed in', Date.now() - this.calculationBegin, 'ms');
+    }
     return formattedResults;
   }
 
@@ -67,7 +73,7 @@ export class Engine {
     const defaultConfig: CalculationConfig = {
       snapshotInterval: 'monthly',
       useDiskCache: true,
-      diskCacheDir: './cache/calculate-v2',
+      diskCacheDir: './cache',
     };
     return {
       ...defaultConfig,
@@ -76,15 +82,11 @@ export class Engine {
   }
 
   private async getCachedResult(options: CalculationOptions): Promise<AccountsAndTransfers | null> {
-    const cacheKey = createCalculationKey(options.startDate, options.endDate, options.simulation, options.monteCarlo);
-
-    return await this.cache.get<AccountsAndTransfers>(cacheKey);
+    return await this.cache.getCalculationResult(options.startDate, options.endDate);
   }
 
   private async cacheResult(result: AccountsAndTransfers, options: CalculationOptions): Promise<void> {
-    const cacheKey = createCalculationKey(options.startDate, options.endDate, options.simulation, options.monteCarlo);
-
-    await this.cache.set(cacheKey, result);
+    await this.cache.setCalculationResult(options.startDate, options.endDate, result);
   }
 
   private async initializeCalculation(
@@ -92,15 +94,21 @@ export class Engine {
     options: CalculationOptions,
   ): Promise<void> {
     // Initialize account manager
-    console.log('Initializing account manager...', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Initializing account manager...', Date.now() - this.calculationBegin, 'ms');
+    }
     this.accountManager = new AccountManager(accountsAndTransfers.accounts, options);
 
     // Initialize tax manager
-    console.log('Initializing tax manager...', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Initializing tax manager...', Date.now() - this.calculationBegin, 'ms');
+    }
     this.taxManager = new TaxManager();
 
     // Initialize retirement manager
-    console.log('Initializing retirement manager...', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Initializing retirement manager...', Date.now() - this.calculationBegin, 'ms');
+    }
     this.retirementManager = new RetirementManager(
       this.accountManager.getSocialSecurities(),
       this.accountManager.getPensions(),
@@ -108,7 +116,9 @@ export class Engine {
 
     // Create timeline - always start from earliest data to get correct balances
     // but we'll filter the final output by date range
-    console.log('Creating timeline...', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Creating timeline...', Date.now() - this.calculationBegin, 'ms');
+    }
     const actualStartDate = minDate(accountsAndTransfers);
     this.timeline = await Timeline.fromAccountsAndTransfers(
       this.accountManager,
@@ -116,14 +126,19 @@ export class Engine {
       actualStartDate,
       options.endDate,
       this.calculationBegin,
+      options.enableLogging,
     );
 
     // Initialize balance tracker - use actual start date for processing all historical data
-    console.log('Initializing balance tracker...', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Initializing balance tracker...', Date.now() - this.calculationBegin, 'ms');
+    }
     this.balanceTracker = new BalanceTracker(accountsAndTransfers.accounts, this.cache, actualStartDate);
 
     // Initialize calculator
-    console.log('Initializing calculator...', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Initializing calculator...', Date.now() - this.calculationBegin, 'ms');
+    }
     this.calculator = new Calculator(
       this.balanceTracker,
       this.taxManager,
@@ -133,11 +148,15 @@ export class Engine {
     );
 
     // Initialize push-pull handler
-    console.log('Initializing push-pull handler...', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Initializing push-pull handler...', Date.now() - this.calculationBegin, 'ms');
+    }
     this.pushPullHandler = new PushPullHandler(this.accountManager, this.balanceTracker);
 
     // Initialize segment processor
-    console.log('Initializing segment processor...', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Initializing segment processor...', Date.now() - this.calculationBegin, 'ms');
+    }
     this.segmentProcessor = new SegmentProcessor(
       this.cache,
       this.balanceTracker,
@@ -156,7 +175,9 @@ export class Engine {
     if (!this.timeline || !this.balanceTracker || !this.segmentProcessor || !this.calculator) {
       throw new Error('Calculation components not initialized');
     }
-    console.log('Performing calculations...', Date.now() - this.calculationBegin, 'ms');
+    if (options.enableLogging) {
+      console.log('Performing calculations...', Date.now() - this.calculationBegin, 'ms');
+    }
 
     const segments = this.timeline.getSegments();
 
@@ -212,7 +233,7 @@ export async function calculateAllActivity(
   enableLogging: boolean = false,
   config: Partial<CalculationConfig> = {},
 ): Promise<AccountsAndTransfers> {
-  const engine = new Engine(config);
+  const engine = new Engine(simulation, config);
 
   const options: CalculationOptions = {
     startDate,

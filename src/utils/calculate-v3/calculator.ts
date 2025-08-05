@@ -235,16 +235,9 @@ export class Calculator {
     const isBill = original instanceof Bill;
     const fromActivity = new ConsolidatedActivity(
       isBill
-        ? original
-            .toActivity(
-              `TRANSFER-${original.id}-${event.date.getTime()}-FROM`,
-              this.simulation,
-              -internalAmount,
-              event.date,
-            )
-            .serialize()
+        ? original.toActivity(original.id, this.simulation, -internalAmount, event.date).serialize()
         : {
-            id: `TRANSFER-${original.id}-${event.date.getTime()}-FROM`,
+            id: original.id,
             name: original.name, // Use the original transfer name
             amount: -internalAmount,
             amountIsVariable: original.amountIsVariable || false,
@@ -267,16 +260,9 @@ export class Calculator {
 
     const toActivity = new ConsolidatedActivity(
       isBill
-        ? original
-            .toActivity(
-              `TRANSFER-${original.id}-${event.date.getTime()}-TO`,
-              this.simulation,
-              internalAmount,
-              event.date,
-            )
-            .serialize()
+        ? original.toActivity(original.id, this.simulation, internalAmount, event.date).serialize()
         : {
-            id: `TRANSFER-${original.id}-${event.date.getTime()}-TO`,
+            id: original.id,
             name: original.name, // Use the original transfer name
             amount: internalAmount,
             amountIsVariable: original.amountIsVariable || false,
@@ -503,9 +489,6 @@ export class Calculator {
     // Calculate the RMD amount
     const balance = this.balanceTracker.getAccountBalance(account.id);
     const rmdAmount = this.retirementManager.rmd(balance, event.ownerAge);
-    console.log(
-      `[Calculator] RMD amount for ${account.name} at owner age ${event.ownerAge} in ${event.date.getFullYear()} from ${balance}: ${rmdAmount}`,
-    );
     if (rmdAmount <= 0) {
       return new Map();
     }

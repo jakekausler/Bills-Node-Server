@@ -33,14 +33,16 @@ export class Timeline {
   private eventIndex: Map<string, TimelineEvent>;
   private dateIndex: Map<string, TimelineEvent[]>;
   private calculationBegin: number;
+  private enableLogging: boolean;
 
-  constructor(accountManager: AccountManager, calculationBegin: number) {
+  constructor(accountManager: AccountManager, calculationBegin: number, enableLogging: boolean) {
     this.accountManager = accountManager;
     this.events = [];
     this.segments = [];
     this.eventIndex = new Map();
     this.dateIndex = new Map();
     this.calculationBegin = calculationBegin;
+    this.enableLogging = enableLogging;
   }
 
   static async fromAccountsAndTransfers(
@@ -49,8 +51,9 @@ export class Timeline {
     startDate: Date,
     endDate: Date,
     calculationBegin: number,
+    enableLogging: boolean,
   ): Promise<Timeline> {
-    const timeline = new Timeline(accountManager, calculationBegin);
+    const timeline = new Timeline(accountManager, calculationBegin, enableLogging);
 
     // Parallelize all independent add* method calls
     await Promise.all([
@@ -66,9 +69,13 @@ export class Timeline {
     ]);
 
     // Sort and optimize timeline
-    console.log('  Sorting events', Date.now() - timeline.calculationBegin, 'ms');
+    if (enableLogging) {
+      console.log('  Sorting events', Date.now() - timeline.calculationBegin, 'ms');
+    }
     timeline.sortEvents();
-    console.log('  Creating segments', Date.now() - timeline.calculationBegin, 'ms');
+    if (enableLogging) {
+      console.log('  Creating segments', Date.now() - timeline.calculationBegin, 'ms');
+    }
     timeline.createSegments(startDate, endDate);
 
     return timeline;
@@ -103,7 +110,9 @@ export class Timeline {
         }
       }
     }
-    console.log('  Finished adding activity events', Date.now() - this.calculationBegin, 'ms');
+    if (this.enableLogging) {
+      console.log('  Finished adding activity events', Date.now() - this.calculationBegin, 'ms');
+    }
   }
 
   private async addBillEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
@@ -112,14 +121,18 @@ export class Timeline {
         this.generateBillEvents(account, bill, endDate);
       }
     }
-    console.log('  Finished adding bill events', Date.now() - this.calculationBegin, 'ms');
+    if (this.enableLogging) {
+      console.log('  Finished adding bill events', Date.now() - this.calculationBegin, 'ms');
+    }
   }
 
   private async addInterestEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
     for (const account of accountsAndTransfers.accounts) {
       this.generateInterestEvents(account, account.interests, endDate);
     }
-    console.log('  Finished adding interest events');
+    if (this.enableLogging) {
+      console.log('  Finished adding interest events');
+    }
   }
 
   private async addTransferActivityEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
@@ -169,28 +182,36 @@ export class Timeline {
         this.addEvent(event);
       }
     }
-    console.log('  Finished adding transfer activity events', Date.now() - this.calculationBegin, 'ms');
+    if (this.enableLogging) {
+      console.log('  Finished adding transfer activity events', Date.now() - this.calculationBegin, 'ms');
+    }
   }
 
   private async addTransferBillEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
     for (const bill of accountsAndTransfers.transfers.bills) {
       this.generateTransferBillEvents(bill, endDate);
     }
-    console.log('  Finished adding transfer bill events', Date.now() - this.calculationBegin, 'ms');
+    if (this.enableLogging) {
+      console.log('  Finished adding transfer bill events', Date.now() - this.calculationBegin, 'ms');
+    }
   }
 
   private async addSocialSecurityEvents(endDate: Date): Promise<void> {
     for (const socialSecurity of this.accountManager.getSocialSecurities()) {
       this.generateSocialSecurityEvents(socialSecurity, endDate);
     }
-    console.log('  Finished adding social security events', Date.now() - this.calculationBegin, 'ms');
+    if (this.enableLogging) {
+      console.log('  Finished adding social security events', Date.now() - this.calculationBegin, 'ms');
+    }
   }
 
   private async addPensionEvents(endDate: Date): Promise<void> {
     for (const pension of this.accountManager.getPensions()) {
       this.generatePensionEvents(pension, endDate);
     }
-    console.log('  Finished adding pension events', Date.now() - this.calculationBegin, 'ms');
+    if (this.enableLogging) {
+      console.log('  Finished adding pension events', Date.now() - this.calculationBegin, 'ms');
+    }
   }
 
   private async addRmdEvents(
@@ -201,7 +222,9 @@ export class Timeline {
     for (const account of accountsAndTransfers.accounts) {
       this.generateRmdEvents(account, startDate, endDate);
     }
-    console.log('  Finished adding RMD events', Date.now() - this.calculationBegin, 'ms');
+    if (this.enableLogging) {
+      console.log('  Finished adding RMD events', Date.now() - this.calculationBegin, 'ms');
+    }
   }
 
   private async addTaxEvents(
@@ -212,7 +235,9 @@ export class Timeline {
     for (const account of accountsAndTransfers.accounts) {
       this.generateTaxEvents(account, startDate, endDate);
     }
-    console.log('  Finished adding tax events', Date.now() - this.calculationBegin, 'ms');
+    if (this.enableLogging) {
+      console.log('  Finished adding tax events', Date.now() - this.calculationBegin, 'ms');
+    }
   }
 
   /**************************************************

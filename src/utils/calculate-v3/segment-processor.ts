@@ -53,21 +53,6 @@ export class SegmentProcessor {
     this.accountManager = accountManager;
   }
 
-  async getCachedSegmentResult(segment: Segment): Promise<SegmentResult | null> {
-    if (!segment.cached) return null;
-    const cacheKey = this.generateSegmentCacheKey(segment);
-    return await this.cache.get(cacheKey);
-  }
-
-  async cacheSegmentResult(segment: Segment, segmentResult: SegmentResult): Promise<void> {
-    const cacheKey = this.generateSegmentCacheKey(segment);
-    await this.cache.set(cacheKey, segmentResult);
-  }
-
-  private generateSegmentCacheKey(segment: Segment): string {
-    return `segment_${segment.id}_${segment.cacheKey}`;
-  }
-
   async processSegment(segment: Segment, options: CalculationOptions): Promise<void> {
     if (!this.balanceTracker) {
       throw new Error('Balance tracker not initialized');
@@ -75,7 +60,7 @@ export class SegmentProcessor {
 
     // Check if segment result is cached
     if (!options.forceRecalculation) {
-      const cachedResult = await this.getCachedSegmentResult(segment);
+      const cachedResult = await this.cache.getSegmentResult(segment);
       if (cachedResult) {
         this.balanceTracker.applySegmentResult(cachedResult, segment.startDate);
         return;
@@ -94,7 +79,7 @@ export class SegmentProcessor {
     }
 
     // Cache the segment result
-    await this.cacheSegmentResult(segment, segmentResult);
+    await this.cache.setSegmentResult(segment, segmentResult);
 
     // Apply the result to balance tracker
     this.balanceTracker.applySegmentResult(segmentResult, segment.startDate);

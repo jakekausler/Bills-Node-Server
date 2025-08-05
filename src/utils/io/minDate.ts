@@ -1,5 +1,4 @@
 import { AccountsAndTransfers } from '../../data/account/types';
-import { MIN_DATE, setMinDate } from './cache';
 
 /**
  * Finds the minimum date across all financial data (activities, bills, interests, and transfers)
@@ -16,9 +15,6 @@ import { MIN_DATE, setMinDate } from './cache';
  * @returns The minimum date found across all financial data, or current date if no data exists
  */
 export function minDate(accountsAndTransfers: AccountsAndTransfers) {
-  if (MIN_DATE) {
-    return MIN_DATE;
-  }
   let minDate = new Date(); // Start with current date as maximum possible
   const { accounts, transfers } = accountsAndTransfers;
   for (const account of accounts) {
@@ -54,6 +50,5 @@ export function minDate(accountsAndTransfers: AccountsAndTransfers) {
       minDate = transfer.endDate;
     }
   }
-  setMinDate(minDate);
   return minDate;
 }

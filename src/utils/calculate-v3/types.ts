@@ -1,10 +1,12 @@
 import { AccountsAndTransfers } from '../../data/account/types';
 import { Activity } from '../../data/activity/activity';
-import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
+// ConsolidatedActivity import removed to avoid circular dependency
+import { ConsolidatedActivityData } from '../../data/activity/types';
 import { Bill } from '../../data/bill/bill';
 import { Interest } from '../../data/interest/interest';
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
+import { DateString } from '../date/types';
 
 export type CalculationConfig = {
   snapshotInterval: 'monthly' | 'quarterly' | 'yearly';
@@ -34,6 +36,13 @@ export type TaxableOccurence = {
   taxRate: number;
 };
 
+export type TaxableOccurenceData = {
+  date: DateString;
+  year: number;
+  amount: number;
+  taxRate: number;
+};
+
 /**
  * Results of a calculation segment
  */
@@ -41,7 +50,7 @@ export interface SegmentResult {
   /** Balance changes for each account */
   balanceChanges: Map<string, number>;
   /** Activities added to the segment */
-  activitiesAdded: Map<string, ConsolidatedActivity[]>;
+  activitiesAdded: Map<string, any[]>;
   /** Processed event IDs */
   processedEventIds: Set<string>;
   /** Minimum day end balance for each account */
@@ -53,6 +62,15 @@ export interface SegmentResult {
   /** Accounts and Transfers */
   accountsAndTransfers?: AccountsAndTransfers;
 }
+
+export type SegmentResultData = {
+  balanceChanges: Record<string, number>;
+  activitiesAdded: Record<string, ConsolidatedActivityData[]>;
+  processedEventIds: string[];
+  balanceMinimums: Record<string, number>;
+  balanceMaximums: Record<string, number>;
+  taxableOccurences: Record<string, TaxableOccurenceData[]>;
+};
 
 /**
  * Interest state for an account
@@ -192,3 +210,10 @@ export interface BalanceSnapshot {
   /** Events that have been processed up to this point */
   processedEventIds: Set<string>;
 }
+
+export type BalanceSnapshotData = {
+  date: DateString;
+  balances: Record<string, number>;
+  activityIndices: Record<string, number>;
+  processedEventIds: string[];
+};
