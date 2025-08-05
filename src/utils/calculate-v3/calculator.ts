@@ -74,7 +74,7 @@ export class Calculator {
 
     // Create consolidated activity for the bill
     const billActivity = new ConsolidatedActivity(
-      bill.toActivity(bill.id, simulation, amount, event.date).serialize(),
+      bill.toActivity(`${bill.id}-${event.date}`, simulation, amount, event.date).serialize(),
       { billId: bill.id, firstBill: event.firstBill },
     );
 
@@ -110,7 +110,7 @@ export class Calculator {
 
     // Create consolidated activity for the interest
     const interestActivity = new ConsolidatedActivity(
-      interest.toActivity(interest.id, this.simulation, interestAmount, event.date).serialize(),
+      interest.toActivity(`${interest.id}-${event.date}`, this.simulation, interestAmount, event.date).serialize(),
       { interestId: interest.id, firstInterest: event.firstInterest },
     );
 
@@ -235,7 +235,7 @@ export class Calculator {
     const isBill = original instanceof Bill;
     const fromActivity = new ConsolidatedActivity(
       isBill
-        ? original.toActivity(original.id, this.simulation, -internalAmount, event.date).serialize()
+        ? original.toActivity(`${original.id}-${event.date}`, this.simulation, -internalAmount, event.date).serialize()
         : {
             id: original.id,
             name: original.name, // Use the original transfer name
@@ -260,7 +260,7 @@ export class Calculator {
 
     const toActivity = new ConsolidatedActivity(
       isBill
-        ? original.toActivity(original.id, this.simulation, internalAmount, event.date).serialize()
+        ? original.toActivity(`${original.id}-${event.date}`, this.simulation, internalAmount, event.date).serialize()
         : {
             id: original.id,
             name: original.name, // Use the original transfer name
