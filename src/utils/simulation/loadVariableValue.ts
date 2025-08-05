@@ -125,7 +125,7 @@ export function loadNumberOrVariable(
   if (typeof amount === 'string' && (amount.includes('{HALF}') || amount.includes('{FULL}'))) {
     return {
       amount: amount as '{HALF}' | '{FULL}' | '-{HALF}' | '-{FULL}',
-      amountIsVariable: false,
+      amountIsVariable: true,
       amountVariable: amountVariable,
     };
   }

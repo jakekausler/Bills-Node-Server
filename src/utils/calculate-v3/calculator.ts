@@ -243,8 +243,8 @@ export class Calculator {
             amountIsVariable: original.amountIsVariable || false,
             amountVariable: original.amountVariable || null,
             date: formatDate(event.date),
-            dateIsVariable: false,
-            dateVariable: null,
+            dateIsVariable: original.dateIsVariable || false,
+            dateVariable: original.dateVariable || null,
             from: original.fro,
             to: original.to,
             isTransfer: true,
@@ -268,8 +268,8 @@ export class Calculator {
             amountIsVariable: original.amountIsVariable || false,
             amountVariable: original.amountVariable || null,
             date: formatDate(event.date),
-            dateIsVariable: false,
-            dateVariable: null,
+            dateIsVariable: original.dateIsVariable || false,
+            dateVariable: original.dateVariable || null,
             from: original.fro,
             to: original.to,
             isTransfer: true,
@@ -282,6 +282,12 @@ export class Calculator {
         firstBill,
       },
     );
+
+    if (original.name === 'Transfer from Kendall to Kendall Chase' && isBill) {
+      // console.log('original', original.amountIsVariable);
+      // console.log('fromActivity', fromActivity.amountIsVariable);
+      // console.log('toActivity', toActivity.amountIsVariable);
+    }
 
     // Add activities to segment result
     if (!segmentResult.activitiesAdded.has(fromAccountId)) {
