@@ -113,6 +113,8 @@ export class Calculator {
       interest.toActivity(`${interest.id}-${event.date}`, this.simulation, interestAmount, event.date).serialize(),
       { interestId: interest.id, firstInterest: event.firstInterest },
     );
+    interestActivity.flagColor = 'orange';
+    interestActivity.flag = true;
 
     // Add activity to segment result
     if (!segmentResult.activitiesAdded.has(accountId)) {
@@ -283,12 +285,6 @@ export class Calculator {
       },
     );
 
-    if (original.name === 'Transfer from Kendall to Kendall Chase' && isBill) {
-      // console.log('original', original.amountIsVariable);
-      // console.log('fromActivity', fromActivity.amountIsVariable);
-      // console.log('toActivity', toActivity.amountIsVariable);
-    }
-
     // Add activities to segment result
     if (!segmentResult.activitiesAdded.has(fromAccountId)) {
       segmentResult.activitiesAdded.set(fromAccountId, []);
@@ -458,7 +454,7 @@ export class Calculator {
       isTransfer: false,
       category: 'Taxes.Federal',
       flag: true,
-      flagColor: 'red',
+      flagColor: 'orange',
     });
 
     // Add the tax activity to the segment result
