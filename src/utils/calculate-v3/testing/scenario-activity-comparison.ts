@@ -2,10 +2,6 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 interface Activity {
   id: string;
@@ -289,7 +285,7 @@ function printResults(results: ComparisonResult[], detailed: boolean = false, ac
       result.differences.forEach((diff) => {
         if (diff.originalActivity) {
           const positionMatch = diff.issue.match(/Position (\d+)/);
-          const position = positionMatch ? parseInt(positionMatch[1]) : 'Unknown';
+          const position = positionMatch ? parseInt(positionMatch[1]) : 0;
           console.log(formatSideBySide(diff.originalActivity, diff.activity, position));
         }
       });
@@ -354,7 +350,7 @@ function main() {
   printResults(results, detailed, account);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (require.main === module) {
   main();
 }
 

@@ -4,7 +4,6 @@ import { BalanceSnapshot, SegmentResult } from './types';
 import dayjs from 'dayjs';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { minDate } from '../io/minDate';
-import { warn } from '../calculate-v2/logger';
 import { isSame } from '../date/date';
 
 export class BalanceTracker {
@@ -155,7 +154,7 @@ export class BalanceTracker {
         account.consolidatedActivity.push(...activities);
         this.updateActivityIndex(accountId, activities.length);
       } else {
-        warn(`[BalanceTracker] Account ${accountId} not found for applying activities`);
+        console.warn(`[BalanceTracker] Account ${accountId} not found for applying activities`);
       }
     }
   }

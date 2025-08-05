@@ -1,7 +1,6 @@
 import { AccountsAndTransfers } from '../../data/account/types';
 import { CalculationConfig, CalculationOptions } from './types';
 import { CacheManager, initializeCache } from './cache';
-import { err } from '../calculate-v2/logger';
 import { Timeline } from './timeline';
 import { BalanceTracker } from './balance-tracker';
 import { SegmentProcessor } from './segment-processor';
@@ -208,7 +207,7 @@ export class Engine {
           try {
             activity.amount = Math.round(Number(activity.amount) * 100) / 100; // Round to 2 decimal places
           } catch {
-            err('Error rounding activity amount:', activity.amount);
+            console.error('Error rounding activity amount:', activity.amount);
           }
           activity.balance = Math.round(activity.balance * 100) / 100; // Round to 2 decimal places
         });

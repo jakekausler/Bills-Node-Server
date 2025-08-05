@@ -1,5 +1,4 @@
 import { Account } from '../../data/account/account';
-import { warn } from '../calculate-v2/logger';
 import { formatDate, isAfterOrSame, isBeforeOrSame } from '../date/date';
 import { ActivityTransferEvent, EventType, Segment, SegmentResult } from './types';
 import { AccountManager } from './account-manager';
@@ -23,7 +22,7 @@ export class PushPullHandler {
     for (const accountId of segment.affectedAccountIds) {
       const account = this.accountManager.getAccountById(accountId);
       if (!account) {
-        warn(`Account with ID ${accountId} not found in segment ${segment.id}`);
+        console.warn(`Account with ID ${accountId} not found in segment ${segment.id}`);
         continue;
       }
 
@@ -75,7 +74,7 @@ export class PushPullHandler {
     // Get the account to push to
     const pushAccount = this.accountManager.getAccountByName(account.pushAccount ?? '');
     if (!pushAccount) {
-      warn(`Push account ${account.pushAccount} not found for account ${account.name}`);
+      console.warn(`Push account ${account.pushAccount} not found for account ${account.name}`);
       return false;
     }
 

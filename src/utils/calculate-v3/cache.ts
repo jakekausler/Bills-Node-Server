@@ -10,7 +10,6 @@ import {
   SegmentResultData,
   TaxableOccurence,
 } from './types';
-import { warn } from '../calculate-v2/logger';
 import { join } from 'path';
 import { formatDate, parseDate } from '../date/date';
 import { AccountsAndTransfers, AccountsAndTransfersData } from '../../data/account/types';
@@ -195,7 +194,7 @@ export class CacheManager {
       try {
         await mkdir(this.diskCacheDir, { recursive: true });
       } catch (error) {
-        warn('Failed to create disk cache directory:', `${error}`);
+        console.warn('Failed to create disk cache directory:', `${error}`);
       }
     }
   }
@@ -316,7 +315,7 @@ export class CacheManager {
         const files = await readdir(this.diskCacheDir);
         await Promise.all(files.map((file) => unlink(join(this.diskCacheDir, file))));
       } catch (error) {
-        warn('Failed to clear disk cache directory:', `${error}`);
+        console.warn('Failed to clear disk cache directory:', `${error}`);
       }
     }
   }
@@ -379,7 +378,7 @@ export class CacheManager {
           }
         }
       } catch (error) {
-        warn('Failed to clear disk cache:', `${error}`);
+        console.warn('Failed to clear disk cache:', `${error}`);
       }
     }
   }
@@ -423,7 +422,7 @@ export class CacheManager {
           }
         }
       } catch (error) {
-        warn('Failed to clean disk cache:', `${error}`);
+        console.warn('Failed to clean disk cache:', `${error}`);
       }
     }
   }
@@ -450,7 +449,7 @@ export class CacheManager {
       const safeJson = serializer.serialize(entry);
       await writeFile(filePath, safeJson, 'utf8');
     } catch (error) {
-      warn('Failed to write to disk cache:', `${error}`);
+      console.warn('Failed to write to disk cache:', `${error}`);
     }
   }
 
@@ -464,7 +463,7 @@ export class CacheManager {
       if ((error as any).code === 'ENOENT') {
         return null; // File not found
       }
-      warn('Failed to read from disk cache:', `${error}`);
+      console.warn('Failed to read from disk cache:', `${error}`);
       return null;
     }
   }
@@ -474,7 +473,7 @@ export class CacheManager {
     try {
       await unlink(filePath);
     } catch (error) {
-      warn('Failed to delete from disk cache:', `${error}`);
+      console.warn('Failed to delete from disk cache:', `${error}`);
     }
   }
 
@@ -573,7 +572,7 @@ export class CacheManager {
         try {
           await unlink(join(this.diskCacheDir, file));
         } catch (error) {
-          warn('Failed to delete from disk cache:', `${error}`);
+          console.warn('Failed to delete from disk cache:', `${error}`);
         }
       }
     }
@@ -675,7 +674,7 @@ export class CacheManager {
           }
         }
       } catch (error) {
-        warn('Failed to clear disk cache:', `${error}`);
+        console.warn('Failed to clear disk cache:', `${error}`);
       }
     }
   }
@@ -702,7 +701,7 @@ export class CacheManager {
           }
         }
       } catch (error) {
-        warn('Failed to clear disk cache:', `${error}`);
+        console.warn('Failed to clear disk cache:', `${error}`);
       }
     }
   }

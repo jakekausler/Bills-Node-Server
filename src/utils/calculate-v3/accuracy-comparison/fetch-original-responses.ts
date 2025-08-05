@@ -81,9 +81,9 @@ async function fetchOriginalConsolidatedActivity(
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any[];
     return data;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`    ❌ Failed to fetch: ${error.message}`);
     throw error;
   }
@@ -159,7 +159,7 @@ async function fetchAllOriginalResponses(): Promise<void> {
 
         // Small delay to avoid overwhelming the API
         await new Promise((resolve) => setTimeout(resolve, 100));
-      } catch (error) {
+      } catch (error: any) {
         const response: OriginalResponse = {
           accountId: account.id,
           accountName: account.name,
@@ -236,7 +236,7 @@ async function fetchAllOriginalResponses(): Promise<void> {
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (require.main === module) {
   console.log('🚀 Starting Original API Response Fetching...\n');
 
   fetchAllOriginalResponses()

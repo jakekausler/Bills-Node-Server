@@ -21,7 +21,6 @@ import { Calculator } from './calculator';
 import { PushPullHandler } from './push-pull-handler';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import dayjs from 'dayjs';
-import { warn } from '../calculate-v2/logger';
 import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
 import { AccountManager } from './account-manager';
@@ -98,7 +97,7 @@ export class SegmentProcessor {
       if (account) {
         this.taxManager.addTaxableOccurences(account.id, taxableOccurences);
       } else {
-        warn(`[SegmentProcessor] Account ${accountName} not found for adding taxable occurences`);
+        console.warn(`[SegmentProcessor] Account ${accountName} not found for adding taxable occurences`);
       }
     }
   }
@@ -224,7 +223,7 @@ export class SegmentProcessor {
       case EventType.rmd:
         return this.calculator.processRMDEvent(event as RMDEvent, segmentResult);
       default:
-        warn(`Unknown event type: ${event.type}`);
+        console.warn(`Unknown event type: ${event.type}`);
         return new Map<string, number>();
     }
   }

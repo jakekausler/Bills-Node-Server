@@ -21,7 +21,6 @@ import { Bill } from '../../data/bill/bill';
 import { Interest } from '../../data/interest/interest';
 import { nextDate } from '../calculate/helpers';
 import { isAfterOrSame, isBeforeOrSame, isSame } from '../date/date';
-import { warn } from '../calculate-v2/logger';
 import { AccountManager } from './account-manager';
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
@@ -139,13 +138,13 @@ export class Timeline {
     for (const activity of accountsAndTransfers.transfers.activity) {
       if (activity.date <= endDate && activity.isTransfer) {
         if (!activity.fro || !activity.to) {
-          warn('Transfer activity has no from or to account on the activity', activity);
+          console.warn('Transfer activity has no from or to account on the activity', activity);
           continue;
         }
         const fromAccount = this.accountManager.getAccountByName(activity.fro);
         const toAccount = this.accountManager.getAccountByName(activity.to);
         if (!fromAccount && !toAccount) {
-          warn('Transfer activity has no from or to account on the account map', activity);
+          console.warn('Transfer activity has no from or to account on the account map', activity);
           continue;
         }
 
@@ -164,7 +163,7 @@ export class Timeline {
         }
 
         if (!shouldProcessTransfer) {
-          warn('Transfer activity should not be processed', activity);
+          console.warn('Transfer activity should not be processed', activity);
           continue;
         }
 
@@ -388,7 +387,7 @@ export class Timeline {
     // Find the account to pay to
     const payToAccount = this.accountManager.getAccountByName(socialSecurity.payToAcccount);
     if (!payToAccount) {
-      warn(`Social Security pay to account ${socialSecurity.payToAcccount} not found`);
+      console.warn(`Social Security pay to account ${socialSecurity.payToAcccount} not found`);
       return;
     }
 
@@ -432,7 +431,7 @@ export class Timeline {
     // Find the account to pay to
     const payToAccount = this.accountManager.getAccountByName(pension.payToAcccount);
     if (!payToAccount) {
-      warn(`Pension pay to account ${pension.payToAcccount} not found`);
+      console.warn(`Pension pay to account ${pension.payToAcccount} not found`);
       return;
     }
 

@@ -12,7 +12,10 @@ import { load } from '../../io/io';
 import { AccountsAndTransfersData, AccountsAndTransfers } from '../../../data/account/types';
 import { Account } from '../../../data/account/account';
 import { Activity } from '../../../data/activity/activity';
+import { ActivityData } from '../../../data/activity/types';
 import { Bill } from '../../../data/bill/bill';
+import { BillData } from '../../../data/bill/types';
+import { InterestData } from '../../../data/interest/types';
 import { calculateAllActivity } from './../engine';
 import { initializeCache } from './../cache';
 import { TEST_SCENARIOS } from './fetch-original-responses';
@@ -91,7 +94,7 @@ async function loadOriginalResponses(): Promise<OriginalResponse[]> {
   try {
     const data = await fs.readFile(allResponsesFile, 'utf8');
     return JSON.parse(data) as OriginalResponse[];
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to load original responses: ${error.message}`);
   }
 }
@@ -105,24 +108,24 @@ async function runCalculateV2(
   endDate: string,
 ): Promise<AccountsAndTransfers> {
   // Initialize cache for each test
-  initializeCache({
-    diskCacheDir: './temp/calculate-v2-cache-comparison',
-    maxMemoryCacheMB: 100,
-    enableDiskCache: false, // Disable caching to ensure fresh calculation for debugging
-    cacheExpirationDays: 7,
-    maxEventCount: 10000,
-    segmentSize: 'month',
-  });
+  initializeCache(
+    {
+      diskCacheDir: './temp/calculate-v3-cache-comparison',
+      useDiskCache: false,
+      snapshotInterval: 'monthly',
+    },
+    'Default',
+  );
 
   // Clone data for independent testing
   const testData: AccountsAndTransfers = {
     accounts: accountsAndTransfers.accounts.map(
       (account) =>
         new Account({
-          ...account,
-          activity: [...(account.activity || [])],
-          bills: [...(account.bills || [])].map((bill) => (bill.serialize ? bill.serialize() : bill)),
-          interests: [...(account.interests || [])],
+          ...account.serialize(),
+          activity: [...(account.activity || [])].map((activity) => activity.serialize() as ActivityData),
+          bills: [...(account.bills || [])].map((bill) => bill.serialize() as BillData),
+          interests: [...(account.interests || [])].map((interest) => interest.serialize() as InterestData),
           consolidatedActivity: [], // Clear calculated data
         }),
     ),
@@ -328,7 +331,7 @@ export async function runAccuracyComparison(): Promise<void> {
         }
 
         console.log(`  📊 Scenario summary: ${scenarioSuccesses} matches, ${scenarioDiscrepancies} discrepancies\n`);
-      } catch (error) {
+      } catch (error: any) {
         console.log(`  ❌ Scenario failed: ${error.message}\n`);
 
         // Add error results for all accounts in this scenario

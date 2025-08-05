@@ -1,4 +1,3 @@
-import { RMD_TABLE, setRMDTable } from '../io/cache';
 import { load } from '../io/io';
 import { RMDTableType } from './types';
 import { AccountsAndTransfers } from '../../data/account/types';
@@ -69,16 +68,10 @@ export function performRMD(
   }
 }
 
-function loadRMD() {
-  if (Object.keys(RMD_TABLE).length === 0) {
-    setRMDTable(Object.fromEntries(Object.entries(load<RMDTableType>('rmd.json')).map(([k, v]) => [parseInt(k), v])));
-  }
-}
-
 function rmd(balance: number, age: number) {
-  loadRMD();
-  if (age in RMD_TABLE) {
-    return balance / RMD_TABLE[age];
+  const rmdTable = Object.fromEntries(Object.entries(load<RMDTableType>('rmd.json')).map(([k, v]) => [parseInt(k), v]));
+  if (age in rmdTable) {
+    return balance / rmdTable[age];
   }
   return 0;
 }

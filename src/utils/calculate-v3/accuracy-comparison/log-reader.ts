@@ -186,7 +186,7 @@ async function processInput(): Promise<void> {
 }
 
 // Handle process
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (require.main === module) {
   processInput().catch((err) => {
     console.error('Error:', err.message);
     process.exit(1);
