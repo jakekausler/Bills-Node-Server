@@ -32,6 +32,7 @@ export class Bill {
   increaseByVariable: string | null;
   increaseByDate: { day: number; month: number };
   ceilingMultiple: number;
+  monteCarloSampleType: string | null;
 
   annualStartDate: string | null;
   annualEndDate: string | null;
@@ -133,6 +134,7 @@ export class Bill {
 
     this.increaseByDate = this.setIncreaseByDate(data.increaseByDate);
     this.ceilingMultiple = data.ceilingMultiple || 0;
+    this.monteCarloSampleType = data.monteCarloSampleType || null;
   }
 
   /**
@@ -228,6 +230,7 @@ export class Bill {
       annualStartDate: this.annualStartDate,
       annualEndDate: this.annualEndDate,
       ceilingMultiple: this.ceilingMultiple,
+      monteCarloSampleType: this.monteCarloSampleType,
       isAutomatic: this.isAutomatic,
       startDate: formatDate(this.startDate),
       startDateIsVariable: this.startDateIsVariable,
