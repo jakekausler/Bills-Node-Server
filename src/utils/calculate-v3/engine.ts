@@ -24,9 +24,9 @@ export class Engine {
   private retirementManager: RetirementManager;
   private calculationBegin: number;
 
-  constructor(simulation: string, config: Partial<CalculationConfig> = {}) {
+  constructor(simulation: string, config: Partial<CalculationConfig> = {}, monteCarlo: boolean = false) {
     this.config = this.mergeConfig(config);
-    this.cache = initializeCache(this.config, simulation);
+    this.cache = initializeCache(this.config, simulation, monteCarlo);
   }
 
   async calculate(
@@ -232,7 +232,7 @@ export async function calculateAllActivity(
   enableLogging: boolean = false,
   config: Partial<CalculationConfig> = {},
 ): Promise<AccountsAndTransfers> {
-  const engine = new Engine(simulation, config);
+  const engine = new Engine(simulation, config, monteCarlo);
 
   const options: CalculationOptions = {
     startDate,

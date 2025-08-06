@@ -174,14 +174,16 @@ export class CacheManager {
   private diskCacheDir: string;
   private config: CalculationConfig;
   private simulation: string;
+  private monteCarlo: boolean;
   private calculationResultSerializer: CalculationResultSerializer;
   private segmentResultSerializer: SegmentResultSerializer;
   private balanceSnapshotSerializer: BalanceSnapshotSerializer;
 
-  constructor(config: CalculationConfig, simulation: string) {
+  constructor(config: CalculationConfig, simulation: string, monteCarlo: boolean = false) {
     this.diskCacheDir = config.diskCacheDir;
     this.config = config;
     this.simulation = simulation;
+    this.monteCarlo = monteCarlo;
 
     this.initializeDiskCache();
 
@@ -210,6 +212,11 @@ export class CacheManager {
   }
 
   async set<T>(key: string, value: T, serializer: Serializer, options: Partial<CacheOptions> = {}): Promise<void> {
+    // Skip caching when in Monte Carlo mode
+    if (this.monteCarlo) {
+      return;
+    }
+
     const entry: CacheEntry<T> = {
       data: value,
       timestamp: new Date(),
@@ -224,6 +231,11 @@ export class CacheManager {
   }
 
   async get<T>(key: string, serializer: Serializer): Promise<T | null> {
+    // Skip cache reading when in Monte Carlo mode
+    if (this.monteCarlo) {
+      return null;
+    }
+
     // Check memory cache first
     const memoryEntry = CacheManager.memoryCache.get(key);
     if (memoryEntry) {
@@ -249,6 +261,11 @@ export class CacheManager {
   }
 
   async has(key: string): Promise<boolean> {
+    // Skip cache checking when in Monte Carlo mode
+    if (this.monteCarlo) {
+      return false;
+    }
+
     // Check memory cache first
     if (CacheManager.memoryCache.has(key)) {
       const entry = CacheManager.memoryCache.get(key);
@@ -713,6 +730,6 @@ export class CacheManager {
   }
 }
 
-export function initializeCache(config: CalculationConfig, simulation: string): CacheManager {
-  return new CacheManager(config, simulation);
+export function initializeCache(config: CalculationConfig, simulation: string, monteCarlo: boolean = false): CacheManager {
+  return new CacheManager(config, simulation, monteCarlo);
 }

@@ -19,7 +19,8 @@ export const FILE_NAME = 'data';
  * @param startDate - The start date for calculations
  * @param endDate - The end date for calculations
  * @param simulation - The simulation name to use (defaults to 'Default')
- * @param updateCache - Whether to reset the cache before loading (defaults to true)
+ * @param calculationConfig - Configuration for the calculation engine
+ * @param options - Additional calculation options
  * @returns The loaded and processed accounts and transfers data
  */
 export async function loadData(
@@ -27,6 +28,13 @@ export async function loadData(
   endDate: Date,
   simulation: string = 'Default',
   calculationConfig: Partial<CalculationConfig> = {},
+  options: {
+    monteCarlo?: boolean;
+    simulationNumber?: number;
+    totalSimulations?: number;
+    forceRecalculation?: boolean;
+    enableLogging?: boolean;
+  } = {},
 ): Promise<AccountsAndTransfers> {
   const accountsAndTransfers = getAccountsAndTransfers(simulation);
   const result = await calculateAllActivity(
@@ -34,11 +42,11 @@ export async function loadData(
     startDate,
     endDate,
     simulation,
-    false,
-    0,
-    0,
-    false,
-    false,
+    options.monteCarlo ?? false,
+    options.simulationNumber ?? 0,
+    options.totalSimulations ?? 0,
+    options.forceRecalculation ?? false,
+    options.enableLogging ?? false,
     calculationConfig,
   );
   return result;

@@ -217,3 +217,59 @@ export type BalanceSnapshotData = {
   activityIndices: Record<string, number>;
   processedEventIds: string[];
 };
+
+export enum MonteCarloSampleType {
+  HYSA = 'HYSA',
+  LYSA = 'LYSA',
+  PORTFOLIO = 'Portfolio',
+  INFLATION = 'Inflation',
+  RAISE = 'Raise'
+}
+
+export interface HistoricRates {
+  investment: {
+    stock?: number[];
+    bond?: number[];
+    cash?: number[];
+    preferred?: ProxyDefinition;
+    convertible?: ProxyDefinition;
+    other?: ProxyDefinition;
+  };
+  savings: {
+    highYield: number[];
+    lowYield: number[];
+  };
+  inflation: number[];
+  raise: number[];
+}
+
+export interface ProxyDefinition {
+  proxy: Record<string, number>;
+}
+
+export interface PortfolioComposition {
+  cash: number;
+  stock: number;
+  bond: number;
+  preferred: number;
+  convertible: number;
+  other: number;
+}
+
+export interface PortfolioMakeupOverTime {
+  [year: string]: PortfolioComposition;
+}
+
+export interface SampleRecord {
+  date: Date;
+  type: MonteCarloSampleType;
+  value: number;
+  segmentKey: string;
+}
+
+export interface MonteCarloConfig {
+  enabled: boolean;
+  handler: any; // Using any to avoid circular dependency
+  simulationNumber: number;
+  totalSimulations: number;
+}
