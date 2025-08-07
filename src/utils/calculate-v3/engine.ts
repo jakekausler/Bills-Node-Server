@@ -34,6 +34,7 @@ export class Engine {
   async calculate(
     accountsAndTransfers: AccountsAndTransfers,
     options: CalculationOptions,
+    timeline?: Timeline,
   ): Promise<AccountsAndTransfers> {
     // Start timing
     this.calculationBegin = Date.now();
@@ -47,7 +48,7 @@ export class Engine {
     }
 
     // Initialize all components
-    await this.initializeCalculation(accountsAndTransfers, options);
+    await this.initializeCalculation(accountsAndTransfers, options, timeline);
 
     // Perform the calculation
     const results = await this.performCalculations(accountsAndTransfers, options);
@@ -95,30 +96,16 @@ export class Engine {
   private async initializeCalculation(
     accountsAndTransfers: AccountsAndTransfers,
     options: CalculationOptions,
+    timeline?: Timeline,
   ): Promise<void> {
     // Get the actual start date of the accounts and transfers
     const actualStartDate = minDate(accountsAndTransfers);
 
-    // Initialize account manager
+    // Create timeline - always start from earliest data to get correct balances
+    // but we'll filter the final output by date range
     if (options.enableLogging) {
-      console.log('Initializing account manager...', Date.now() - this.calculationBegin, 'ms');
+      console.log('Creating timeline...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.accountManager = new AccountManager(accountsAndTransfers.accounts, options);
-
-    // Initialize tax manager
-    if (options.enableLogging) {
-      console.log('Initializing tax manager...', Date.now() - this.calculationBegin, 'ms');
-    }
-    this.taxManager = new TaxManager();
-
-    // Initialize retirement manager
-    if (options.enableLogging) {
-      console.log('Initializing retirement manager...', Date.now() - this.calculationBegin, 'ms');
-    }
-    this.retirementManager = new RetirementManager(
-      this.accountManager.getSocialSecurities(),
-      this.accountManager.getPensions(),
-    );
 
     // Initialize Monte Carlo handler for Monte Carlo mode only
     if (options.enableLogging) {
@@ -135,19 +122,37 @@ export class Engine {
       };
     }
 
-    // Create timeline - always start from earliest data to get correct balances
-    // but we'll filter the final output by date range
-    if (options.enableLogging) {
-      console.log('Creating timeline...', Date.now() - this.calculationBegin, 'ms');
+    if (!timeline) {
+      this.timeline = await Timeline.fromAccountsAndTransfers(
+        accountsAndTransfers,
+        actualStartDate,
+        options.endDate,
+        this.calculationBegin,
+        options.enableLogging,
+        this.monteCarloConfig,
+        options,
+      );
+    } else {
+      this.timeline = timeline.clone(actualStartDate, options.endDate, this.monteCarloConfig);
     }
-    this.timeline = await Timeline.fromAccountsAndTransfers(
-      this.accountManager,
-      accountsAndTransfers,
-      actualStartDate,
-      options.endDate,
-      this.calculationBegin,
-      options.enableLogging,
-      this.monteCarloConfig,
+    if (options.monteCarlo) {
+      this.timeline.applyMonteCarlo();
+    }
+    this.accountManager = this.timeline.getAccountManager();
+
+    // Initialize tax manager
+    if (options.enableLogging) {
+      console.log('Initializing tax manager...', Date.now() - this.calculationBegin, 'ms');
+    }
+    this.taxManager = new TaxManager();
+
+    // Initialize retirement manager
+    if (options.enableLogging) {
+      console.log('Initializing retirement manager...', Date.now() - this.calculationBegin, 'ms');
+    }
+    this.retirementManager = new RetirementManager(
+      this.accountManager.getSocialSecurities(),
+      this.accountManager.getPensions(),
     );
 
     // Initialize balance tracker - use actual start date for processing all historical data
@@ -253,6 +258,7 @@ export async function calculateAllActivity(
   forceRecalculation: boolean = false,
   enableLogging: boolean = false,
   config: Partial<CalculationConfig> = {},
+  timeline?: Timeline,
 ): Promise<AccountsAndTransfers> {
   const engine = new Engine(simulation, config, monteCarlo);
 
@@ -268,6 +274,6 @@ export async function calculateAllActivity(
     config,
   };
 
-  const result = await engine.calculate(accountsAndTransfers, options);
+  const result = await engine.calculate(accountsAndTransfers, options, timeline);
   return result;
 }

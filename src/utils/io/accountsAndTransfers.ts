@@ -75,7 +75,7 @@ export async function loadData(
  * @param simulation - The simulation name to use for variable resolution
  * @returns Processed accounts and transfers data with calculated activities
  */
-function getAccountsAndTransfers(simulation: string): AccountsAndTransfers {
+export function getAccountsAndTransfers(simulation: string): AccountsAndTransfers {
   const data = load<AccountsAndTransfersData>(`${FILE_NAME}.json`);
 
   const accountsAndTransfers: AccountsAndTransfers = { accounts: [], transfers: { activity: [], bills: [] } };

@@ -1,11 +1,14 @@
 import { writeFileSync, readFileSync, unlinkSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { loadData } from '../io/accountsAndTransfers';
+import { getAccountsAndTransfers, loadData } from '../io/accountsAndTransfers';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { SimulationJob, SimulationProgress, SimulationResult, FilteredActivity, FilteredAccount } from './types';
 import { formatDate } from '../date/date';
 import { generateMonteCarloStatisticsGraph } from './statisticsGraph';
+import { Timeline } from '../calculate-v3/timeline';
+import { minDate } from '../io/minDate';
+import { calculateAllActivity } from '../calculate-v3/engine';
 
 export class MonteCarloSimulationRunner {
   private static instance: MonteCarloSimulationRunner;
@@ -205,18 +208,62 @@ export class MonteCarloSimulationRunner {
       // Run simulations in batches
       const batches = Math.ceil(job.totalSimulations / job.batchSize);
 
+      // Initialize shared timeline
+      const accountsAndTransfers = getAccountsAndTransfers('Default');
+      const actualStartDate = minDate(accountsAndTransfers);
+      const timeline = await Timeline.fromAccountsAndTransfers(
+        accountsAndTransfers,
+        actualStartDate,
+        job.endDate,
+        Date.now(),
+        false,
+        null,
+        {
+          startDate: job.startDate,
+          endDate: job.endDate,
+          simulation: 'Default',
+          monteCarlo: true,
+          simulationNumber: 0,
+          totalSimulations: 0,
+          forceRecalculation: false,
+          enableLogging: false,
+          config: {},
+        },
+      );
+
       for (let batchIndex = 0; batchIndex < batches; batchIndex++) {
         const batchStart = batchIndex * job.batchSize + 1;
         const batchEnd = Math.min((batchIndex + 1) * job.batchSize, job.totalSimulations);
 
-        await this.runBatch(job, batchStart, batchEnd);
+        await this.runBatch(job, batchStart, batchEnd, accountsAndTransfers, timeline);
 
         // Update progress
         job.completedSimulations = batchEnd;
         job.progress = (job.completedSimulations / job.totalSimulations) * 100;
 
+        // Calculate elapsed time and ETA
+        const now = new Date();
+        const elapsedMs = job.startedAt ? now.getTime() - job.startedAt.getTime() : 0;
+        const elapsedMinutes = Math.floor(elapsedMs / 60000);
+        const elapsedSeconds = Math.floor((elapsedMs % 60000) / 1000);
+        const elapsedFormatted = `${elapsedMinutes}m ${elapsedSeconds}s`;
+
+        let etaFormatted = 'calculating...';
+        if (job.progress > 0 && elapsedMs > 0) {
+          const estimatedTotalTimeMs = (elapsedMs / job.progress) * 100;
+          const remainingTimeMs = estimatedTotalTimeMs - elapsedMs;
+
+          if (remainingTimeMs > 0) {
+            const etaMinutes = Math.floor(remainingTimeMs / 60000);
+            const etaSeconds = Math.floor((remainingTimeMs % 60000) / 1000);
+            etaFormatted = `${etaMinutes}m ${etaSeconds}s`;
+          } else {
+            etaFormatted = 'completing soon...';
+          }
+        }
+
         console.log(
-          `⭐ [${new Date().toISOString()}] Batch ${batchIndex + 1}/${batches} completed. Progress: ${job.progress.toFixed(1)}%`,
+          `⭐ [${new Date().toISOString()}] Batch ${batchIndex + 1}/${batches} completed. Progress: ${job.progress.toFixed(1)}% | Elapsed: ${elapsedFormatted} | ETA: ${etaFormatted}`,
         );
       }
 
@@ -248,29 +295,42 @@ export class MonteCarloSimulationRunner {
     }
   }
 
-  private async runBatch(job: SimulationJob, batchStart: number, batchEnd: number): Promise<void> {
+  private async runBatch(
+    job: SimulationJob,
+    batchStart: number,
+    batchEnd: number,
+    accountsAndTransfers: AccountsAndTransfers,
+    timeline: Timeline,
+  ): Promise<void> {
     console.log(`🎲 [${new Date().toISOString()}] Running batch ${batchStart} to ${batchEnd}...`);
     const batchPromises: Promise<void>[] = [];
 
     for (let simNum = batchStart; simNum <= batchEnd; simNum++) {
-      batchPromises.push(this.runSingleSimulation(job, simNum));
+      batchPromises.push(this.runSingleSimulation(job, simNum, accountsAndTransfers, timeline));
     }
 
     await Promise.all(batchPromises);
   }
 
-  private async runSingleSimulation(job: SimulationJob, simulationNumber: number): Promise<void> {
+  private async runSingleSimulation(
+    job: SimulationJob,
+    simulationNumber: number,
+    accountsAndTransfers: AccountsAndTransfers,
+    timeline: Timeline,
+  ): Promise<void> {
     try {
-      const results = await loadData(
+      const results = await calculateAllActivity(
+        accountsAndTransfers,
         job.startDate,
         job.endDate,
         'Default',
+        true,
+        simulationNumber,
+        job.totalSimulations,
+        false,
+        false,
         {},
-        {
-          monteCarlo: true,
-          simulationNumber,
-          totalSimulations: job.totalSimulations,
-        },
+        timeline,
       );
 
       // Filter and format results

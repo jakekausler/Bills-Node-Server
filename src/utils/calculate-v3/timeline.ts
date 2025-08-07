@@ -6,6 +6,7 @@ import {
   ActivityTransferEvent,
   BillEvent,
   BillTransferEvent,
+  CalculationOptions,
   EventType,
   InterestEvent,
   MonteCarloConfig,
@@ -52,15 +53,69 @@ export class Timeline {
     this.monteCarloConfig = monteCarloConfig;
   }
 
+  /**
+   * Clones the timeline and all its events. It re-uses the same account manager.
+   */
+  clone(startDate: Date, endDate: Date, monteCarloConfig: MonteCarloConfig | null = null) {
+    const clonedTimeline = new Timeline(
+      this.accountManager,
+      this.calculationBegin,
+      this.enableLogging,
+      monteCarloConfig,
+    );
+
+    // Clone events and sort them
+    clonedTimeline.events = this.events.map((event) => Timeline.cloneEvent(event));
+    clonedTimeline.sortEvents();
+    clonedTimeline.createSegments(startDate, endDate);
+    return clonedTimeline;
+  }
+
+  private static cloneEvent(event: TimelineEvent): TimelineEvent {
+    return { ...event };
+  }
+
+  applyMonteCarlo() {
+    for (const event of this.events) {
+      if (event.type === EventType.bill) {
+        const billEvent = event as BillEvent;
+        if (billEvent.originalBill.monteCarloSampleType) {
+          billEvent.amount = this.calculateBillAmountMonteCarlo(billEvent.originalBill, billEvent.date);
+        }
+      } else if (event.type === EventType.billTransfer) {
+        const billTransferEvent = event as BillTransferEvent;
+        if (billTransferEvent.originalBill.monteCarloSampleType) {
+          billTransferEvent.amount = this.calculateBillAmountMonteCarlo(
+            billTransferEvent.originalBill,
+            billTransferEvent.date,
+          );
+        }
+      } else if (event.type === EventType.interest) {
+        const interestEvent = event as InterestEvent;
+        if (interestEvent.originalInterest.monteCarloSampleType) {
+          interestEvent.rate = this.monteCarloConfig?.handler?.getSample(
+            interestEvent.originalInterest.monteCarloSampleType,
+            interestEvent.date,
+          );
+        }
+      }
+    }
+  }
+
+  getAccountManager(): AccountManager {
+    return this.accountManager;
+  }
+
   static async fromAccountsAndTransfers(
-    accountManager: AccountManager,
     accountsAndTransfers: AccountsAndTransfers,
     startDate: Date,
     endDate: Date,
     calculationBegin: number,
     enableLogging: boolean,
     monteCarloConfig: MonteCarloConfig | null = null,
+    calculationOptions: CalculationOptions,
   ): Promise<Timeline> {
+    const accountManager = new AccountManager(accountsAndTransfers.accounts, calculationOptions);
     const timeline = new Timeline(accountManager, calculationBegin, enableLogging, monteCarloConfig);
 
     // Parallelize all independent add* method calls
@@ -261,14 +316,8 @@ export class Timeline {
 
     // Calculate bill occurrences up to end date
     while (currentDate <= endDate && (!bill.endDate || currentDate <= bill.endDate)) {
-      // Calculate the amount of the bill, either using the normal increase amount (deterministic) or the monte carlo sample
-      // let amount = this.calculateBillAmount(bill, currentDate);
-      let amount = bill.amount;
-      if (this.monteCarloConfig?.enabled && this.monteCarloConfig?.handler && bill.monteCarloSampleType) {
-        amount = this.calculateBillAmountMonteCarlo(bill, currentDate);
-      } else {
-        amount = this.calculateBillAmount(bill, currentDate);
-      }
+      // Calculate the amount of the bill
+      const amount = this.calculateBillAmount(bill, currentDate);
       const event: BillEvent = {
         id: `bill_${account.id}_${bill.id}_${eventCount}`,
         type: EventType.bill,
@@ -306,11 +355,8 @@ export class Timeline {
       let currentDate = interest.applicableDate;
       let eventCount = 0;
       while (currentDate <= nextApplicableDate) {
-        // Calculate the rate of the interest, either using the normal rate (deterministic) or the monte carlo sample
-        let rate = interest.apr;
-        if (this.monteCarloConfig?.enabled && this.monteCarloConfig?.handler && interest.monteCarloSampleType) {
-          rate = this.monteCarloConfig.handler.getSample(interest.monteCarloSampleType, currentDate);
-        }
+        // Calculate the rate of the interest
+        const rate = interest.apr;
         const event: InterestEvent = {
           id: `interest_${account.id}_${interest.id}_${eventCount}`,
           type: EventType.interest,
@@ -374,14 +420,8 @@ export class Timeline {
 
     // Calculate bill occurrences up to end date
     while (currentDate <= endDate && (!bill.endDate || currentDate <= bill.endDate)) {
-      // Calculate the amount of the bill, either using the normal increase amount (deterministic) or the monte carlo sample
-      let amount = this.calculateBillAmount(bill, currentDate);
-      // let amount = bill.amount;
-      // if (this.monteCarloConfig?.enabled && this.monteCarloConfig?.handler && bill.monteCarloSampleType) {
-      //   amount = this.calculateBillAmountMonteCarlo(bill, currentDate);
-      // } else {
-      //   amount = this.calculateBillAmount(bill, currentDate);
-      // }
+      // Calculate the amount of the bill
+      const amount = this.calculateBillAmount(bill, currentDate);
       const event: BillTransferEvent = {
         id: `bill_from_${fromAccount?.id}_to_${toAccount?.id}_${bill.id}_${eventCount}`,
         type: EventType.billTransfer,
@@ -784,10 +824,6 @@ export class Timeline {
     const endDate = Math.max(...events.map((e) => e.date.getTime()));
 
     return `${events.length}evt_${startDate}_${endDate}_${hash}`;
-  }
-
-  getEventsInRange(startDate: Date, endDate: Date): TimelineEvent[] {
-    return this.events.filter((event) => event.date >= startDate && event.date <= endDate);
   }
 
   getSegments(): Segment[] {
