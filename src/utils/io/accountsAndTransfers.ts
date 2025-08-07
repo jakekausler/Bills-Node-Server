@@ -6,8 +6,11 @@ import { Bill } from '../../data/bill/bill';
 import { resetCache } from './cache';
 import { calculateAllActivity } from '../calculate-v3/engine';
 import { CalculationConfig } from '../calculate-v3/types';
+import { formatDate } from '../date/date';
 
 export const FILE_NAME = 'data';
+
+const CACHE = new Map<string, AccountsAndTransfers>();
 
 /**
  * Loads accounts and transfers data with caching support
@@ -36,6 +39,13 @@ export async function loadData(
     enableLogging?: boolean;
   } = {},
 ): Promise<AccountsAndTransfers> {
+  const cacheKey = `${simulation}-${startDate.toISOString()}-${endDate.toISOString()}`;
+  // if (CACHE.has(cacheKey)) {
+  //   return CACHE.get(cacheKey)!;
+  // }
+
+  // console.log('Loading data for', formatDate(startDate), 'to', formatDate(endDate));
+
   const accountsAndTransfers = getAccountsAndTransfers(simulation);
   const result = await calculateAllActivity(
     accountsAndTransfers,
@@ -49,6 +59,7 @@ export async function loadData(
     options.enableLogging ?? false,
     calculationConfig,
   );
+  // CACHE.set(cacheKey, result);
   return result;
 }
 

@@ -1,5 +1,5 @@
 import { AccountsAndTransfers } from '../../data/account/types';
-import { CalculationConfig, CalculationOptions } from './types';
+import { CalculationConfig, CalculationOptions, MonteCarloConfig } from './types';
 import { CacheManager, initializeCache } from './cache';
 import { Timeline } from './timeline';
 import { BalanceTracker } from './balance-tracker';
@@ -10,6 +10,7 @@ import { PushPullHandler } from './push-pull-handler';
 import { AccountManager } from './account-manager';
 import { TaxManager } from './tax-manager';
 import { RetirementManager } from './retirement-manager';
+import { MonteCarloHandler } from './monte-carlo-handler';
 
 export class Engine {
   private config: CalculationConfig;
@@ -23,6 +24,7 @@ export class Engine {
   private taxManager: TaxManager;
   private retirementManager: RetirementManager;
   private calculationBegin: number;
+  private monteCarloConfig: MonteCarloConfig | null = null;
 
   constructor(simulation: string, config: Partial<CalculationConfig> = {}, monteCarlo: boolean = false) {
     this.config = this.mergeConfig(config);
@@ -36,8 +38,8 @@ export class Engine {
     // Start timing
     this.calculationBegin = Date.now();
 
-    // Try to retrieve from cache
-    if (!options.forceRecalculation) {
+    // Try to retrieve from cache (will return null if monteCarlo is true)
+    if (!options.forceRecalculation && !options.monteCarlo) {
       const cachedResult = await this.getCachedResult(options);
       if (cachedResult) {
         return cachedResult;
@@ -56,11 +58,13 @@ export class Engine {
     }
     const formattedResults = this.formatResults(results);
 
-    // Store the results in cache
-    if (options.enableLogging) {
-      console.log('Caching results...', Date.now() - this.calculationBegin, 'ms');
+    // Store the results in cache (will skip if monteCarlo is true)
+    if (!options.monteCarlo) {
+      if (options.enableLogging) {
+        console.log('Caching results...', Date.now() - this.calculationBegin, 'ms');
+      }
+      await this.cacheResult(formattedResults, options);
     }
-    await this.cacheResult(formattedResults, options);
 
     if (options.enableLogging) {
       console.log('Calculation completed in', Date.now() - this.calculationBegin, 'ms');
@@ -92,6 +96,9 @@ export class Engine {
     accountsAndTransfers: AccountsAndTransfers,
     options: CalculationOptions,
   ): Promise<void> {
+    // Get the actual start date of the accounts and transfers
+    const actualStartDate = minDate(accountsAndTransfers);
+
     // Initialize account manager
     if (options.enableLogging) {
       console.log('Initializing account manager...', Date.now() - this.calculationBegin, 'ms');
@@ -113,12 +120,26 @@ export class Engine {
       this.accountManager.getPensions(),
     );
 
+    // Initialize Monte Carlo handler for Monte Carlo mode only
+    if (options.enableLogging) {
+      console.log('Initializing Monte Carlo handler...', Date.now() - this.calculationBegin, 'ms');
+    }
+    if (options.monteCarlo) {
+      const handler = await MonteCarloHandler.getInstance(actualStartDate, options.endDate);
+
+      this.monteCarloConfig = {
+        enabled: options.monteCarlo,
+        handler,
+        simulationNumber: options.simulationNumber,
+        totalSimulations: options.totalSimulations,
+      };
+    }
+
     // Create timeline - always start from earliest data to get correct balances
     // but we'll filter the final output by date range
     if (options.enableLogging) {
       console.log('Creating timeline...', Date.now() - this.calculationBegin, 'ms');
     }
-    const actualStartDate = minDate(accountsAndTransfers);
     this.timeline = await Timeline.fromAccountsAndTransfers(
       this.accountManager,
       accountsAndTransfers,
@@ -126,6 +147,7 @@ export class Engine {
       options.endDate,
       this.calculationBegin,
       options.enableLogging,
+      this.monteCarloConfig,
     );
 
     // Initialize balance tracker - use actual start date for processing all historical data

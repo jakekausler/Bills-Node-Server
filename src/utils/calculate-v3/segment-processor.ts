@@ -57,8 +57,8 @@ export class SegmentProcessor {
       throw new Error('Balance tracker not initialized');
     }
 
-    // Check if segment result is cached
-    if (!options.forceRecalculation) {
+    // Check if segment result is cached (will return null if monteCarlo is true)
+    if (!options.forceRecalculation && !options.monteCarlo) {
       const cachedResult = await this.cache.getSegmentResult(segment);
       if (cachedResult) {
         this.balanceTracker.applySegmentResult(cachedResult, segment.startDate);
@@ -77,8 +77,10 @@ export class SegmentProcessor {
       segmentResult = this.processSegmentEvents(segment, options);
     }
 
-    // Cache the segment result
-    await this.cache.setSegmentResult(segment, segmentResult);
+    // Cache the segment result (will skip if monteCarlo is true)
+    if (!options.monteCarlo) {
+      await this.cache.setSegmentResult(segment, segmentResult);
+    }
 
     // Apply the result to balance tracker
     this.balanceTracker.applySegmentResult(segmentResult, segment.startDate);

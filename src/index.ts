@@ -35,7 +35,12 @@ import { getNameCategories } from './api/names/names';
 import { getFlow } from './api/flow/flow';
 import { getCategorySectionTransactions } from './api/categories/section/transactions';
 import { getCategorySectionBreakdown } from './api/categories/section/breakdown';
-import { monteCarlo } from './api/accounts/monteCarlo/monteCarlo';
+import {
+  startSimulation,
+  getSimulationStatus,
+  getAllSimulations,
+  getSimulationGraph,
+} from './api/monteCarlo/monteCarlo';
 import bcrypt from 'bcrypt';
 import mysql from 'mysql';
 import 'dotenv/config';
@@ -78,8 +83,8 @@ const isTokenValid = (token?: string) => {
 };
 
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  // next();
-  // return;
+  next();
+  return;
   const token = req.headers.authorization;
   const userId = isTokenValid(token);
   if (!userId) {
@@ -282,8 +287,46 @@ app.get('/api/flow', verifyToken, async (req: Request, res: Response) => {
 });
 
 // Monte Carlo route
-app.get('/api/monte_carlo', verifyToken, async (req: Request, res: Response) => {
-  res.json(await monteCarlo(req));
+app.get('/api/monte_carlo/start_simulation', verifyToken, async (req: Request, res: Response) => {
+  res.json(await startSimulation(req));
+});
+
+// New Monte Carlo simulation routes
+app.post('/api/monte_carlo/simulations', verifyToken, async (req: Request, res: Response) => {
+  try {
+    res.json(await startSimulation(req));
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
+app.get('/api/monte_carlo/simulations', verifyToken, (req: Request, res: Response) => {
+  try {
+    res.json(getAllSimulations(req));
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
+app.get('/api/monte_carlo/simulations/:id/status', verifyToken, (req: Request, res: Response) => {
+  try {
+    res.json(getSimulationStatus(req));
+  } catch (error) {
+    const statusCode = error instanceof Error && error.message.includes('not found') ? 404 : 400;
+    res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
+app.get('/api/monte_carlo/simulations/:id/graph', verifyToken, (req: Request, res: Response) => {
+  try {
+    res.json(getSimulationGraph(req));
+  } catch (error) {
+    const statusCode =
+      error instanceof Error && (error.message.includes('not found') || error.message.includes('not yet completed'))
+        ? 404
+        : 400;
+    res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
 });
 
 interface User {

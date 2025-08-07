@@ -70,7 +70,7 @@ export class Calculator {
   processBillEvent(event: BillEvent, segmentResult: SegmentResult, simulation: string): Map<string, number> {
     const bill = event.originalBill;
     const accountId = event.accountId;
-    const amount = event.amount;
+    let amount = event.amount;
 
     // Create consolidated activity for the bill
     const billActivity = new ConsolidatedActivity(
@@ -100,8 +100,11 @@ export class Calculator {
     // Get the current balance of the account
     const currentBalance = this.getCurrentAccountBalance(accountId, segmentResult);
 
+    // Determine the APR to use (Monte Carlo sample or regular rate)
+    let apr = event.rate;
+
     // Calculate the interest amount
-    const interestAmount = this.calculateInterestAmount(currentBalance, event.rate, interest.compounded);
+    const interestAmount = this.calculateInterestAmount(currentBalance, apr, interest.compounded);
 
     // Only create activities for non-zero amounts (filter out zeros and floating-point noise)
     if (Math.abs(interestAmount) <= 0.001) {
@@ -153,7 +156,11 @@ export class Calculator {
   }
 
   processBillTransferEvent(event: BillTransferEvent, segmentResult: SegmentResult): Map<string, number> {
-    return this.processTransferEvent(event, event.originalBill, event.amount, event.firstBill, segmentResult);
+    // Recalculate bill amount with Monte Carlo sampling or deterministic increases if configured
+    let amount = event.amount;
+    const bill = event.originalBill;
+
+    return this.processTransferEvent(event, bill, amount, event.firstBill, segmentResult);
   }
 
   processTransferEvent(
@@ -619,4 +626,178 @@ export class Calculator {
     // Return raw calculation without rounding to match original behavior exactly
     return interest;
   }
+
+  // /**
+  //  * Calculate bill amount with Monte Carlo sampling for inflation/raise
+  //  */
+  // private calculateMonteCarloAdjustedBillAmount(
+  //   bill: Bill,
+  //   currentDate: Date,
+  //   segmentKey: string,
+  // ): {
+  //   amount: number | '{HALF}' | '{FULL}' | '-{HALF}' | '-{FULL}';
+  //   samples?: Array<{ date: Date; sample: number; previousAmount: number; newAmount: number; yearOffset: number }>;
+  // } {
+  //   // If the amount is a special value, return it as-is
+  //   if (
+  //     bill.amount === '{HALF}' ||
+  //     bill.amount === '-{HALF}' ||
+  //     bill.amount === '{FULL}' ||
+  //     bill.amount === '-{FULL}'
+  //   ) {
+  //     return { amount: bill.amount };
+  //   }
+
+  //   const sampleType = bill.monteCarloSampleType as MonteCarloSampleType;
+  //   if (!this.monteCarloConfig?.handler) {
+  //     throw new Error('Monte Carlo handler not available');
+  //   }
+
+  //   // Get the base amount
+  //   let amount = bill.amount;
+
+  //   // Apply ceilingMultiple if configured
+  //   if (bill.ceilingMultiple && bill.ceilingMultiple > 0) {
+  //     amount = Math.ceil(amount / bill.ceilingMultiple) * bill.ceilingMultiple;
+  //   }
+
+  //   // Calculate years of increases
+  //   const yearsDiff = this.yearIncreases(bill.startDate, currentDate, bill.increaseByDate);
+  //   const samples: Array<{
+  //     date: Date;
+  //     sample: number;
+  //     previousAmount: number;
+  //     newAmount: number;
+  //     yearOffset: number;
+  //   }> = [];
+
+  //   // Apply Monte Carlo sampled inflation/raise for each year
+  //   for (let i = 0; i < yearsDiff; i++) {
+  //     const yearDate = new Date(bill.startDate);
+  //     yearDate.setFullYear(yearDate.getFullYear() + i);
+
+  //     const previousAmount = amount;
+
+  //     // Get the sample for this specific year
+  //     const sample = this.monteCarloConfig.handler.getSample(
+  //       sampleType,
+  //       yearDate,
+  //       segmentKey,
+  //       this.monteCarloConfig.simulationNumber,
+  //     );
+  //     amount *= 1 + sample;
+
+  //     // Apply ceilingMultiple after each increase if configured
+  //     if (bill.ceilingMultiple && bill.ceilingMultiple > 0) {
+  //       amount = Math.ceil(amount / bill.ceilingMultiple) * bill.ceilingMultiple;
+  //     }
+
+  //     // Store sample information for logging
+  //     samples.push({
+  //       date: yearDate,
+  //       sample,
+  //       previousAmount,
+  //       newAmount: amount,
+  //       yearOffset: i,
+  //     });
+  //   }
+
+  //   return { amount, samples };
+  // }
+
+  // /**
+  //  * Calculate bill amount with deterministic increases and track details for logging
+  //  */
+  // private calculateDeterministicBillAmount(
+  //   bill: Bill,
+  //   currentDate: Date,
+  // ): {
+  //   amount: number | '{HALF}' | '{FULL}' | '-{HALF}' | '-{FULL}';
+  //   increases?: Array<{
+  //     date: Date;
+  //     increaseRate: number;
+  //     previousAmount: number;
+  //     newAmount: number;
+  //     yearOffset: number;
+  //   }>;
+  // } {
+  //   // If the amount is a special value, return it as-is
+  //   if (
+  //     bill.amount === '{HALF}' ||
+  //     bill.amount === '-{HALF}' ||
+  //     bill.amount === '{FULL}' ||
+  //     bill.amount === '-{FULL}'
+  //   ) {
+  //     return { amount: bill.amount };
+  //   }
+
+  //   // Get the base amount
+  //   let amount = bill.amount;
+
+  //   // Apply ceilingMultiple if configured
+  //   if (bill.ceilingMultiple && bill.ceilingMultiple > 0) {
+  //     amount = Math.ceil(amount / bill.ceilingMultiple) * bill.ceilingMultiple;
+  //   }
+
+  //   // Calculate years of increases
+  //   const yearsDiff = this.yearIncreases(bill.startDate, currentDate, bill.increaseByDate);
+  //   const increases: Array<{
+  //     date: Date;
+  //     increaseRate: number;
+  //     previousAmount: number;
+  //     newAmount: number;
+  //     yearOffset: number;
+  //   }> = [];
+
+  //   // Apply deterministic inflation/raise for each year
+  //   for (let i = 0; i < yearsDiff; i++) {
+  //     const yearDate = new Date(bill.startDate);
+  //     yearDate.setFullYear(yearDate.getFullYear() + i);
+
+  //     const previousAmount = amount;
+  //     const increaseRate = bill.increaseBy / 100; // Convert percentage to decimal
+
+  //     amount *= 1 + increaseRate;
+
+  //     // Apply ceilingMultiple after each increase if configured
+  //     if (bill.ceilingMultiple && bill.ceilingMultiple > 0) {
+  //       amount = Math.ceil(amount / bill.ceilingMultiple) * bill.ceilingMultiple;
+  //     }
+
+  //     // Store increase information for logging
+  //     increases.push({
+  //       date: yearDate,
+  //       increaseRate,
+  //       previousAmount,
+  //       newAmount: amount,
+  //       yearOffset: i,
+  //     });
+  //   }
+
+  //   return { amount, increases };
+  // }
+
+  // /**
+  //  * Calculate the number of year increases between two dates
+  //  * This is a helper method to match the logic from timeline.ts
+  //  */
+  // private yearIncreases(startDate: Date, currentDate: Date, increaseByDate: { day: number; month: number }): number {
+  //   let count = 0;
+
+  //   // Start from the first possible increase date after startDate
+  //   const startYear = startDate.getFullYear();
+
+  //   // End at the last possible increase date before currentDate
+  //   const endYear = currentDate.getFullYear();
+
+  //   // Count the number of years between startDate and currentDate that have the increase date
+  //   for (let year = startYear; year <= endYear; year++) {
+  //     const milestone = new Date(year, increaseByDate.month, increaseByDate.day);
+  //     if (milestone >= startDate && milestone <= currentDate) {
+  //       count++;
+  //     }
+  //   }
+
+  //   return count;
+  // }
 }

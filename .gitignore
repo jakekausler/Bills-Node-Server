@@ -14,3 +14,8 @@ data/simulations/*
 data/backup/
 **/cache
 .vscode
+**/testing/**/*.json
+logs
+src/utils/monteCarlo/graphs
+src/utils/monteCarlo/results
+src/utils/monteCarlo/temp

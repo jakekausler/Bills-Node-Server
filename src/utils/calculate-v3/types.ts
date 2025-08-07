@@ -1,6 +1,5 @@
 import { AccountsAndTransfers } from '../../data/account/types';
 import { Activity } from '../../data/activity/activity';
-// ConsolidatedActivity import removed to avoid circular dependency
 import { ConsolidatedActivityData } from '../../data/activity/types';
 import { Bill } from '../../data/bill/bill';
 import { Interest } from '../../data/interest/interest';
@@ -223,7 +222,8 @@ export enum MonteCarloSampleType {
   LYSA = 'LYSA',
   PORTFOLIO = 'Portfolio',
   INFLATION = 'Inflation',
-  RAISE = 'Raise'
+  RAISE = 'Raise',
+  LIMIT_INCREASE_401K = '401k_limit_increase_rate',
 }
 
 export interface HistoricRates {
@@ -241,6 +241,7 @@ export interface HistoricRates {
   };
   inflation: number[];
   raise: number[];
+  limitIncrease401k: number[];
 }
 
 export interface ProxyDefinition {
@@ -258,13 +259,6 @@ export interface PortfolioComposition {
 
 export interface PortfolioMakeupOverTime {
   [year: string]: PortfolioComposition;
-}
-
-export interface SampleRecord {
-  date: Date;
-  type: MonteCarloSampleType;
-  value: number;
-  segmentKey: string;
 }
 
 export interface MonteCarloConfig {
