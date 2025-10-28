@@ -5,8 +5,9 @@
   "main": "dist/index.cjs",
   "type": "commonjs",
   "scripts": {
-    "start": "node dist/index.js",
-    "dev": "tsx watch --inspect src/index.ts",
+    "start": "node dist/index.cjs",
+    "dev": "ts-node-dev --respawn --transpile-only --inspect -- src/index.ts",
+    "dev:tsx": "tsx watch --inspect src/index.ts",
     "build": "tsc && node scripts/post-build.js",
     "test": "vitest",
     "test:ui": "vitest --ui",
