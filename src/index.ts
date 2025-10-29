@@ -41,6 +41,7 @@ import {
   getAllSimulations,
   getSimulationGraph,
 } from './api/monteCarlo/monteCarlo';
+import { getHealthcareProgress } from './api/healthcare/progress';
 import bcrypt from 'bcrypt';
 import mysql from 'mysql';
 import 'dotenv/config';
@@ -476,15 +477,13 @@ app.delete('/api/healthcare/configs/:id', verifyToken, async (req: Request, res:
 app.get('/api/healthcare/progress', verifyToken, async (req: Request, res: Response) => {
   try {
     const simulation = req.query.simulation as string;
-    const date = (req.query.date as string) || new Date().toISOString().split('T')[0];
 
     if (!simulation) {
       return res.status(400).json({ error: 'Simulation parameter required' });
     }
 
-    // TODO: Implement progress calculation
-    // For now, return empty object (will be implemented in backend work)
-    res.json({});
+    const progress = await getHealthcareProgress(req);
+    res.json(progress);
   } catch (error) {
     console.error('Error getting healthcare progress:', error);
     res.status(500).json({ error: 'Failed to get healthcare progress' });

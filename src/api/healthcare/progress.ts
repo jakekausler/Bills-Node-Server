@@ -41,7 +41,7 @@ export async function getHealthcareProgress(
   }
 
   // Load data and run calculation to populate healthcare manager state
-  const data = getData(request);
+  const data = await getData(request);
   const { accountsAndTransfers, startDate, endDate } = data;
 
   // Run calculation engine (this updates healthcare manager's internal trackers)
