@@ -29,4 +29,60 @@ describe('HealthcareManager', () => {
       expect(manager).toBeDefined();
     });
   });
+
+  describe('getActiveConfig', () => {
+    it('should return config for matching person and date', () => {
+      const date = new Date('2024-06-15');
+      const config = manager.getActiveConfig('John', date);
+      expect(config).toBeDefined();
+      expect(config?.personName).toBe('John');
+    });
+
+    it('should return null for non-matching person', () => {
+      const date = new Date('2024-06-15');
+      const config = manager.getActiveConfig('Jane', date);
+      expect(config).toBeNull();
+    });
+
+    it('should return null for date before config start', () => {
+      const date = new Date('2023-12-31');
+      const config = manager.getActiveConfig('John', date);
+      expect(config).toBeNull();
+    });
+
+    it('should return null for date after config end', () => {
+      const configWithEnd: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-2',
+        endDate: '2024-06-30',
+      };
+      const managerWithEnd = new HealthcareManager([configWithEnd]);
+
+      const date = new Date('2024-07-01');
+      const config = managerWithEnd.getActiveConfig('John', date);
+      expect(config).toBeNull();
+    });
+
+    it('should return most recent config when multiple match', () => {
+      const oldConfig: HealthcareConfig = {
+        ...testConfig,
+        id: 'old-config',
+        name: 'Old Plan',
+        startDate: '2023-01-01',
+        endDate: '2024-06-30',
+      };
+      const newConfig: HealthcareConfig = {
+        ...testConfig,
+        id: 'new-config',
+        name: 'New Plan',
+        startDate: '2024-07-01',
+        endDate: null,
+      };
+      const managerMultiple = new HealthcareManager([oldConfig, newConfig]);
+
+      const date = new Date('2024-08-15');
+      const config = managerMultiple.getActiveConfig('John', date);
+      expect(config?.name).toBe('New Plan');
+    });
+  });
 });
