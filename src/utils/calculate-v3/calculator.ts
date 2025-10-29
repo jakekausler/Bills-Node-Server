@@ -6,6 +6,7 @@ import { BalanceTracker } from './balance-tracker';
 import { AccountManager } from './account-manager';
 import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
+import { HealthcareManager } from './healthcare-manager';
 import {
   ActivityEvent,
   ActivityTransferEvent,
@@ -26,16 +27,19 @@ export class Calculator {
   private taxManager: TaxManager;
   private retirementManager: RetirementManager;
   private accountManager: AccountManager;
+  private healthcareManager: HealthcareManager;
   constructor(
     balanceTracker: BalanceTracker,
     taxManager: TaxManager,
     retirementManager: RetirementManager,
+    healthcareManager: HealthcareManager,
     accountManager: AccountManager,
     simulation: string,
   ) {
     this.balanceTracker = balanceTracker;
     this.taxManager = taxManager;
     this.retirementManager = retirementManager;
+    this.healthcareManager = healthcareManager;
     this.simulation = simulation;
     this.accountManager = accountManager;
   }
