@@ -217,4 +217,44 @@ describe('HealthcareManager', () => {
       expect(tracker.familyOOP).toBe(50);
     });
   });
+
+  describe('getDeductibleProgress', () => {
+    it('should return false when no expenses recorded', () => {
+      const date = new Date('2024-06-15');
+      const progress = manager.getDeductibleProgress(testConfig, date, 'John');
+
+      expect(progress.individualMet).toBe(false);
+      expect(progress.familyMet).toBe(false);
+      expect(progress.individualRemaining).toBe(1500);
+      expect(progress.familyRemaining).toBe(3000);
+    });
+
+    it('should return true when individual deductible met', () => {
+      const date = new Date('2024-06-15');
+      manager.recordHealthcareExpense('John', date, 1500, 1500, testConfig);
+
+      const progress = manager.getDeductibleProgress(testConfig, date, 'John');
+      expect(progress.individualMet).toBe(true);
+      expect(progress.familyMet).toBe(false);
+    });
+
+    it('should return true when family deductible met', () => {
+      const date = new Date('2024-06-15');
+      manager.recordHealthcareExpense('John', date, 1500, 1500, testConfig);
+      manager.recordHealthcareExpense('Jane', date, 1500, 1500, testConfig);
+
+      const progress = manager.getDeductibleProgress(testConfig, date, 'John');
+      expect(progress.individualMet).toBe(true);
+      expect(progress.familyMet).toBe(true);
+    });
+
+    it('should calculate remaining amounts correctly', () => {
+      const date = new Date('2024-06-15');
+      manager.recordHealthcareExpense('John', date, 500, 500, testConfig);
+
+      const progress = manager.getDeductibleProgress(testConfig, date, 'John');
+      expect(progress.individualRemaining).toBe(1000);
+      expect(progress.familyRemaining).toBe(2500);
+    });
+  });
 });

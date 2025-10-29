@@ -145,4 +145,33 @@ export class HealthcareManager {
     tracker.familyDeductible += amountTowardDeductible;
     tracker.familyOOP += amountTowardOOP;
   }
+
+  /**
+   * Get deductible progress for a person
+   */
+  getDeductibleProgress(
+    config: HealthcareConfig,
+    date: Date,
+    personName: string,
+  ): {
+    individualMet: boolean;
+    familyMet: boolean;
+    individualRemaining: number;
+    familyRemaining: number;
+  } {
+    const tracker = this.getOrCreateTracker(config, date);
+
+    const individualSpent = tracker.individualDeductible.get(personName) || 0;
+    const familySpent = tracker.familyDeductible;
+
+    const individualRemaining = Math.max(0, config.individualDeductible - individualSpent);
+    const familyRemaining = Math.max(0, config.familyDeductible - familySpent);
+
+    return {
+      individualMet: individualSpent >= config.individualDeductible,
+      familyMet: familySpent >= config.familyDeductible,
+      individualRemaining,
+      familyRemaining,
+    };
+  }
 }
