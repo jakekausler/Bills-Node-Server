@@ -122,5 +122,66 @@ describe('Healthcare Progress API', () => {
       const result = await getHealthcareProgress(mockRequest);
       expect(result).toEqual({});
     });
+
+    it('should correctly track spending after processing activities', async () => {
+      const mockConfig = {
+        id: 'config-1',
+        name: 'Blue Cross PPO 2024',
+        personName: 'John',
+        startDate: '2024-01-01',
+        endDate: null,
+        individualDeductible: 1500,
+        individualOutOfPocketMax: 5000,
+        familyDeductible: 3000,
+        familyOutOfPocketMax: 10000,
+        hsaAccountId: 'hsa-123',
+        hsaReimbursementEnabled: true,
+        resetMonth: 0,
+        resetDay: 1,
+      };
+
+      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+
+      const mockAccounts = [
+        {
+          id: 'checking-1',
+          name: 'Checking',
+          consolidatedActivity: [
+            {
+              id: 'activity-1',
+              date: '2024-03-15',
+              name: 'Doctor Visit',
+              isHealthcare: true,
+              healthcarePerson: 'John',
+              amount: -500, // $500 patient cost
+            },
+          ],
+        },
+      ];
+
+      vi.mocked(getData).mockResolvedValue({
+        simulation: 'Default',
+        accountsAndTransfers: {
+          accounts: mockAccounts as any,
+          transfers: { bills: [], activity: [] },
+        },
+        selectedAccounts: [],
+        startDate: new Date('2024-01-01'),
+        endDate: new Date('2024-06-15'),
+      } as any);
+
+      vi.mocked(calculateAllActivity).mockResolvedValue({
+        accounts: mockAccounts as any,
+        transfers: { bills: [], activity: [] },
+      } as any);
+
+      const result = await getHealthcareProgress(mockRequest);
+
+      // After spending $500, should show:
+      // - Individual deductible spent: $500
+      // - Individual deductible remaining: $1000
+      expect(result.John.individualDeductibleSpent).toBe(500);
+      expect(result.John.individualDeductibleRemaining).toBe(1000);
+    });
   });
 });
