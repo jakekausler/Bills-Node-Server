@@ -342,4 +342,80 @@ describe('HealthcareManager', () => {
       expect(tracker.individualOOP.get('John')).toBe(25);
     });
   });
+
+  describe('calculateDeductibleBasedCost', () => {
+    it('should charge 100% before deductible met', () => {
+      const mockExpense = {
+        amount: 200,
+        copayAmount: null,
+        coinsurancePercent: 20,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      const cost = manager['calculateDeductibleBasedCost'](mockExpense as any, testConfig, 200, 'John', date);
+
+      expect(cost).toBe(200);
+    });
+
+    it('should charge coinsurance % after deductible met', () => {
+      const mockExpense = {
+        amount: 200,
+        copayAmount: null,
+        coinsurancePercent: 20,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      // Meet deductible first
+      manager.recordHealthcareExpense('John', date, 1500, 1500, testConfig);
+
+      const cost = manager['calculateDeductibleBasedCost'](mockExpense as any, testConfig, 200, 'John', date);
+
+      expect(cost).toBe(40); // 20% of 200
+    });
+
+    it('should charge 0% after OOP max met', () => {
+      const mockExpense = {
+        amount: 200,
+        copayAmount: null,
+        coinsurancePercent: 20,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      // Meet both deductible and OOP
+      manager.recordHealthcareExpense('John', date, 1500, 5000, testConfig);
+
+      const cost = manager['calculateDeductibleBasedCost'](mockExpense as any, testConfig, 200, 'John', date);
+
+      expect(cost).toBe(0);
+    });
+
+    it('should use family deductible when met before individual', () => {
+      const mockExpense = {
+        amount: 200,
+        copayAmount: null,
+        coinsurancePercent: 20,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'Jane',
+      };
+
+      const date = new Date('2024-06-15');
+      // Meet family deductible but not Jane's individual
+      manager.recordHealthcareExpense('John', date, 1500, 1500, testConfig);
+      manager.recordHealthcareExpense('Jane', date, 1500, 1500, testConfig);
+
+      const cost = manager['calculateDeductibleBasedCost'](mockExpense as any, testConfig, 200, 'Jane', date);
+
+      expect(cost).toBe(40); // 20% coinsurance after family deductible met
+    });
+  });
 });

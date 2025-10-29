@@ -228,4 +228,57 @@ export class HealthcareManager {
 
     return copay;
   }
+
+  /**
+   * Calculate patient cost for deductible-based expense
+   */
+  private calculateDeductibleBasedCost(
+    expense: Bill | Activity,
+    config: HealthcareConfig,
+    billAmount: number,
+    personName: string,
+    date: Date,
+  ): number {
+    const progress = this.getDeductibleProgress(config, date, personName);
+    const coinsurancePercent = expense.coinsurancePercent || 0;
+
+    let patientPays = 0;
+    let amountTowardDeductible = 0;
+    let amountTowardOOP = 0;
+
+    // Check if deductible is met (either individual or family)
+    const deductibleMet = progress.individualMet || progress.familyMet;
+
+    if (!deductibleMet) {
+      // Before deductible: patient pays 100%
+      const individualRemaining = progress.individualRemaining;
+      const familyRemaining = progress.familyRemaining;
+
+      // Amount that goes toward deductible is the lesser of bill amount and remaining deductible
+      const remainingDeductible = Math.min(individualRemaining, familyRemaining);
+      const amountToDeductible = Math.min(billAmount, remainingDeductible);
+
+      patientPays = billAmount;
+      amountTowardDeductible = expense.countsTowardDeductible ? amountToDeductible : 0;
+      amountTowardOOP = expense.countsTowardOutOfPocket ? patientPays : 0;
+    } else {
+      // After deductible: patient pays coinsurance %
+      const oopProgress = this.getOOPProgress(config, date, personName);
+      const oopMet = oopProgress.individualMet || oopProgress.familyMet;
+
+      if (oopMet) {
+        // After OOP max: patient pays 0%
+        patientPays = 0;
+      } else {
+        // Between deductible and OOP max: patient pays coinsurance %
+        patientPays = billAmount * (coinsurancePercent / 100);
+        amountTowardOOP = expense.countsTowardOutOfPocket ? patientPays : 0;
+      }
+    }
+
+    // Record the expense
+    this.recordHealthcareExpense(personName, date, amountTowardDeductible, amountTowardOOP, config);
+
+    return patientPays;
+  }
 }
