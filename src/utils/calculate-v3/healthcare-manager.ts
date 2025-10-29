@@ -281,4 +281,23 @@ export class HealthcareManager {
 
     return patientPays;
   }
+
+  /**
+   * Calculate the actual patient cost for a healthcare expense
+   */
+  calculatePatientCost(expense: Bill | Activity, config: HealthcareConfig, date: Date): number {
+    // Reset tracking if we've crossed into a new plan year
+    this.resetIfNeeded(config, date);
+
+    const billAmount = typeof expense.amount === 'number' ? Math.abs(expense.amount) : 0;
+    const personName = expense.healthcarePerson || '';
+
+    // If expense has a copay, use copay logic
+    if (expense.copayAmount !== null && expense.copayAmount !== undefined) {
+      return this.calculateCopayBasedCost(expense, config, billAmount, personName, date);
+    }
+
+    // Otherwise use deductible/coinsurance logic
+    return this.calculateDeductibleBasedCost(expense, config, billAmount, personName, date);
+  }
 }

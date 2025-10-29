@@ -418,4 +418,67 @@ describe('HealthcareManager', () => {
       expect(cost).toBe(40); // 20% coinsurance after family deductible met
     });
   });
+
+  describe('calculatePatientCost', () => {
+    it('should use copay logic when copay is set', () => {
+      const mockExpense = {
+        amount: 200,
+        copayAmount: 25,
+        coinsurancePercent: 20,
+        countsTowardDeductible: false,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      const cost = manager.calculatePatientCost(mockExpense as any, testConfig, date);
+
+      expect(cost).toBe(25);
+    });
+
+    it('should use deductible logic when copay is null', () => {
+      const mockExpense = {
+        amount: 200,
+        copayAmount: null,
+        coinsurancePercent: 20,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      const cost = manager.calculatePatientCost(mockExpense as any, testConfig, date);
+
+      expect(cost).toBe(200); // 100% before deductible
+    });
+
+    it('should reset tracking before calculating if crossing plan year', () => {
+      const midYearConfig: HealthcareConfig = {
+        ...testConfig,
+        resetMonth: 6, // July
+        resetDay: 1,
+      };
+      const managerMidYear = new HealthcareManager([midYearConfig]);
+
+      const mockExpense = {
+        amount: 200,
+        copayAmount: null,
+        coinsurancePercent: 20,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      // Record expense in plan year 2023
+      const date1 = new Date('2024-06-15');
+      managerMidYear.recordHealthcareExpense('John', date1, 1500, 1500, midYearConfig);
+
+      // Calculate in plan year 2024 (after reset)
+      const date2 = new Date('2024-07-15');
+      const cost = managerMidYear.calculatePatientCost(mockExpense as any, midYearConfig, date2);
+
+      // Should charge 100% because deductible was reset
+      expect(cost).toBe(200);
+    });
+  });
 });
