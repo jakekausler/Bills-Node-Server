@@ -181,6 +181,12 @@ export class Calculator {
 
   processBillEvent(event: BillEvent, segmentResult: SegmentResult, simulation: string): Map<string, number> {
     const bill = event.originalBill;
+
+    // Route healthcare bills to healthcare processor
+    if (bill.isHealthcare) {
+      return this.processHealthcareBill(event, segmentResult, simulation);
+    }
+
     const accountId = event.accountId;
     let amount = event.amount;
 
@@ -199,6 +205,48 @@ export class Calculator {
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
     return new Map([[accountId, Number(amount)]]);
+  }
+
+  /**
+   * Process a healthcare bill event
+   */
+  private processHealthcareBill(
+    event: BillEvent,
+    segmentResult: SegmentResult,
+    simulation: string,
+  ): Map<string, number> {
+    const bill = event.originalBill;
+    const config = this.healthcareManager.getActiveConfig(bill.healthcarePerson || '', event.date);
+
+    if (!config) {
+      // No config = treat as regular bill
+      return this.processBillEvent(event, segmentResult, simulation);
+    }
+
+    // Calculate patient cost
+    const patientCost = this.healthcareManager.calculatePatientCost(bill, config, event.date);
+
+    // Create consolidated activity for the bill
+    const billActivity = new ConsolidatedActivity(
+      bill.toActivity(`${bill.id}-${event.date}`, simulation, -patientCost, event.date).serialize(),
+      { billId: bill.id, firstBill: event.firstBill },
+    );
+
+    if (!segmentResult.activitiesAdded.has(event.accountId)) {
+      segmentResult.activitiesAdded.set(event.accountId, []);
+    }
+    segmentResult.activitiesAdded.get(event.accountId)?.push(billActivity);
+
+    // Generate HSA reimbursement if enabled
+    if (config.hsaReimbursementEnabled && config.hsaAccountId) {
+      this.generateHSAReimbursement(config.hsaAccountId, event.accountId, patientCost, event.date, segmentResult);
+    }
+
+    // Update balance
+    const currentChange = segmentResult.balanceChanges.get(event.accountId) || 0;
+    segmentResult.balanceChanges.set(event.accountId, currentChange - patientCost);
+
+    return new Map([[event.accountId, -patientCost]]);
   }
 
   processInterestEvent(event: InterestEvent, segmentResult: SegmentResult): Map<string, number> {
