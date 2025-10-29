@@ -174,4 +174,33 @@ export class HealthcareManager {
       familyRemaining,
     };
   }
+
+  /**
+   * Get out-of-pocket progress for a person
+   */
+  getOOPProgress(
+    config: HealthcareConfig,
+    date: Date,
+    personName: string,
+  ): {
+    individualMet: boolean;
+    familyMet: boolean;
+    individualRemaining: number;
+    familyRemaining: number;
+  } {
+    const tracker = this.getOrCreateTracker(config, date);
+
+    const individualSpent = tracker.individualOOP.get(personName) || 0;
+    const familySpent = tracker.familyOOP;
+
+    const individualRemaining = Math.max(0, config.individualOutOfPocketMax - individualSpent);
+    const familyRemaining = Math.max(0, config.familyOutOfPocketMax - familySpent);
+
+    return {
+      individualMet: individualSpent >= config.individualOutOfPocketMax,
+      familyMet: familySpent >= config.familyOutOfPocketMax,
+      individualRemaining,
+      familyRemaining,
+    };
+  }
 }

@@ -257,4 +257,35 @@ describe('HealthcareManager', () => {
       expect(progress.familyRemaining).toBe(2500);
     });
   });
+
+  describe('getOOPProgress', () => {
+    it('should return false when no expenses recorded', () => {
+      const date = new Date('2024-06-15');
+      const progress = manager.getOOPProgress(testConfig, date, 'John');
+
+      expect(progress.individualMet).toBe(false);
+      expect(progress.familyMet).toBe(false);
+      expect(progress.individualRemaining).toBe(5000);
+      expect(progress.familyRemaining).toBe(10000);
+    });
+
+    it('should return true when individual OOP met', () => {
+      const date = new Date('2024-06-15');
+      manager.recordHealthcareExpense('John', date, 0, 5000, testConfig);
+
+      const progress = manager.getOOPProgress(testConfig, date, 'John');
+      expect(progress.individualMet).toBe(true);
+      expect(progress.familyMet).toBe(false);
+    });
+
+    it('should return true when family OOP met', () => {
+      const date = new Date('2024-06-15');
+      manager.recordHealthcareExpense('John', date, 0, 5000, testConfig);
+      manager.recordHealthcareExpense('Jane', date, 0, 5000, testConfig);
+
+      const progress = manager.getOOPProgress(testConfig, date, 'John');
+      expect(progress.individualMet).toBe(true);
+      expect(progress.familyMet).toBe(true);
+    });
+  });
 });
