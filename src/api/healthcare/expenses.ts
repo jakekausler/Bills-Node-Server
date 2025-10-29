@@ -82,11 +82,11 @@ export async function getHealthcareExpenses(
       // Build expense record
       const expense: HealthcareExpense = {
         id: activity.id,
-        date: activity.date,
+        date: typeof activity.date === 'string' ? activity.date : dayjs(activity.date).format('YYYY-MM-DD'),
         name: activity.name,
         person: activity.healthcarePerson || 'Unknown',
         billAmount: 0, // TODO: Get original bill amount (not yet available in data)
-        patientCost: Math.abs(activity.amount), // Convert negative expense to positive
+        patientCost: Math.abs(Number(activity.amount)), // Convert negative expense to positive
         copay: activity.copayAmount ?? null,
         coinsurance: activity.coinsurancePercent ?? null,
         hsaReimbursed: 0, // TODO: Match HSA reimbursements

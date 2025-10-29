@@ -42,6 +42,7 @@ import {
   getSimulationGraph,
 } from './api/monteCarlo/monteCarlo';
 import { getHealthcareProgress } from './api/healthcare/progress';
+import { getHealthcareExpenses } from './api/healthcare/expenses';
 import bcrypt from 'bcrypt';
 import mysql from 'mysql';
 import 'dotenv/config';
@@ -493,16 +494,13 @@ app.get('/api/healthcare/progress', verifyToken, async (req: Request, res: Respo
 app.get('/api/healthcare/expenses', verifyToken, async (req: Request, res: Response) => {
   try {
     const simulation = req.query.simulation as string;
-    const startDate = req.query.startDate as string | undefined;
-    const endDate = req.query.endDate as string | undefined;
 
     if (!simulation) {
       return res.status(400).json({ error: 'Simulation parameter required' });
     }
 
-    // TODO: Implement expenses calculation
-    // For now, return empty array (will be implemented in backend work)
-    res.json([]);
+    const expenses = await getHealthcareExpenses(req);
+    res.json(expenses);
   } catch (error) {
     console.error('Error getting healthcare expenses:', error);
     res.status(500).json({ error: 'Failed to get healthcare expenses' });
