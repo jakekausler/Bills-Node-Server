@@ -1,4 +1,6 @@
 import { HealthcareConfig } from '../../data/healthcare/types';
+import { Bill } from '../../data/bill/bill';
+import { Activity } from '../../data/activity/activity';
 
 type YearTracker = {
   planYear: number;
@@ -133,17 +135,19 @@ export class HealthcareManager {
   ): void {
     const tracker = this.getOrCreateTracker(config, date);
 
-    // Update individual deductible
-    const currentDeductible = tracker.individualDeductible.get(personName) || 0;
-    tracker.individualDeductible.set(personName, currentDeductible + amountTowardDeductible);
+    // Update individual deductible (only if amount > 0)
+    if (amountTowardDeductible > 0) {
+      const currentDeductible = tracker.individualDeductible.get(personName) || 0;
+      tracker.individualDeductible.set(personName, currentDeductible + amountTowardDeductible);
+      tracker.familyDeductible += amountTowardDeductible;
+    }
 
-    // Update individual OOP
-    const currentOOP = tracker.individualOOP.get(personName) || 0;
-    tracker.individualOOP.set(personName, currentOOP + amountTowardOOP);
-
-    // Update family totals
-    tracker.familyDeductible += amountTowardDeductible;
-    tracker.familyOOP += amountTowardOOP;
+    // Update individual OOP (only if amount > 0)
+    if (amountTowardOOP > 0) {
+      const currentOOP = tracker.individualOOP.get(personName) || 0;
+      tracker.individualOOP.set(personName, currentOOP + amountTowardOOP);
+      tracker.familyOOP += amountTowardOOP;
+    }
   }
 
   /**
@@ -202,5 +206,26 @@ export class HealthcareManager {
       individualRemaining,
       familyRemaining,
     };
+  }
+
+  /**
+   * Calculate patient cost for copay-based expense
+   */
+  private calculateCopayBasedCost(
+    expense: Bill | Activity,
+    config: HealthcareConfig,
+    billAmount: number,
+    personName: string,
+    date: Date,
+  ): number {
+    const copay = expense.copayAmount || 0;
+
+    // Track toward deductible/OOP if configured
+    const towardDeductible = expense.countsTowardDeductible ? billAmount : 0;
+    const towardOOP = expense.countsTowardOutOfPocket ? copay : 0;
+
+    this.recordHealthcareExpense(personName, date, towardDeductible, towardOOP, config);
+
+    return copay;
   }
 }

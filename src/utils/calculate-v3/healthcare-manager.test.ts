@@ -288,4 +288,58 @@ describe('HealthcareManager', () => {
       expect(progress.familyMet).toBe(true);
     });
   });
+
+  describe('calculateCopayBasedCost', () => {
+    it('should return copay amount', () => {
+      const mockExpense = {
+        amount: 200,
+        copayAmount: 25,
+        coinsurancePercent: null,
+        countsTowardDeductible: false,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      const cost = manager['calculateCopayBasedCost'](mockExpense as any, testConfig, 200, 'John', date);
+
+      expect(cost).toBe(25);
+    });
+
+    it('should track toward OOP when configured', () => {
+      const mockExpense = {
+        amount: 200,
+        copayAmount: 25,
+        coinsurancePercent: null,
+        countsTowardDeductible: false,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      manager['calculateCopayBasedCost'](mockExpense as any, testConfig, 200, 'John', date);
+
+      const tracker = manager['getOrCreateTracker'](testConfig, date);
+      expect(tracker.individualOOP.get('John')).toBe(25);
+      expect(tracker.individualDeductible.get('John')).toBeUndefined();
+    });
+
+    it('should track toward deductible when configured', () => {
+      const mockExpense = {
+        amount: 200,
+        copayAmount: 25,
+        coinsurancePercent: null,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      manager['calculateCopayBasedCost'](mockExpense as any, testConfig, 200, 'John', date);
+
+      const tracker = manager['getOrCreateTracker'](testConfig, date);
+      expect(tracker.individualDeductible.get('John')).toBe(200);
+      expect(tracker.individualOOP.get('John')).toBe(25);
+    });
+  });
 });
