@@ -10,6 +10,8 @@ import { PushPullHandler } from './push-pull-handler';
 import { AccountManager } from './account-manager';
 import { TaxManager } from './tax-manager';
 import { RetirementManager } from './retirement-manager';
+import { HealthcareManager } from './healthcare-manager';
+import { loadHealthcareConfigs } from '../io/healthcareConfigs';
 import { MonteCarloHandler } from './monte-carlo-handler';
 
 export class Engine {
@@ -23,6 +25,7 @@ export class Engine {
   private accountManager: AccountManager;
   private taxManager: TaxManager;
   private retirementManager: RetirementManager;
+  private healthcareManager: HealthcareManager;
   private calculationBegin: number;
   private monteCarloConfig: MonteCarloConfig | null = null;
 
@@ -155,6 +158,12 @@ export class Engine {
       this.accountManager.getPensions(),
     );
 
+    // Initialize healthcare manager
+    if (options.enableLogging) {
+      console.log('Initializing healthcare manager...', Date.now() - this.calculationBegin, 'ms');
+    }
+    this.healthcareManager = new HealthcareManager(await loadHealthcareConfigs());
+
     // Initialize balance tracker - use actual start date for processing all historical data
     if (options.enableLogging) {
       console.log('Initializing balance tracker...', Date.now() - this.calculationBegin, 'ms');
@@ -169,6 +178,7 @@ export class Engine {
       this.balanceTracker,
       this.taxManager,
       this.retirementManager,
+      this.healthcareManager,
       this.accountManager,
       options.simulation,
     );
