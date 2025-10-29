@@ -132,4 +132,46 @@ describe('HealthcareManager', () => {
       expect(tracker1).toBe(tracker2);
     });
   });
+
+  describe('resetIfNeeded', () => {
+    it('should not reset tracking within same plan year', () => {
+      const date1 = new Date('2024-06-15');
+      manager['resetIfNeeded'](testConfig, date1);
+      const tracker = manager['getOrCreateTracker'](testConfig, date1);
+
+      // Add some tracking data
+      tracker.individualDeductible.set('John', 500);
+      tracker.familyDeductible = 500;
+
+      const date2 = new Date('2024-08-15');
+      manager['resetIfNeeded'](testConfig, date2);
+
+      expect(tracker.individualDeductible.get('John')).toBe(500);
+      expect(tracker.familyDeductible).toBe(500);
+    });
+
+    it('should reset tracking when crossing plan year boundary', () => {
+      const midYearConfig: HealthcareConfig = {
+        ...testConfig,
+        resetMonth: 6, // July
+        resetDay: 1,
+      };
+      const managerMidYear = new HealthcareManager([midYearConfig]);
+
+      const date1 = new Date('2024-06-15'); // Plan year 2023
+      managerMidYear['resetIfNeeded'](midYearConfig, date1);
+      const tracker = managerMidYear['getOrCreateTracker'](midYearConfig, date1);
+
+      // Add some tracking data
+      tracker.individualDeductible.set('John', 500);
+      tracker.familyDeductible = 500;
+
+      const date2 = new Date('2024-07-15'); // Plan year 2024
+      managerMidYear['resetIfNeeded'](midYearConfig, date2);
+
+      expect(tracker.individualDeductible.get('John')).toBeUndefined();
+      expect(tracker.familyDeductible).toBe(0);
+      expect(tracker.planYear).toBe(2024);
+    });
+  });
 });

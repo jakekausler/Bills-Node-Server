@@ -101,4 +101,23 @@ export class HealthcareManager {
 
     return this.trackers.get(key)!;
   }
+
+  /**
+   * Reset tracking if we've moved to a new plan year
+   */
+  private resetIfNeeded(config: HealthcareConfig, date: Date): void {
+    const tracker = this.getOrCreateTracker(config, date);
+    const currentPlanYear = this.getPlanYear(config, date);
+
+    // If we've moved to a new plan year, reset all tracking
+    if (currentPlanYear !== tracker.planYear) {
+      tracker.planYear = currentPlanYear;
+      tracker.individualDeductible.clear();
+      tracker.individualOOP.clear();
+      tracker.familyDeductible = 0;
+      tracker.familyOOP = 0;
+    }
+
+    tracker.lastResetCheck = date;
+  }
 }
