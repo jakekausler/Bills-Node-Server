@@ -47,6 +47,8 @@ import 'dotenv/config';
 import jwt from 'jsonwebtoken';
 import { promisify } from 'util';
 import { getMoneyMovementChart } from './api/moneyMovement/movement';
+import { loadHealthcareConfigs, saveHealthcareConfigs } from './utils/io/healthcareConfigs';
+import { v4 as uuidv4 } from 'uuid';
 
 declare global {
   namespace Express {
@@ -417,6 +419,58 @@ app.get('/api/moneyMovement', verifyToken, async (req: Request, res: Response) =
 app.get('/api/sharedSpending', async (req: Request, res: Response) => {
   console.log('Request:', req);
   res.send(await getSharedSpending(req));
+});
+
+// Healthcare config routes
+app.get('/api/healthcare/configs', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const configs = await loadHealthcareConfigs();
+    res.json(configs);
+  } catch (error) {
+    console.error('Error loading healthcare configs:', error);
+    res.status(500).json({ error: 'Failed to load healthcare configs' });
+  }
+});
+
+app.post('/api/healthcare/configs', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const configs = await loadHealthcareConfigs();
+    const newConfig = { ...req.body, id: uuidv4() };
+    configs.push(newConfig);
+    await saveHealthcareConfigs(configs);
+    res.json(newConfig);
+  } catch (error) {
+    console.error('Error creating healthcare config:', error);
+    res.status(500).json({ error: 'Failed to create healthcare config' });
+  }
+});
+
+app.put('/api/healthcare/configs/:id', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const configs = await loadHealthcareConfigs();
+    const index = configs.findIndex(c => c.id === req.params.id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Config not found' });
+    }
+    configs[index] = { ...req.body, id: req.params.id };
+    await saveHealthcareConfigs(configs);
+    res.json(configs[index]);
+  } catch (error) {
+    console.error('Error updating healthcare config:', error);
+    res.status(500).json({ error: 'Failed to update healthcare config' });
+  }
+});
+
+app.delete('/api/healthcare/configs/:id', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const configs = await loadHealthcareConfigs();
+    const filtered = configs.filter(c => c.id !== req.params.id);
+    await saveHealthcareConfigs(filtered);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting healthcare config:', error);
+    res.status(500).json({ error: 'Failed to delete healthcare config' });
+  }
 });
 
 // Serve frontend for all non-API routes (SPA fallback)

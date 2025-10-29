@@ -54,6 +54,14 @@ export class Bill {
   flagColor: string | null;
   flag: boolean;
 
+  // Healthcare properties
+  isHealthcare: boolean;
+  healthcarePerson: string | null;
+  copayAmount: number | null;
+  coinsurancePercent: number | null;
+  countsTowardDeductible: boolean;
+  countsTowardOutOfPocket: boolean;
+
   /**
    * Creates a new Bill instance
    * @param data - Bill data object
@@ -68,6 +76,7 @@ export class Bill {
     this.initializeAnnualDateProperties(data);
     this.initializeDateProperties(data, simulation);
     this.initializeAmountProperties(data, simulation);
+    this.initializeHealthcareProperties(data);
   }
 
   /**
@@ -196,6 +205,19 @@ export class Bill {
   }
 
   /**
+   * Initializes healthcare-related properties
+   * @private
+   */
+  private initializeHealthcareProperties(data: BillData): void {
+    this.isHealthcare = data.isHealthcare || false;
+    this.healthcarePerson = data.healthcarePerson || null;
+    this.copayAmount = data.copayAmount || null;
+    this.coinsurancePercent = data.coinsurancePercent || null;
+    this.countsTowardDeductible = data.countsTowardDeductible ?? true;
+    this.countsTowardOutOfPocket = data.countsTowardOutOfPocket ?? true;
+  }
+
+  /**
    * Parses an increase date string into day and month components
    * @param increaseByDate - Date string in MM/DD format
    * @returns Object with day and month (0-indexed)
@@ -243,6 +265,14 @@ export class Bill {
       amountVariable: this.amountVariable,
       flagColor: this.flagColor,
       flag: this.flag,
+
+      // Healthcare fields
+      isHealthcare: this.isHealthcare,
+      healthcarePerson: this.healthcarePerson,
+      copayAmount: this.copayAmount,
+      coinsurancePercent: this.coinsurancePercent,
+      countsTowardDeductible: this.countsTowardDeductible,
+      countsTowardOutOfPocket: this.countsTowardOutOfPocket,
     };
   }
 

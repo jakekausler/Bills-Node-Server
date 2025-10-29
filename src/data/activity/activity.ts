@@ -28,6 +28,14 @@ export class Activity {
   dateIsVariable: boolean;
   dateVariable: string | null;
 
+  // Healthcare properties
+  isHealthcare: boolean;
+  healthcarePerson: string | null;
+  copayAmount: number | null;
+  coinsurancePercent: number | null;
+  countsTowardDeductible: boolean;
+  countsTowardOutOfPocket: boolean;
+
   /**
    * Creates a new Activity instance
    * @param data - Activity data object
@@ -67,6 +75,14 @@ export class Activity {
     this.amount = amount;
     this.amountIsVariable = amountIsVariable;
     this.amountVariable = amountVariable;
+
+    // Healthcare properties
+    this.isHealthcare = data.isHealthcare || false;
+    this.healthcarePerson = data.healthcarePerson || null;
+    this.copayAmount = data.copayAmount || null;
+    this.coinsurancePercent = data.coinsurancePercent || null;
+    this.countsTowardDeductible = data.countsTowardDeductible ?? true;
+    this.countsTowardOutOfPocket = data.countsTowardOutOfPocket ?? true;
   }
 
   /**
@@ -89,6 +105,14 @@ export class Activity {
       date: formatDate(this.date),
       dateIsVariable: this.dateIsVariable,
       dateVariable: this.dateVariable,
+
+      // Healthcare fields
+      isHealthcare: this.isHealthcare,
+      healthcarePerson: this.healthcarePerson,
+      copayAmount: this.copayAmount,
+      coinsurancePercent: this.coinsurancePercent,
+      countsTowardDeductible: this.countsTowardDeductible,
+      countsTowardOutOfPocket: this.countsTowardOutOfPocket,
     };
   }
 }

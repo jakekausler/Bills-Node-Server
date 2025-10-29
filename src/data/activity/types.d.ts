@@ -16,6 +16,14 @@ export type ActivityData = {
   from: string | null;
   to: string | null;
   balance?: number;
+
+  // Healthcare fields
+  isHealthcare?: boolean;
+  healthcarePerson?: string | null;
+  copayAmount?: number | null;
+  coinsurancePercent?: number | null;
+  countsTowardDeductible?: boolean;
+  countsTowardOutOfPocket?: boolean;
 };
 
 export type ConsolidatedActivityData = ActivityData & {

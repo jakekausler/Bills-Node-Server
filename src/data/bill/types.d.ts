@@ -29,6 +29,14 @@ export type BillData = {
   to: string | null;
   flagColor: string | null;
   flag: boolean;
+
+  // Healthcare fields
+  isHealthcare?: boolean;
+  healthcarePerson?: string | null;
+  copayAmount?: number | null;
+  coinsurancePercent?: number | null;
+  countsTowardDeductible?: boolean;
+  countsTowardOutOfPocket?: boolean;
 };
 
 export type CalendarBill = BillData & {
