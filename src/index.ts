@@ -473,6 +473,24 @@ app.delete('/api/healthcare/configs/:id', verifyToken, async (req: Request, res:
   }
 });
 
+app.get('/api/healthcare/progress', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const simulation = req.query.simulation as string;
+    const date = (req.query.date as string) || new Date().toISOString().split('T')[0];
+
+    if (!simulation) {
+      return res.status(400).json({ error: 'Simulation parameter required' });
+    }
+
+    // TODO: Implement progress calculation
+    // For now, return empty object (will be implemented in backend work)
+    res.json({});
+  } catch (error) {
+    console.error('Error getting healthcare progress:', error);
+    res.status(500).json({ error: 'Failed to get healthcare progress' });
+  }
+});
+
 // Serve frontend for all non-API routes (SPA fallback)
 app.get('*', (req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
