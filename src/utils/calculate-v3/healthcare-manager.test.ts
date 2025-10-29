@@ -174,4 +174,47 @@ describe('HealthcareManager', () => {
       expect(tracker.planYear).toBe(2024);
     });
   });
+
+  describe('recordHealthcareExpense', () => {
+    it('should record individual and family deductible', () => {
+      const date = new Date('2024-06-15');
+      manager.recordHealthcareExpense('John', date, 200, 200, testConfig);
+
+      const tracker = manager['getOrCreateTracker'](testConfig, date);
+      expect(tracker.individualDeductible.get('John')).toBe(200);
+      expect(tracker.familyDeductible).toBe(200);
+    });
+
+    it('should accumulate expenses over multiple calls', () => {
+      const date = new Date('2024-06-15');
+      manager.recordHealthcareExpense('John', date, 100, 100, testConfig);
+      manager.recordHealthcareExpense('John', date, 200, 200, testConfig);
+
+      const tracker = manager['getOrCreateTracker'](testConfig, date);
+      expect(tracker.individualDeductible.get('John')).toBe(300);
+      expect(tracker.familyDeductible).toBe(300);
+    });
+
+    it('should track multiple family members separately', () => {
+      const date = new Date('2024-06-15');
+      manager.recordHealthcareExpense('John', date, 100, 100, testConfig);
+      manager.recordHealthcareExpense('Jane', date, 200, 200, testConfig);
+
+      const tracker = manager['getOrCreateTracker'](testConfig, date);
+      expect(tracker.individualDeductible.get('John')).toBe(100);
+      expect(tracker.individualDeductible.get('Jane')).toBe(200);
+      expect(tracker.familyDeductible).toBe(300);
+    });
+
+    it('should track OOP separately from deductible', () => {
+      const date = new Date('2024-06-15');
+      manager.recordHealthcareExpense('John', date, 100, 50, testConfig);
+
+      const tracker = manager['getOrCreateTracker'](testConfig, date);
+      expect(tracker.individualDeductible.get('John')).toBe(100);
+      expect(tracker.individualOOP.get('John')).toBe(50);
+      expect(tracker.familyDeductible).toBe(100);
+      expect(tracker.familyOOP).toBe(50);
+    });
+  });
 });

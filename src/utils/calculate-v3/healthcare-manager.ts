@@ -120,4 +120,29 @@ export class HealthcareManager {
 
     tracker.lastResetCheck = date;
   }
+
+  /**
+   * Record a healthcare expense toward deductible and OOP tracking
+   */
+  recordHealthcareExpense(
+    personName: string,
+    date: Date,
+    amountTowardDeductible: number,
+    amountTowardOOP: number,
+    config: HealthcareConfig,
+  ): void {
+    const tracker = this.getOrCreateTracker(config, date);
+
+    // Update individual deductible
+    const currentDeductible = tracker.individualDeductible.get(personName) || 0;
+    tracker.individualDeductible.set(personName, currentDeductible + amountTowardDeductible);
+
+    // Update individual OOP
+    const currentOOP = tracker.individualOOP.get(personName) || 0;
+    tracker.individualOOP.set(personName, currentOOP + amountTowardOOP);
+
+    // Update family totals
+    tracker.familyDeductible += amountTowardDeductible;
+    tracker.familyOOP += amountTowardOOP;
+  }
 }
