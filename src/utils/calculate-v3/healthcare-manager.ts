@@ -74,4 +74,31 @@ export class HealthcareManager {
     }
     return currentYear;
   }
+
+  /**
+   * Generate tracker key for a config
+   */
+  private getTrackerKey(config: HealthcareConfig): string {
+    return config.id;
+  }
+
+  /**
+   * Get or create a year tracker for a config
+   */
+  private getOrCreateTracker(config: HealthcareConfig, date: Date): YearTracker {
+    const key = this.getTrackerKey(config);
+
+    if (!this.trackers.has(key)) {
+      this.trackers.set(key, {
+        planYear: this.getPlanYear(config, date),
+        lastResetCheck: date,
+        individualDeductible: new Map(),
+        individualOOP: new Map(),
+        familyDeductible: 0,
+        familyOOP: 0,
+      });
+    }
+
+    return this.trackers.get(key)!;
+  }
 }

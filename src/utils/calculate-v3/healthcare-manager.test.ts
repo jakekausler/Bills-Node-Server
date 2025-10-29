@@ -112,4 +112,24 @@ describe('HealthcareManager', () => {
       expect(planYear).toBe(2024);
     });
   });
+
+  describe('getOrCreateTracker', () => {
+    it('should create tracker on first access', () => {
+      const date = new Date('2024-06-15');
+      const tracker = manager['getOrCreateTracker'](testConfig, date);
+
+      expect(tracker).toBeDefined();
+      expect(tracker.planYear).toBe(2024);
+      expect(tracker.familyDeductible).toBe(0);
+      expect(tracker.familyOOP).toBe(0);
+    });
+
+    it('should return same tracker on subsequent access', () => {
+      const date = new Date('2024-06-15');
+      const tracker1 = manager['getOrCreateTracker'](testConfig, date);
+      const tracker2 = manager['getOrCreateTracker'](testConfig, date);
+
+      expect(tracker1).toBe(tracker2);
+    });
+  });
 });
