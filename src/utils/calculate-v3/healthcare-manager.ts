@@ -56,4 +56,22 @@ export class HealthcareManager {
 
     return matchingConfigs[0];
   }
+
+  /**
+   * Determine which plan year a date falls in based on reset date
+   */
+  private getPlanYear(config: HealthcareConfig, date: Date): number {
+    const currentYear = date.getUTCFullYear();
+    const resetMonth = config.resetMonth;
+    const resetDay = config.resetDay;
+
+    const dateMonth = date.getUTCMonth();
+    const dateDay = date.getUTCDate();
+
+    // Check if current date is before the reset date in the current year
+    if (dateMonth < resetMonth || (dateMonth === resetMonth && dateDay < resetDay)) {
+      return currentYear - 1;
+    }
+    return currentYear;
+  }
 }

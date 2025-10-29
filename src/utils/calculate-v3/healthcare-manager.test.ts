@@ -85,4 +85,31 @@ describe('HealthcareManager', () => {
       expect(config?.name).toBe('New Plan');
     });
   });
+
+  describe('getPlanYear', () => {
+    it('should return current year for date after reset date', () => {
+      const date = new Date('2024-06-15'); // After Jan 1 reset
+      const planYear = manager['getPlanYear'](testConfig, date);
+      expect(planYear).toBe(2024);
+    });
+
+    it('should return previous year for date before reset date', () => {
+      const midYearConfig: HealthcareConfig = {
+        ...testConfig,
+        resetMonth: 6, // July
+        resetDay: 1,
+      };
+      const managerMidYear = new HealthcareManager([midYearConfig]);
+
+      const date = new Date('2024-03-15'); // Before July 1 reset
+      const planYear = managerMidYear['getPlanYear'](midYearConfig, date);
+      expect(planYear).toBe(2023);
+    });
+
+    it('should return current year for date on reset date', () => {
+      const date = new Date('2024-01-01'); // Exactly on Jan 1 reset
+      const planYear = manager['getPlanYear'](testConfig, date);
+      expect(planYear).toBe(2024);
+    });
+  });
 });
