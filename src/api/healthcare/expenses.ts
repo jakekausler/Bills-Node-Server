@@ -22,6 +22,52 @@ export type HealthcareExpense = {
   billId: string | null;
 };
 
+/**
+ * Find HSA reimbursement for a healthcare expense.
+ * Matches by date, amount, and transfer destination account.
+ */
+function findHSAReimbursement(
+  expense: { date: string; patientCost: number },
+  accountId: string,
+  allAccounts: any[]
+): number {
+  // Look for HSA accounts
+  for (const account of allAccounts) {
+    if (account.type !== 'HSA' && !account.name.toLowerCase().includes('hsa')) {
+      continue;
+    }
+
+    if (!account.consolidatedActivity) {
+      continue;
+    }
+
+    // Look for transfer on same date with matching amount
+    for (const activity of account.consolidatedActivity) {
+      if (!activity.isTransfer) {
+        continue;
+      }
+
+      // Check if transfer goes to the expense account
+      if (activity.to !== accountId) {
+        continue;
+      }
+
+      // Check if date matches (allow same day)
+      if (activity.date !== expense.date) {
+        continue;
+      }
+
+      // Check if amount matches (HSA shows negative, expense shows negative, so we compare abs values)
+      const transferAmount = Math.abs(Number(activity.amount));
+      if (Math.abs(transferAmount - expense.patientCost) < 0.01) {
+        return transferAmount;
+      }
+    }
+  }
+
+  return 0;
+}
+
 export async function getHealthcareExpenses(
   request: Request
 ): Promise<HealthcareExpense[]> {
@@ -92,10 +138,14 @@ export async function getHealthcareExpenses(
         name: activity.name,
         person: activity.healthcarePerson || 'Unknown',
         billAmount: activity.billId ? (billLookup.get(activity.billId) ?? 0) : 0,
-        patientCost: Math.abs(Number(activity.amount)), // Convert negative expense to positive
+        patientCost: Math.abs(Number(activity.amount)),
         copay: activity.copayAmount ?? null,
         coinsurance: activity.coinsurancePercent ?? null,
-        hsaReimbursed: 0, // TODO: Match HSA reimbursements
+        hsaReimbursed: findHSAReimbursement(
+          { date: typeof activity.date === 'string' ? activity.date : dayjs(activity.date).format('YYYY-MM-DD'), patientCost: Math.abs(Number(activity.amount)) },
+          account.id,
+          calculatedData.accounts
+        ),
         accountName: account.name,
         isBill: activity.billId !== null && activity.billId !== undefined,
         billId: activity.billId ?? null,

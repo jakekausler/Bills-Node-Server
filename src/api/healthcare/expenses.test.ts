@@ -88,6 +88,21 @@ describe('Healthcare Expenses API', () => {
             },
           ],
         },
+        {
+          id: 'hsa-123',
+          name: 'HSA',
+          consolidatedActivity: [
+            {
+              id: 'hsa-transfer-1',
+              date: '2024-03-15',
+              name: 'Healthcare Reimbursement',
+              isTransfer: true,
+              from: 'hsa-123',
+              to: 'checking-1',
+              amount: -200, // Transfer out of HSA
+            },
+          ],
+        },
       ];
 
       const mockBills = [
@@ -131,10 +146,11 @@ describe('Healthcare Expenses API', () => {
         date: '2024-03-15',
         name: 'Doctor Visit',
         person: 'John',
-        billAmount: 250, // Original bill amount
-        patientCost: 200, // Calculated patient cost
+        billAmount: 250,
+        patientCost: 200,
         copay: null,
         coinsurance: 20,
+        hsaReimbursed: 200, // Matched HSA transfer
         accountName: 'Checking',
         isBill: true,
         billId: 'bill-123',
