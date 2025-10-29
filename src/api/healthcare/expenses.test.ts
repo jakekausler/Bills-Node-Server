@@ -90,11 +90,22 @@ describe('Healthcare Expenses API', () => {
         },
       ];
 
+      const mockBills = [
+        {
+          id: 'bill-123',
+          name: 'Doctor Visit',
+          amount: 250, // Original bill amount
+        },
+      ];
+
       vi.mocked(getData).mockResolvedValue({
         simulation: 'Default',
         accountsAndTransfers: {
           accounts: mockAccounts as any,
-          transfers: { bills: [], activity: [] },
+          transfers: {
+            bills: mockBills as any,
+            activity: [],
+          },
         },
         selectedAccounts: [],
         startDate: new Date('2024-01-01'),
@@ -103,7 +114,10 @@ describe('Healthcare Expenses API', () => {
 
       vi.mocked(calculateAllActivity).mockResolvedValue({
         accounts: mockAccounts as any,
-        transfers: { bills: [], activity: [] },
+        transfers: {
+          bills: mockBills as any,
+          activity: [],
+        },
       } as any);
 
       const result = await getHealthcareExpenses(mockRequest);
@@ -117,7 +131,8 @@ describe('Healthcare Expenses API', () => {
         date: '2024-03-15',
         name: 'Doctor Visit',
         person: 'John',
-        patientCost: 200, // Positive (expense amount)
+        billAmount: 250, // Original bill amount
+        patientCost: 200, // Calculated patient cost
         copay: null,
         coinsurance: 20,
         accountName: 'Checking',

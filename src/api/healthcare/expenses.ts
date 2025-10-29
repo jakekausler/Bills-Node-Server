@@ -50,6 +50,12 @@ export async function getHealthcareExpenses(
     false  // enableLogging
   );
 
+  // Create bill lookup map for original amounts
+  const billLookup = new Map<string, number>();
+  for (const bill of calculatedData.transfers.bills) {
+    billLookup.set(bill.id, Math.abs(Number(bill.amount)));
+  }
+
   // Parse date filters if provided
   const filterStartDate = startDateStr ? dayjs.utc(startDateStr).toDate() : null;
   const filterEndDate = endDateStr ? dayjs.utc(endDateStr).toDate() : null;
@@ -85,7 +91,7 @@ export async function getHealthcareExpenses(
         date: typeof activity.date === 'string' ? activity.date : dayjs(activity.date).format('YYYY-MM-DD'),
         name: activity.name,
         person: activity.healthcarePerson || 'Unknown',
-        billAmount: 0, // TODO: Get original bill amount (not yet available in data)
+        billAmount: activity.billId ? (billLookup.get(activity.billId) ?? 0) : 0,
         patientCost: Math.abs(Number(activity.amount)), // Convert negative expense to positive
         copay: activity.copayAmount ?? null,
         coinsurance: activity.coinsurancePercent ?? null,
