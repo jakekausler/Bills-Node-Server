@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { HealthcareConfig, HealthcareConfigsData } from '../../data/healthcare/types';
 
-const HEALTHCARE_CONFIGS_PATH = path.join(__dirname, 'data', 'healthcare_configs.json');
+const HEALTHCARE_CONFIGS_PATH = path.join(__dirname, '../../../data', 'healthcare_configs.json');
 
 export async function loadHealthcareConfigs(): Promise<HealthcareConfig[]> {
   try {
