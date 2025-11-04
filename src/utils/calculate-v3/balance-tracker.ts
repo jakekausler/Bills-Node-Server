@@ -117,27 +117,61 @@ export class BalanceTracker {
    * @returns The accounts with consolidated activities filtered to the given date range
    */
   getAccountsWithFilteredDates(startDate: Date | null, endDate: Date): Account[] {
+    // Clone accounts before filtering to avoid mutating the source data
     return this.accounts.map((account) => {
-      if (!account.consolidatedActivity) {
-        account.consolidatedActivity = [];
+      // Debug: Log HSA account state BEFORE cloning
+      if (account.name === 'Jane HSA') {
+        console.log(`[DEBUG getAccountsWithFilteredDates] Jane HSA BEFORE clone:`, {
+          consolidatedActivityLength: account.consolidatedActivity?.length || 0,
+          activities: account.consolidatedActivity?.map(a => ({ name: a.name, date: a.date, isTransfer: a.isTransfer })) || []
+        });
+      }
+
+      // Create a deep clone of the account with consolidatedActivity
+      const clonedAccount = new Account(account.serialize(true));
+
+      // Debug: Log HSA account state AFTER cloning
+      if (account.name === 'Jane HSA') {
+        console.log(`[DEBUG getAccountsWithFilteredDates] Jane HSA AFTER clone:`, {
+          consolidatedActivityLength: clonedAccount.consolidatedActivity?.length || 0,
+          activities: clonedAccount.consolidatedActivity?.map(a => ({ name: a.name, date: a.date, isTransfer: a.isTransfer })) || []
+        });
+      }
+
+      if (!clonedAccount.consolidatedActivity) {
+        clonedAccount.consolidatedActivity = [];
       }
 
       let runningBalance = 0;
 
-      const allActivitiesWithBalances = account.consolidatedActivity.map((activity, index) => {
+      const allActivitiesWithBalances = clonedAccount.consolidatedActivity.map((activity, index) => {
         activity.balance = runningBalance + Number(activity.amount);
         runningBalance = activity.balance;
         return activity;
       });
 
-      account.consolidatedActivity = allActivitiesWithBalances.filter((activity) => {
-        const activityDate = new Date(activity.date);
-        const afterStart = !startDate || activityDate >= startDate;
-        const beforeEnd = !endDate || activityDate <= endDate;
+      // Filter activities to the specified date range
+      clonedAccount.consolidatedActivity = allActivitiesWithBalances.filter((activity) => {
+        // Use day-based comparison to avoid timezone/timestamp precision issues
+        const activityDate = dayjs(activity.date).startOf('day');
+        const filterStartDate = startDate ? dayjs(startDate).startOf('day') : null;
+        const filterEndDate = endDate ? dayjs(endDate).startOf('day') : null;
+
+        const afterStart = !filterStartDate || activityDate.isAfter(filterStartDate) || activityDate.isSame(filterStartDate);
+        const beforeEnd = !filterEndDate || activityDate.isBefore(filterEndDate) || activityDate.isSame(filterEndDate);
+
         return afterStart && beforeEnd;
       });
 
-      return account;
+      // Debug: Log HSA account state AFTER filtering
+      if (account.name === 'Jane HSA') {
+        console.log(`[DEBUG getAccountsWithFilteredDates] Jane HSA AFTER filter:`, {
+          consolidatedActivityLength: clonedAccount.consolidatedActivity?.length || 0,
+          activities: clonedAccount.consolidatedActivity?.map(a => ({ name: a.name, date: a.date, isTransfer: a.isTransfer })) || []
+        });
+      }
+
+      return clonedAccount;
     });
   }
 

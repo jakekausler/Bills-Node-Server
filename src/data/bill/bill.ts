@@ -306,6 +306,13 @@ export class Bill {
         from: this.fro,
         to: this.to,
         isTransfer: this.isTransfer,
+        // Healthcare fields
+        isHealthcare: this.isHealthcare,
+        healthcarePerson: this.healthcarePerson,
+        copayAmount: this.copayAmount,
+        coinsurancePercent: this.coinsurancePercent,
+        countsTowardDeductible: this.countsTowardDeductible,
+        countsTowardOutOfPocket: this.countsTowardOutOfPocket,
       },
       simulation,
     );

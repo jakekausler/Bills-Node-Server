@@ -24,6 +24,12 @@ export async function getAccountBills(request: Request) {
  */
 export async function addBill(request: Request) {
   const data = await getData<BillData>(request);
+
+  // Validate healthcare bills have non-zero amounts
+  if (data.data.isHealthcare && !data.data.amountIsVariable && data.data.amount === 0) {
+    throw new Error('Healthcare bills must have a non-zero amount');
+  }
+
   const bill = new Bill(data.data, data.simulation);
   if (data.data.isTransfer) {
     data.accountsAndTransfers.transfers.bills.push(bill);

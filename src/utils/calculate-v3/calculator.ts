@@ -85,8 +85,20 @@ export class Calculator {
     const config = this.healthcareManager.getActiveConfig(activity.healthcarePerson || '', event.date);
 
     if (!config) {
-      // No config = treat as regular expense
-      return this.processActivityEvent(event, segmentResult);
+      // No config = process directly as regular activity to avoid infinite recursion
+      const accountId = event.accountId;
+
+      // Add the activity to the segment result
+      if (!segmentResult.activitiesAdded.has(accountId)) {
+        segmentResult.activitiesAdded.set(accountId, []);
+      }
+      segmentResult.activitiesAdded.get(accountId)?.push(new ConsolidatedActivity(activity.serialize()));
+
+      // Update balance in segment result
+      const balanceChange = activity.amount as number;
+      const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+      segmentResult.balanceChanges.set(accountId, currentChange + balanceChange);
+      return new Map([[accountId, balanceChange]]);
     }
 
     // Calculate patient cost
@@ -126,57 +138,96 @@ export class Calculator {
     date: Date,
     segmentResult: SegmentResult,
   ): void {
-    // Get HSA account balance
-    const hsaBalance = this.getCurrentAccountBalance(hsaAccountId, segmentResult);
+    try {
+      console.log('[HSA Reimbursement] ===== START =====');
+      console.log('[HSA Reimbursement] Input params:', {
+        hsaAccountId,
+        paymentAccountId,
+        patientCost,
+        date: date.toISOString(),
+      });
 
-    // Calculate reimbursement amount (partial if insufficient funds)
-    const reimbursementAmount = Math.min(patientCost, Math.max(0, hsaBalance));
+      // Get HSA account balance
+      console.log('[HSA Reimbursement] Step 1: Getting HSA balance...');
+      const hsaBalance = this.getCurrentAccountBalance(hsaAccountId, segmentResult);
+      console.log('[HSA Reimbursement] HSA balance:', hsaBalance);
 
-    if (reimbursementAmount <= 0.01) {
-      return; // No reimbursement possible
+      // Calculate reimbursement amount (partial if insufficient funds)
+      const reimbursementAmount = Math.min(patientCost, Math.max(0, hsaBalance));
+      console.log('[HSA Reimbursement] Reimbursement amount:', reimbursementAmount);
+
+      if (reimbursementAmount <= 0.01) {
+        console.log('[HSA Reimbursement] No reimbursement possible (amount <= 0.01)');
+        return; // No reimbursement possible
+      }
+
+      // Find accounts for activity names
+      console.log('[HSA Reimbursement] Step 2: Finding accounts...');
+      const hsaAccount = this.balanceTracker.findAccountById(hsaAccountId);
+      const paymentAccount = this.balanceTracker.findAccountById(paymentAccountId);
+      console.log('[HSA Reimbursement] HSA Account found:', hsaAccount ? hsaAccount.name : 'NOT FOUND');
+      console.log('[HSA Reimbursement] Payment Account found:', paymentAccount ? paymentAccount.name : 'NOT FOUND');
+
+      // Create HSA withdrawal activity (negative to HSA)
+      console.log('[HSA Reimbursement] Step 3: Creating withdrawal activity...');
+      const hsaWithdrawal = new ConsolidatedActivity({
+        id: `HSA-REIMBURSE-${date.getTime()}`,
+        name: 'HSA Reimbursement',
+        amount: -reimbursementAmount,
+        amountIsVariable: false,
+        amountVariable: null,
+        date: formatDate(date),
+        dateIsVariable: false,
+        dateVariable: null,
+        from: hsaAccount?.name || 'HSA',
+        to: paymentAccount?.name || '',
+        isTransfer: true,
+        category: 'Healthcare.HSA Reimbursement',
+        flag: true,
+        flagColor: 'cyan',
+      });
+      console.log('[HSA Reimbursement] Withdrawal activity created');
+
+      // Create deposit to payment account (positive)
+      console.log('[HSA Reimbursement] Step 4: Creating deposit activity...');
+      const accountDeposit = new ConsolidatedActivity({
+        ...hsaWithdrawal.serialize(),
+        amount: reimbursementAmount,
+      });
+      console.log('[HSA Reimbursement] Deposit activity created');
+
+      // Add activities to segment result
+      console.log('[HSA Reimbursement] Step 5: Adding activities to segment result...');
+      if (!segmentResult.activitiesAdded.has(hsaAccountId)) {
+        segmentResult.activitiesAdded.set(hsaAccountId, []);
+      }
+      if (!segmentResult.activitiesAdded.has(paymentAccountId)) {
+        segmentResult.activitiesAdded.set(paymentAccountId, []);
+      }
+
+      segmentResult.activitiesAdded.get(hsaAccountId)?.push(hsaWithdrawal);
+      segmentResult.activitiesAdded.get(paymentAccountId)?.push(accountDeposit);
+      console.log('[HSA Reimbursement] Activities added to segment result');
+
+      // Update balances
+      console.log('[HSA Reimbursement] Step 6: Updating balances...');
+      const hsaChange = segmentResult.balanceChanges.get(hsaAccountId) || 0;
+      const accountChange = segmentResult.balanceChanges.get(paymentAccountId) || 0;
+
+      segmentResult.balanceChanges.set(hsaAccountId, hsaChange - reimbursementAmount);
+      segmentResult.balanceChanges.set(paymentAccountId, accountChange + reimbursementAmount);
+      console.log('[HSA Reimbursement] Balances updated:', {
+        hsaChange: hsaChange - reimbursementAmount,
+        accountChange: accountChange + reimbursementAmount,
+      });
+
+      console.log('[HSA Reimbursement] ===== SUCCESS =====');
+    } catch (error) {
+      console.error('[HSA Reimbursement] ===== ERROR =====');
+      console.error('[HSA Reimbursement] Error occurred:', error);
+      console.error('[HSA Reimbursement] Error stack:', (error as Error).stack);
+      throw error; // Re-throw to propagate the error
     }
-
-    // Create HSA withdrawal activity (negative to HSA)
-    const hsaWithdrawal = new ConsolidatedActivity({
-      id: `HSA-REIMBURSE-${date.getTime()}`,
-      name: 'HSA Reimbursement',
-      amount: -reimbursementAmount,
-      amountIsVariable: false,
-      amountVariable: null,
-      date: formatDate(date),
-      dateIsVariable: false,
-      dateVariable: null,
-      from: this.balanceTracker.findAccountById(hsaAccountId)?.name || 'HSA',
-      to: this.balanceTracker.findAccountById(paymentAccountId)?.name || '',
-      isTransfer: true,
-      category: 'Healthcare.HSA Reimbursement',
-      flag: true,
-      flagColor: 'cyan',
-    });
-
-    // Create deposit to payment account (positive)
-    const accountDeposit = new ConsolidatedActivity({
-      ...hsaWithdrawal.serialize(),
-      amount: reimbursementAmount,
-    });
-
-    // Add activities to segment result
-    if (!segmentResult.activitiesAdded.has(hsaAccountId)) {
-      segmentResult.activitiesAdded.set(hsaAccountId, []);
-    }
-    if (!segmentResult.activitiesAdded.has(paymentAccountId)) {
-      segmentResult.activitiesAdded.set(paymentAccountId, []);
-    }
-
-    segmentResult.activitiesAdded.get(hsaAccountId)?.push(hsaWithdrawal);
-    segmentResult.activitiesAdded.get(paymentAccountId)?.push(accountDeposit);
-
-    // Update balances
-    const hsaChange = segmentResult.balanceChanges.get(hsaAccountId) || 0;
-    const accountChange = segmentResult.balanceChanges.get(paymentAccountId) || 0;
-
-    segmentResult.balanceChanges.set(hsaAccountId, hsaChange - reimbursementAmount);
-    segmentResult.balanceChanges.set(paymentAccountId, accountChange + reimbursementAmount);
   }
 
   processBillEvent(event: BillEvent, segmentResult: SegmentResult, simulation: string): Map<string, number> {
@@ -216,11 +267,42 @@ export class Calculator {
     simulation: string,
   ): Map<string, number> {
     const bill = event.originalBill;
+    console.log('[processHealthcareBill] ===== START =====');
+    console.log('[processHealthcareBill] Bill details:', {
+      name: bill.name,
+      amount: bill.amount,
+      id: bill.id,
+      isHealthcare: bill.isHealthcare,
+      healthcarePerson: bill.healthcarePerson,
+      copayAmount: bill.copayAmount,
+      coinsurancePercent: bill.coinsurancePercent,
+    });
+    console.log('[processHealthcareBill] Event details:', {
+      amount: event.amount,
+      date: event.date,
+      accountId: event.accountId,
+    });
+
     const config = this.healthcareManager.getActiveConfig(bill.healthcarePerson || '', event.date);
 
     if (!config) {
-      // No config = treat as regular bill
-      return this.processBillEvent(event, segmentResult, simulation);
+      // No config = treat as regular bill (process directly to avoid infinite recursion)
+      const accountId = event.accountId;
+      const amount = event.amount;
+
+      const billActivity = new ConsolidatedActivity(
+        bill.toActivity(`${bill.id}-${event.date}`, simulation, amount, event.date).serialize(),
+        { billId: bill.id, firstBill: event.firstBill },
+      );
+
+      if (!segmentResult.activitiesAdded.has(accountId)) {
+        segmentResult.activitiesAdded.set(accountId, []);
+      }
+      segmentResult.activitiesAdded.get(accountId)?.push(billActivity);
+
+      const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+      segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
+      return new Map([[accountId, Number(amount)]]);
     }
 
     // Calculate patient cost

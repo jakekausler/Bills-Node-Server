@@ -56,6 +56,21 @@ export async function getHealthcareProgress(
     false
   );
 
+  // Build bill lookup map for original amounts (same as in expenses.ts)
+  const billLookup = new Map<string, number>();
+  for (const account of accountsAndTransfers.accounts) {
+    if (account.bills) {
+      for (const bill of account.bills) {
+        billLookup.set(bill.id, Math.abs(Number(bill.amount)));
+      }
+    }
+  }
+  for (const bill of calculatedData.transfers.bills) {
+    if (!billLookup.has(bill.id)) {
+      billLookup.set(bill.id, Math.abs(Number(bill.amount)));
+    }
+  }
+
   // Build progress map by analyzing consolidated activities directly
   const progressMap: Record<string, DeductibleProgress> = {};
 
@@ -84,7 +99,8 @@ export async function getHealthcareProgress(
       personName,
       config,
       date,
-      planYear
+      planYear,
+      billLookup
     );
 
     progressMap[personName] = {
@@ -126,7 +142,8 @@ function calculateSpending(
   personName: string,
   config: any,
   asOfDate: Date,
-  planYear: number
+  planYear: number,
+  billLookup: Map<string, number>
 ) {
   let individualDeductible = 0;
   let individualOOP = 0;
@@ -141,6 +158,8 @@ function calculateSpending(
   // For now, assume each person has their own config; family totals = individual totals
   // TODO: Handle shared family configs if implemented
 
+  // Collect all healthcare activities for this person in the plan year
+  const activities: any[] = [];
   for (const account of accounts) {
     if (!account.consolidatedActivity) {
       continue;
@@ -166,19 +185,64 @@ function calculateSpending(
         continue;
       }
 
-      const cost = Math.abs(Number(activity.amount));
+      activities.push(activity);
+    }
+  }
 
-      // Count toward deductible if specified
-      if (activity.countsTowardDeductible !== false) {
-        individualDeductible += cost;
-        familyDeductible += cost;
-      }
+  // Sort activities by date to process chronologically
+  activities.sort((a, b) => {
+    const dateA = dayjs.utc(a.date).toDate().getTime();
+    const dateB = dayjs.utc(b.date).toDate().getTime();
+    return dateA - dateB;
+  });
 
-      // Count toward OOP if specified
-      if (activity.countsTowardOutOfPocket !== false) {
-        individualOOP += cost;
-        familyOOP += cost;
-      }
+  // Process activities in chronological order, capping at limits
+  for (const activity of activities) {
+    // Patient cost (what the patient paid)
+    const patientCost = Math.abs(Number(activity.amount));
+
+    // Bill amount (original medical bill amount) - look up by billId
+    // If no billId (one-time activity), use patient cost as bill amount
+    const billAmount = activity.billId
+      ? (billLookup.get(activity.billId) || 0)
+      : patientCost;
+
+    // Count toward deductible if specified
+    // Use BILL AMOUNT for deductible tracking (per healthcare-manager.ts logic)
+    // Cap at deductible limits - once limit is reached, stop counting
+    if (activity.countsTowardDeductible !== false) {
+      const individualDeductibleRemaining = Math.max(
+        0,
+        config.individualDeductible - individualDeductible
+      );
+      const familyDeductibleRemaining = Math.max(0, config.familyDeductible - familyDeductible);
+
+      // Only count up to the remaining deductible amount
+      const amountToCount = Math.min(
+        billAmount,
+        individualDeductibleRemaining,
+        familyDeductibleRemaining
+      );
+
+      individualDeductible += amountToCount;
+      familyDeductible += amountToCount;
+    }
+
+    // Count toward OOP if specified
+    // Use PATIENT COST for OOP tracking (what patient actually paid)
+    // Cap at OOP limits - once limit is reached, stop counting
+    if (activity.countsTowardOutOfPocket !== false) {
+      const individualOOPRemaining = Math.max(
+        0,
+        config.individualOutOfPocketMax - individualOOP
+      );
+      const familyOOPRemaining = Math.max(0, config.familyOutOfPocketMax - familyOOP);
+
+      // Only count up to the remaining OOP amount
+      const amountToCount = Math.min(patientCost, individualOOPRemaining, familyOOPRemaining);
+
+      individualOOP += amountToCount;
+      familyOOP += amountToCount;
     }
   }
 

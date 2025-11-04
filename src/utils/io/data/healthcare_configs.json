@@ -1,19 +1,34 @@
 {
   "configs": [
     {
-      "id": "test-1",
-      "name": "Test Plan",
-      "personName": "John",
-      "startDate": "2024-01-01",
-      "endDate": null,
-      "individualDeductible": 1500,
+      "name": "United Healthcare Choice Plus HDHP",
+      "personName": "Jake",
+      "startDate": "2026-01-01",
+      "endDate": "2048-07-15",
+      "individualDeductible": 3500,
       "individualOutOfPocketMax": 5000,
-      "familyDeductible": 3000,
+      "familyDeductible": 7000,
       "familyOutOfPocketMax": 10000,
-      "hsaAccountId": "hsa-123",
+      "hsaAccountId": "75bd8c6a-65b5-4a13-88eb-31c97110d907",
+      "hsaReimbursementEnabled": false,
+      "resetMonth": 0,
+      "resetDay": 1,
+      "id": "1b3a10d4-0693-4d79-a210-6154650ad490"
+    },
+    {
+      "name": "Retirement Healthcare",
+      "personName": "Jake",
+      "startDate": "2048-07-16",
+      "endDate": null,
+      "individualDeductible": 3500,
+      "individualOutOfPocketMax": 5000,
+      "familyDeductible": 7000,
+      "familyOutOfPocketMax": 10000,
+      "hsaAccountId": "75bd8c6a-65b5-4a13-88eb-31c97110d907",
       "hsaReimbursementEnabled": true,
       "resetMonth": 0,
-      "resetDay": 1
+      "resetDay": 1,
+      "id": "bfe65939-69d6-48a6-80c5-4127669c37d7"
     }
   ]
 }

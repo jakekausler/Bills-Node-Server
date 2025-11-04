@@ -1,10 +1,21 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Engine } from './engine';
 import { Account } from '../../data/account/account';
 import { Activity } from '../../data/activity/activity';
 import { Bill } from '../../data/bill/bill';
 import { HealthcareConfig } from '../../data/healthcare/types';
 import { saveHealthcareConfigs } from '../io/healthcareConfigs';
+
+// Mock healthcareConfigs module to prevent writing to real files during tests
+let mockConfigs: HealthcareConfig[] = [];
+
+vi.mock('../io/healthcareConfigs', () => ({
+  saveHealthcareConfigs: vi.fn((configs: HealthcareConfig[]) => {
+    mockConfigs = configs;
+    return Promise.resolve();
+  }),
+  loadHealthcareConfigs: vi.fn(() => Promise.resolve(mockConfigs)),
+}));
 
 describe('Healthcare Integration Tests', () => {
   let engine: Engine;

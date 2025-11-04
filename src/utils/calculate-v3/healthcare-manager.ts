@@ -133,21 +133,64 @@ export class HealthcareManager {
     amountTowardOOP: number,
     config: HealthcareConfig,
   ): void {
+    console.log('[OOP Tracking] ===== recordHealthcareExpense START =====');
+    console.log('[OOP Tracking] Recording expense:', {
+      personName,
+      date: date.toISOString(),
+      amountTowardDeductible,
+      amountTowardOOP,
+      configId: config.id,
+    });
+
     const tracker = this.getOrCreateTracker(config, date);
 
     // Update individual deductible (only if amount > 0)
     if (amountTowardDeductible > 0) {
       const currentDeductible = tracker.individualDeductible.get(personName) || 0;
-      tracker.individualDeductible.set(personName, currentDeductible + amountTowardDeductible);
-      tracker.familyDeductible += amountTowardDeductible;
+      const newDeductible = currentDeductible + amountTowardDeductible;
+      const oldFamilyDeductible = tracker.familyDeductible;
+      const newFamilyDeductible = oldFamilyDeductible + amountTowardDeductible;
+
+      console.log('[OOP Tracking] Updating DEDUCTIBLE:', {
+        person: personName,
+        currentIndividual: currentDeductible,
+        adding: amountTowardDeductible,
+        newIndividual: newDeductible,
+        oldFamily: oldFamilyDeductible,
+        newFamily: newFamilyDeductible,
+      });
+
+      tracker.individualDeductible.set(personName, newDeductible);
+      tracker.familyDeductible = newFamilyDeductible;
     }
 
     // Update individual OOP (only if amount > 0)
     if (amountTowardOOP > 0) {
       const currentOOP = tracker.individualOOP.get(personName) || 0;
-      tracker.individualOOP.set(personName, currentOOP + amountTowardOOP);
-      tracker.familyOOP += amountTowardOOP;
+      const newOOP = currentOOP + amountTowardOOP;
+      const oldFamilyOOP = tracker.familyOOP;
+      const newFamilyOOP = oldFamilyOOP + amountTowardOOP;
+
+      console.log('[OOP Tracking] Updating OOP:', {
+        person: personName,
+        currentIndividual: currentOOP,
+        adding: amountTowardOOP,
+        newIndividual: newOOP,
+        oldFamily: oldFamilyOOP,
+        newFamily: newFamilyOOP,
+      });
+
+      tracker.individualOOP.set(personName, newOOP);
+      tracker.familyOOP = newFamilyOOP;
     }
+
+    console.log('[OOP Tracking] Final tracker state:', {
+      individualDeductibles: Array.from(tracker.individualDeductible.entries()),
+      familyDeductible: tracker.familyDeductible,
+      individualOOPs: Array.from(tracker.individualOOP.entries()),
+      familyOOP: tracker.familyOOP,
+    });
+    console.log('[OOP Tracking] ===== recordHealthcareExpense END =====');
   }
 
   /**
@@ -192,20 +235,59 @@ export class HealthcareManager {
     individualRemaining: number;
     familyRemaining: number;
   } {
+    console.log('[OOP Tracking] ===== getOOPProgress START =====');
+    console.log('[OOP Tracking] Input:', {
+      personName,
+      date: date.toISOString(),
+      configId: config.id,
+      configPerson: config.personName,
+    });
+
     const tracker = this.getOrCreateTracker(config, date);
 
     const individualSpent = tracker.individualOOP.get(personName) || 0;
     const familySpent = tracker.familyOOP;
 
+    console.log('[OOP Tracking] Tracker state:', {
+      individualOOP: individualSpent,
+      familyOOP: familySpent,
+      allIndividualOOP: Array.from(tracker.individualOOP.entries()),
+    });
+
+    console.log('[OOP Tracking] Config limits:', {
+      individualOutOfPocketMax: config.individualOutOfPocketMax,
+      familyOutOfPocketMax: config.familyOutOfPocketMax,
+    });
+
     const individualRemaining = Math.max(0, config.individualOutOfPocketMax - individualSpent);
     const familyRemaining = Math.max(0, config.familyOutOfPocketMax - familySpent);
 
-    return {
-      individualMet: individualSpent >= config.individualOutOfPocketMax,
-      familyMet: familySpent >= config.familyOutOfPocketMax,
+    console.log('[OOP Tracking] Remaining amounts:', {
+      individualRemaining,
+      familyRemaining,
+    });
+
+    const individualMet = individualSpent >= config.individualOutOfPocketMax;
+    const familyMet = familySpent >= config.familyOutOfPocketMax;
+
+    console.log('[OOP Tracking] CRITICAL - Met flag calculations:', {
+      individualMet,
+      individualMetCalculation: `${individualSpent} >= ${config.individualOutOfPocketMax} = ${individualMet}`,
+      familyMet,
+      familyMetCalculation: `${familySpent} >= ${config.familyOutOfPocketMax} = ${familyMet}`,
+    });
+
+    const result = {
+      individualMet,
+      familyMet,
       individualRemaining,
       familyRemaining,
     };
+
+    console.log('[OOP Tracking] Final progress object:', result);
+    console.log('[OOP Tracking] ===== getOOPProgress END =====');
+
+    return result;
   }
 
   /**
@@ -239,8 +321,16 @@ export class HealthcareManager {
     personName: string,
     date: Date,
   ): number {
+    console.log('[calculateDeductibleBasedCost] ===== START =====');
     const progress = this.getDeductibleProgress(config, date, personName);
     const coinsurancePercent = expense.coinsurancePercent || 0;
+
+    console.log('[calculateDeductibleBasedCost] Inputs:', {
+      billAmount,
+      personName,
+      coinsurancePercent,
+      deductibleProgress: progress,
+    });
 
     let patientPays = 0;
     let amountTowardDeductible = 0;
@@ -248,9 +338,11 @@ export class HealthcareManager {
 
     // Check if deductible is met (either individual or family)
     const deductibleMet = progress.individualMet || progress.familyMet;
+    console.log('[calculateDeductibleBasedCost] Deductible met?', deductibleMet);
 
     if (!deductibleMet) {
-      // Before deductible: patient pays 100%
+      console.log('[calculateDeductibleBasedCost] Path: Deductible NOT met');
+      // Deductible not yet met - need to handle split between deductible and coinsurance
       const individualRemaining = progress.individualRemaining;
       const familyRemaining = progress.familyRemaining;
 
@@ -258,27 +350,76 @@ export class HealthcareManager {
       const remainingDeductible = Math.min(individualRemaining, familyRemaining);
       const amountToDeductible = Math.min(billAmount, remainingDeductible);
 
-      patientPays = billAmount;
-      amountTowardDeductible = expense.countsTowardDeductible ? amountToDeductible : 0;
-      amountTowardOOP = expense.countsTowardOutOfPocket ? patientPays : 0;
+      console.log('[calculateDeductibleBasedCost] Deductible calculations:', {
+        individualRemaining,
+        familyRemaining,
+        remainingDeductible,
+        amountToDeductible,
+      });
+
+      if (billAmount <= remainingDeductible) {
+        console.log('[calculateDeductibleBasedCost] Bill within deductible - patient pays 100%');
+        // Entire bill is within deductible - patient pays 100% of bill
+        patientPays = billAmount;
+        amountTowardDeductible = expense.countsTowardDeductible ? amountToDeductible : 0;
+        amountTowardOOP = expense.countsTowardOutOfPocket ? patientPays : 0;
+        console.log('[calculateDeductibleBasedCost] Result:', { patientPays, amountTowardDeductible, amountTowardOOP });
+      } else {
+        console.log('[calculateDeductibleBasedCost] Bill exceeds deductible - split calculation');
+        // Bill exceeds remaining deductible - split calculation
+        // Patient pays 100% of remaining deductible, then coinsurance on the rest
+        const amountAfterDeductible = billAmount - remainingDeductible;
+        const coinsuranceOnRemainder = amountAfterDeductible * (coinsurancePercent / 100);
+
+        patientPays = remainingDeductible + coinsuranceOnRemainder;
+        amountTowardDeductible = expense.countsTowardDeductible ? remainingDeductible : 0;
+        amountTowardOOP = expense.countsTowardOutOfPocket ? patientPays : 0;
+        console.log('[calculateDeductibleBasedCost] Split calculation:', {
+          amountAfterDeductible,
+          coinsuranceOnRemainder,
+          patientPays,
+          amountTowardDeductible,
+          amountTowardOOP,
+        });
+      }
     } else {
+      console.log('[calculateDeductibleBasedCost] Path: Deductible MET');
       // After deductible: patient pays coinsurance %
       const oopProgress = this.getOOPProgress(config, date, personName);
       const oopMet = oopProgress.individualMet || oopProgress.familyMet;
+      console.log('[calculateDeductibleBasedCost] OOP progress:', oopProgress);
+      console.log('[calculateDeductibleBasedCost] OOP met determination:', {
+        individualMet: oopProgress.individualMet,
+        familyMet: oopProgress.familyMet,
+        oopMet,
+        calculation: `${oopProgress.individualMet} || ${oopProgress.familyMet} = ${oopMet}`,
+        individualRemaining: oopProgress.individualRemaining,
+        familyRemaining: oopProgress.familyRemaining,
+      });
 
       if (oopMet) {
+        console.log('[calculateDeductibleBasedCost] OOP max met - patient pays 0%');
         // After OOP max: patient pays 0%
         patientPays = 0;
       } else {
+        console.log('[calculateDeductibleBasedCost] Between deductible and OOP - patient pays coinsurance%');
         // Between deductible and OOP max: patient pays coinsurance %
         patientPays = billAmount * (coinsurancePercent / 100);
         amountTowardOOP = expense.countsTowardOutOfPocket ? patientPays : 0;
+        console.log('[calculateDeductibleBasedCost] Coinsurance calculation:', {
+          billAmount,
+          coinsurancePercent,
+          patientPays,
+          amountTowardOOP,
+        });
       }
     }
 
     // Record the expense
     this.recordHealthcareExpense(personName, date, amountTowardDeductible, amountTowardOOP, config);
 
+    console.log('[calculateDeductibleBasedCost] FINAL patientPays:', patientPays);
+    console.log('[calculateDeductibleBasedCost] ===== END =====');
     return patientPays;
   }
 
@@ -286,18 +427,52 @@ export class HealthcareManager {
    * Calculate the actual patient cost for a healthcare expense
    */
   calculatePatientCost(expense: Bill | Activity, config: HealthcareConfig, date: Date): number {
+    console.log('[HealthcareManager] ===== calculatePatientCost START =====');
+    console.log('[HealthcareManager] Expense details:', {
+      name: expense.name,
+      amount: expense.amount,
+      copayAmount: expense.copayAmount,
+      coinsurancePercent: expense.coinsurancePercent,
+      healthcarePerson: expense.healthcarePerson,
+      countsTowardDeductible: expense.countsTowardDeductible,
+      countsTowardOutOfPocket: expense.countsTowardOutOfPocket,
+    });
+
     // Reset tracking if we've crossed into a new plan year
     this.resetIfNeeded(config, date);
 
     const billAmount = typeof expense.amount === 'number' ? Math.abs(expense.amount) : 0;
     const personName = expense.healthcarePerson || '';
 
-    // If expense has a copay, use copay logic
-    if (expense.copayAmount !== null && expense.copayAmount !== undefined) {
-      return this.calculateCopayBasedCost(expense, config, billAmount, personName, date);
+    console.log('[HealthcareManager] Calculated values:', {
+      billAmount,
+      personName,
+    });
+
+    // If expense has a copay > 0, use copay logic
+    // Note: $0 copay is treated as "no copay" and falls through to deductible logic
+    const hasCopay = expense.copayAmount !== null && expense.copayAmount !== undefined && expense.copayAmount > 0;
+    console.log('[HealthcareManager] Copay check:', {
+      copayAmount: expense.copayAmount,
+      copayAmountNotNull: expense.copayAmount !== null,
+      copayAmountNotUndefined: expense.copayAmount !== undefined,
+      copayAmountGreaterThanZero: expense.copayAmount > 0,
+      hasCopay,
+    });
+
+    if (hasCopay) {
+      console.log('[HealthcareManager] Using COPAY logic');
+      const result = this.calculateCopayBasedCost(expense, config, billAmount, personName, date);
+      console.log('[HealthcareManager] Patient cost (copay):', result);
+      console.log('[HealthcareManager] ===== calculatePatientCost END =====');
+      return result;
     }
 
     // Otherwise use deductible/coinsurance logic
-    return this.calculateDeductibleBasedCost(expense, config, billAmount, personName, date);
+    console.log('[HealthcareManager] Using DEDUCTIBLE/COINSURANCE logic');
+    const result = this.calculateDeductibleBasedCost(expense, config, billAmount, personName, date);
+    console.log('[HealthcareManager] Patient cost (deductible):', result);
+    console.log('[HealthcareManager] ===== calculatePatientCost END =====');
+    return result;
   }
 }

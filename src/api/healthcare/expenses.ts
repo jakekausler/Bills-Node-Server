@@ -48,12 +48,18 @@ function findHSAReimbursement(
       }
 
       // Check if transfer goes to the expense account
-      if (activity.to !== accountId) {
+      // Convert account name to ID before comparing (Fix for Issue #23 Bug #1)
+      const toAccountId = allAccounts.find(a => a.name === activity.to)?.id;
+
+      if (toAccountId !== accountId) {
         continue;
       }
 
-      // Check if date matches (allow same day)
-      if (activity.date !== expense.date) {
+      // Check if date matches (allow ±1 day tolerance for timing differences)
+      const expenseDate = dayjs.utc(expense.date);
+      const transferDate = dayjs.utc(activity.date);
+      const daysDiff = Math.abs(expenseDate.diff(transferDate, 'day'));
+      if (daysDiff > 1) {
         continue;
       }
 
@@ -96,10 +102,23 @@ export async function getHealthcareExpenses(
     false  // enableLogging
   );
 
-  // Create bill lookup map for original amounts
+  // Create bill lookup map for original amounts from ALL account bills
   const billLookup = new Map<string, number>();
+
+  // Collect bills from all accounts (this includes healthcare bills stored in account.bills)
+  for (const account of accountsAndTransfers.accounts) {
+    if (account.bills) {
+      for (const bill of account.bills) {
+        billLookup.set(bill.id, Math.abs(Number(bill.amount)));
+      }
+    }
+  }
+
+  // Also include bills from transfers.bills (these are typically transfer bills)
   for (const bill of calculatedData.transfers.bills) {
-    billLookup.set(bill.id, Math.abs(Number(bill.amount)));
+    if (!billLookup.has(bill.id)) {
+      billLookup.set(bill.id, Math.abs(Number(bill.amount)));
+    }
   }
 
   // Parse date filters if provided
@@ -120,14 +139,16 @@ export async function getHealthcareExpenses(
         continue;
       }
 
-      // Parse activity date
-      const activityDate = dayjs.utc(activity.date).toDate();
+      // Parse activity date using day-based comparison to avoid timezone issues
+      const activityDate = dayjs(activity.date).startOf('day');
+      const filterStart = filterStartDate ? dayjs(filterStartDate).startOf('day') : null;
+      const filterEnd = filterEndDate ? dayjs(filterEndDate).startOf('day') : null;
 
       // Apply date filter if specified
-      if (filterStartDate && activityDate < filterStartDate) {
+      if (filterStart && activityDate.isBefore(filterStart)) {
         continue;
       }
-      if (filterEndDate && activityDate > filterEndDate) {
+      if (filterEnd && activityDate.isAfter(filterEnd)) {
         continue;
       }
 
@@ -137,7 +158,7 @@ export async function getHealthcareExpenses(
         date: typeof activity.date === 'string' ? activity.date : dayjs(activity.date).format('YYYY-MM-DD'),
         name: activity.name,
         person: activity.healthcarePerson || 'Unknown',
-        billAmount: activity.billId ? (billLookup.get(activity.billId) ?? 0) : 0,
+        billAmount: activity.billId ? (billLookup.get(activity.billId) ?? 0) : Math.abs(Number(activity.amount)),
         patientCost: Math.abs(Number(activity.amount)),
         copay: activity.copayAmount ?? null,
         coinsurance: activity.coinsurancePercent ?? null,

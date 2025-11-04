@@ -109,6 +109,12 @@ export async function changeAccountForBill(request: Request) {
 
 async function updateBillAsBill(request: Request) {
   const data = await getData<BillData>(request);
+
+  // Validate healthcare bills have non-zero amounts
+  if (data.data.isHealthcare && !data.data.amountIsVariable && data.data.amount === 0) {
+    throw new Error('Healthcare bills must have a non-zero amount');
+  }
+
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   let bill: Bill;
   let billIdx: number;
@@ -166,6 +172,12 @@ async function updateBillAsBill(request: Request) {
   bill.increaseByDate = bill.setIncreaseByDate(data.data.increaseByDate);
   bill.flag = data.data.flag;
   bill.flagColor = data.data.flagColor;
+  bill.isHealthcare = data.data.isHealthcare || false;
+  bill.healthcarePerson = data.data.healthcarePerson || null;
+  bill.copayAmount = data.data.copayAmount || null;
+  bill.coinsurancePercent = data.data.coinsurancePercent || null;
+  bill.countsTowardDeductible = data.data.countsTowardDeductible ?? true;
+  bill.countsTowardOutOfPocket = data.data.countsTowardOutOfPocket ?? true;
 
   if (bill.isTransfer && !originalIsTransfer) {
     data.accountsAndTransfers.transfers.bills.push(bill);

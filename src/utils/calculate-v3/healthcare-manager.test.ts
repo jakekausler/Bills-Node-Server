@@ -417,6 +417,89 @@ describe('HealthcareManager', () => {
 
       expect(cost).toBe(40); // 20% coinsurance after family deductible met
     });
+
+    it('should split cost when bill exceeds remaining deductible (Issue #19)', () => {
+      // Scenario: $1500 deductible, $0 spent so far, $2000 bill with 30% coinsurance
+      // Expected: Patient pays $1500 (to deductible) + $150 (30% of remaining $500) = $1650
+      const janeConfig: HealthcareConfig = {
+        ...testConfig,
+        personName: 'Jane',
+        individualDeductible: 1500,
+        familyDeductible: 3000,
+        coinsurancePercent: 30,
+      };
+      const managerJane = new HealthcareManager([janeConfig]);
+
+      const mockExpense = {
+        amount: 2000,
+        copayAmount: null,
+        coinsurancePercent: 30,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'Jane',
+      };
+
+      const date = new Date('2026-01-31');
+      const cost = managerJane['calculateDeductibleBasedCost'](
+        mockExpense as any,
+        janeConfig,
+        2000,
+        'Jane',
+        date,
+      );
+
+      // Patient should pay: $1500 (remaining deductible) + $150 (30% of $500 after deductible) = $1650
+      expect(cost).toBe(1650);
+
+      // Verify tracking: deductible should show $1500 (capped at deductible limit)
+      const tracker = managerJane['getOrCreateTracker'](janeConfig, date);
+      expect(tracker.individualDeductible.get('Jane')).toBe(1500);
+
+      // OOP should show full patient cost of $1650
+      expect(tracker.individualOOP.get('Jane')).toBe(1650);
+    });
+
+    it('should handle bill exactly equal to remaining deductible', () => {
+      const mockExpense = {
+        amount: 1500,
+        copayAmount: null,
+        coinsurancePercent: 30,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      const cost = manager['calculateDeductibleBasedCost'](mockExpense as any, testConfig, 1500, 'John', date);
+
+      // Bill exactly matches deductible - patient pays 100% of bill
+      expect(cost).toBe(1500);
+
+      const tracker = manager['getOrCreateTracker'](testConfig, date);
+      expect(tracker.individualDeductible.get('John')).toBe(1500);
+      expect(tracker.individualOOP.get('John')).toBe(1500);
+    });
+
+    it('should handle bill less than remaining deductible', () => {
+      const mockExpense = {
+        amount: 500,
+        copayAmount: null,
+        coinsurancePercent: 30,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      const cost = manager['calculateDeductibleBasedCost'](mockExpense as any, testConfig, 500, 'John', date);
+
+      // Bill is less than deductible - patient pays 100% of bill
+      expect(cost).toBe(500);
+
+      const tracker = manager['getOrCreateTracker'](testConfig, date);
+      expect(tracker.individualDeductible.get('John')).toBe(500);
+      expect(tracker.individualOOP.get('John')).toBe(500);
+    });
   });
 
   describe('calculatePatientCost', () => {
@@ -450,6 +533,25 @@ describe('HealthcareManager', () => {
       const cost = manager.calculatePatientCost(mockExpense as any, testConfig, date);
 
       expect(cost).toBe(200); // 100% before deductible
+    });
+
+    it('should use deductible logic when copay is 0 (Issue #22)', () => {
+      // Bug: When copay is $0 with coinsurance, system should use deductible logic
+      // not copay logic. $0 copay means "no copay", not "copay-based with $0"
+      const mockExpense = {
+        amount: 3000,
+        copayAmount: 0, // Zero copay (common in high-deductible plans)
+        coinsurancePercent: 100, // 100% coinsurance before deductible
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      const cost = manager.calculatePatientCost(mockExpense as any, testConfig, date);
+
+      // Should charge 100% of bill before deductible (not $0!)
+      expect(cost).toBe(3000);
     });
 
     it('should reset tracking before calculating if crossing plan year', () => {

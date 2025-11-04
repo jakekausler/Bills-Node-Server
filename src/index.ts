@@ -436,6 +436,27 @@ app.get('/api/healthcare/configs', verifyToken, async (req: Request, res: Respon
 
 app.post('/api/healthcare/configs', verifyToken, async (req: Request, res: Response) => {
   try {
+    // Validate required fields
+    const requiredFields = [
+      'name',
+      'personName',
+      'startDate',
+      'individualDeductible',
+      'individualOutOfPocketMax',
+      'familyDeductible',
+      'familyOutOfPocketMax',
+      'resetMonth',
+      'resetDay',
+    ];
+
+    const missingFields = requiredFields.filter(field => req.body[field] === undefined || req.body[field] === null || req.body[field] === '');
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: `Missing required fields: ${missingFields.join(', ')}`
+      });
+    }
+
     const configs = await loadHealthcareConfigs();
     const newConfig = { ...req.body, id: uuidv4() };
     configs.push(newConfig);
@@ -466,6 +487,12 @@ app.put('/api/healthcare/configs/:id', verifyToken, async (req: Request, res: Re
 app.delete('/api/healthcare/configs/:id', verifyToken, async (req: Request, res: Response) => {
   try {
     const configs = await loadHealthcareConfigs();
+    const configExists = configs.some(c => c.id === req.params.id);
+
+    if (!configExists) {
+      return res.status(404).json({ error: 'Config not found' });
+    }
+
     const filtered = configs.filter(c => c.id !== req.params.id);
     await saveHealthcareConfigs(filtered);
     res.json({ success: true });

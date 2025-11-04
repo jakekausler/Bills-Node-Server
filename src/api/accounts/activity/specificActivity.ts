@@ -77,6 +77,12 @@ export async function updateSpecificActivity(request: Request) {
   activity.amountVariable = data.data.amountVariable;
   activity.flag = data.data.flag;
   activity.flagColor = data.data.flagColor;
+  activity.isHealthcare = data.data.isHealthcare || false;
+  activity.healthcarePerson = data.data.healthcarePerson || null;
+  activity.copayAmount = data.data.copayAmount || null;
+  activity.coinsurancePercent = data.data.coinsurancePercent || null;
+  activity.countsTowardDeductible = data.data.countsTowardDeductible ?? true;
+  activity.countsTowardOutOfPocket = data.data.countsTowardOutOfPocket ?? true;
   activity.isTransfer = data.data.isTransfer;
   if (activity.isTransfer) {
     activity.fro = data.data.from;

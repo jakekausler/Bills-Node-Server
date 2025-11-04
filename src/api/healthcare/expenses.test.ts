@@ -268,5 +268,120 @@ describe('Healthcare Expenses API', () => {
       const result = await getHealthcareExpenses(mockRequest);
       expect(result).toEqual([]);
     });
+
+    it('should match HSA reimbursement when transfer occurs one day after expense', async () => {
+      const mockConfig = {
+        id: 'config-1',
+        name: 'Jane Health Plan 2025',
+        personName: 'Jane',
+        startDate: '2025-01-01',
+        endDate: null,
+        individualDeductible: 1500,
+        individualOutOfPocketMax: 5000,
+        familyDeductible: 3000,
+        familyOutOfPocketMax: 10000,
+        hsaAccountId: 'hsa-123',
+        hsaReimbursementEnabled: true,
+        resetMonth: 0,
+        resetDay: 1,
+      };
+
+      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+
+      const mockAccounts = [
+        {
+          id: 'checking-1',
+          name: 'Kendall Checking',
+          consolidatedActivity: [
+            {
+              id: 'activity-1',
+              date: '2026-01-14',
+              name: 'Jane Doctor Visit Test',
+              isHealthcare: true,
+              healthcarePerson: 'Jane',
+              amount: -20, // Patient cost $20
+              billId: 'bill-123',
+              copayAmount: 20,
+              coinsurancePercent: 20,
+            },
+          ],
+        },
+        {
+          id: 'hsa-123',
+          name: 'Jane HSA',
+          type: 'HSA',
+          consolidatedActivity: [
+            {
+              id: 'hsa-transfer-1',
+              date: '2026-01-15', // ONE DAY AFTER expense (14th)
+              name: 'HSA Reimbursement',
+              isTransfer: true,
+              from: 'hsa-123',
+              to: 'checking-1',
+              amount: -20, // Transfer out of HSA
+            },
+          ],
+        },
+      ];
+
+      const mockBills = [
+        {
+          id: 'bill-123',
+          name: 'Jane Doctor Visit Test',
+          amount: 100,
+        },
+      ];
+
+      vi.mocked(getData).mockResolvedValue({
+        simulation: 'Default',
+        accountsAndTransfers: {
+          accounts: mockAccounts as any,
+          transfers: {
+            bills: mockBills as any,
+            activity: [],
+          },
+        },
+        selectedAccounts: [],
+        startDate: new Date('2025-01-01'),
+        endDate: new Date('2026-12-31'),
+      } as any);
+
+      vi.mocked(calculateAllActivity).mockResolvedValue({
+        accounts: mockAccounts as any,
+        transfers: {
+          bills: mockBills as any,
+          activity: [],
+        },
+      } as any);
+
+      const requestWith2026Dates = {
+        query: {
+          simulation: 'Default',
+          startDate: '2025-01-01',
+          endDate: '2026-12-31',
+        },
+      } as unknown as Request;
+
+      const result = await getHealthcareExpenses(requestWith2026Dates);
+
+      // Should find the expense
+      expect(result).toHaveLength(1);
+
+      // Should match HSA reimbursement despite 1-day offset
+      expect(result[0]).toMatchObject({
+        id: 'activity-1',
+        date: '2026-01-14',
+        name: 'Jane Doctor Visit Test',
+        person: 'Jane',
+        billAmount: 100,
+        patientCost: 20,
+        copay: 20,
+        coinsurance: 20,
+        hsaReimbursed: 20, // Should match the transfer even though it's on 1/15
+        accountName: 'Kendall Checking',
+        isBill: true,
+        billId: 'bill-123',
+      });
+    });
   });
 });
