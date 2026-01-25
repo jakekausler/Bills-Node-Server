@@ -25,7 +25,8 @@ export class HealthcareManager {
   getActiveConfig(personName: string, date: Date): HealthcareConfig | null {
     // Filter configs that match the person and date range
     const matchingConfigs = this.configs.filter((config) => {
-      if (config.personName !== personName) {
+      // Check if this person is covered by this config
+      if (!config.coveredPersons || !config.coveredPersons.includes(personName)) {
         return false;
       }
 
@@ -63,17 +64,31 @@ export class HealthcareManager {
    * Determine which plan year a date falls in based on reset date
    */
   private getPlanYear(config: HealthcareConfig, date: Date): number {
-    const currentYear = date.getUTCFullYear();
+    const currentYear = date.getFullYear();
     const resetMonth = config.resetMonth;
     const resetDay = config.resetDay;
 
-    const dateMonth = date.getUTCMonth();
-    const dateDay = date.getUTCDate();
+    const dateMonth = date.getMonth();
+    const dateDay = date.getDate();
+
+    console.log('[RESET DEBUG getPlanYear] Determining plan year:', {
+      date: date.toISOString(),
+      dateLocal: date.toLocaleString('en-US', { timeZone: 'America/Chicago' }),
+      currentYear,
+      resetMonth,
+      resetDay,
+      dateMonth,
+      dateDay,
+      configId: config.id,
+      configName: config.name,
+    });
 
     // Check if current date is before the reset date in the current year
     if (dateMonth < resetMonth || (dateMonth === resetMonth && dateDay < resetDay)) {
+      console.log('[RESET DEBUG getPlanYear] Date is BEFORE reset date in current year - returning:', currentYear - 1);
       return currentYear - 1;
     }
+    console.log('[RESET DEBUG getPlanYear] Date is ON/AFTER reset date - returning:', currentYear);
     return currentYear;
   }
 
@@ -108,19 +123,54 @@ export class HealthcareManager {
    * Reset tracking if we've moved to a new plan year
    */
   private resetIfNeeded(config: HealthcareConfig, date: Date): void {
+    console.log('[RESET DEBUG resetIfNeeded] ===== START =====');
+    console.log('[RESET DEBUG resetIfNeeded] Checking if reset needed for date:', {
+      date: date.toISOString(),
+      dateLocal: date.toLocaleString('en-US', { timeZone: 'America/Chicago' }),
+      configId: config.id,
+      configName: config.name,
+      resetMonth: config.resetMonth,
+      resetDay: config.resetDay,
+    });
+
     const tracker = this.getOrCreateTracker(config, date);
+    console.log('[RESET DEBUG resetIfNeeded] Current tracker state:', {
+      planYear: tracker.planYear,
+      lastResetCheck: tracker.lastResetCheck.toISOString(),
+      individualDeductibleCount: tracker.individualDeductible.size,
+      individualOOPCount: tracker.individualOOP.size,
+      familyDeductible: tracker.familyDeductible,
+      familyOOP: tracker.familyOOP,
+    });
+
     const currentPlanYear = this.getPlanYear(config, date);
+    console.log('[RESET DEBUG resetIfNeeded] Plan year comparison:', {
+      currentPlanYear,
+      trackerPlanYear: tracker.planYear,
+      needsReset: currentPlanYear !== tracker.planYear,
+    });
 
     // If we've moved to a new plan year, reset all tracking
     if (currentPlanYear !== tracker.planYear) {
+      console.log('[RESET DEBUG resetIfNeeded] ⚠️ RESETTING TRACKER - Plan year changed!');
+      console.log('[RESET DEBUG resetIfNeeded] Before reset - Individual deductibles:',
+        Array.from(tracker.individualDeductible.entries()));
+      console.log('[RESET DEBUG resetIfNeeded] Before reset - Individual OOP:',
+        Array.from(tracker.individualOOP.entries()));
+
       tracker.planYear = currentPlanYear;
       tracker.individualDeductible.clear();
       tracker.individualOOP.clear();
       tracker.familyDeductible = 0;
       tracker.familyOOP = 0;
+
+      console.log('[RESET DEBUG resetIfNeeded] After reset - tracker cleared, new plan year:', currentPlanYear);
+    } else {
+      console.log('[RESET DEBUG resetIfNeeded] No reset needed - same plan year');
     }
 
     tracker.lastResetCheck = date;
+    console.log('[RESET DEBUG resetIfNeeded] ===== END =====');
   }
 
   /**
@@ -148,47 +198,35 @@ export class HealthcareManager {
     if (amountTowardDeductible > 0) {
       const currentDeductible = tracker.individualDeductible.get(personName) || 0;
       const newDeductible = currentDeductible + amountTowardDeductible;
-      const oldFamilyDeductible = tracker.familyDeductible;
-      const newFamilyDeductible = oldFamilyDeductible + amountTowardDeductible;
 
       console.log('[OOP Tracking] Updating DEDUCTIBLE:', {
         person: personName,
         currentIndividual: currentDeductible,
         adding: amountTowardDeductible,
         newIndividual: newDeductible,
-        oldFamily: oldFamilyDeductible,
-        newFamily: newFamilyDeductible,
       });
 
       tracker.individualDeductible.set(personName, newDeductible);
-      tracker.familyDeductible = newFamilyDeductible;
     }
 
     // Update individual OOP (only if amount > 0)
     if (amountTowardOOP > 0) {
       const currentOOP = tracker.individualOOP.get(personName) || 0;
       const newOOP = currentOOP + amountTowardOOP;
-      const oldFamilyOOP = tracker.familyOOP;
-      const newFamilyOOP = oldFamilyOOP + amountTowardOOP;
 
       console.log('[OOP Tracking] Updating OOP:', {
         person: personName,
         currentIndividual: currentOOP,
         adding: amountTowardOOP,
         newIndividual: newOOP,
-        oldFamily: oldFamilyOOP,
-        newFamily: newFamilyOOP,
       });
 
       tracker.individualOOP.set(personName, newOOP);
-      tracker.familyOOP = newFamilyOOP;
     }
 
     console.log('[OOP Tracking] Final tracker state:', {
       individualDeductibles: Array.from(tracker.individualDeductible.entries()),
-      familyDeductible: tracker.familyDeductible,
       individualOOPs: Array.from(tracker.individualOOP.entries()),
-      familyOOP: tracker.familyOOP,
     });
     console.log('[OOP Tracking] ===== recordHealthcareExpense END =====');
   }
@@ -206,10 +244,15 @@ export class HealthcareManager {
     individualRemaining: number;
     familyRemaining: number;
   } {
+    this.resetIfNeeded(config, date);
     const tracker = this.getOrCreateTracker(config, date);
 
     const individualSpent = tracker.individualDeductible.get(personName) || 0;
-    const familySpent = tracker.familyDeductible;
+
+    // Calculate family total by aggregating across all covered persons
+    const familySpent = (config.coveredPersons || []).reduce((sum, person) => {
+      return sum + (tracker.individualDeductible.get(person) || 0);
+    }, 0);
 
     const individualRemaining = Math.max(0, config.individualDeductible - individualSpent);
     const familyRemaining = Math.max(0, config.familyDeductible - familySpent);
@@ -240,13 +283,18 @@ export class HealthcareManager {
       personName,
       date: date.toISOString(),
       configId: config.id,
-      configPerson: config.personName,
+      coveredPersons: config.coveredPersons,
     });
 
+    this.resetIfNeeded(config, date);
     const tracker = this.getOrCreateTracker(config, date);
 
     const individualSpent = tracker.individualOOP.get(personName) || 0;
-    const familySpent = tracker.familyOOP;
+
+    // Calculate family total by aggregating across all covered persons
+    const familySpent = (config.coveredPersons || []).reduce((sum, person) => {
+      return sum + (tracker.individualOOP.get(person) || 0);
+    }, 0);
 
     console.log('[OOP Tracking] Tracker state:', {
       individualOOP: individualSpent,
@@ -324,6 +372,15 @@ export class HealthcareManager {
     console.log('[calculateDeductibleBasedCost] ===== START =====');
     const progress = this.getDeductibleProgress(config, date, personName);
     const coinsurancePercent = expense.coinsurancePercent || 0;
+
+    console.log('[DEBUG calculateDeductibleBasedCost] Progress:', {
+      personName,
+      individualSpent: progress.individualRemaining !== undefined ?
+        (config.individualDeductible - progress.individualRemaining) : 'unknown',
+      individualMet: progress.individualMet,
+      familyMet: progress.familyMet,
+      deductibleMet: progress.individualMet || progress.familyMet,
+    });
 
     console.log('[calculateDeductibleBasedCost] Inputs:', {
       billAmount,
@@ -418,6 +475,13 @@ export class HealthcareManager {
     // Record the expense
     this.recordHealthcareExpense(personName, date, amountTowardDeductible, amountTowardOOP, config);
 
+    console.log('[DEBUG calculateDeductibleBasedCost] Result:', {
+      billAmount,
+      patientPays,
+      amountTowardDeductible,
+      amountTowardOOP,
+    });
+
     console.log('[calculateDeductibleBasedCost] FINAL patientPays:', patientPays);
     console.log('[calculateDeductibleBasedCost] ===== END =====');
     return patientPays;
@@ -427,6 +491,13 @@ export class HealthcareManager {
    * Calculate the actual patient cost for a healthcare expense
    */
   calculatePatientCost(expense: Bill | Activity, config: HealthcareConfig, date: Date): number {
+    console.log('[DEBUG calculatePatientCost] Called with:', {
+      expenseName: expense.name,
+      healthcarePerson: expense.healthcarePerson,
+      amount: expense.amount,
+      date: date.toISOString().split('T')[0],
+    });
+
     console.log('[HealthcareManager] ===== calculatePatientCost START =====');
     console.log('[HealthcareManager] Expense details:', {
       name: expense.name,
@@ -437,6 +508,11 @@ export class HealthcareManager {
       countsTowardDeductible: expense.countsTowardDeductible,
       countsTowardOutOfPocket: expense.countsTowardOutOfPocket,
     });
+
+    console.log('[DEBUG calculatePatientCost] Config found:', config ? {
+      configName: config.name,
+      coveredPersons: config.coveredPersons,
+    } : 'NO CONFIG FOUND');
 
     // Reset tracking if we've crossed into a new plan year
     this.resetIfNeeded(config, date);

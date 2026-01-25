@@ -7,7 +7,7 @@ describe('HealthcareManager', () => {
   const testConfig: HealthcareConfig = {
     id: 'test-1',
     name: 'Test Plan',
-    personName: 'John',
+    coveredPersons: ['John'],
     startDate: '2024-01-01',
     endDate: null,
     individualDeductible: 1500,
@@ -35,7 +35,7 @@ describe('HealthcareManager', () => {
       const date = new Date('2024-06-15');
       const config = manager.getActiveConfig('John', date);
       expect(config).toBeDefined();
-      expect(config?.personName).toBe('John');
+      expect(config?.coveredPersons).toContain('John');
     });
 
     it('should return null for non-matching person', () => {
@@ -107,7 +107,7 @@ describe('HealthcareManager', () => {
     });
 
     it('should return current year for date on reset date', () => {
-      const date = new Date('2024-01-01'); // Exactly on Jan 1 reset
+      const date = new Date(2024, 0, 1); // Exactly on Jan 1 reset (local time)
       const planYear = manager['getPlanYear'](testConfig, date);
       expect(planYear).toBe(2024);
     });
@@ -182,7 +182,11 @@ describe('HealthcareManager', () => {
 
       const tracker = manager['getOrCreateTracker'](testConfig, date);
       expect(tracker.individualDeductible.get('John')).toBe(200);
-      expect(tracker.familyDeductible).toBe(200);
+
+      // Verify family total is calculated correctly via getDeductibleProgress
+      const progress = manager.getDeductibleProgress(testConfig, date, 'John');
+      expect(progress.individualRemaining).toBe(1300); // 1500 - 200
+      expect(progress.familyRemaining).toBe(2800); // 3000 - 200
     });
 
     it('should accumulate expenses over multiple calls', () => {
@@ -192,18 +196,30 @@ describe('HealthcareManager', () => {
 
       const tracker = manager['getOrCreateTracker'](testConfig, date);
       expect(tracker.individualDeductible.get('John')).toBe(300);
-      expect(tracker.familyDeductible).toBe(300);
+
+      // Verify family total is calculated correctly
+      const progress = manager.getDeductibleProgress(testConfig, date, 'John');
+      expect(progress.familyRemaining).toBe(2700); // 3000 - 300
     });
 
     it('should track multiple family members separately', () => {
-      const date = new Date('2024-06-15');
-      manager.recordHealthcareExpense('John', date, 100, 100, testConfig);
-      manager.recordHealthcareExpense('Jane', date, 200, 200, testConfig);
+      const familyConfig: HealthcareConfig = {
+        ...testConfig,
+        coveredPersons: ['John', 'Jane'],
+      };
+      const familyManager = new HealthcareManager([familyConfig]);
 
-      const tracker = manager['getOrCreateTracker'](testConfig, date);
+      const date = new Date('2024-06-15');
+      familyManager.recordHealthcareExpense('John', date, 100, 100, familyConfig);
+      familyManager.recordHealthcareExpense('Jane', date, 200, 200, familyConfig);
+
+      const tracker = familyManager['getOrCreateTracker'](familyConfig, date);
       expect(tracker.individualDeductible.get('John')).toBe(100);
       expect(tracker.individualDeductible.get('Jane')).toBe(200);
-      expect(tracker.familyDeductible).toBe(300);
+
+      // Verify family total is calculated correctly as sum of both members
+      const progress = familyManager.getDeductibleProgress(familyConfig, date, 'John');
+      expect(progress.familyRemaining).toBe(2700); // 3000 - (100 + 200)
     });
 
     it('should track OOP separately from deductible', () => {
@@ -213,8 +229,12 @@ describe('HealthcareManager', () => {
       const tracker = manager['getOrCreateTracker'](testConfig, date);
       expect(tracker.individualDeductible.get('John')).toBe(100);
       expect(tracker.individualOOP.get('John')).toBe(50);
-      expect(tracker.familyDeductible).toBe(100);
-      expect(tracker.familyOOP).toBe(50);
+
+      // Verify totals are calculated correctly via progress methods
+      const deductibleProgress = manager.getDeductibleProgress(testConfig, date, 'John');
+      const oopProgress = manager.getOOPProgress(testConfig, date, 'John');
+      expect(deductibleProgress.familyRemaining).toBe(2900); // 3000 - 100
+      expect(oopProgress.familyRemaining).toBe(9950); // 10000 - 50
     });
   });
 
@@ -239,11 +259,17 @@ describe('HealthcareManager', () => {
     });
 
     it('should return true when family deductible met', () => {
-      const date = new Date('2024-06-15');
-      manager.recordHealthcareExpense('John', date, 1500, 1500, testConfig);
-      manager.recordHealthcareExpense('Jane', date, 1500, 1500, testConfig);
+      const familyConfig: HealthcareConfig = {
+        ...testConfig,
+        coveredPersons: ['John', 'Jane'],
+      };
+      const familyManager = new HealthcareManager([familyConfig]);
 
-      const progress = manager.getDeductibleProgress(testConfig, date, 'John');
+      const date = new Date('2024-06-15');
+      familyManager.recordHealthcareExpense('John', date, 1500, 1500, familyConfig);
+      familyManager.recordHealthcareExpense('Jane', date, 1500, 1500, familyConfig);
+
+      const progress = familyManager.getDeductibleProgress(familyConfig, date, 'John');
       expect(progress.individualMet).toBe(true);
       expect(progress.familyMet).toBe(true);
     });
@@ -279,11 +305,17 @@ describe('HealthcareManager', () => {
     });
 
     it('should return true when family OOP met', () => {
-      const date = new Date('2024-06-15');
-      manager.recordHealthcareExpense('John', date, 0, 5000, testConfig);
-      manager.recordHealthcareExpense('Jane', date, 0, 5000, testConfig);
+      const familyConfig: HealthcareConfig = {
+        ...testConfig,
+        coveredPersons: ['John', 'Jane'],
+      };
+      const familyManager = new HealthcareManager([familyConfig]);
 
-      const progress = manager.getOOPProgress(testConfig, date, 'John');
+      const date = new Date('2024-06-15');
+      familyManager.recordHealthcareExpense('John', date, 0, 5000, familyConfig);
+      familyManager.recordHealthcareExpense('Jane', date, 0, 5000, familyConfig);
+
+      const progress = familyManager.getOOPProgress(familyConfig, date, 'John');
       expect(progress.individualMet).toBe(true);
       expect(progress.familyMet).toBe(true);
     });
@@ -423,7 +455,7 @@ describe('HealthcareManager', () => {
       // Expected: Patient pays $1500 (to deductible) + $150 (30% of remaining $500) = $1650
       const janeConfig: HealthcareConfig = {
         ...testConfig,
-        personName: 'Jane',
+        coveredPersons: ['Jane'],
         individualDeductible: 1500,
         familyDeductible: 3000,
         coinsurancePercent: 30,

@@ -4,6 +4,9 @@ import { loadHealthcareConfigs } from '../../utils/io/healthcareConfigs';
 import { calculateAllActivity } from '../../utils/calculate-v3/engine';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { HealthcareConfig } from '../../data/healthcare/types';
+import { Account } from '../../data/account/account';
+import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 
 dayjs.extend(utc);
 
@@ -11,18 +14,30 @@ export type DeductibleProgress = {
   configId: string;
   configName: string;
   planYear: number;
-  individualDeductibleSpent: number;
-  individualDeductibleRemaining: number;
-  individualDeductibleMet: boolean;
+  coveredPersons: string[];
+
+  // Family-level aggregates (primary)
   familyDeductibleSpent: number;
   familyDeductibleRemaining: number;
   familyDeductibleMet: boolean;
-  individualOOPSpent: number;
-  individualOOPRemaining: number;
-  individualOOPMet: boolean;
   familyOOPSpent: number;
   familyOOPRemaining: number;
   familyOOPMet: boolean;
+
+  // Per-person breakdown (for expandable detail)
+  individualProgress: {
+    personName: string;
+    deductibleSpent: number;
+    deductibleMet: boolean;
+    oopSpent: number;
+    oopMet: boolean;
+  }[];
+
+  // Thresholds for display
+  individualDeductibleLimit: number;
+  familyDeductibleLimit: number;
+  individualOOPLimit: number;
+  familyOOPLimit: number;
 };
 
 export async function getHealthcareProgress(
@@ -71,63 +86,87 @@ export async function getHealthcareProgress(
     }
   }
 
-  // Build progress map by analyzing consolidated activities directly
+  // Build progress map - one record per config (not per person)
   const progressMap: Record<string, DeductibleProgress> = {};
 
-  // Get unique person names from configs
-  const personNames = Array.from(new Set(configs.map(c => c.personName)));
+  // Filter to active configs at the specified date
+  const activeConfigs = configs.filter(
+    c =>
+      dayjs.utc(c.startDate).toDate() <= date &&
+      (c.endDate === null || dayjs.utc(c.endDate).toDate() >= date)
+  );
 
-  for (const personName of personNames) {
-    // Get active config for this person at the specified date
-    const config = configs.find(
-      c =>
-        c.personName === personName &&
-        dayjs.utc(c.startDate).toDate() <= date &&
-        (c.endDate === null || dayjs.utc(c.endDate).toDate() >= date)
-    );
-
-    if (!config) {
+  for (const config of activeConfigs) {
+    // Skip configs with invalid coveredPersons data
+    if (!Array.isArray(config.coveredPersons) || config.coveredPersons.length === 0) {
+      console.warn(`Skipping config ${config.id}: coveredPersons must be a non-empty array`);
       continue;
     }
 
     // Calculate plan year
     const planYear = getPlanYear(date, config.resetMonth, config.resetDay);
 
-    // Calculate spending by analyzing activities
-    const spending = calculateSpending(
-      calculatedData.accounts,
-      personName,
-      config,
-      date,
-      planYear,
-      billLookup
-    );
+    // Calculate spending for each covered person
+    const personSpending = new Map<string, { deductible: number; oop: number }>();
 
-    progressMap[personName] = {
+    for (const personName of config.coveredPersons) {
+      const spending = calculateSpending(
+        calculatedData.accounts,
+        personName,
+        config,
+        date,
+        planYear,
+        billLookup
+      );
+      personSpending.set(personName, {
+        deductible: spending.individualDeductible,
+        oop: spending.individualOOP,
+      });
+    }
+
+    // Calculate family totals (sum across all covered persons)
+    let familyDeductibleSpent = 0;
+    let familyOOPSpent = 0;
+    for (const spending of personSpending.values()) {
+      familyDeductibleSpent += spending.deductible;
+      familyOOPSpent += spending.oop;
+    }
+
+    // Build individual progress breakdown
+    const individualProgress = config.coveredPersons.map(personName => {
+      const spending = personSpending.get(personName) || { deductible: 0, oop: 0 };
+      return {
+        personName,
+        deductibleSpent: spending.deductible,
+        deductibleMet: spending.deductible >= config.individualDeductible,
+        oopSpent: spending.oop,
+        oopMet: spending.oop >= config.individualOutOfPocketMax,
+      };
+    });
+
+    // Store progress record keyed by config ID
+    progressMap[config.id] = {
       configId: config.id,
       configName: config.name,
       planYear,
-      individualDeductibleSpent: spending.individualDeductible,
-      individualDeductibleRemaining: Math.max(
-        0,
-        config.individualDeductible - spending.individualDeductible
-      ),
-      individualDeductibleMet: spending.individualDeductible >= config.individualDeductible,
-      familyDeductibleSpent: spending.familyDeductible,
-      familyDeductibleRemaining: Math.max(
-        0,
-        config.familyDeductible - spending.familyDeductible
-      ),
-      familyDeductibleMet: spending.familyDeductible >= config.familyDeductible,
-      individualOOPSpent: spending.individualOOP,
-      individualOOPRemaining: Math.max(
-        0,
-        config.individualOutOfPocketMax - spending.individualOOP
-      ),
-      individualOOPMet: spending.individualOOP >= config.individualOutOfPocketMax,
-      familyOOPSpent: spending.familyOOP,
-      familyOOPRemaining: Math.max(0, config.familyOutOfPocketMax - spending.familyOOP),
-      familyOOPMet: spending.familyOOP >= config.familyOutOfPocketMax,
+      coveredPersons: config.coveredPersons,
+
+      // Family-level aggregates
+      familyDeductibleSpent,
+      familyDeductibleRemaining: Math.max(0, config.familyDeductible - familyDeductibleSpent),
+      familyDeductibleMet: familyDeductibleSpent >= config.familyDeductible,
+      familyOOPSpent,
+      familyOOPRemaining: Math.max(0, config.familyOutOfPocketMax - familyOOPSpent),
+      familyOOPMet: familyOOPSpent >= config.familyOutOfPocketMax,
+
+      // Per-person breakdown
+      individualProgress,
+
+      // Thresholds
+      individualDeductibleLimit: config.individualDeductible,
+      familyDeductibleLimit: config.familyDeductible,
+      individualOOPLimit: config.individualOutOfPocketMax,
+      familyOOPLimit: config.familyOutOfPocketMax,
     };
   }
 
@@ -135,31 +174,36 @@ export async function getHealthcareProgress(
 }
 
 /**
- * Calculate healthcare spending from consolidated activities
+ * Calculate healthcare spending from consolidated activities for a single person
+ * This replicates the logic from healthcare-manager.ts to reconstruct deductible/OOP progress
  */
 function calculateSpending(
-  accounts: any[],
+  accounts: Account[],
   personName: string,
-  config: any,
+  config: HealthcareConfig,
   asOfDate: Date,
   planYear: number,
   billLookup: Map<string, number>
 ) {
   let individualDeductible = 0;
   let individualOOP = 0;
-  let familyDeductible = 0;
-  let familyOOP = 0;
 
-  // Calculate plan year start date
-  const planYearStart = new Date(planYear, config.resetMonth, config.resetDay);
-  const planYearEnd = new Date(planYear + 1, config.resetMonth, config.resetDay);
-
-  // Collect all family members from same config (for family aggregation)
-  // For now, assume each person has their own config; family totals = individual totals
-  // TODO: Handle shared family configs if implemented
+  // Calculate plan year start date using UTC to match rest of codebase
+  const planYearStart = dayjs.utc()
+    .year(planYear)
+    .month(config.resetMonth)
+    .date(config.resetDay)
+    .startOf('day')
+    .toDate();
+  const planYearEnd = dayjs.utc()
+    .year(planYear + 1)
+    .month(config.resetMonth)
+    .date(config.resetDay)
+    .startOf('day')
+    .toDate();
 
   // Collect all healthcare activities for this person in the plan year
-  const activities: any[] = [];
+  const activities: ConsolidatedActivity[] = [];
   for (const account of accounts) {
     if (!account.consolidatedActivity) {
       continue;
@@ -196,7 +240,7 @@ function calculateSpending(
     return dateA - dateB;
   });
 
-  // Process activities in chronological order, capping at limits
+  // Process activities in chronological order, tracking progress as we go
   for (const activity of activities) {
     // Patient cost (what the patient paid)
     const patientCost = Math.abs(Number(activity.amount));
@@ -207,50 +251,70 @@ function calculateSpending(
       ? (billLookup.get(activity.billId) || 0)
       : patientCost;
 
-    // Count toward deductible if specified
-    // Use BILL AMOUNT for deductible tracking (per healthcare-manager.ts logic)
-    // Cap at deductible limits - once limit is reached, stop counting
-    if (activity.countsTowardDeductible !== false) {
-      const individualDeductibleRemaining = Math.max(
-        0,
-        config.individualDeductible - individualDeductible
-      );
-      const familyDeductibleRemaining = Math.max(0, config.familyDeductible - familyDeductible);
+    // Check if this is a copay-based expense (copayAmount > 0)
+    const hasCopay = activity.copayAmount !== null &&
+                     activity.copayAmount !== undefined &&
+                     activity.copayAmount > 0;
 
-      // Only count up to the remaining deductible amount
-      const amountToCount = Math.min(
-        billAmount,
-        individualDeductibleRemaining,
-        familyDeductibleRemaining
-      );
+    if (hasCopay) {
+      // Copay-based expense
+      // Count full bill amount toward deductible if configured
+      if (activity.countsTowardDeductible !== false) {
+        individualDeductible += billAmount;
+      }
 
-      individualDeductible += amountToCount;
-      familyDeductible += amountToCount;
-    }
+      // Count copay amount toward OOP if configured
+      if (activity.countsTowardOutOfPocket !== false) {
+        individualOOP += Math.abs(activity.copayAmount);
+      }
+    } else {
+      // Deductible/coinsurance-based expense
+      // Need to replicate the healthcare manager's logic
 
-    // Count toward OOP if specified
-    // Use PATIENT COST for OOP tracking (what patient actually paid)
-    // Cap at OOP limits - once limit is reached, stop counting
-    if (activity.countsTowardOutOfPocket !== false) {
-      const individualOOPRemaining = Math.max(
-        0,
-        config.individualOutOfPocketMax - individualOOP
-      );
-      const familyOOPRemaining = Math.max(0, config.familyOutOfPocketMax - familyOOP);
+      // Check if deductible is already met
+      const deductibleMet = individualDeductible >= config.individualDeductible;
+      const oopMet = individualOOP >= config.individualOutOfPocketMax;
 
-      // Only count up to the remaining OOP amount
-      const amountToCount = Math.min(patientCost, individualOOPRemaining, familyOOPRemaining);
+      if (!deductibleMet) {
+        // Deductible not yet met
+        const remainingDeductible = config.individualDeductible - individualDeductible;
+        const amountToDeductible = Math.min(billAmount, remainingDeductible);
 
-      individualOOP += amountToCount;
-      familyOOP += amountToCount;
+        if (billAmount <= remainingDeductible) {
+          // Entire bill is within deductible - patient pays 100%
+          if (activity.countsTowardDeductible !== false) {
+            individualDeductible += amountToDeductible;
+          }
+          if (activity.countsTowardOutOfPocket !== false) {
+            individualOOP += patientCost;
+          }
+        } else {
+          // Bill exceeds remaining deductible - split calculation
+          const coinsurancePercent = activity.coinsurancePercent || 0;
+          const amountAfterDeductible = billAmount - remainingDeductible;
+          const coinsuranceOnRemainder = amountAfterDeductible * (coinsurancePercent / 100);
+          const totalPatientPays = remainingDeductible + coinsuranceOnRemainder;
+
+          if (activity.countsTowardDeductible !== false) {
+            individualDeductible += remainingDeductible;
+          }
+          if (activity.countsTowardOutOfPocket !== false) {
+            individualOOP += totalPatientPays;
+          }
+        }
+      } else if (!oopMet) {
+        // Deductible met but OOP not met - patient pays coinsurance
+        if (activity.countsTowardOutOfPocket !== false) {
+          individualOOP += patientCost;
+        }
+      }
+      // If OOP is met, patient pays $0, so nothing to track
     }
   }
 
   return {
     individualDeductible,
     individualOOP,
-    familyDeductible,
-    familyOOP,
   };
 }
 

@@ -3,7 +3,7 @@ import { DateString } from '../../utils/date/types';
 export type HealthcareConfig = {
   id: string;
   name: string;
-  personName: string;
+  coveredPersons: string[];  // e.g., ["Jake", "Jane"]
   startDate: DateString;
   endDate: DateString | null;
 

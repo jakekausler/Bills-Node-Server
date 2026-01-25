@@ -33,11 +33,11 @@ describe('Healthcare Progress API', () => {
 
   describe('getHealthcareProgress', () => {
     it('should return progress for person with active config', async () => {
-      // Mock healthcare config
+      // Mock healthcare config (using new schema with coveredPersons array)
       const mockConfig = {
         id: 'config-1',
         name: 'Blue Cross PPO 2024',
-        personName: 'John',
+        coveredPersons: ['John'],
         startDate: '2024-01-01',
         endDate: null,
         individualDeductible: 1500,
@@ -65,6 +65,10 @@ describe('Healthcare Progress API', () => {
               isHealthcare: true,
               healthcarePerson: 'John',
               amount: -200, // Patient cost after calculation
+              countsTowardDeductible: true,
+              countsTowardOutOfPocket: true,
+              copayAmount: null,
+              coinsurancePercent: 20,
             },
           ],
         },
@@ -89,16 +93,32 @@ describe('Healthcare Progress API', () => {
 
       const result = await getHealthcareProgress(mockRequest);
 
-      // Verify structure
-      expect(result).toHaveProperty('John');
-      expect(result.John).toMatchObject({
+      // Verify structure - result is keyed by config ID
+      expect(result).toHaveProperty('config-1');
+      expect(result['config-1']).toMatchObject({
         configId: 'config-1',
         configName: 'Blue Cross PPO 2024',
         planYear: 2024,
+        coveredPersons: ['John'],
       });
-      expect(result.John).toHaveProperty('individualDeductibleSpent');
-      expect(result.John).toHaveProperty('individualDeductibleRemaining');
-      expect(result.John).toHaveProperty('individualDeductibleMet');
+
+      // Check family-level aggregates
+      expect(result['config-1']).toHaveProperty('familyDeductibleSpent');
+      expect(result['config-1']).toHaveProperty('familyDeductibleRemaining');
+      expect(result['config-1']).toHaveProperty('familyDeductibleMet');
+      expect(result['config-1']).toHaveProperty('familyOOPSpent');
+      expect(result['config-1']).toHaveProperty('familyOOPRemaining');
+      expect(result['config-1']).toHaveProperty('familyOOPMet');
+
+      // Check individual progress array
+      expect(result['config-1'].individualProgress).toHaveLength(1);
+      expect(result['config-1'].individualProgress[0]).toMatchObject({
+        personName: 'John',
+        deductibleSpent: 200,
+        deductibleMet: false,
+        oopSpent: 200,
+        oopMet: false,
+      });
     });
 
     it('should return empty object when no configs exist', async () => {
@@ -127,7 +147,7 @@ describe('Healthcare Progress API', () => {
       const mockConfig = {
         id: 'config-1',
         name: 'Blue Cross PPO 2024',
-        personName: 'John',
+        coveredPersons: ['John'],
         startDate: '2024-01-01',
         endDate: null,
         individualDeductible: 1500,
@@ -154,6 +174,10 @@ describe('Healthcare Progress API', () => {
               isHealthcare: true,
               healthcarePerson: 'John',
               amount: -500, // $500 patient cost
+              countsTowardDeductible: true,
+              countsTowardOutOfPocket: true,
+              copayAmount: null,
+              coinsurancePercent: 20,
             },
           ],
         },
@@ -180,8 +204,13 @@ describe('Healthcare Progress API', () => {
       // After spending $500, should show:
       // - Individual deductible spent: $500
       // - Individual deductible remaining: $1000
-      expect(result.John.individualDeductibleSpent).toBe(500);
-      expect(result.John.individualDeductibleRemaining).toBe(1000);
+      // - Family deductible spent: $500
+      // - Family deductible remaining: $2500
+      const johnProgress = result['config-1'].individualProgress.find(p => p.personName === 'John');
+      expect(johnProgress).toBeDefined();
+      expect(johnProgress?.deductibleSpent).toBe(500);
+      expect(result['config-1'].familyDeductibleSpent).toBe(500);
+      expect(result['config-1'].familyDeductibleRemaining).toBe(2500);
     });
   });
 });

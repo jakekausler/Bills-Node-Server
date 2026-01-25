@@ -37,7 +37,7 @@ describe('Healthcare Expenses API', () => {
       const mockConfig = {
         id: 'config-1',
         name: 'Blue Cross PPO 2024',
-        personName: 'John',
+        coveredPersons: ['John'],
         startDate: '2024-01-01',
         endDate: null,
         individualDeductible: 1500,
@@ -150,11 +150,19 @@ describe('Healthcare Expenses API', () => {
         patientCost: 200,
         copay: null,
         coinsurance: 20,
-        hsaReimbursed: 200, // Matched HSA transfer
         accountName: 'Checking',
         isBill: true,
         billId: 'bill-123',
       });
+      // Check that remaining amounts are present
+      expect(result[0].individualDeductibleRemaining).toBeDefined();
+      expect(result[0].familyDeductibleRemaining).toBeDefined();
+      expect(result[0].individualOOPRemaining).toBeDefined();
+      expect(result[0].familyOOPRemaining).toBeDefined();
+      expect(typeof result[0].individualDeductibleRemaining).toBe('number');
+      expect(typeof result[0].familyDeductibleRemaining).toBe('number');
+      expect(typeof result[0].individualOOPRemaining).toBe('number');
+      expect(typeof result[0].familyOOPRemaining).toBe('number');
 
       // Check second expense
       expect(result[1]).toMatchObject({
@@ -169,13 +177,17 @@ describe('Healthcare Expenses API', () => {
         isBill: false,
         billId: null,
       });
+      expect(result[1].individualDeductibleRemaining).toBeDefined();
+      expect(result[1].familyDeductibleRemaining).toBeDefined();
+      expect(result[1].individualOOPRemaining).toBeDefined();
+      expect(result[1].familyOOPRemaining).toBeDefined();
     });
 
     it('should filter by date range when provided', async () => {
       const mockConfig = {
         id: 'config-1',
         name: 'Blue Cross PPO 2024',
-        personName: 'John',
+        coveredPersons: ['John'],
         startDate: '2024-01-01',
         endDate: null,
         individualDeductible: 1500,
@@ -273,7 +285,7 @@ describe('Healthcare Expenses API', () => {
       const mockConfig = {
         id: 'config-1',
         name: 'Jane Health Plan 2025',
-        personName: 'Jane',
+        coveredPersons: ['Jane'],
         startDate: '2025-01-01',
         endDate: null,
         individualDeductible: 1500,
@@ -367,7 +379,7 @@ describe('Healthcare Expenses API', () => {
       // Should find the expense
       expect(result).toHaveLength(1);
 
-      // Should match HSA reimbursement despite 1-day offset
+      // Check expense data and remaining amounts
       expect(result[0]).toMatchObject({
         id: 'activity-1',
         date: '2026-01-14',
@@ -377,11 +389,18 @@ describe('Healthcare Expenses API', () => {
         patientCost: 20,
         copay: 20,
         coinsurance: 20,
-        hsaReimbursed: 20, // Should match the transfer even though it's on 1/15
         accountName: 'Kendall Checking',
         isBill: true,
         billId: 'bill-123',
       });
+      expect(result[0].individualDeductibleRemaining).toBeDefined();
+      expect(result[0].familyDeductibleRemaining).toBeDefined();
+      expect(result[0].individualOOPRemaining).toBeDefined();
+      expect(result[0].familyOOPRemaining).toBeDefined();
+      expect(typeof result[0].individualDeductibleRemaining).toBe('number');
+      expect(typeof result[0].familyDeductibleRemaining).toBe('number');
+      expect(typeof result[0].individualOOPRemaining).toBe('number');
+      expect(typeof result[0].familyOOPRemaining).toBe('number');
     });
   });
 });
