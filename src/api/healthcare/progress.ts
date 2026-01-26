@@ -265,7 +265,7 @@ function calculateSpending(
 
       // Count copay amount toward OOP if configured
       if (activity.countsTowardOutOfPocket !== false) {
-        individualOOP += Math.abs(activity.copayAmount);
+        individualOOP += Math.abs(activity.copayAmount || 0);
       }
     } else {
       // Deductible/coinsurance-based expense

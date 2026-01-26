@@ -43,6 +43,7 @@ import {
 } from './api/monteCarlo/monteCarlo';
 import { getHealthcareProgress } from './api/healthcare/progress';
 import { getHealthcareExpenses } from './api/healthcare/expenses';
+import { getHealthcareProgressHistory } from './api/healthcare/progressHistory';
 import bcrypt from 'bcrypt';
 import mysql from 'mysql';
 import 'dotenv/config';
@@ -91,11 +92,11 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   return;
   const token = req.headers.authorization;
   const userId = isTokenValid(token);
-  if (!userId) {
+  if (userId === false) {
     res.status(401).json({ message: 'Invalid token' });
     return;
   }
-  req.userId = userId;
+  req.userId = userId as number;
   next();
 };
 
@@ -545,6 +546,33 @@ app.get('/api/healthcare/expenses', verifyToken, async (req: Request, res: Respo
   } catch (error) {
     console.error('Error getting healthcare expenses:', error);
     res.status(500).json({ error: 'Failed to get healthcare expenses' });
+  }
+});
+
+app.get('/api/healthcare/progress-history', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const simulation = req.query.simulation as string;
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
+    const configId = req.query.configId as string;
+
+    if (!simulation) {
+      return res.status(400).json({ error: 'Simulation parameter required' });
+    }
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: 'startDate and endDate parameters required' });
+    }
+
+    if (!configId) {
+      return res.status(400).json({ error: 'configId parameter required' });
+    }
+
+    const history = await getHealthcareProgressHistory(req);
+    res.json(history);
+  } catch (error) {
+    console.error('Error getting healthcare progress history:', error);
+    res.status(500).json({ error: 'Failed to get healthcare progress history' });
   }
 });
 

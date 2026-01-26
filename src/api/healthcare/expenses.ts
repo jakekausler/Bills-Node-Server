@@ -239,9 +239,9 @@ function calculateRemainingAmounts(
         console.log('[CALC-DEBUG] Applied to deductible:', billAmount);
       }
       if (e.countsTowardOutOfPocket !== false) {
-        personData.oop += Math.abs(e.copayAmount);
-        familyOOPSpent += Math.abs(e.copayAmount);
-        console.log('[CALC-DEBUG] Applied to OOP:', Math.abs(e.copayAmount));
+        personData.oop += Math.abs(e.copayAmount || 0);
+        familyOOPSpent += Math.abs(e.copayAmount || 0);
+        console.log('[CALC-DEBUG] Applied to OOP:', Math.abs(e.copayAmount || 0));
       }
     } else {
       // Deductible/coinsurance-based expense

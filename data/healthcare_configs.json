@@ -2,7 +2,10 @@
   "configs": [
     {
       "name": "United Healthcare Choice Plus Value HDHP",
-      "coveredPersons": ["Jake"],
+      "coveredPersons": [
+        "Jake",
+        "Kendall"
+      ],
       "startDate": "2026-01-01",
       "endDate": "2048-07-15",
       "individualDeductible": 3500,
@@ -17,7 +20,10 @@
     },
     {
       "name": "Retirement Healthcare",
-      "coveredPersons": ["Jake"],
+      "coveredPersons": [
+        "Jake",
+        "Kendall"
+      ],
       "startDate": "2048-07-16",
       "endDate": null,
       "individualDeductible": 3500,
