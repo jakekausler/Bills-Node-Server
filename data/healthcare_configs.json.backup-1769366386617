@@ -1,0 +1,34 @@
+{
+  "configs": [
+    {
+      "name": "United Healthcare Choice Plus Value HDHP",
+      "personName": "Jake",
+      "startDate": "2026-01-01",
+      "endDate": "2048-07-15",
+      "individualDeductible": 3500,
+      "individualOutOfPocketMax": 5000,
+      "familyDeductible": 7000,
+      "familyOutOfPocketMax": 10000,
+      "hsaAccountId": "2be562a4-e082-48ea-9094-ed865d207376",
+      "hsaReimbursementEnabled": false,
+      "resetMonth": 0,
+      "resetDay": 1,
+      "id": "f5f27d9e-fe3f-4a1e-8e2a-e9dc1e4ae2be"
+    },
+    {
+      "name": "Retirement Healthcare",
+      "personName": "Jake",
+      "startDate": "2048-07-16",
+      "endDate": null,
+      "individualDeductible": 3500,
+      "individualOutOfPocketMax": 5000,
+      "familyDeductible": 7000,
+      "familyOutOfPocketMax": 10000,
+      "hsaAccountId": "2be562a4-e082-48ea-9094-ed865d207376",
+      "hsaReimbursementEnabled": true,
+      "resetMonth": 0,
+      "resetDay": 1,
+      "id": "f9b8678b-6d9f-43c9-9848-c79c0b167e9f"
+    }
+  ]
+}

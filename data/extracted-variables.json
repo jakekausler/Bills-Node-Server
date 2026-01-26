@@ -1,0 +1,227 @@
+{
+  "simulation": "Default",
+  "variables": {
+    "401K_LIMIT_INCREASE_RATE": "0.01",
+    "EMERGENCY_SPENDING": "-5000",
+    "HEALTH_COST_AT_RETIREMENT": "-500",
+    "HIGHER_PAYCHECK_END_DATE": "2025-02-07",
+    "HIGH_YIELD_SAVINGS_RATE": "0.03",
+    "INFLATION": "0.03",
+    "INVESTMENT_RATE": "0.05",
+    "JAKE_401K_CONTRIBUTION": "300",
+    "JAKE_401K_CONTRIBUTION_OFFSET": "550",
+    "JAKE_BIRTH_DATE": "1993-07-15",
+    "JAKE_HEALTHCARE_FOR_KENDALL_ADJUSTMENT": "-200",
+    "JAKE_SOCIAL_SECURITY_START_DATE": "2063-07-15",
+    "JAKE_SPENDING": "0",
+    "JAKE_TRANSFER_TO_SPENDING": "90",
+    "KENDALL_401K_CONTRIBUTION": "144",
+    "KENDALL_401K_CONTRIBUTION_RAISE": "154",
+    "KENDALL_401K_EMPLOYER_MATCH": "109",
+    "KENDALL_BIRTH_DATE": "1994-11-16",
+    "KENDALL_CITY_START_DATE": "2022-05-01",
+    "KENDALL_EXTRA_SPENDING": "0",
+    "KENDALL_PAY": "1440",
+    "KENDALL_PENSION_START_DATE": "2084-07-14",
+    "KENDALL_QUIT_DATE": "2026-03-01",
+    "KENDALL_QUIT_NEXT_EOM": "2026-03-31",
+    "KENDALL_SOCIAL_SECURITY_START_DATE": "2064-11-16",
+    "KENDALL_SPENDING": "-600",
+    "KENDALL_TRANSFER_TO_BEN": "-100",
+    "KENDALL_TRANSFER_TO_JAKE": "950",
+    "LOW_YIELD_SAVINGS_RATE": "0.01",
+    "RAISE_RATE": "0.03",
+    "RETIRE_DATE": "2055-07-15",
+    "SELL_DATE": "2025-02-14",
+    "SHARED_SPENDING": "-600",
+    "TRANSFER_TO_KENDALL": "725",
+    "VACATION_SPENDING": "-5000"
+  },
+  "variablesList": [
+    {
+      "name": "401K_LIMIT_INCREASE_RATE",
+      "value": "0.01",
+      "type": "rate"
+    },
+    {
+      "name": "EMERGENCY_SPENDING",
+      "value": "-5000",
+      "type": "currency"
+    },
+    {
+      "name": "HEALTH_COST_AT_RETIREMENT",
+      "value": "-500",
+      "type": "currency"
+    },
+    {
+      "name": "HIGHER_PAYCHECK_END_DATE",
+      "value": "2025-02-07",
+      "type": "date"
+    },
+    {
+      "name": "HIGH_YIELD_SAVINGS_RATE",
+      "value": "0.03",
+      "type": "rate"
+    },
+    {
+      "name": "INFLATION",
+      "value": "0.03",
+      "type": "rate"
+    },
+    {
+      "name": "INVESTMENT_RATE",
+      "value": "0.05",
+      "type": "rate"
+    },
+    {
+      "name": "JAKE_401K_CONTRIBUTION",
+      "value": "300",
+      "type": "currency"
+    },
+    {
+      "name": "JAKE_401K_CONTRIBUTION_OFFSET",
+      "value": "550",
+      "type": "currency"
+    },
+    {
+      "name": "JAKE_BIRTH_DATE",
+      "value": "1993-07-15",
+      "type": "date"
+    },
+    {
+      "name": "JAKE_HEALTHCARE_FOR_KENDALL_ADJUSTMENT",
+      "value": "-200",
+      "type": "currency"
+    },
+    {
+      "name": "JAKE_SOCIAL_SECURITY_START_DATE",
+      "value": "2063-07-15",
+      "type": "date"
+    },
+    {
+      "name": "JAKE_SPENDING",
+      "value": "0",
+      "type": "number"
+    },
+    {
+      "name": "JAKE_TRANSFER_TO_SPENDING",
+      "value": "90",
+      "type": "number"
+    },
+    {
+      "name": "KENDALL_401K_CONTRIBUTION",
+      "value": "144",
+      "type": "currency"
+    },
+    {
+      "name": "KENDALL_401K_CONTRIBUTION_RAISE",
+      "value": "154",
+      "type": "currency"
+    },
+    {
+      "name": "KENDALL_401K_EMPLOYER_MATCH",
+      "value": "109",
+      "type": "currency"
+    },
+    {
+      "name": "KENDALL_BIRTH_DATE",
+      "value": "1994-11-16",
+      "type": "date"
+    },
+    {
+      "name": "KENDALL_CITY_START_DATE",
+      "value": "2022-05-01",
+      "type": "date"
+    },
+    {
+      "name": "KENDALL_EXTRA_SPENDING",
+      "value": "0",
+      "type": "number"
+    },
+    {
+      "name": "KENDALL_PAY",
+      "value": "1440",
+      "type": "currency"
+    },
+    {
+      "name": "KENDALL_PENSION_START_DATE",
+      "value": "2084-07-14",
+      "type": "date"
+    },
+    {
+      "name": "KENDALL_QUIT_DATE",
+      "value": "2026-03-01",
+      "type": "date"
+    },
+    {
+      "name": "KENDALL_QUIT_NEXT_EOM",
+      "value": "2026-03-31",
+      "type": "date"
+    },
+    {
+      "name": "KENDALL_SOCIAL_SECURITY_START_DATE",
+      "value": "2064-11-16",
+      "type": "date"
+    },
+    {
+      "name": "KENDALL_SPENDING",
+      "value": "-600",
+      "type": "currency"
+    },
+    {
+      "name": "KENDALL_TRANSFER_TO_BEN",
+      "value": "-100",
+      "type": "number"
+    },
+    {
+      "name": "KENDALL_TRANSFER_TO_JAKE",
+      "value": "950",
+      "type": "currency"
+    },
+    {
+      "name": "LOW_YIELD_SAVINGS_RATE",
+      "value": "0.01",
+      "type": "rate"
+    },
+    {
+      "name": "RAISE_RATE",
+      "value": "0.03",
+      "type": "rate"
+    },
+    {
+      "name": "RETIRE_DATE",
+      "value": "2055-07-15",
+      "type": "date"
+    },
+    {
+      "name": "SELL_DATE",
+      "value": "2025-02-14",
+      "type": "date"
+    },
+    {
+      "name": "SHARED_SPENDING",
+      "value": "-600",
+      "type": "currency"
+    },
+    {
+      "name": "TRANSFER_TO_KENDALL",
+      "value": "725",
+      "type": "currency"
+    },
+    {
+      "name": "VACATION_SPENDING",
+      "value": "-5000",
+      "type": "currency"
+    }
+  ],
+  "summary": {
+    "total": 35,
+    "byType": {
+      "date": 11,
+      "rate": 6,
+      "currency": 14,
+      "number": 4,
+      "other": 0
+    }
+  }
+}

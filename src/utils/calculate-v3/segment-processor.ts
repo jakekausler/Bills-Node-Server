@@ -175,8 +175,18 @@ export class SegmentProcessor {
     options: CalculationOptions,
     segmentResult: SegmentResult,
   ): Map<string, number> {
-    // Sort events by priority
-    const sortedEvents = [...events].sort((a, b) => a.priority - b.priority);
+    // Sort events by priority, then by name for consistent ordering
+    const sortedEvents = [...events].sort((a, b) => {
+      // Primary sort by priority
+      if (a.priority !== b.priority) {
+        return a.priority - b.priority;
+      }
+
+      // Secondary sort by name (A-Z) for same-priority events
+      const nameA = this.getEventName(a);
+      const nameB = this.getEventName(b);
+      return nameA.localeCompare(nameB);
+    });
     const dayBalanceChanges = new Map<string, number>();
     for (const event of sortedEvents) {
       const balanceChanges = this.processEvent(event, options, segmentResult);
@@ -227,6 +237,32 @@ export class SegmentProcessor {
       default:
         console.warn(`Unknown event type: ${event.type}`);
         return new Map<string, number>();
+    }
+  }
+
+  /**
+   * Extracts the name from an event for sorting purposes
+   * @param event - The event to get the name from
+   * @returns The name of the event
+   */
+  private getEventName(event: TimelineEvent): string {
+    switch (event.type) {
+      case EventType.activity:
+        return (event as ActivityEvent).originalActivity.name;
+      case EventType.bill:
+        return (event as BillEvent).originalBill.name;
+      case EventType.interest:
+        return 'Interest'; // Interest events don't have a name
+      case EventType.pension:
+        return 'Pension';
+      case EventType.socialSecurity:
+        return 'Social Security';
+      case EventType.tax:
+        return 'Tax';
+      case EventType.rmd:
+        return 'RMD';
+      default:
+        return ''; // Unknown events sort to the beginning
     }
   }
 }
