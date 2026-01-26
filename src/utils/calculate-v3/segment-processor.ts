@@ -24,6 +24,7 @@ import dayjs from 'dayjs';
 import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
 import { AccountManager } from './account-manager';
+import { HealthcareManager } from './healthcare-manager';
 
 export class SegmentProcessor {
   private cache: CacheManager;
@@ -33,6 +34,7 @@ export class SegmentProcessor {
   private retirementManager: RetirementManager;
   private taxManager: TaxManager;
   private accountManager: AccountManager;
+  private healthcareManager: HealthcareManager;
 
   constructor(
     cache: CacheManager,
@@ -42,6 +44,7 @@ export class SegmentProcessor {
     retirementManager: RetirementManager,
     taxManager: TaxManager,
     accountManager: AccountManager,
+    healthcareManager: HealthcareManager,
   ) {
     this.cache = cache;
     this.balanceTracker = balanceTracker;
@@ -50,6 +53,7 @@ export class SegmentProcessor {
     this.retirementManager = retirementManager;
     this.taxManager = taxManager;
     this.accountManager = accountManager;
+    this.healthcareManager = healthcareManager;
   }
 
   async processSegment(segment: Segment, options: CalculationOptions): Promise<void> {
@@ -62,6 +66,31 @@ export class SegmentProcessor {
       const cachedResult = await this.cache.getSegmentResult(segment);
       if (cachedResult) {
         this.balanceTracker.applySegmentResult(cachedResult, segment.startDate);
+
+        // Restore healthcare manager state from cached activities
+        // This is critical for deductible/OOP tracking to work correctly across segment boundaries
+        if (cachedResult.activitiesAdded && this.healthcareManager) {
+          for (const [_accountId, activities] of cachedResult.activitiesAdded) {
+            for (const activity of activities) {
+              if (activity.isHealthcare && activity.healthcarePerson) {
+                const config = this.healthcareManager.getActiveConfig(
+                  activity.healthcarePerson,
+                  new Date(activity.date)
+                );
+                if (config) {
+                  // Replay through calculatePatientCost to rebuild tracking state
+                  // The idempotency cache prevents duplicate calculations
+                  this.healthcareManager.calculatePatientCost(
+                    activity as any,  // ConsolidatedActivity has the necessary fields (name, amount, date)
+                    config,
+                    new Date(activity.date)
+                  );
+                }
+              }
+            }
+          }
+        }
+
         return;
       }
     }
