@@ -38,8 +38,16 @@ function validateCategory(
     errors.push('Category name must be unique');
   }
 
-  if (category.threshold < 0) {
+  if (category.threshold === undefined || category.threshold === null) {
+    errors.push('Threshold is required');
+  } else if (category.threshold < 0) {
     errors.push('Threshold must be >= 0');
+  }
+
+  // Validate interval enum
+  const validIntervals = ['weekly', 'monthly', 'yearly'];
+  if (!category.interval || !validIntervals.includes(category.interval)) {
+    errors.push('Interval must be one of: weekly, monthly, yearly');
   }
 
   if (!category.accountId) {
@@ -87,12 +95,14 @@ function validateCategory(
 }
 
 /**
- * Creates an error with a status code attached.
+ * Error class with an HTTP status code for API error responses.
  */
-function createError(message: string, statusCode: number): Error {
-  const error = new Error(message);
-  (error as any).statusCode = statusCode;
-  return error;
+export class ApiError extends Error {
+  statusCode: number;
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.statusCode = statusCode;
+  }
 }
 
 /**
@@ -122,7 +132,7 @@ export function getSpendingTrackerCategory(
   const category = categories.find((c) => c.id === id);
 
   if (!category) {
-    throw createError('Spending tracker category not found', 404);
+    throw new ApiError('Spending tracker category not found', 404);
   }
 
   return category;
@@ -144,13 +154,26 @@ export function createSpendingTrackerCategory(
   const categories = loadSpendingTrackerCategories();
 
   const newCategory: SpendingTrackerCategory = {
-    ...request.body,
     id: uuidv4(),
+    name: request.body.name,
+    threshold: request.body.threshold,
+    thresholdIsVariable: request.body.thresholdIsVariable,
+    thresholdVariable: request.body.thresholdVariable,
+    interval: request.body.interval,
+    intervalStart: request.body.intervalStart,
+    accountId: request.body.accountId,
+    carryOver: request.body.carryOver,
+    carryUnder: request.body.carryUnder,
+    increaseBy: request.body.increaseBy,
+    increaseByIsVariable: request.body.increaseByIsVariable,
+    increaseByVariable: request.body.increaseByVariable,
+    increaseByDate: request.body.increaseByDate,
+    thresholdChanges: request.body.thresholdChanges,
   };
 
   const errors = validateCategory(newCategory, categories);
   if (errors.length > 0) {
-    throw createError(errors.join('; '), 400);
+    throw new ApiError(errors.join('; '), 400);
   }
 
   categories.push(newCategory);
@@ -188,31 +211,43 @@ export function updateSpendingTrackerCategory(
   const existingIndex = categories.findIndex((c) => c.id === id);
 
   if (existingIndex === -1) {
-    throw createError('Spending tracker category not found', 404);
+    throw new ApiError('Spending tracker category not found', 404);
   }
 
   const oldName = categories[existingIndex].name;
 
   const updatedCategory: SpendingTrackerCategory = {
-    ...request.body,
     id,
+    name: request.body.name,
+    threshold: request.body.threshold,
+    thresholdIsVariable: request.body.thresholdIsVariable,
+    thresholdVariable: request.body.thresholdVariable,
+    interval: request.body.interval,
+    intervalStart: request.body.intervalStart,
+    accountId: request.body.accountId,
+    carryOver: request.body.carryOver,
+    carryUnder: request.body.carryUnder,
+    increaseBy: request.body.increaseBy,
+    increaseByIsVariable: request.body.increaseByIsVariable,
+    increaseByVariable: request.body.increaseByVariable,
+    increaseByDate: request.body.increaseByDate,
+    thresholdChanges: request.body.thresholdChanges,
   };
 
   const errors = validateCategory(updatedCategory, categories, id);
   if (errors.length > 0) {
-    throw createError(errors.join('; '), 400);
+    throw new ApiError(errors.join('; '), 400);
   }
 
   // If name changed, update categories.json
   if (oldName !== updatedCategory.name) {
     const cats = loadCategories();
-    if (cats['Spending Tracker']) {
+    if (!cats['Spending Tracker']) {
+      cats['Spending Tracker'] = [];
+    } else {
       cats['Spending Tracker'] = cats['Spending Tracker'].filter(
         (n) => n !== oldName,
       );
-    }
-    if (!cats['Spending Tracker']) {
-      cats['Spending Tracker'] = [];
     }
     cats['Spending Tracker'].push(updatedCategory.name);
     saveCategories(cats);
@@ -244,7 +279,7 @@ export function deleteSpendingTrackerCategory(
   const existingIndex = categories.findIndex((c) => c.id === id);
 
   if (existingIndex === -1) {
-    throw createError('Spending tracker category not found', 404);
+    throw new ApiError('Spending tracker category not found', 404);
   }
 
   const deletedCategory = categories[existingIndex];
