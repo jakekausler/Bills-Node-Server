@@ -52,6 +52,14 @@ import { promisify } from 'util';
 import { getMoneyMovementChart } from './api/moneyMovement/movement';
 import { loadHealthcareConfigs, saveHealthcareConfigs } from './utils/io/healthcareConfigs';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  getSpendingTrackerCategories,
+  getSpendingTrackerCategory,
+  createSpendingTrackerCategory,
+  updateSpendingTrackerCategory,
+  deleteSpendingTrackerCategory,
+  ApiError,
+} from './api/spendingTracker/spendingTracker';
 
 declare global {
   namespace Express {
@@ -575,6 +583,53 @@ app.get('/api/healthcare/progress-history', verifyToken, async (req: Request, re
     res.status(500).json({ error: 'Failed to get healthcare progress history' });
   }
 });
+
+// Spending Tracker routes
+app
+  .route('/api/spending-tracker')
+  .get(verifyToken, async (req: Request, res: Response) => {
+    try {
+      res.json(await getSpendingTrackerCategories(req));
+    } catch (e: any) {
+      const status = e instanceof ApiError ? e.statusCode : 500;
+      res.status(status).json({ error: e.message });
+    }
+  })
+  .put(verifyToken, async (req: Request, res: Response) => {
+    try {
+      res.json(await createSpendingTrackerCategory(req));
+    } catch (e: any) {
+      const status = e instanceof ApiError ? e.statusCode : 500;
+      res.status(status).json({ error: e.message });
+    }
+  });
+
+app
+  .route('/api/spending-tracker/:id')
+  .get(verifyToken, async (req: Request, res: Response) => {
+    try {
+      res.json(await getSpendingTrackerCategory(req));
+    } catch (e: any) {
+      const status = e instanceof ApiError ? e.statusCode : 500;
+      res.status(status).json({ error: e.message });
+    }
+  })
+  .post(verifyToken, async (req: Request, res: Response) => {
+    try {
+      res.json(await updateSpendingTrackerCategory(req));
+    } catch (e: any) {
+      const status = e instanceof ApiError ? e.statusCode : 500;
+      res.status(status).json({ error: e.message });
+    }
+  })
+  .delete(verifyToken, async (req: Request, res: Response) => {
+    try {
+      res.json(await deleteSpendingTrackerCategory(req));
+    } catch (e: any) {
+      const status = e instanceof ApiError ? e.statusCode : 500;
+      res.status(status).json({ error: e.message });
+    }
+  });
 
 // Serve frontend for all non-API routes (SPA fallback)
 app.get('*', (req: Request, res: Response) => {
