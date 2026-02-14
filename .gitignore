@@ -10,6 +10,9 @@ data/simulations.json
 data/pension_and_social_security.json
 data/variables.csv
 data/*_backup*
+data/*.backup-*
+data/spending-tracker.json
+data/healthcare_configs.json
 data/simulations/*
 data/backup/
 **/cache
