@@ -590,17 +590,25 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     try {
       res.json(await getSpendingTrackerCategories(req));
-    } catch (e: any) {
-      const status = e instanceof ApiError ? e.statusCode : 500;
-      res.status(status).json({ error: e.message });
+    } catch (e: unknown) {
+      if (e instanceof ApiError) {
+        res.status(e.statusCode).json({ error: e.message });
+      } else {
+        console.error('Spending tracker error:', e);
+        res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
+      }
     }
   })
   .put(verifyToken, async (req: Request, res: Response) => {
     try {
       res.json(await createSpendingTrackerCategory(req));
-    } catch (e: any) {
-      const status = e instanceof ApiError ? e.statusCode : 500;
-      res.status(status).json({ error: e.message });
+    } catch (e: unknown) {
+      if (e instanceof ApiError) {
+        res.status(e.statusCode).json({ error: e.message });
+      } else {
+        console.error('Spending tracker error:', e);
+        res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
+      }
     }
   });
 
@@ -609,25 +617,37 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     try {
       res.json(await getSpendingTrackerCategory(req));
-    } catch (e: any) {
-      const status = e instanceof ApiError ? e.statusCode : 500;
-      res.status(status).json({ error: e.message });
+    } catch (e: unknown) {
+      if (e instanceof ApiError) {
+        res.status(e.statusCode).json({ error: e.message });
+      } else {
+        console.error('Spending tracker error:', e);
+        res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
+      }
     }
   })
   .post(verifyToken, async (req: Request, res: Response) => {
     try {
       res.json(await updateSpendingTrackerCategory(req));
-    } catch (e: any) {
-      const status = e instanceof ApiError ? e.statusCode : 500;
-      res.status(status).json({ error: e.message });
+    } catch (e: unknown) {
+      if (e instanceof ApiError) {
+        res.status(e.statusCode).json({ error: e.message });
+      } else {
+        console.error('Spending tracker error:', e);
+        res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
+      }
     }
   })
   .delete(verifyToken, async (req: Request, res: Response) => {
     try {
       res.json(await deleteSpendingTrackerCategory(req));
-    } catch (e: any) {
-      const status = e instanceof ApiError ? e.statusCode : 500;
-      res.status(status).json({ error: e.message });
+    } catch (e: unknown) {
+      if (e instanceof ApiError) {
+        res.status(e.statusCode).json({ error: e.message });
+      } else {
+        console.error('Spending tracker error:', e);
+        res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
+      }
     }
   });
 
