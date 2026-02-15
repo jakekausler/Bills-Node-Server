@@ -24,6 +24,9 @@ export type ActivityData = {
   coinsurancePercent?: number | null;
   countsTowardDeductible?: boolean;
   countsTowardOutOfPocket?: boolean;
+
+  // Spending category
+  spendingCategory?: string | null;
 };
 
 export type ConsolidatedActivityData = ActivityData & {

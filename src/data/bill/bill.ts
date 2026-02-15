@@ -62,6 +62,9 @@ export class Bill {
   countsTowardDeductible: boolean;
   countsTowardOutOfPocket: boolean;
 
+  // Spending category
+  spendingCategory: string | null;
+
   /**
    * Creates a new Bill instance
    * @param data - Bill data object
@@ -77,6 +80,7 @@ export class Bill {
     this.initializeDateProperties(data, simulation);
     this.initializeAmountProperties(data, simulation);
     this.initializeHealthcareProperties(data);
+    this.spendingCategory = data.spendingCategory ?? null;
   }
 
   /**
@@ -273,6 +277,9 @@ export class Bill {
       coinsurancePercent: this.coinsurancePercent,
       countsTowardDeductible: this.countsTowardDeductible,
       countsTowardOutOfPocket: this.countsTowardOutOfPocket,
+
+      // Spending category
+      spendingCategory: this.spendingCategory,
     };
   }
 
@@ -313,6 +320,9 @@ export class Bill {
         coinsurancePercent: this.coinsurancePercent,
         countsTowardDeductible: this.countsTowardDeductible,
         countsTowardOutOfPocket: this.countsTowardOutOfPocket,
+
+        // Spending category
+        spendingCategory: this.spendingCategory,
       },
       simulation,
     );

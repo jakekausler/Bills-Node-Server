@@ -37,6 +37,9 @@ export type BillData = {
   coinsurancePercent?: number | null;
   countsTowardDeductible?: boolean;
   countsTowardOutOfPocket?: boolean;
+
+  // Spending category
+  spendingCategory?: string | null;
 };
 
 export type CalendarBill = BillData & {

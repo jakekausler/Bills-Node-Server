@@ -456,6 +456,7 @@ export class Calculator {
             category: original.category || 'Ignore.Transfer',
             flag: original.flag || false,
             flagColor: original.flagColor || 'blue',
+            spendingCategory: null,
           },
       {
         billId: isBill ? original.id : undefined,
@@ -481,6 +482,7 @@ export class Calculator {
             category: original.category || 'Ignore.Transfer',
             flag: original.flag || false,
             flagColor: original.flagColor || 'blue',
+            spendingCategory: null,
           },
       {
         billId: isBill ? original.id : undefined,

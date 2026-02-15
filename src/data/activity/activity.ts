@@ -36,6 +36,9 @@ export class Activity {
   countsTowardDeductible: boolean;
   countsTowardOutOfPocket: boolean;
 
+  // Spending category
+  spendingCategory: string | null;
+
   /**
    * Creates a new Activity instance
    * @param data - Activity data object
@@ -83,6 +86,9 @@ export class Activity {
     this.coinsurancePercent = data.coinsurancePercent || null;
     this.countsTowardDeductible = data.countsTowardDeductible ?? true;
     this.countsTowardOutOfPocket = data.countsTowardOutOfPocket ?? true;
+
+    // Spending category
+    this.spendingCategory = data.spendingCategory ?? null;
   }
 
   /**
@@ -113,6 +119,9 @@ export class Activity {
       coinsurancePercent: this.coinsurancePercent,
       countsTowardDeductible: this.countsTowardDeductible,
       countsTowardOutOfPocket: this.countsTowardOutOfPocket,
+
+      // Spending category
+      spendingCategory: this.spendingCategory,
     };
   }
 }
