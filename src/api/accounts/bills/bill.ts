@@ -178,6 +178,7 @@ async function updateBillAsBill(request: Request) {
   bill.coinsurancePercent = data.data.coinsurancePercent || null;
   bill.countsTowardDeductible = data.data.countsTowardDeductible ?? true;
   bill.countsTowardOutOfPocket = data.data.countsTowardOutOfPocket ?? true;
+  bill.spendingCategory = data.data.spendingCategory ?? null;
 
   if (bill.isTransfer && !originalIsTransfer) {
     data.accountsAndTransfers.transfers.bills.push(bill);

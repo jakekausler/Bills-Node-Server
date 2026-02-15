@@ -83,6 +83,7 @@ export async function updateSpecificActivity(request: Request) {
   activity.coinsurancePercent = data.data.coinsurancePercent || null;
   activity.countsTowardDeductible = data.data.countsTowardDeductible ?? true;
   activity.countsTowardOutOfPocket = data.data.countsTowardOutOfPocket ?? true;
+  activity.spendingCategory = data.data.spendingCategory ?? null;
   activity.isTransfer = data.data.isTransfer;
   if (activity.isTransfer) {
     activity.fro = data.data.from;
