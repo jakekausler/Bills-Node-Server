@@ -69,6 +69,8 @@ export class Account {
               firstBill: activity.firstBill,
               interestId: activity.interestId,
               firstInterest: activity.firstInterest,
+              spendingTrackerId: activity.spendingTrackerId,
+              firstSpendingTracker: activity.firstSpendingTracker,
             }),
         )
       : [];

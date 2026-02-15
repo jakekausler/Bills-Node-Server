@@ -34,5 +34,7 @@ export type ConsolidatedActivityData = ActivityData & {
   firstBill: boolean;
   interestId: string | null;
   firstInterest: boolean;
+  spendingTrackerId: string | null;
+  firstSpendingTracker: boolean;
   balance: number;
 };

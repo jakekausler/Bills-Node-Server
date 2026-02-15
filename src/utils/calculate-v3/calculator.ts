@@ -795,23 +795,26 @@ export class Calculator {
     }
 
     // 6. Create remainder activity
-    const remainderActivity = new ConsolidatedActivity({
-      id: `SPENDING-TRACKER-${event.categoryId}-${formatDate(event.periodEnd)}`,
-      date: formatDate(event.date),
-      dateIsVariable: false,
-      dateVariable: null,
-      name: `${event.categoryName} Budget Remainder`,
-      category: `Spending Tracker.${event.categoryName}`,
-      amount: -remainder,
-      amountIsVariable: false,
-      amountVariable: null,
-      flag: true,
-      flagColor: 'teal',
-      isTransfer: false,
-      from: null,
-      to: null,
-      spendingCategory: null, // Prevents circular counting
-    });
+    const remainderActivity = new ConsolidatedActivity(
+      {
+        id: `SPENDING-TRACKER-${event.categoryId}-${formatDate(event.periodEnd)}`,
+        date: formatDate(event.date),
+        dateIsVariable: false,
+        dateVariable: null,
+        name: `${event.categoryName} Budget Remainder`,
+        category: `Spending Tracker.${event.categoryName}`,
+        amount: -remainder,
+        amountIsVariable: false,
+        amountVariable: null,
+        flag: true,
+        flagColor: 'teal',
+        isTransfer: false,
+        from: null,
+        to: null,
+        spendingCategory: null, // Prevents circular counting
+      },
+      { spendingTrackerId: event.categoryId, firstSpendingTracker: event.firstSpendingTracker },
+    );
 
     // 7. Add to segmentResult
     if (!segmentResult.activitiesAdded.has(event.accountId)) {

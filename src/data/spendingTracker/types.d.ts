@@ -38,6 +38,10 @@ export type SpendingTrackerCategory = {
     newThresholdVariable: string | null; // Resolves to an amount variable
     resetCarry: boolean; // If true, carry debt/credit resets to 0 at this date
   }[]; // Must be sorted chronologically; no overlapping dates
+
+  // Start date — periods ending before this date produce no remainder bill.
+  // The skip action advances this forward by one period.
+  startDate: string | null; // "YYYY-MM-DD" or null
 };
 
 export type SpendingTrackerData = {

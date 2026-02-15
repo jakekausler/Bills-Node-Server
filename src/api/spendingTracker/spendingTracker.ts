@@ -1,5 +1,7 @@
 import { Request } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
 import {
   loadSpendingTrackerCategories,
@@ -9,6 +11,11 @@ import { load } from '../../utils/io/io';
 import { loadCategories, saveCategories } from '../../utils/io/categories';
 import { resetCache } from '../../utils/io/cache';
 import { AccountsAndTransfersData } from '../../data/account/types';
+import { computePeriodBoundaries } from '../../utils/calculate-v3/period-utils';
+
+dayjs.extend(utc);
+
+const SKIP_LOOKAHEAD_YEARS = 2;
 
 /**
  * Validates a spending tracker category, returning an array of error messages.
@@ -169,6 +176,7 @@ export function createSpendingTrackerCategory(
     increaseByVariable: request.body.increaseByVariable,
     increaseByDate: request.body.increaseByDate,
     thresholdChanges: request.body.thresholdChanges,
+    startDate: null,
   };
 
   const errors = validateCategory(newCategory, categories);
@@ -232,6 +240,7 @@ export function updateSpendingTrackerCategory(
     increaseByVariable: request.body.increaseByVariable,
     increaseByDate: request.body.increaseByDate,
     thresholdChanges: request.body.thresholdChanges,
+    startDate: request.body.startDate ?? categories[existingIndex].startDate ?? null,
   };
 
   const errors = validateCategory(updatedCategory, categories, id);
@@ -300,4 +309,59 @@ export function deleteSpendingTrackerCategory(
   resetCache();
 
   return { success: true };
+}
+
+/**
+ * Skips the current spending tracker period for a category.
+ *
+ * Computes period boundaries from today forward, finds the first active
+ * (non-skipped) period, and advances startDate past that period.
+ *
+ * @param request - Express request object with id param
+ * @returns The updated spending tracker category with new startDate
+ * @throws ApiError with 404 if category not found
+ * @throws ApiError with 400 if no more periods to skip
+ */
+export function skipSpendingTrackerCategory(request: Request): SpendingTrackerCategory {
+  const { id } = request.params;
+  const categories = loadSpendingTrackerCategories();
+  const existingIndex = categories.findIndex((c) => c.id === id);
+
+  if (existingIndex === -1) {
+    throw new ApiError('Spending tracker category not found', 404);
+  }
+
+  const category = categories[existingIndex];
+
+  // Compute period boundaries from today forward
+  const now = dayjs.utc().startOf('day');
+  const farFuture = now.add(SKIP_LOOKAHEAD_YEARS, 'year');
+
+  const boundaries = computePeriodBoundaries(
+    category.interval,
+    category.intervalStart,
+    now.toDate(),
+    farFuture.toDate(),
+  );
+
+  // Filter out already-skipped periods
+  const startDate = category.startDate ? dayjs.utc(category.startDate) : null;
+  const activeBoundaries = startDate
+    ? boundaries.filter(b => !dayjs.utc(b.periodEnd).isBefore(startDate, 'day'))
+    : boundaries;
+
+  if (activeBoundaries.length < 2) {
+    throw new ApiError('No more periods to skip', 400);
+  }
+
+  // Advance startDate past the first active period
+  const firstPeriodEnd = dayjs.utc(activeBoundaries[0].periodEnd);
+  category.startDate = firstPeriodEnd.add(1, 'day').format('YYYY-MM-DD');
+
+  categories[existingIndex] = category;
+  saveSpendingTrackerCategories(categories);
+
+  resetCache();
+
+  return category;
 }

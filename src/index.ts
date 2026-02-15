@@ -58,6 +58,7 @@ import {
   createSpendingTrackerCategory,
   updateSpendingTrackerCategory,
   deleteSpendingTrackerCategory,
+  skipSpendingTrackerCategory,
   ApiError,
 } from './api/spendingTracker/spendingTracker';
 
@@ -628,7 +629,12 @@ app
   })
   .post(verifyToken, async (req: Request, res: Response) => {
     try {
-      res.json(await updateSpendingTrackerCategory(req));
+      const skip = req.query.skip === 'true';
+      if (skip) {
+        res.json(await skipSpendingTrackerCategory(req));
+      } else {
+        res.json(await updateSpendingTrackerCategory(req));
+      }
     } catch (e: unknown) {
       if (e instanceof ApiError) {
         res.status(e.statusCode).json({ error: e.message });

@@ -35,6 +35,7 @@ function makeCategory(overrides: Partial<SpendingTrackerCategory> & { id: string
     increaseByVariable: null,
     increaseByDate: '01/01',
     thresholdChanges: [],
+    startDate: null,
     ...overrides,
   };
 }
@@ -536,7 +537,108 @@ describe('Timeline.addSpendingTrackerEvents', () => {
     });
   });
 
-  // ─── 7. Date Range Filtering ──────────────────────────────────────
+  // ─── 7. startDate Filtering ──────────────────────────────────────
+
+  describe('startDate filtering', () => {
+    it('should generate all events when startDate is null', async () => {
+      const timeline = createTimeline();
+      const category = makeCategory({
+        id: 'skip-null',
+        name: 'No Skip',
+        interval: 'weekly',
+        intervalStart: 'Saturday',
+        accountId: 'acct-1',
+        startDate: null,
+      });
+
+      const events = await addSpendingTrackerEvents(
+        timeline,
+        [category],
+        utcDate(2025, 1, 4),
+        utcDate(2025, 1, 31),
+      );
+
+      // 4 weekly periods: Sat-Fri each (Jan 4-10, 11-17, 18-24, 25-31)
+      expect(events.length).toBe(4);
+    });
+
+    it('should filter out periods ending before startDate', async () => {
+      const timeline = createTimeline();
+      const category = makeCategory({
+        id: 'skip-filter',
+        name: 'Skipped',
+        interval: 'weekly',
+        intervalStart: 'Saturday',
+        accountId: 'acct-1',
+        startDate: '2025-01-18', // skip periods ending before Jan 18
+      });
+
+      const events = await addSpendingTrackerEvents(
+        timeline,
+        [category],
+        utcDate(2025, 1, 4),
+        utcDate(2025, 1, 31),
+      );
+
+      // Period Sat Jan 4 - Fri Jan 10: periodEnd Jan 10 < Jan 18 => skipped
+      // Period Sat Jan 11 - Fri Jan 17: periodEnd Jan 17 < Jan 18 => skipped
+      // Period Sat Jan 18 - Fri Jan 24: periodEnd Jan 24 >= Jan 18 => included
+      // Period Sat Jan 25 - Fri Jan 31: periodEnd Jan 31 >= Jan 18 => included
+      expect(events.length).toBe(2);
+      expect(fmt(events[0].periodStart)).toBe('2025-01-18');
+      expect(fmt(events[1].periodStart)).toBe('2025-01-25');
+    });
+
+    it('should set firstSpendingTracker true only for first non-skipped event', async () => {
+      const timeline = createTimeline();
+      const category = makeCategory({
+        id: 'skip-first',
+        name: 'First Flag',
+        interval: 'weekly',
+        intervalStart: 'Saturday',
+        accountId: 'acct-1',
+        startDate: '2025-01-18',
+      });
+
+      const events = await addSpendingTrackerEvents(
+        timeline,
+        [category],
+        utcDate(2025, 1, 4),
+        utcDate(2025, 1, 31),
+      );
+
+      // After skipping, first included event should have firstSpendingTracker=true
+      expect(events.length).toBe(2);
+      expect(events[0].firstSpendingTracker).toBe(true);
+      expect(events[1].firstSpendingTracker).toBe(false);
+    });
+
+    it('should set firstSpendingTracker true on first event when nothing is skipped', async () => {
+      const timeline = createTimeline();
+      const category = makeCategory({
+        id: 'no-skip-first',
+        name: 'No Skip First',
+        interval: 'monthly',
+        intervalStart: '1',
+        accountId: 'acct-1',
+        startDate: null,
+      });
+
+      const events = await addSpendingTrackerEvents(
+        timeline,
+        [category],
+        utcDate(2025, 1, 1),
+        utcDate(2025, 3, 31),
+      );
+
+      expect(events.length).toBe(3);
+      expect(events[0].firstSpendingTracker).toBe(true);
+      expect(events[1].firstSpendingTracker).toBe(false);
+      expect(events[2].firstSpendingTracker).toBe(false);
+    });
+  });
+
+  // ─── 8. Date Range Filtering ──────────────────────────────────────
 
   describe('date range filtering', () => {
     it('should only generate events within the [startDate, endDate] range', async () => {

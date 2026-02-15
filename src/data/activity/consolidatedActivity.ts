@@ -14,6 +14,10 @@ export class ConsolidatedActivity extends Activity {
   interestId: string | null;
   /** Flag indicating if this is the first occurrence of this interest calculation */
   firstInterest: boolean;
+  /** ID of the associated spending tracker category, if this activity was generated from a spending tracker */
+  spendingTrackerId: string | null;
+  /** Flag indicating if this is the first occurrence of this spending tracker category */
+  firstSpendingTracker: boolean;
   /** Running balance after this activity is applied */
   balance: number;
 
@@ -33,12 +37,16 @@ export class ConsolidatedActivity extends Activity {
       reverseAmount = false,
       firstBill = false,
       firstInterest = false,
+      spendingTrackerId = null,
+      firstSpendingTracker = false,
     }: {
       billId?: string | null;
       interestId?: string | null;
       reverseAmount?: boolean;
       firstBill?: boolean;
       firstInterest?: boolean;
+      spendingTrackerId?: string | null;
+      firstSpendingTracker?: boolean;
     } = {},
   ) {
     super(activity);
@@ -46,6 +54,8 @@ export class ConsolidatedActivity extends Activity {
     this.firstBill = firstBill;
     this.interestId = interestId;
     this.firstInterest = firstInterest;
+    this.spendingTrackerId = spendingTrackerId;
+    this.firstSpendingTracker = firstSpendingTracker;
     this.balance = activity.balance || 0;
     if (reverseAmount && typeof this.amount === 'number') {
       this.amount *= -1;
@@ -68,6 +78,8 @@ export class ConsolidatedActivity extends Activity {
       firstBill: this.firstBill,
       interestId: this.interestId,
       firstInterest: this.firstInterest,
+      spendingTrackerId: this.spendingTrackerId,
+      firstSpendingTracker: this.firstSpendingTracker,
     };
 
     return serialized;

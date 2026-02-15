@@ -170,6 +170,7 @@ export type SpendingTrackerEvent = TimelineEvent & {
   categoryName: string;
   periodStart: Date;
   periodEnd: Date;
+  firstSpendingTracker: boolean;
 };
 
 export type Segment = {

@@ -321,7 +321,15 @@ export class Timeline {
         endDate,
       );
 
+      const categoryStartDate = category.startDate ? dayjs.utc(category.startDate) : null;
+      let isFirst = true;
+
       for (const period of boundaries) {
+        // Skip periods that end before the category's startDate
+        if (categoryStartDate && dayjs.utc(period.periodEnd).isBefore(categoryStartDate, 'day')) {
+          continue;
+        }
+
         const event: SpendingTrackerEvent = {
           id: `ST-${category.id}-${formatDate(period.periodEnd)}`,
           type: EventType.spendingTracker,
@@ -332,9 +340,11 @@ export class Timeline {
           categoryName: category.name,
           periodStart: period.periodStart,
           periodEnd: period.periodEnd,
+          firstSpendingTracker: isFirst,
         };
 
         this.addEvent(event);
+        isFirst = false;
       }
     }
     if (this.enableLogging) {

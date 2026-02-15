@@ -104,7 +104,14 @@ class SegmentResultSerializer extends Serializer {
     const activitiesAdded = new Map<string, any[]>(
       Object.entries(segmentResultData.activitiesAdded).map(([k, v]) => [
         k,
-        v.map((activityData) => new ConsolidatedActivity(activityData)),
+        v.map((activityData) => new ConsolidatedActivity(activityData, {
+          billId: activityData.billId,
+          firstBill: activityData.firstBill,
+          interestId: activityData.interestId,
+          firstInterest: activityData.firstInterest,
+          spendingTrackerId: activityData.spendingTrackerId,
+          firstSpendingTracker: activityData.firstSpendingTracker,
+        })),
       ]),
     );
     const processedEventIds = new Set<string>(segmentResultData.processedEventIds);
