@@ -1,6 +1,7 @@
 import { AccountsAndTransfers } from '../../data/account/types';
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
+import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
 import { formatDate } from '../date/date';
 import { UsedVariables } from './types';
 
@@ -8,19 +9,21 @@ import { UsedVariables } from './types';
  * Loads and catalogues all variables used across the financial planning system
  *
  * This function scans through all financial entities (accounts, transfers, bills,
- * activities, interests, social security, pensions) to identify which variables
+ * activities, interests, social security, pensions, spending tracker categories) to identify which variables
  * are being used and where they are referenced. This is useful for variable
  * dependency tracking and validation.
  *
  * @param accountsAndTransfers - The accounts and transfers data to scan
  * @param socialSecurity - Array of social security configurations to scan
  * @param pensions - Array of pension configurations to scan
+ * @param spendingTrackerCategories - Array of spending tracker category configurations
  * @returns An object mapping variable names to arrays of their usage locations
  */
 export function loadUsedVariables(
   accountsAndTransfers: AccountsAndTransfers,
   socialSecurity: SocialSecurity[],
   pensions: Pension[],
+  spendingTrackerCategories: SpendingTrackerCategory[],
 ) {
   const usedVariables: UsedVariables = {};
   for (const account of accountsAndTransfers.accounts) {
@@ -230,6 +233,46 @@ export function loadUsedVariables(
       type: 'pension',
       name: p.name,
     });
+  }
+  for (const category of spendingTrackerCategories) {
+    if (category.thresholdIsVariable && category.thresholdVariable) {
+      if (!usedVariables[category.thresholdVariable]) {
+        usedVariables[category.thresholdVariable] = [];
+      }
+      usedVariables[category.thresholdVariable].push({
+        type: 'spendingTracker',
+        name: category.name,
+      });
+    }
+    if (category.increaseByIsVariable && category.increaseByVariable) {
+      if (!usedVariables[category.increaseByVariable]) {
+        usedVariables[category.increaseByVariable] = [];
+      }
+      usedVariables[category.increaseByVariable].push({
+        type: 'spendingTracker',
+        name: category.name,
+      });
+    }
+    for (const change of category.thresholdChanges) {
+      if (change.dateIsVariable && change.dateVariable) {
+        if (!usedVariables[change.dateVariable]) {
+          usedVariables[change.dateVariable] = [];
+        }
+        usedVariables[change.dateVariable].push({
+          type: 'spendingTracker',
+          name: category.name,
+        });
+      }
+      if (change.newThresholdIsVariable && change.newThresholdVariable) {
+        if (!usedVariables[change.newThresholdVariable]) {
+          usedVariables[change.newThresholdVariable] = [];
+        }
+        usedVariables[change.newThresholdVariable].push({
+          type: 'spendingTracker',
+          name: category.name,
+        });
+      }
+    }
   }
   return usedVariables;
 }

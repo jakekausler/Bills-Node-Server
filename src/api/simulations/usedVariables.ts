@@ -1,11 +1,12 @@
 import { Request } from 'express';
+import { loadSpendingTrackerCategories } from '../../utils/io/spendingTracker';
 import { getData } from '../../utils/net/request';
 import { loadUsedVariables } from '../../utils/simulation/loadUsedVariables';
 
 /**
  * Retrieves all variable names used across accounts and retirement plans.
  *
- * Analyzes accounts, transfers, social security, and pension configurations
+ * Analyzes accounts, transfers, social security, pension, and spending tracker configurations
  * to determine which variables are referenced in date fields and other
  * configurable properties.
  *
@@ -25,5 +26,10 @@ import { loadUsedVariables } from '../../utils/simulation/loadUsedVariables';
  */
 export async function getUsedVariables(request: Request) {
   const data = await getData(request);
-  return loadUsedVariables(data.accountsAndTransfers, data.socialSecurities, data.pensions);
+  return loadUsedVariables(
+    data.accountsAndTransfers,
+    data.socialSecurities,
+    data.pensions,
+    loadSpendingTrackerCategories(),
+  );
 }

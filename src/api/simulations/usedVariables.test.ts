@@ -7,6 +7,9 @@ import { loadUsedVariables } from '../../utils/simulation/loadUsedVariables';
 // Mock the dependencies
 vi.mock('../../utils/net/request');
 vi.mock('../../utils/simulation/loadUsedVariables');
+vi.mock('../../utils/io/spendingTracker', () => ({
+  loadSpendingTrackerCategories: vi.fn(() => []),
+}));
 
 const mockGetData = vi.mocked(getData);
 const mockLoadUsedVariables = vi.mocked(loadUsedVariables);
@@ -19,7 +22,7 @@ describe('Used Variables API', () => {
   });
 
   describe('getUsedVariables', () => {
-    it('should return used variables from loadUsedVariables', () => {
+    it('should return used variables from loadUsedVariables', async () => {
       const mockAccountsAndTransfers = {
         accounts: [
           {
@@ -55,7 +58,7 @@ describe('Used Variables API', () => {
 
       const mockUsedVariables = ['retirementDate', 'endDate', 'birthDate', 'careerStartDate'];
 
-      mockGetData.mockReturnValue({
+      mockGetData.mockResolvedValue({
         accountsAndTransfers: mockAccountsAndTransfers,
         socialSecurities: mockSocialSecurities,
         pensions: mockPensions,
@@ -63,14 +66,14 @@ describe('Used Variables API', () => {
 
       mockLoadUsedVariables.mockReturnValue(mockUsedVariables);
 
-      const result = getUsedVariables(mockRequest);
+      const result = await getUsedVariables(mockRequest);
 
       expect(result).toEqual(mockUsedVariables);
       expect(mockGetData).toHaveBeenCalledWith(mockRequest);
-      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions);
+      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions, []);
     });
 
-    it('should handle empty data structures', () => {
+    it('should handle empty data structures', async () => {
       const mockAccountsAndTransfers = {
         accounts: [],
         transfers: {
@@ -82,7 +85,7 @@ describe('Used Variables API', () => {
       const mockPensions = [];
       const mockUsedVariables = [];
 
-      mockGetData.mockReturnValue({
+      mockGetData.mockResolvedValue({
         accountsAndTransfers: mockAccountsAndTransfers,
         socialSecurities: mockSocialSecurities,
         pensions: mockPensions,
@@ -90,13 +93,13 @@ describe('Used Variables API', () => {
 
       mockLoadUsedVariables.mockReturnValue(mockUsedVariables);
 
-      const result = getUsedVariables(mockRequest);
+      const result = await getUsedVariables(mockRequest);
 
       expect(result).toEqual([]);
-      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions);
+      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions, []);
     });
 
-    it('should handle complex data with multiple accounts and retirement plans', () => {
+    it('should handle complex data with multiple accounts and retirement plans', async () => {
       const mockAccountsAndTransfers = {
         accounts: [
           {
@@ -172,7 +175,7 @@ describe('Used Variables API', () => {
         'militaryStartDate',
       ];
 
-      mockGetData.mockReturnValue({
+      mockGetData.mockResolvedValue({
         accountsAndTransfers: mockAccountsAndTransfers,
         socialSecurities: mockSocialSecurities,
         pensions: mockPensions,
@@ -180,13 +183,13 @@ describe('Used Variables API', () => {
 
       mockLoadUsedVariables.mockReturnValue(mockUsedVariables);
 
-      const result = getUsedVariables(mockRequest);
+      const result = await getUsedVariables(mockRequest);
 
       expect(result).toEqual(mockUsedVariables);
-      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions);
+      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions, []);
     });
 
-    it('should handle data with only accounts and no retirement plans', () => {
+    it('should handle data with only accounts and no retirement plans', async () => {
       const mockAccountsAndTransfers = {
         accounts: [
           {
@@ -205,7 +208,7 @@ describe('Used Variables API', () => {
       const mockPensions = [];
       const mockUsedVariables = ['startDate', 'endDate'];
 
-      mockGetData.mockReturnValue({
+      mockGetData.mockResolvedValue({
         accountsAndTransfers: mockAccountsAndTransfers,
         socialSecurities: mockSocialSecurities,
         pensions: mockPensions,
@@ -213,13 +216,13 @@ describe('Used Variables API', () => {
 
       mockLoadUsedVariables.mockReturnValue(mockUsedVariables);
 
-      const result = getUsedVariables(mockRequest);
+      const result = await getUsedVariables(mockRequest);
 
       expect(result).toEqual(mockUsedVariables);
-      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions);
+      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions, []);
     });
 
-    it('should handle data with only retirement plans and no accounts', () => {
+    it('should handle data with only retirement plans and no accounts', async () => {
       const mockAccountsAndTransfers = {
         accounts: [],
         transfers: {
@@ -248,7 +251,7 @@ describe('Used Variables API', () => {
 
       const mockUsedVariables = ['retirementDate', 'birthDate', 'careerStartDate'];
 
-      mockGetData.mockReturnValue({
+      mockGetData.mockResolvedValue({
         accountsAndTransfers: mockAccountsAndTransfers,
         socialSecurities: mockSocialSecurities,
         pensions: mockPensions,
@@ -256,14 +259,14 @@ describe('Used Variables API', () => {
 
       mockLoadUsedVariables.mockReturnValue(mockUsedVariables);
 
-      const result = getUsedVariables(mockRequest);
+      const result = await getUsedVariables(mockRequest);
 
       expect(result).toEqual(mockUsedVariables);
-      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions);
+      expect(mockLoadUsedVariables).toHaveBeenCalledWith(mockAccountsAndTransfers, mockSocialSecurities, mockPensions, []);
     });
 
-    it('should handle null or undefined data gracefully', () => {
-      mockGetData.mockReturnValue({
+    it('should handle null or undefined data gracefully', async () => {
+      mockGetData.mockResolvedValue({
         accountsAndTransfers: null,
         socialSecurities: null,
         pensions: null,
@@ -271,10 +274,10 @@ describe('Used Variables API', () => {
 
       mockLoadUsedVariables.mockReturnValue([]);
 
-      const result = getUsedVariables(mockRequest);
+      const result = await getUsedVariables(mockRequest);
 
       expect(result).toEqual([]);
-      expect(mockLoadUsedVariables).toHaveBeenCalledWith(null, null, null);
+      expect(mockLoadUsedVariables).toHaveBeenCalledWith(null, null, null, []);
     });
   });
 });
