@@ -56,6 +56,11 @@ function computeWeeklyBoundaries(
   endDate: Date,
 ): { periodStart: Date; periodEnd: Date }[] {
   const targetDay = DAY_NAME_TO_INDEX[dayName];
+  if (targetDay === undefined) {
+    throw new Error(
+      `Invalid weekly intervalStart "${dayName}". Expected one of: ${Object.keys(DAY_NAME_TO_INDEX).join(', ')}`,
+    );
+  }
   const start = dayjs.utc(startDate);
   const end = dayjs.utc(endDate);
 
@@ -99,7 +104,7 @@ function computeWeeklyBoundaries(
  * clamping the day to the last day of that month if needed.
  */
 function getMonthlyPeriodStart(year: number, month: number, targetDay: number): dayjs.Dayjs {
-  const d = dayjs.utc().year(year).month(month).date(1);
+  const d = dayjs.utc().year(year).month(month).date(1).startOf('day');
   const daysInMonth = d.daysInMonth();
   const clampedDay = Math.min(targetDay, daysInMonth);
   return d.date(clampedDay);
@@ -111,6 +116,11 @@ function computeMonthlyBoundaries(
   endDate: Date,
 ): { periodStart: Date; periodEnd: Date }[] {
   const targetDay = parseInt(dayOfMonth, 10);
+  if (isNaN(targetDay) || targetDay < 1 || targetDay > 28) {
+    throw new Error(
+      `Invalid monthly intervalStart "${dayOfMonth}". Expected an integer between 1 and 28.`,
+    );
+  }
   const start = dayjs.utc(startDate);
   const end = dayjs.utc(endDate);
 
@@ -170,9 +180,25 @@ function computeYearlyBoundaries(
   startDate: Date,
   endDate: Date,
 ): { periodStart: Date; periodEnd: Date }[] {
-  const [mmStr, ddStr] = mmdd.split('/');
+  const parts = mmdd.split('/');
+  if (parts.length !== 2) {
+    throw new Error(
+      `Invalid yearly intervalStart "${mmdd}". Expected format "MM/DD" (e.g., "06/15", "01/01").`,
+    );
+  }
+  const [mmStr, ddStr] = parts;
   const targetMonth = parseInt(mmStr, 10) - 1; // 0-indexed
   const targetDay = parseInt(ddStr, 10);
+  if (isNaN(targetMonth) || targetMonth < 0 || targetMonth > 11) {
+    throw new Error(
+      `Invalid month "${mmStr}" in yearly intervalStart "${mmdd}". Expected 01-12.`,
+    );
+  }
+  if (isNaN(targetDay) || targetDay < 1 || targetDay > 31) {
+    throw new Error(
+      `Invalid day "${ddStr}" in yearly intervalStart "${mmdd}". Expected 01-31.`,
+    );
+  }
   const start = dayjs.utc(startDate);
   const end = dayjs.utc(endDate);
 
