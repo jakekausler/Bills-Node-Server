@@ -95,6 +95,7 @@ export enum EventType {
   socialSecurity = 'socialSecurity',
   tax = 'tax',
   rmd = 'rmd',
+  spendingTracker = 'spendingTracker',
 }
 
 export type TimelineEvent = {
@@ -162,6 +163,14 @@ export type RMDEvent = TimelineEvent &
     type: EventType.rmd;
     ownerAge: number;
   };
+
+export type SpendingTrackerEvent = TimelineEvent & {
+  type: EventType.spendingTracker;
+  categoryId: string;
+  categoryName: string;
+  periodStart: Date;
+  periodEnd: Date;
+};
 
 export type Segment = {
   /** Unique identifier */
