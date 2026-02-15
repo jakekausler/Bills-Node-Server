@@ -5,6 +5,7 @@ import { TaxManager } from './tax-manager';
 import { RetirementManager } from './retirement-manager';
 import { HealthcareManager } from './healthcare-manager';
 import { AccountManager } from './account-manager';
+import { SpendingTrackerManager } from './spending-tracker-manager';
 import { Account } from '../../data/account/account';
 import { Bill } from '../../data/bill/bill';
 import { BillEvent, SegmentResult } from './types';
@@ -111,8 +112,10 @@ describe('HSA Reimbursement', () => {
     healthcareManager = new HealthcareManager(healthcareConfigs);
 
     const taxManager = new TaxManager([], []);
-    const retirementManager = new RetirementManager([]);
+    const retirementManager = new RetirementManager([], []);
     const accountManager = new AccountManager([hsaAccount, paymentAccount]);
+
+    const spendingTrackerManager = new SpendingTrackerManager([], 'primary', new Date());
 
     calculator = new Calculator(
       balanceTracker,
@@ -120,7 +123,8 @@ describe('HSA Reimbursement', () => {
       retirementManager,
       healthcareManager,
       accountManager,
-      'primary'
+      'primary',
+      spendingTrackerManager,
     );
 
     // Initialize segment result

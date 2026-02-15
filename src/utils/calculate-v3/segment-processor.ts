@@ -26,6 +26,7 @@ import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
 import { AccountManager } from './account-manager';
 import { HealthcareManager } from './healthcare-manager';
+import { SpendingTrackerManager } from './spending-tracker-manager';
 
 export class SegmentProcessor {
   private cache: CacheManager;
@@ -36,6 +37,7 @@ export class SegmentProcessor {
   private taxManager: TaxManager;
   private accountManager: AccountManager;
   private healthcareManager: HealthcareManager;
+  private spendingTrackerManager: SpendingTrackerManager;
 
   constructor(
     cache: CacheManager,
@@ -46,6 +48,7 @@ export class SegmentProcessor {
     taxManager: TaxManager,
     accountManager: AccountManager,
     healthcareManager: HealthcareManager,
+    spendingTrackerManager: SpendingTrackerManager,
   ) {
     this.cache = cache;
     this.balanceTracker = balanceTracker;
@@ -55,6 +58,7 @@ export class SegmentProcessor {
     this.taxManager = taxManager;
     this.accountManager = accountManager;
     this.healthcareManager = healthcareManager;
+    this.spendingTrackerManager = spendingTrackerManager;
   }
 
   async processSegment(segment: Segment, options: CalculationOptions): Promise<void> {
@@ -92,9 +96,15 @@ export class SegmentProcessor {
           }
         }
 
+        // Record tagged spending from cached results for cross-segment period tracking
+        this.spendingTrackerManager.recordSegmentActivities(cachedResult);
+
         return;
       }
     }
+
+    // Save spending tracker state BEFORE processing any events in this segment
+    this.spendingTrackerManager.checkpoint();
 
     // Process events in the segment
     let segmentResult = this.processSegmentEvents(segment, options);
@@ -104,8 +114,12 @@ export class SegmentProcessor {
 
     // If a push or pull was added, reprocess the segment events
     if (pushPullEventsAdded) {
+      this.spendingTrackerManager.restore();
       segmentResult = this.processSegmentEvents(segment, options);
     }
+
+    // Record tagged spending from the FINAL segment result
+    this.spendingTrackerManager.recordSegmentActivities(segmentResult);
 
     // Cache the segment result (will skip if monteCarlo is true)
     if (!options.monteCarlo) {
@@ -265,8 +279,7 @@ export class SegmentProcessor {
       case EventType.rmd:
         return this.calculator.processRMDEvent(event as RMDEvent, segmentResult);
       case EventType.spendingTracker:
-        // Processing logic added in Slice 5
-        return new Map<string, number>();
+        return this.calculator.processSpendingTrackerEvent(event as SpendingTrackerEvent, segmentResult);
       default:
         console.warn(`Unknown event type: ${event.type}`);
         return new Map<string, number>();

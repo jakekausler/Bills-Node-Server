@@ -7,6 +7,9 @@ import { AccountManager } from './account-manager';
 import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
 import { HealthcareManager } from './healthcare-manager';
+import { SpendingTrackerManager } from './spending-tracker-manager';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import {
   ActivityEvent,
   ActivityTransferEvent,
@@ -17,9 +20,12 @@ import {
   RMDEvent,
   SegmentResult,
   SocialSecurityEvent,
+  SpendingTrackerEvent,
   TaxableOccurence,
   TaxEvent,
 } from './types';
+
+dayjs.extend(utc);
 
 export class Calculator {
   private balanceTracker: BalanceTracker;
@@ -28,6 +34,7 @@ export class Calculator {
   private retirementManager: RetirementManager;
   private accountManager: AccountManager;
   private healthcareManager: HealthcareManager;
+  private spendingTrackerManager: SpendingTrackerManager;
   constructor(
     balanceTracker: BalanceTracker,
     taxManager: TaxManager,
@@ -35,6 +42,7 @@ export class Calculator {
     healthcareManager: HealthcareManager,
     accountManager: AccountManager,
     simulation: string,
+    spendingTrackerManager: SpendingTrackerManager,
   ) {
     this.balanceTracker = balanceTracker;
     this.taxManager = taxManager;
@@ -42,6 +50,7 @@ export class Calculator {
     this.healthcareManager = healthcareManager;
     this.simulation = simulation;
     this.accountManager = accountManager;
+    this.spendingTrackerManager = spendingTrackerManager;
   }
 
   /***************************************
@@ -743,6 +752,78 @@ export class Calculator {
       [account.id, -rmdAmount],
       [rmdAccount.id, rmdAmount],
     ]);
+  }
+
+  processSpendingTrackerEvent(event: SpendingTrackerEvent, segmentResult: SegmentResult): Map<string, number> {
+    // 1. Get accumulated spending from manager
+    let totalSpent = this.spendingTrackerManager.getPeriodSpending(event.categoryId);
+
+    // 2. Scan current segment's activitiesAdded for matching spending category activities
+    //    that fall within the period [periodStart, periodEnd]. These haven't been recorded
+    //    by recordSegmentActivities yet.
+    const periodStartDayjs = dayjs.utc(event.periodStart);
+    const periodEndDayjs = dayjs.utc(event.periodEnd);
+
+    for (const [, activities] of segmentResult.activitiesAdded) {
+      for (const activity of activities) {
+        if (activity.spendingCategory !== event.categoryId) continue;
+        const amount = typeof activity.amount === 'number' ? activity.amount : 0;
+        if (amount >= 0) continue;
+
+        const activityDateDayjs = dayjs.utc(activity.date);
+        if (
+          (activityDateDayjs.isAfter(periodStartDayjs, 'day') || activityDateDayjs.isSame(periodStartDayjs, 'day')) &&
+          (activityDateDayjs.isBefore(periodEndDayjs, 'day') || activityDateDayjs.isSame(periodEndDayjs, 'day'))
+        ) {
+          totalSpent += Math.abs(amount);
+        }
+      }
+    }
+
+    // 3. Compute remainder
+    const remainder = this.spendingTrackerManager.computeRemainder(event.categoryId, totalSpent, event.date);
+
+    // 4. Update carry, reset period spending, and mark period as processed
+    //    (these must happen regardless of remainder amount)
+    this.spendingTrackerManager.updateCarry(event.categoryId, totalSpent, event.date);
+    this.spendingTrackerManager.resetPeriodSpending(event.categoryId);
+    this.spendingTrackerManager.markPeriodProcessed(event.categoryId, event.periodEnd);
+
+    // 5. Skip activity creation for zero remainder (consistent with other event processors)
+    if (remainder <= 0) {
+      return new Map();
+    }
+
+    // 6. Create remainder activity
+    const remainderActivity = new ConsolidatedActivity({
+      id: `SPENDING-TRACKER-${event.categoryId}-${formatDate(event.periodEnd)}`,
+      date: formatDate(event.date),
+      dateIsVariable: false,
+      dateVariable: null,
+      name: `${event.categoryName} Budget Remainder`,
+      category: `Spending Tracker.${event.categoryName}`,
+      amount: -remainder,
+      amountIsVariable: false,
+      amountVariable: null,
+      flag: true,
+      flagColor: 'teal',
+      isTransfer: false,
+      from: null,
+      to: null,
+      spendingCategory: null, // Prevents circular counting
+    });
+
+    // 7. Add to segmentResult
+    if (!segmentResult.activitiesAdded.has(event.accountId)) {
+      segmentResult.activitiesAdded.set(event.accountId, []);
+    }
+    segmentResult.activitiesAdded.get(event.accountId)?.push(remainderActivity);
+
+    // 8. Update balance
+    const currentChange = segmentResult.balanceChanges.get(event.accountId) || 0;
+    segmentResult.balanceChanges.set(event.accountId, currentChange + (-remainder));
+
+    return new Map([[event.accountId, -remainder]]);
   }
 
   /***************************************

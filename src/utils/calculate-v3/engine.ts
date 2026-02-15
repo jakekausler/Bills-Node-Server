@@ -11,6 +11,7 @@ import { AccountManager } from './account-manager';
 import { TaxManager } from './tax-manager';
 import { RetirementManager } from './retirement-manager';
 import { HealthcareManager } from './healthcare-manager';
+import { SpendingTrackerManager } from './spending-tracker-manager';
 import { loadHealthcareConfigs } from '../io/healthcareConfigs';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 import { MonteCarloHandler } from './monte-carlo-handler';
@@ -126,8 +127,9 @@ export class Engine {
       };
     }
 
+    const spendingTrackerCategories = loadSpendingTrackerCategories();
+
     if (!timeline) {
-      const spendingTrackerCategories = loadSpendingTrackerCategories();
       this.timeline = await Timeline.fromAccountsAndTransfers(
         accountsAndTransfers,
         actualStartDate,
@@ -167,6 +169,16 @@ export class Engine {
     }
     this.healthcareManager = new HealthcareManager(await loadHealthcareConfigs());
 
+    // Initialize spending tracker manager
+    if (options.enableLogging) {
+      console.log('Initializing spending tracker manager...', Date.now() - this.calculationBegin, 'ms');
+    }
+    const spendingTrackerManager = new SpendingTrackerManager(
+      spendingTrackerCategories,
+      options.simulation,
+      actualStartDate,
+    );
+
     // Initialize balance tracker - use actual start date for processing all historical data
     if (options.enableLogging) {
       console.log('Initializing balance tracker...', Date.now() - this.calculationBegin, 'ms');
@@ -184,6 +196,7 @@ export class Engine {
       this.healthcareManager,
       this.accountManager,
       options.simulation,
+      spendingTrackerManager,
     );
 
     // Initialize push-pull handler
@@ -205,6 +218,7 @@ export class Engine {
       this.taxManager,
       this.accountManager,
       this.healthcareManager,
+      spendingTrackerManager,
     );
   }
 

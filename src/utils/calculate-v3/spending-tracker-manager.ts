@@ -39,8 +39,10 @@ type ResolvedCategory = {
 type CategoryState = {
   carryBalance: number;
   periodSpending: number;
+  lastProcessedPeriodEnd: Date | null;
   checkpointCarryBalance: number;
   checkpointPeriodSpending: number;
+  checkpointLastProcessedPeriodEnd: Date | null;
 };
 
 /**
@@ -125,8 +127,10 @@ export class SpendingTrackerManager {
       this.categoryStates.set(category.id, {
         carryBalance: 0,
         periodSpending: 0,
+        lastProcessedPeriodEnd: null,
         checkpointCarryBalance: 0,
         checkpointPeriodSpending: 0,
+        checkpointLastProcessedPeriodEnd: null,
       });
     }
   }
@@ -300,6 +304,19 @@ export class SpendingTrackerManager {
   }
 
   /**
+   * Marks a period as processed for the given category, so that recordSegmentActivities
+   * will only accumulate activities after this date. This prevents double-counting
+   * of spending across segment boundaries when a spending tracker event fires mid-segment.
+   */
+  markPeriodProcessed(categoryId: string, periodEnd: Date): void {
+    const state = this.categoryStates.get(categoryId);
+    if (!state) {
+      throw new Error(`SpendingTrackerManager: no state for category ID "${categoryId}"`);
+    }
+    state.lastProcessedPeriodEnd = periodEnd;
+  }
+
+  /**
    * Iterates over all activities in a segment result and accumulates spending
    * (absolute value of negative amounts only) into the correct category's periodSpending.
    */
@@ -320,6 +337,16 @@ export class SpendingTrackerManager {
         }
 
         const state = this.categoryStates.get(activity.spendingCategory)!;
+
+        // Skip activities that were already counted in a processed period.
+        // If lastProcessedPeriodEnd is set, only accumulate activities AFTER that date.
+        if (state.lastProcessedPeriodEnd) {
+          const activityDate = dayjs.utc(activity.date);
+          if (!activityDate.isAfter(dayjs.utc(state.lastProcessedPeriodEnd), 'day')) {
+            continue;
+          }
+        }
+
         state.periodSpending += Math.abs(amount);
       }
     }
@@ -343,6 +370,7 @@ export class SpendingTrackerManager {
     for (const [, state] of this.categoryStates) {
       state.checkpointCarryBalance = state.carryBalance;
       state.checkpointPeriodSpending = state.periodSpending;
+      state.checkpointLastProcessedPeriodEnd = state.lastProcessedPeriodEnd;
     }
   }
 
@@ -353,6 +381,7 @@ export class SpendingTrackerManager {
     for (const [, state] of this.categoryStates) {
       state.carryBalance = state.checkpointCarryBalance;
       state.periodSpending = state.checkpointPeriodSpending;
+      state.lastProcessedPeriodEnd = state.checkpointLastProcessedPeriodEnd;
     }
   }
 }
