@@ -12,6 +12,7 @@ vi.mock('./activity', () => ({
     category: string;
     description: string;
     isTransfer: boolean;
+    spendingCategory: string | null;
 
     constructor(data: ActivityData) {
       this.id = data.id || 'test-id';
@@ -21,6 +22,7 @@ vi.mock('./activity', () => ({
       this.category = data.category || 'Test Category';
       this.description = data.description || 'Test Description';
       this.isTransfer = data.isTransfer || false;
+      this.spendingCategory = data.spendingCategory ?? null;
     }
 
     serialize() {
@@ -32,6 +34,7 @@ vi.mock('./activity', () => ({
         category: this.category,
         description: this.description,
         isTransfer: this.isTransfer,
+        spendingCategory: this.spendingCategory,
       };
     }
   },
@@ -147,6 +150,7 @@ describe('ConsolidatedActivity', () => {
         category: 'Testing',
         description: 'Test consolidated activity description',
         isTransfer: false,
+        spendingCategory: null,
         balance: 1000,
         billId: 'test-bill-id',
         firstBill: true,
@@ -192,6 +196,43 @@ describe('ConsolidatedActivity', () => {
       consolidatedActivity.firstInterest = true;
 
       expect(consolidatedActivity.firstInterest).toBe(true);
+    });
+  });
+
+  describe('spendingCategory', () => {
+    it('should serialize spendingCategory when set', () => {
+      const dataWithSpendingCategory: ActivityData = {
+        ...mockActivityData,
+        spendingCategory: 'Entertainment',
+      };
+
+      const consolidatedActivity = new ConsolidatedActivity(dataWithSpendingCategory);
+      const serialized = consolidatedActivity.serialize();
+
+      expect(serialized.spendingCategory).toBe('Entertainment');
+    });
+
+    it('should serialize spendingCategory as null when not provided', () => {
+      const consolidatedActivity = new ConsolidatedActivity(mockActivityData);
+      const serialized = consolidatedActivity.serialize();
+
+      expect(serialized.spendingCategory).toBeNull();
+    });
+
+    it('should round-trip spendingCategory through serialize and deserialize', () => {
+      const dataWithSpendingCategory: ActivityData = {
+        ...mockActivityData,
+        spendingCategory: 'Healthcare',
+      };
+
+      const consolidatedActivity = new ConsolidatedActivity(dataWithSpendingCategory, {
+        billId: 'bill-1',
+      });
+      const serialized = consolidatedActivity.serialize();
+
+      // Verify spendingCategory survives through the ConsolidatedActivity serialize chain
+      expect(serialized.spendingCategory).toBe('Healthcare');
+      expect(serialized.billId).toBe('bill-1');
     });
   });
 });

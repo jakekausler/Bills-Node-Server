@@ -153,6 +153,23 @@ describe('Activity', () => {
       expect(activity.dateIsVariable).toBe(true);
       expect(activity.dateVariable).toBe('dateVar1');
     });
+
+    it('should set spendingCategory when provided', () => {
+      const dataWithSpendingCategory: ActivityData = {
+        ...mockActivityData,
+        spendingCategory: 'Groceries',
+      };
+
+      const activity = new Activity(dataWithSpendingCategory);
+
+      expect(activity.spendingCategory).toBe('Groceries');
+    });
+
+    it('should default spendingCategory to null when not provided', () => {
+      const activity = new Activity(mockActivityData);
+
+      expect(activity.spendingCategory).toBeNull();
+    });
   });
 
   describe('serialize', () => {
@@ -219,6 +236,38 @@ describe('Activity', () => {
       expect(serialized.amount).toBe('{FULL}');
       expect(serialized.amountIsVariable).toBe(true);
       expect(serialized.amountVariable).toBe('variable1');
+    });
+
+    it('should serialize spendingCategory when set', () => {
+      const dataWithSpendingCategory: ActivityData = {
+        ...mockActivityData,
+        spendingCategory: 'Dining Out',
+      };
+
+      const activity = new Activity(dataWithSpendingCategory);
+      const serialized = activity.serialize();
+
+      expect(serialized.spendingCategory).toBe('Dining Out');
+    });
+
+    it('should round-trip spendingCategory through serialize and deserialize', () => {
+      const dataWithSpendingCategory: ActivityData = {
+        ...mockActivityData,
+        spendingCategory: 'Transportation',
+      };
+
+      const activity = new Activity(dataWithSpendingCategory);
+      const serialized = activity.serialize();
+      const restored = new Activity(serialized);
+
+      expect(restored.spendingCategory).toBe('Transportation');
+    });
+
+    it('should serialize spendingCategory as null when not provided', () => {
+      const activity = new Activity(mockActivityData);
+      const serialized = activity.serialize();
+
+      expect(serialized.spendingCategory).toBeNull();
     });
   });
 });

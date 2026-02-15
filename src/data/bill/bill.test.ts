@@ -30,6 +30,7 @@ vi.mock('../activity/activity', () => ({
     amount: data.amount,
     date: new Date(data.date),
     isTransfer: data.isTransfer,
+    spendingCategory: data.spendingCategory ?? null,
   })),
 }));
 
@@ -227,6 +228,24 @@ describe('Bill', () => {
 
       expect(serialized.increaseByDate).toBe('03/15');
     });
+
+    it('should serialize spendingCategory when set', () => {
+      const bill = new Bill({
+        ...mockBillData,
+        spendingCategory: 'Utilities',
+      });
+
+      const serialized = bill.serialize();
+
+      expect(serialized.spendingCategory).toBe('Utilities');
+    });
+
+    it('should serialize spendingCategory as null when not provided', () => {
+      const bill = new Bill(mockBillData);
+      const serialized = bill.serialize();
+
+      expect(serialized.spendingCategory).toBeNull();
+    });
   });
 
   describe('toActivity', () => {
@@ -240,6 +259,29 @@ describe('Bill', () => {
       expect(activity).toBeDefined();
       // Note: We're using a mock Activity constructor, so we can only test that it was called
       // In a real scenario, we'd test the actual Activity properties
+    });
+
+    it('should include spendingCategory in the returned activity', () => {
+      const bill = new Bill({
+        ...mockBillData,
+        spendingCategory: 'Housing',
+      });
+      const date = new Date('2023-02-15');
+      const amount = 150;
+
+      const activity = bill.toActivity('activity-1', 'Default', amount, date);
+
+      expect(activity.spendingCategory).toBe('Housing');
+    });
+
+    it('should pass null spendingCategory when bill has no spendingCategory', () => {
+      const bill = new Bill(mockBillData);
+      const date = new Date('2023-02-15');
+      const amount = 150;
+
+      const activity = bill.toActivity('activity-1', 'Default', amount, date);
+
+      expect(activity.spendingCategory).toBeNull();
     });
   });
 
