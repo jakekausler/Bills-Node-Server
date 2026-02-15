@@ -12,6 +12,7 @@ import {
   SocialSecurityEvent,
   TaxEvent,
   RMDEvent,
+  SpendingTrackerEvent,
   TimelineEvent,
   TaxableOccurence,
 } from './types';
@@ -290,6 +291,8 @@ export class SegmentProcessor {
         return 'Tax';
       case EventType.rmd:
         return 'RMD';
+      case EventType.spendingTracker:
+        return (event as SpendingTrackerEvent).categoryName;
       default:
         return ''; // Unknown events sort to the beginning
     }
