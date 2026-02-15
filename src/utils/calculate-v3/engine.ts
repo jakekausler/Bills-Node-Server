@@ -12,6 +12,7 @@ import { TaxManager } from './tax-manager';
 import { RetirementManager } from './retirement-manager';
 import { HealthcareManager } from './healthcare-manager';
 import { loadHealthcareConfigs } from '../io/healthcareConfigs';
+import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 import { MonteCarloHandler } from './monte-carlo-handler';
 
 export class Engine {
@@ -125,6 +126,9 @@ export class Engine {
       };
     }
 
+    // Load spending tracker categories
+    const spendingTrackerCategories = loadSpendingTrackerCategories();
+
     if (!timeline) {
       this.timeline = await Timeline.fromAccountsAndTransfers(
         accountsAndTransfers,
@@ -134,6 +138,7 @@ export class Engine {
         options.enableLogging,
         this.monteCarloConfig,
         options,
+        spendingTrackerCategories,
       );
     } else {
       this.timeline = timeline.clone(actualStartDate, options.endDate, this.monteCarloConfig);

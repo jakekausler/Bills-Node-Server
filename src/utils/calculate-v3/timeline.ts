@@ -14,6 +14,7 @@ import {
   RMDEvent,
   Segment,
   SocialSecurityEvent,
+  SpendingTrackerEvent,
   TaxEvent,
   TimelineEvent,
   TransferEvent,
@@ -26,6 +27,8 @@ import { formatDate, isAfterOrSame, isBeforeOrSame, isSame } from '../date/date'
 import { AccountManager } from './account-manager';
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
+import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
+import { computePeriodBoundaries } from './period-utils';
 
 export class Timeline {
   private accountManager: AccountManager;
@@ -114,6 +117,7 @@ export class Timeline {
     enableLogging: boolean,
     monteCarloConfig: MonteCarloConfig | null = null,
     calculationOptions: CalculationOptions,
+    spendingTrackerCategories: SpendingTrackerCategory[] = [],
   ): Promise<Timeline> {
     const accountManager = new AccountManager(accountsAndTransfers.accounts, calculationOptions);
     const timeline = new Timeline(accountManager, calculationBegin, enableLogging, monteCarloConfig);
@@ -129,6 +133,7 @@ export class Timeline {
       timeline.addPensionEvents(endDate),
       timeline.addRmdEvents(accountsAndTransfers, startDate, endDate),
       timeline.addTaxEvents(accountsAndTransfers, startDate, endDate),
+      timeline.addSpendingTrackerEvents(spendingTrackerCategories, startDate, endDate),
     ]);
 
     // Sort and optimize timeline
@@ -300,6 +305,40 @@ export class Timeline {
     }
     if (this.enableLogging) {
       console.log('  Finished adding tax events', Date.now() - this.calculationBegin, 'ms');
+    }
+  }
+
+  private async addSpendingTrackerEvents(
+    categories: SpendingTrackerCategory[],
+    startDate: Date,
+    endDate: Date,
+  ): Promise<void> {
+    for (const category of categories) {
+      const boundaries = computePeriodBoundaries(
+        category.interval,
+        category.intervalStart,
+        startDate,
+        endDate,
+      );
+
+      for (const period of boundaries) {
+        const event: SpendingTrackerEvent = {
+          id: `ST-${category.id}-${formatDate(period.periodEnd)}`,
+          type: EventType.spendingTracker,
+          date: period.periodEnd,
+          accountId: category.accountId,
+          priority: 2.5,
+          categoryId: category.id,
+          categoryName: category.name,
+          periodStart: period.periodStart,
+          periodEnd: period.periodEnd,
+        };
+
+        this.addEvent(event);
+      }
+    }
+    if (this.enableLogging) {
+      console.log('  Finished adding spending tracker events', Date.now() - this.calculationBegin, 'ms');
     }
   }
 
