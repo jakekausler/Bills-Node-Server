@@ -264,6 +264,9 @@ export class SegmentProcessor {
         return this.calculator.processTaxEvent(event as TaxEvent, segmentResult);
       case EventType.rmd:
         return this.calculator.processRMDEvent(event as RMDEvent, segmentResult);
+      case EventType.spendingTracker:
+        // Processing logic added in Slice 5
+        return new Map<string, number>();
       default:
         console.warn(`Unknown event type: ${event.type}`);
         return new Map<string, number>();

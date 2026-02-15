@@ -126,10 +126,8 @@ export class Engine {
       };
     }
 
-    // Load spending tracker categories
-    const spendingTrackerCategories = loadSpendingTrackerCategories();
-
     if (!timeline) {
+      const spendingTrackerCategories = loadSpendingTrackerCategories();
       this.timeline = await Timeline.fromAccountsAndTransfers(
         accountsAndTransfers,
         actualStartDate,
