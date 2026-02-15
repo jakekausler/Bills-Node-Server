@@ -225,14 +225,19 @@ describe('ConsolidatedActivity', () => {
         spendingCategory: 'Healthcare',
       };
 
-      const consolidatedActivity = new ConsolidatedActivity(dataWithSpendingCategory, {
+      const original = new ConsolidatedActivity(dataWithSpendingCategory, {
         billId: 'bill-1',
       });
-      const serialized = consolidatedActivity.serialize();
+      const serialized = original.serialize();
 
-      // Verify spendingCategory survives through the ConsolidatedActivity serialize chain
-      expect(serialized.spendingCategory).toBe('Healthcare');
-      expect(serialized.billId).toBe('bill-1');
+      // Deserialize: construct a new ConsolidatedActivity from the serialized data
+      const restored = new ConsolidatedActivity(serialized, {
+        billId: serialized.billId,
+      });
+
+      // Verify spendingCategory survives the full round-trip
+      expect(restored.spendingCategory).toBe('Healthcare');
+      expect(restored.billId).toBe('bill-1');
     });
   });
 });
