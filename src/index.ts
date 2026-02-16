@@ -59,6 +59,7 @@ import {
   updateSpendingTrackerCategory,
   deleteSpendingTrackerCategory,
   skipSpendingTrackerCategory,
+  getSpendingTrackerChartData,
   ApiError,
 } from './api/spendingTracker/spendingTracker';
 
@@ -656,6 +657,19 @@ app
       }
     }
   });
+
+app.get('/api/spending-tracker/:id/chart-data', verifyToken, async (req: Request, res: Response) => {
+  try {
+    res.json(await getSpendingTrackerChartData(req));
+  } catch (e: unknown) {
+    if (e instanceof ApiError) {
+      res.status(e.statusCode).json({ error: e.message });
+    } else {
+      console.error('Spending tracker chart-data error:', e);
+      res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
+    }
+  }
+});
 
 // Serve frontend for all non-API routes (SPA fallback)
 app.get('*', (req: Request, res: Response) => {

@@ -2,7 +2,7 @@ import { Request } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
+import { SpendingTrackerCategory, ChartDataResponse } from '../../data/spendingTracker/types';
 import {
   loadSpendingTrackerCategories,
   saveSpendingTrackerCategories,
@@ -12,6 +12,10 @@ import { loadCategories, saveCategories } from '../../utils/io/categories';
 import { resetCache } from '../../utils/io/cache';
 import { AccountsAndTransfersData } from '../../data/account/types';
 import { computePeriodBoundaries } from '../../utils/calculate-v3/period-utils';
+import { getData } from '../../utils/net/request';
+import { minDate } from '../../utils/io/minDate';
+import { SpendingTrackerManager } from '../../utils/calculate-v3/spending-tracker-manager';
+import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 
 dayjs.extend(utc);
 
@@ -364,4 +368,58 @@ export function skipSpendingTrackerCategory(request: Request): SpendingTrackerCa
   resetCache();
 
   return category;
+}
+
+/**
+ * Retrieves chart data for a spending tracker category.
+ *
+ * Loads the calculation engine result (with caching), collects all consolidated
+ * activities across accounts, and computes per-period spending chart data.
+ *
+ * @param request - Express request object with id param and startDate/endDate query params
+ * @returns ChartDataResponse with per-period data and summary statistics
+ * @throws ApiError with 404 if category not found
+ */
+export async function getSpendingTrackerChartData(
+  request: Request,
+): Promise<ChartDataResponse> {
+  const { id } = request.params;
+
+  // Load category
+  const categories = loadSpendingTrackerCategories();
+  const category = categories.find((c) => c.id === id);
+
+  if (!category) {
+    throw new ApiError('Spending tracker category not found', 404);
+  }
+
+  // Extract date range from query params
+  const startDate = request.query.startDate as string;
+  const endDate = request.query.endDate as string;
+
+  if (!startDate || !endDate) {
+    throw new ApiError('startDate and endDate query parameters are required', 400);
+  }
+
+  // Load engine data (uses cache)
+  const data = await getData(request);
+
+  // Extract calculation start date (inflation anchor)
+  const calculationStartDate = minDate(data.accountsAndTransfers);
+  const calculationStartDateStr = dayjs.utc(calculationStartDate).format('YYYY-MM-DD');
+
+  // Collect all consolidated activities across all accounts
+  const allActivities: ConsolidatedActivity[] = [];
+  for (const account of data.accountsAndTransfers.accounts) {
+    allActivities.push(...account.consolidatedActivity);
+  }
+
+  // Compute chart data
+  return SpendingTrackerManager.computeChartData(
+    category,
+    allActivities,
+    { startDate, endDate },
+    calculationStartDateStr,
+    data.simulation,
+  );
 }
