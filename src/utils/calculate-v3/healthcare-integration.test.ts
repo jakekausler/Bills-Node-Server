@@ -79,7 +79,7 @@ describe('Healthcare Integration Tests', () => {
   const healthcareConfig: HealthcareConfig = {
     id: 'test-config',
     name: 'Test Plan',
-    personName: 'John',
+    coveredPersons: ['John'],
     startDate: '2024-01-01',
     endDate: null,
     individualDeductible: 1500,

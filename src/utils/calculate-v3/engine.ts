@@ -15,6 +15,11 @@ import { SpendingTrackerManager } from './spending-tracker-manager';
 import { loadHealthcareConfigs } from '../io/healthcareConfigs';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 import { MonteCarloHandler } from './monte-carlo-handler';
+import { computePeriodBoundaries } from './period-utils';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
 
 export class Engine {
   private config: CalculationConfig;
@@ -178,6 +183,31 @@ export class Engine {
       options.simulation,
       actualStartDate,
     );
+
+    // For categories with a startDate (skip), pre-set lastProcessedPeriodEnd so that
+    // recordSegmentActivities filters out activities from before the first active period.
+    // Without this, spending from skipped periods incorrectly accumulates into periodSpending.
+    for (const category of spendingTrackerCategories) {
+      if (category.startDate) {
+        const categoryStartDate = dayjs.utc(category.startDate);
+        const boundaries = computePeriodBoundaries(
+          category.interval,
+          category.intervalStart,
+          actualStartDate,
+          options.endDate,
+        );
+        // Find the first period that doesn't end before the category's startDate
+        const firstActivePeriod = boundaries.find(
+          b => !dayjs.utc(b.periodEnd).isBefore(categoryStartDate, 'day')
+        );
+        if (firstActivePeriod) {
+          // Set lastProcessedPeriodEnd to the day before the first active period's start.
+          // This causes recordSegmentActivities to skip activities before this period.
+          const filterDate = dayjs.utc(firstActivePeriod.periodStart).subtract(1, 'day').toDate();
+          spendingTrackerManager.markPeriodProcessed(category.id, filterDate);
+        }
+      }
+    }
 
     // Initialize balance tracker - use actual start date for processing all historical data
     if (options.enableLogging) {

@@ -99,6 +99,17 @@ export class SegmentProcessor {
         // Record tagged spending from cached results for cross-segment period tracking
         this.spendingTrackerManager.recordSegmentActivities(cachedResult);
 
+        // Replay spending tracker state changes (carry, reset, markPeriodProcessed)
+        // that were recorded when this segment was originally processed.
+        // Without this, carry-over/carry-under state is lost when loading from cache.
+        if (cachedResult.spendingTrackerUpdates) {
+          for (const update of cachedResult.spendingTrackerUpdates) {
+            this.spendingTrackerManager.updateCarry(update.categoryId, update.totalSpent, update.date);
+            this.spendingTrackerManager.resetPeriodSpending(update.categoryId);
+            this.spendingTrackerManager.markPeriodProcessed(update.categoryId, update.periodEnd);
+          }
+        }
+
         return;
       }
     }
@@ -156,6 +167,7 @@ export class SegmentProcessor {
       balanceMinimums: new Map<string, number>(),
       balanceMaximums: new Map<string, number>(),
       taxableOccurences: new Map<string, TaxableOccurence[]>(),
+      spendingTrackerUpdates: [],
     };
 
     // Group events by date for efficient processing

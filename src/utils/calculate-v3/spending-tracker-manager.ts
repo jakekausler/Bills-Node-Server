@@ -330,9 +330,8 @@ export class SpendingTrackerManager {
           continue;
         }
 
-        // Only count negative amounts (expenses)
         const amount = typeof activity.amount === 'number' ? activity.amount : 0;
-        if (amount >= 0) {
+        if (amount === 0) {
           continue;
         }
 
@@ -347,7 +346,12 @@ export class SpendingTrackerManager {
           }
         }
 
-        state.periodSpending += Math.abs(amount);
+        // Negative amounts (expenses) increase periodSpending; positive amounts (refunds) decrease it.
+        // Since amount is negative for expenses: -(-50) = +50 (adds spending)
+        // Since amount is positive for refunds: -(+25) = -25 (reduces spending)
+        // periodSpending CAN go negative when refunds exceed expenses. Negative periodSpending
+        // means the effective budget increases (refunds add to remaining budget).
+        state.periodSpending -= amount;
       }
     }
   }

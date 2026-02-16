@@ -2,9 +2,12 @@ import { Account } from '../../data/account/account';
 import { CacheManager } from './cache';
 import { BalanceSnapshot, SegmentResult } from './types';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { minDate } from '../io/minDate';
 import { isSame } from '../date/date';
+
+dayjs.extend(utc);
 
 export class BalanceTracker {
   private accounts: Account[];
@@ -152,10 +155,12 @@ export class BalanceTracker {
 
       // Filter activities to the specified date range
       clonedAccount.consolidatedActivity = allActivitiesWithBalances.filter((activity) => {
-        // Use day-based comparison to avoid timezone/timestamp precision issues
-        const activityDate = dayjs(activity.date).startOf('day');
-        const filterStartDate = startDate ? dayjs(startDate).startOf('day') : null;
-        const filterEndDate = endDate ? dayjs(endDate).startOf('day') : null;
+        // Use day-based comparison in UTC to avoid timezone/timestamp precision issues.
+        // IMPORTANT: Must use dayjs.utc() not dayjs() to prevent local-timezone shifts
+        // where midnight UTC dates appear as the previous day in US timezones.
+        const activityDate = dayjs.utc(activity.date).startOf('day');
+        const filterStartDate = startDate ? dayjs.utc(startDate).startOf('day') : null;
+        const filterEndDate = endDate ? dayjs.utc(endDate).startOf('day') : null;
 
         const afterStart = !filterStartDate || activityDate.isAfter(filterStartDate) || activityDate.isSame(filterStartDate);
         const beforeEnd = !filterEndDate || activityDate.isBefore(filterEndDate) || activityDate.isSame(filterEndDate);

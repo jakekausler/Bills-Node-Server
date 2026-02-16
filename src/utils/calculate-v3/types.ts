@@ -43,6 +43,23 @@ export type TaxableOccurenceData = {
 };
 
 /**
+ * Records a spending tracker period completion for cache replay.
+ */
+export interface SpendingTrackerUpdate {
+  categoryId: string;
+  totalSpent: number;
+  date: Date;
+  periodEnd: Date;
+}
+
+export type SpendingTrackerUpdateData = {
+  categoryId: string;
+  totalSpent: number;
+  date: DateString;
+  periodEnd: DateString;
+};
+
+/**
  * Results of a calculation segment
  */
 export interface SegmentResult {
@@ -58,6 +75,8 @@ export interface SegmentResult {
   balanceMaximums: Map<string, number>;
   /** Taxable occurences indexed by account name */
   taxableOccurences: Map<string, TaxableOccurence[]>;
+  /** Spending tracker period completions for cache replay */
+  spendingTrackerUpdates: SpendingTrackerUpdate[];
   /** Accounts and Transfers */
   accountsAndTransfers?: AccountsAndTransfers;
 }
@@ -69,6 +88,7 @@ export type SegmentResultData = {
   balanceMinimums: Record<string, number>;
   balanceMaximums: Record<string, number>;
   taxableOccurences: Record<string, TaxableOccurenceData[]>;
+  spendingTrackerUpdates: SpendingTrackerUpdateData[];
 };
 
 /**

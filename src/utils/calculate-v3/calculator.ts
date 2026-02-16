@@ -768,14 +768,17 @@ export class Calculator {
       for (const activity of activities) {
         if (activity.spendingCategory !== event.categoryId) continue;
         const amount = typeof activity.amount === 'number' ? activity.amount : 0;
-        if (amount >= 0) continue;
+        if (amount === 0) continue;
 
         const activityDateDayjs = dayjs.utc(activity.date);
         if (
           (activityDateDayjs.isAfter(periodStartDayjs, 'day') || activityDateDayjs.isSame(periodStartDayjs, 'day')) &&
           (activityDateDayjs.isBefore(periodEndDayjs, 'day') || activityDateDayjs.isSame(periodEndDayjs, 'day'))
         ) {
-          totalSpent += Math.abs(amount);
+          // Negative amounts (expenses) add to spending; positive amounts (refunds) reduce it.
+          // totalSpent CAN go negative when refunds exceed expenses. Negative totalSpent
+          // means the effective budget increases (refunds add to remaining budget).
+          totalSpent -= amount;
         }
       }
     }
@@ -788,6 +791,14 @@ export class Calculator {
     this.spendingTrackerManager.updateCarry(event.categoryId, totalSpent, event.date);
     this.spendingTrackerManager.resetPeriodSpending(event.categoryId);
     this.spendingTrackerManager.markPeriodProcessed(event.categoryId, event.periodEnd);
+
+    // 4b. Record spending tracker update for cache replay
+    segmentResult.spendingTrackerUpdates.push({
+      categoryId: event.categoryId,
+      totalSpent,
+      date: event.date,
+      periodEnd: event.periodEnd,
+    });
 
     // 5. Skip activity creation for zero remainder (consistent with other event processors)
     if (remainder <= 0) {

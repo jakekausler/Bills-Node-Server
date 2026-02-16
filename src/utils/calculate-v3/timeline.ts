@@ -330,16 +330,24 @@ export class Timeline {
           continue;
         }
 
+        // Use noon UTC (12:00) instead of midnight UTC (00:00) to prevent
+        // timezone shifts when local-time Date methods are used elsewhere.
+        // Midnight UTC becomes the previous day in US timezones (e.g., EST = UTC-5),
+        // causing events to appear one day early. Noon UTC is safe for any
+        // timezone within +/-12 hours of UTC.
+        const noonPeriodEnd = dayjs.utc(period.periodEnd).hour(12).toDate();
+        const noonPeriodStart = dayjs.utc(period.periodStart).hour(12).toDate();
+
         const event: SpendingTrackerEvent = {
-          id: `ST-${category.id}-${formatDate(period.periodEnd)}`,
+          id: `ST-${category.id}-${formatDate(noonPeriodEnd)}`,
           type: EventType.spendingTracker,
-          date: period.periodEnd,
+          date: noonPeriodEnd,
           accountId: category.accountId,
           priority: 2.5,
           categoryId: category.id,
           categoryName: category.name,
-          periodStart: period.periodStart,
-          periodEnd: period.periodEnd,
+          periodStart: noonPeriodStart,
+          periodEnd: noonPeriodEnd,
           firstSpendingTracker: isFirst,
         };
 

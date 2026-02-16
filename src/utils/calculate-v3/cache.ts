@@ -9,6 +9,7 @@ import {
   BalanceSnapshotData,
   SegmentResultData,
   TaxableOccurence,
+  SpendingTrackerUpdateData,
 } from './types';
 import { join } from 'path';
 import { formatDate, parseDate } from '../date/date';
@@ -85,6 +86,12 @@ class SegmentResultSerializer extends Serializer {
           })),
         ]),
       ),
+      spendingTrackerUpdates: (data.data.spendingTrackerUpdates || []).map((u) => ({
+        categoryId: u.categoryId,
+        totalSpent: u.totalSpent,
+        date: formatDate(u.date),
+        periodEnd: formatDate(u.periodEnd),
+      })),
     };
 
     return JSON.stringify({
@@ -129,6 +136,15 @@ class SegmentResultSerializer extends Serializer {
       ]),
     );
 
+    const spendingTrackerUpdates = (segmentResultData.spendingTrackerUpdates || []).map(
+      (u: SpendingTrackerUpdateData) => ({
+        categoryId: u.categoryId,
+        totalSpent: u.totalSpent,
+        date: parseDate(u.date),
+        periodEnd: parseDate(u.periodEnd),
+      }),
+    );
+
     const segmentResult: SegmentResult = {
       balanceChanges,
       activitiesAdded,
@@ -136,6 +152,7 @@ class SegmentResultSerializer extends Serializer {
       balanceMinimums,
       balanceMaximums,
       taxableOccurences,
+      spendingTrackerUpdates,
     };
 
     return {

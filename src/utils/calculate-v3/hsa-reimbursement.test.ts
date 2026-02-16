@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Calculator } from './calculator';
 import { BalanceTracker } from './balance-tracker';
 import { TaxManager } from './tax-manager';
@@ -8,20 +8,21 @@ import { AccountManager } from './account-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { Account } from '../../data/account/account';
 import { Bill } from '../../data/bill/bill';
-import { BillEvent, SegmentResult } from './types';
+import { BillEvent, CalculationOptions, SegmentResult } from './types';
 import { HealthcareConfig } from '../../data/healthcare/types';
 
-describe('HSA Reimbursement', () => {
-  let calculator: Calculator;
-  let balanceTracker: BalanceTracker;
-  let healthcareManager: HealthcareManager;
-  let segmentResult: SegmentResult;
+vi.mock('../io/retirement', () => ({
+  loadPensionsAndSocialSecurity: vi.fn(() => ({
+    socialSecurities: [],
+    pensions: [],
+  })),
+}));
 
+describe('HSA Reimbursement', () => {
   const hsaAccountId = 'hsa-account-123';
   const paymentAccountId = 'payment-account-456';
 
-  beforeEach(async () => {
-    // Create mock accounts with initial balance activities
+  function createAccounts(hsaBalance: number) {
     const hsaAccount = new Account({
       id: hsaAccountId,
       name: 'Jane HSA',
@@ -36,7 +37,7 @@ describe('HSA Reimbursement', () => {
         isTransfer: false,
         from: null,
         to: null,
-        amount: 2000, // HSA has $2000
+        amount: hsaBalance,
         amountIsVariable: false,
         amountVariable: null,
         date: '2025-01-01',
@@ -66,7 +67,7 @@ describe('HSA Reimbursement', () => {
         isTransfer: false,
         from: null,
         to: null,
-        amount: 10000, // Checking has $10000
+        amount: 10000,
         amountIsVariable: false,
         amountVariable: null,
         date: '2025-01-01',
@@ -82,21 +83,29 @@ describe('HSA Reimbursement', () => {
       bills: [],
     });
 
-    // Mock cache manager
+    return { hsaAccount, paymentAccount };
+  }
+
+  async function createCalculator(hsaBalance: number) {
+    const { hsaAccount, paymentAccount } = createAccounts(hsaBalance);
+
     const mockCache = {
       findClosestSnapshot: async () => null,
       setBalanceSnapshot: async () => 'test-snapshot-key',
     } as any;
 
-    // Initialize balance tracker with accounts
-    balanceTracker = new BalanceTracker([hsaAccount, paymentAccount], mockCache, new Date('2026-01-01'));
-    await balanceTracker.initializeBalances({ accounts: [hsaAccount, paymentAccount], transfers: [] })
+    const balanceTracker = new BalanceTracker([hsaAccount, paymentAccount], mockCache, new Date('2026-01-01'));
+    await balanceTracker.initializeBalances({ accounts: [hsaAccount, paymentAccount], transfers: [] });
 
-    // Create healthcare config with HSA enabled
+    // Manually set initial balances since the balance tracker initializes to 0
+    // and opening balance activities are only processed during segment processing
+    balanceTracker.updateBalance(hsaAccountId, hsaBalance, new Date('2025-01-01'));
+    balanceTracker.updateBalance(paymentAccountId, 10000, new Date('2025-01-01'));
+
     const healthcareConfigs: HealthcareConfig[] = [{
       id: 'config-123',
       name: 'Jane Health Plan',
-      personName: 'Jane',
+      coveredPersons: ['Jane'],
       startDate: '2025-01-01',
       endDate: null,
       individualDeductible: 1500,
@@ -109,15 +118,24 @@ describe('HSA Reimbursement', () => {
       resetDay: 1,
     }];
 
-    healthcareManager = new HealthcareManager(healthcareConfigs);
-
-    const taxManager = new TaxManager([], []);
+    const healthcareManager = new HealthcareManager(healthcareConfigs);
+    const taxManager = new TaxManager();
     const retirementManager = new RetirementManager([], []);
-    const accountManager = new AccountManager([hsaAccount, paymentAccount]);
-
+    const calculationOptions: CalculationOptions = {
+      startDate: new Date('2025-01-01'),
+      endDate: new Date('2026-12-31'),
+      simulation: 'primary',
+      monteCarlo: false,
+      simulationNumber: 1,
+      totalSimulations: 1,
+      forceRecalculation: true,
+      enableLogging: false,
+      config: {},
+    };
+    const accountManager = new AccountManager([hsaAccount, paymentAccount], calculationOptions);
     const spendingTrackerManager = new SpendingTrackerManager([], 'primary', new Date());
 
-    calculator = new Calculator(
+    const calculator = new Calculator(
       balanceTracker,
       taxManager,
       retirementManager,
@@ -127,41 +145,62 @@ describe('HSA Reimbursement', () => {
       spendingTrackerManager,
     );
 
-    // Initialize segment result
-    segmentResult = {
+    const segmentResult: SegmentResult = {
       activitiesAdded: new Map(),
       balanceChanges: new Map(),
       taxableOccurences: new Map(),
+      processedEventIds: new Set(),
+      balanceMinimums: new Map(),
+      balanceMaximums: new Map(),
+      spendingTrackerUpdates: [],
     };
-  });
 
-  it('should create HSA reimbursement transfer for healthcare bill with copay', () => {
-    // Create healthcare bill with $100 copay
-    const healthcareBill = new Bill({
-      id: 'bill-123',
-      name: 'Jane Doctor Visit',
+    return { calculator, segmentResult };
+  }
+
+  function createHealthcareBill(id: string, name: string, amount: number, date: string, copayAmount: number) {
+    return new Bill({
+      id,
+      name,
       category: 'Health.Doctor',
       flag: false,
       flagColor: null,
       isTransfer: false,
       from: null,
       to: null,
-      amount: -300, // Total bill amount
+      amount,
       amountIsVariable: false,
       amountVariable: null,
-      date: '2026-03-15',
-      dateIsVariable: false,
-      dateVariable: null,
-      inflation: 0,
-      frequency: 'once',
+      startDate: date,
+      startDateIsVariable: false,
+      startDateVariable: null,
       endDate: null,
+      endDateIsVariable: false,
+      endDateVariable: null,
+      increaseBy: 0,
+      increaseByIsVariable: false,
+      increaseByVariable: null,
+      increaseByDate: '01/01',
+      everyN: 1,
+      periods: 'month',
+      ceilingMultiple: 0,
+      monteCarloSampleType: null,
+      annualStartDate: null,
+      annualEndDate: null,
+      isAutomatic: false,
       isHealthcare: true,
       healthcarePerson: 'Jane',
-      copayAmount: 100, // Patient pays $100
+      copayAmount,
       coinsurancePercent: null,
       countsTowardDeductible: false,
       countsTowardOutOfPocket: true,
     });
+  }
+
+  it('should create HSA reimbursement transfer for healthcare bill with copay', async () => {
+    const { calculator, segmentResult } = await createCalculator(2000);
+
+    const healthcareBill = createHealthcareBill('bill-123', 'Jane Doctor Visit', -300, '2026-03-15', 100);
 
     const billEvent: BillEvent = {
       type: 'bill',
@@ -203,37 +242,11 @@ describe('HSA Reimbursement', () => {
     expect(segmentResult.balanceChanges.get(paymentAccountId)).toBe(0); // -100 expense + 100 reimbursement = 0
   });
 
-  it('should handle partial reimbursement when HSA balance is insufficient', () => {
-    // Note: HSA account will have $2000 - $100 from first test, but we're testing a new scenario
-    // In reality, we need to adjust the expected values based on the HSA balance after the first test ran
-    // For now, we'll test with the assumption that HSA has only $50 available
-    // This test needs to run independently or we need to reset balance tracker
+  it('should handle partial reimbursement when HSA balance is insufficient', async () => {
+    // HSA has only $50 available
+    const { calculator, segmentResult } = await createCalculator(50);
 
-    const healthcareBill = new Bill({
-      id: 'bill-456',
-      name: 'Jane Expensive Procedure',
-      category: 'Health.Doctor',
-      flag: false,
-      flagColor: null,
-      isTransfer: false,
-      from: null,
-      to: null,
-      amount: -500,
-      amountIsVariable: false,
-      amountVariable: null,
-      date: '2026-04-01',
-      dateIsVariable: false,
-      dateVariable: null,
-      inflation: 0,
-      frequency: 'once',
-      endDate: null,
-      isHealthcare: true,
-      healthcarePerson: 'Jane',
-      copayAmount: 200, // Patient pays $200 but HSA only has $50
-      coinsurancePercent: null,
-      countsTowardDeductible: false,
-      countsTowardOutOfPocket: true,
-    });
+    const healthcareBill = createHealthcareBill('bill-456', 'Jane Expensive Procedure', -500, '2026-04-01', 200);
 
     const billEvent: BillEvent = {
       type: 'bill',
@@ -256,36 +269,11 @@ describe('HSA Reimbursement', () => {
     expect(segmentResult.balanceChanges.get(paymentAccountId)).toBe(-150); // -200 + 50 = -150
   });
 
-  it('should not create reimbursement when HSA balance is zero', () => {
-    // Note: Testing with HSA balance = $0
-    // In reality, balance tracker state carries over between tests
-    // For proper test isolation, each test should initialize its own calculator
+  it('should not create reimbursement when HSA balance is zero', async () => {
+    // HSA has $0
+    const { calculator, segmentResult } = await createCalculator(0);
 
-    const healthcareBill = new Bill({
-      id: 'bill-789',
-      name: 'Jane Checkup',
-      category: 'Health.Doctor',
-      flag: false,
-      flagColor: null,
-      isTransfer: false,
-      from: null,
-      to: null,
-      amount: -150,
-      amountIsVariable: false,
-      amountVariable: null,
-      date: '2026-05-01',
-      dateIsVariable: false,
-      dateVariable: null,
-      inflation: 0,
-      frequency: 'once',
-      endDate: null,
-      isHealthcare: true,
-      healthcarePerson: 'Jane',
-      copayAmount: 50,
-      coinsurancePercent: null,
-      countsTowardDeductible: false,
-      countsTowardOutOfPocket: true,
-    });
+    const healthcareBill = createHealthcareBill('bill-789', 'Jane Checkup', -150, '2026-05-01', 50);
 
     const billEvent: BillEvent = {
       type: 'bill',

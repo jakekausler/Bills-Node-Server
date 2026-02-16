@@ -21,7 +21,7 @@ export function formatDate(date: Date): DateString {
  * @throws Error if the date string is invalid
  */
 export function parseDate(date: DateString): Date {
-  const d = new Date(date);
+  const d = new Date(date + 'T12:00:00Z');
   if (isNaN(d.getTime())) {
     throw new Error(`Invalid date '${date}'`);
   }

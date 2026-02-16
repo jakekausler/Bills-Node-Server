@@ -1,3 +1,4 @@
+import { describe, it } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -315,34 +316,23 @@ class MonteCarloValidator {
   }
 }
 
-// Main test execution
-async function runValidation() {
-  console.log('Starting Monte Carlo Validation Test');
-  console.log('=====================================\n');
+describe('Monte Carlo Validation', () => {
+  it('should validate Monte Carlo calculations against deterministic baseline', async () => {
+    const validator = new MonteCarloValidator();
 
-  const validator = new MonteCarloValidator();
-  
-  // Load logs for simulations 1-5
-  await validator.loadLogs([1, 2, 3, 4, 5]);
+    // Load logs for simulations 1-5
+    await validator.loadLogs([1, 2, 3, 4, 5]);
 
-  // Run overall validation
-  validator.validateAllSimulations();
+    // Run overall validation
+    validator.validateAllSimulations();
 
-  // Validate specific types
-  console.log('\n=== Type-Specific Validation ===');
-  validator.validateByType('HYSA');
-  validator.validateByType('LYSA');
-  validator.validateByType('Portfolio');
-  validator.validateByType('Inflation');
-  validator.validateByType('Raise');
-  validator.validateByType('interest');
-  validator.validateByType('bill_increase');
-
-  console.log('\n=== Validation Complete ===');
-}
-
-// Run the validation
-runValidation().catch(error => {
-  console.error('Validation failed:', error);
-  process.exit(1);
+    // Validate specific types
+    validator.validateByType('HYSA');
+    validator.validateByType('LYSA');
+    validator.validateByType('Portfolio');
+    validator.validateByType('Inflation');
+    validator.validateByType('Raise');
+    validator.validateByType('interest');
+    validator.validateByType('bill_increase');
+  });
 });
