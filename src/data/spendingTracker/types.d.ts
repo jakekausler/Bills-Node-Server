@@ -47,3 +47,21 @@ export type SpendingTrackerCategory = {
 export type SpendingTrackerData = {
   categories: SpendingTrackerCategory[];
 };
+
+export type ChartDataPoint = {
+  periodStart: string;
+  periodEnd: string;
+  totalSpent: number;
+  baseThreshold: number;
+  effectiveThreshold: number;
+  remainder: number;
+  carryAfter: number; // Positive = credit, negative = debt
+  isCurrent: boolean; // Is this the current (incomplete) period?
+};
+
+export type ChartDataResponse = {
+  periods: ChartDataPoint[];
+  nextPeriodThreshold: number; // Projected threshold for the next period
+  cumulativeSpent: number; // Total spent across all periods in range
+  cumulativeThreshold: number; // Total threshold across all periods in range
+};
