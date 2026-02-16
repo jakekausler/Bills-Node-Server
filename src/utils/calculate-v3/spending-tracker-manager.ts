@@ -1,8 +1,11 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
+import { SpendingTrackerCategory, ChartDataResponse, ChartDataPoint } from '../../data/spendingTracker/types';
+import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { loadNumberOrVariable, loadDateOrVariable } from '../simulation/loadVariableValue';
+import { formatDate } from '../date/date';
 import { DateString } from '../date/types';
+import { computePeriodBoundaries } from './period-utils';
 import { SegmentResult } from './types';
 
 dayjs.extend(utc);
@@ -387,5 +390,231 @@ export class SpendingTrackerManager {
       state.periodSpending = state.checkpointPeriodSpending;
       state.lastProcessedPeriodEnd = state.checkpointLastProcessedPeriodEnd;
     }
+  }
+
+  /**
+   * Computes chart data for a spending tracker category by replaying the carry
+   * logic over consolidated activities within a date range.
+   *
+   * This is a static "replay" method — it resolves all variable-backed fields,
+   * generates period boundaries, filters activities, and computes per-period
+   * spending/threshold/carry data for chart visualization.
+   *
+   * @param category - The spending tracker category definition
+   * @param consolidatedActivities - All consolidated activities from the calculation engine
+   * @param dateRange - The chart display date range (startDate, endDate)
+   * @param calculationStartDate - The engine's actualStartDate (inflation anchor)
+   * @param simulation - The simulation name for variable resolution
+   * @returns ChartDataResponse with per-period data and summary statistics
+   */
+  static computeChartData(
+    category: SpendingTrackerCategory,
+    consolidatedActivities: ConsolidatedActivity[],
+    dateRange: { startDate: string; endDate: string },
+    calculationStartDate: string,
+    simulation: string,
+  ): ChartDataResponse {
+    // 1. Resolve all variable-backed fields
+    const resolvedThreshold = loadNumberOrVariable(
+      category.threshold,
+      category.thresholdIsVariable,
+      category.thresholdVariable,
+      simulation,
+    );
+    if (typeof resolvedThreshold.amount !== 'number') {
+      throw new Error(`computeChartData: threshold for category "${category.name}" resolved to non-numeric value`);
+    }
+
+    const resolvedIncreaseBy = loadNumberOrVariable(
+      category.increaseBy,
+      category.increaseByIsVariable,
+      category.increaseByVariable,
+      simulation,
+    );
+    if (typeof resolvedIncreaseBy.amount !== 'number') {
+      throw new Error(`computeChartData: increaseBy for category "${category.name}" resolved to non-numeric value`);
+    }
+
+    const resolvedChanges: ResolvedThresholdChange[] = category.thresholdChanges.map((change) => {
+      const resolvedDate = loadDateOrVariable(
+        change.date as DateString,
+        change.dateIsVariable,
+        change.dateVariable,
+        simulation,
+      );
+      const resolvedNewThreshold = loadNumberOrVariable(
+        change.newThreshold,
+        change.newThresholdIsVariable,
+        change.newThresholdVariable,
+        simulation,
+      );
+      if (typeof resolvedNewThreshold.amount !== 'number') {
+        throw new Error(`computeChartData: threshold change newThreshold for category "${category.name}" resolved to non-numeric value`);
+      }
+      return {
+        date: resolvedDate.date,
+        newThreshold: resolvedNewThreshold.amount as number,
+        resetCarry: change.resetCarry,
+      };
+    });
+
+    // Sort threshold changes chronologically
+    resolvedChanges.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    const baseThreshold = resolvedThreshold.amount as number;
+    const increaseBy = resolvedIncreaseBy.amount as number;
+    const increaseByDate = category.increaseByDate;
+    const startDateObj = new Date(dateRange.startDate + 'T12:00:00Z');
+    const endDateObj = new Date(dateRange.endDate + 'T12:00:00Z');
+    const calcStartDateObj = new Date(calculationStartDate + 'T12:00:00Z');
+
+    // 2. Generate period boundaries
+    const periods = computePeriodBoundaries(
+      category.interval,
+      category.intervalStart,
+      startDateObj,
+      endDateObj,
+    );
+
+    if (periods.length === 0) {
+      return {
+        periods: [],
+        nextPeriodThreshold: 0,
+        cumulativeSpent: 0,
+        cumulativeThreshold: 0,
+      };
+    }
+
+    // 3. Process each period
+    const today = dayjs.utc();
+    let carryBalance = 0;
+    let cumulativeSpent = 0;
+    let cumulativeThreshold = 0;
+    const chartPoints: ChartDataPoint[] = [];
+
+    for (const period of periods) {
+      const periodStartDayjs = dayjs.utc(period.periodStart);
+      const periodEndDayjs = dayjs.utc(period.periodEnd);
+
+      // Filter activities for this period and category
+      const periodActivities = consolidatedActivities.filter((activity) => {
+        // Exact match on category ID
+        if (activity.spendingCategory !== category.id) {
+          return false;
+        }
+        const activityDate = dayjs.utc(activity.date);
+        return !activityDate.isBefore(periodStartDayjs, 'day') && !activityDate.isAfter(periodEndDayjs, 'day');
+      });
+
+      // Sum spending using the same logic as recordSegmentActivities:
+      // periodSpending -= amount
+      // Negative amounts (expenses): -(-50) = +50 (increases spending)
+      // Positive amounts (refunds): -(+25) = -25 (decreases spending)
+      let totalSpent = 0;
+      for (const activity of periodActivities) {
+        const amount = typeof activity.amount === 'number' ? activity.amount : 0;
+        if (amount === 0) {
+          continue;
+        }
+        totalSpent -= amount;
+      }
+
+      // Compute base threshold at the period end date using resolveThresholdAtDate
+      const periodBaseThreshold = SpendingTrackerManager.resolveThresholdAtDate(
+        baseThreshold,
+        resolvedChanges,
+        increaseBy,
+        increaseByDate,
+        calcStartDateObj,
+        period.periodEnd,
+      );
+
+      // Compute effective threshold: base + carry, clamped to 0
+      const effectiveThreshold = Math.max(0, periodBaseThreshold + carryBalance);
+
+      // Compute remainder
+      const remainder = Math.max(0, effectiveThreshold - totalSpent);
+
+      // Update carry balance: same algorithm and ordering as instance updateCarry()
+      // 1. Compute new carry from existing carry + (base threshold - total spent)
+      let newCarry = carryBalance + (periodBaseThreshold - totalSpent);
+
+      // 2. Apply carry flag clamping
+      // If positive carry and carryOver is OFF, zero it out
+      if (newCarry > 0 && !category.carryOver) {
+        newCarry = 0;
+      }
+
+      // If negative carry and carryUnder is OFF, zero it out
+      if (newCarry < 0 && !category.carryUnder) {
+        newCarry = 0;
+      }
+
+      // 3. Set carry balance
+      carryBalance = newCarry;
+
+      // 4. THEN check for resetCarry threshold changes within this period (reset wins)
+      for (const change of resolvedChanges) {
+        const changeDayjs = dayjs.utc(change.date);
+        if (
+          change.resetCarry &&
+          !changeDayjs.isBefore(periodStartDayjs, 'day') &&
+          !changeDayjs.isAfter(periodEndDayjs, 'day')
+        ) {
+          carryBalance = 0;
+          break;
+        }
+      }
+
+      // Determine if this is the current period
+      const isCurrent = !today.isBefore(periodStartDayjs, 'day') && !today.isAfter(periodEndDayjs, 'day');
+
+      // Accumulate cumulative totals
+      cumulativeSpent += totalSpent;
+      cumulativeThreshold += effectiveThreshold;
+
+      chartPoints.push({
+        periodStart: formatDate(period.periodStart),
+        periodEnd: formatDate(period.periodEnd),
+        totalSpent,
+        baseThreshold: periodBaseThreshold,
+        effectiveThreshold,
+        remainder,
+        carryAfter: carryBalance,
+        isCurrent,
+      });
+    }
+
+    // 4. Compute nextPeriodThreshold: effective threshold for the period after the last one
+    const lastPeriod = periods[periods.length - 1];
+    // Generate one more period to find the next period start date
+    const extendedEnd = dayjs.utc(lastPeriod.periodEnd).add(1, 'year').toDate();
+    const extendedPeriods = computePeriodBoundaries(
+      category.interval,
+      category.intervalStart,
+      dayjs.utc(lastPeriod.periodEnd).add(1, 'day').toDate(),
+      extendedEnd,
+    );
+
+    let nextPeriodThreshold = 0;
+    if (extendedPeriods.length > 0) {
+      const nextPeriodDate = extendedPeriods[0].periodEnd;
+      const nextBaseThreshold = SpendingTrackerManager.resolveThresholdAtDate(
+        baseThreshold,
+        resolvedChanges,
+        increaseBy,
+        increaseByDate,
+        calcStartDateObj,
+        nextPeriodDate,
+      );
+      nextPeriodThreshold = Math.max(0, nextBaseThreshold + carryBalance);
+    }
+
+    return {
+      periods: chartPoints,
+      nextPeriodThreshold,
+      cumulativeSpent,
+      cumulativeThreshold,
+    };
   }
 }
