@@ -271,8 +271,8 @@ export class SpendingTrackerManager {
     const state = this.categoryStates.get(categoryId)!;
     const baseThreshold = this.resolveThreshold(categoryId, date);
 
-    // Calculate new carry: this period's underspend/overspend relative to base threshold
-    let newCarry = baseThreshold - totalSpent;
+    // Calculate new carry: accumulate this period's underspend/overspend onto existing carry
+    let newCarry = state.carryBalance + (baseThreshold - totalSpent);
 
     // Apply carry-over rule: if positive carry and carryOver is OFF, zero it out
     if (newCarry > 0 && !config.carryOver) {
@@ -285,6 +285,12 @@ export class SpendingTrackerManager {
     }
 
     state.carryBalance = newCarry;
+
+    // Positive carry (underspend credit) is consumed by the remainder bill
+    // Only negative carry (overspend debt) persists across periods
+    if (state.carryBalance > 0) {
+      state.carryBalance = 0;
+    }
 
     // Check if a threshold change with resetCarry applies at this date
     for (const change of config.thresholdChanges) {
@@ -536,8 +542,8 @@ export class SpendingTrackerManager {
       const remainder = Math.max(0, effectiveThreshold - totalSpent);
 
       // Update carry balance: same algorithm and ordering as instance updateCarry()
-      // 1. Compute new carry from existing carry + (base threshold - total spent)
-      let newCarry = periodBaseThreshold - totalSpent;
+      // 1. Compute new carry: accumulate this period's underspend/overspend onto existing carry
+      let newCarry = carryBalance + (periodBaseThreshold - totalSpent);
 
       // 2. Apply carry flag clamping
       // If positive carry and carryOver is OFF, zero it out
@@ -552,6 +558,12 @@ export class SpendingTrackerManager {
 
       // 3. Set carry balance
       carryBalance = newCarry;
+
+      // Positive carry (underspend credit) is consumed by the remainder bill — reset to 0
+      // Negative carry (debt) persists across periods
+      if (carryBalance > 0) {
+        carryBalance = 0;
+      }
 
       // 4. THEN check for resetCarry threshold changes within this period (reset wins)
       for (const change of resolvedChanges) {
