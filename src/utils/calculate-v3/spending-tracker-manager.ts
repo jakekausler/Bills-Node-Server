@@ -271,8 +271,8 @@ export class SpendingTrackerManager {
     const state = this.categoryStates.get(categoryId)!;
     const baseThreshold = this.resolveThreshold(categoryId, date);
 
-    // Calculate new carry: existing carry + (base threshold - total spent)
-    let newCarry = state.carryBalance + (baseThreshold - totalSpent);
+    // Calculate new carry: this period's underspend/overspend relative to base threshold
+    let newCarry = baseThreshold - totalSpent;
 
     // Apply carry-over rule: if positive carry and carryOver is OFF, zero it out
     if (newCarry > 0 && !config.carryOver) {
@@ -537,7 +537,7 @@ export class SpendingTrackerManager {
 
       // Update carry balance: same algorithm and ordering as instance updateCarry()
       // 1. Compute new carry from existing carry + (base threshold - total spent)
-      let newCarry = carryBalance + (periodBaseThreshold - totalSpent);
+      let newCarry = periodBaseThreshold - totalSpent;
 
       // 2. Apply carry flag clamping
       // If positive carry and carryOver is OFF, zero it out

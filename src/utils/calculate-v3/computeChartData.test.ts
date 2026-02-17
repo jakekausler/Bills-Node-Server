@@ -252,7 +252,7 @@ describe('SpendingTrackerManager.computeChartData', () => {
       expect(result.periods[0].baseThreshold).toBe(150);
       expect(result.periods[0].effectiveThreshold).toBe(150); // no carry yet
       expect(result.periods[0].remainder).toBe(50); // 150 - 100
-      // carryAfter = 0 + (150 - 100) = 50 (carryOver ON, positive carry stays)
+      // newCarry = 150 - 100 = 50 (carryOver ON, positive carry stays)
       expect(result.periods[0].carryAfter).toBe(50);
 
       // Period 2: no spending, effective = 150 + 50 = 200
@@ -289,7 +289,7 @@ describe('SpendingTrackerManager.computeChartData', () => {
 
       expect(result.periods).toHaveLength(2);
 
-      // Period 1: carry = 0 + (150 - 500) = -350 (negative, carryUnder ON so it stays)
+      // Period 1: newCarry = 150 - 500 = -350 (negative, carryUnder ON so it stays)
       expect(result.periods[0].totalSpent).toBe(500);
       expect(result.periods[0].carryAfter).toBe(-350);
 
@@ -370,28 +370,28 @@ describe('SpendingTrackerManager.computeChartData', () => {
       expect(result.periods).toHaveLength(4);
 
       // Period 1: carry(start)=0, effective=150, spent=100
-      //   carryAfter = 0 + (150 - 100) = +50
+      //   newCarry = 150 - 100 = +50 (carryOver ON, stays)
       expect(result.periods[0].effectiveThreshold).toBe(150);
       expect(result.periods[0].totalSpent).toBe(100);
       expect(result.periods[0].carryAfter).toBe(50);
 
-      // Period 2: carry(start)=50, effective=200, spent=250
-      //   carryAfter = 50 + (150 - 250) = -50
+      // Period 2: carry(start)=50, effective=max(0,150+50)=200, spent=250
+      //   newCarry = 150 - 250 = -100 (carryUnder ON, stays)
       expect(result.periods[1].effectiveThreshold).toBe(200);
       expect(result.periods[1].totalSpent).toBe(250);
-      expect(result.periods[1].carryAfter).toBe(-50);
+      expect(result.periods[1].carryAfter).toBe(-100);
 
-      // Period 3: carry(start)=-50, effective=max(0,150-50)=100, spent=0
-      //   carryAfter = -50 + (150 - 0) = +100
-      expect(result.periods[2].effectiveThreshold).toBe(100);
+      // Period 3: carry(start)=-100, effective=max(0,150-100)=50, spent=0
+      //   newCarry = 150 - 0 = +150 (carryOver ON, stays)
+      expect(result.periods[2].effectiveThreshold).toBe(50);
       expect(result.periods[2].totalSpent).toBe(0);
-      expect(result.periods[2].carryAfter).toBe(100);
+      expect(result.periods[2].carryAfter).toBe(150);
 
-      // Period 4: carry(start)=100, effective=250, spent=0
-      //   carryAfter = 100 + (150 - 0) = +250
-      expect(result.periods[3].effectiveThreshold).toBe(250);
+      // Period 4: carry(start)=150, effective=max(0,150+150)=300, spent=0
+      //   newCarry = 150 - 0 = +150 (carryOver ON, stays)
+      expect(result.periods[3].effectiveThreshold).toBe(300);
       expect(result.periods[3].totalSpent).toBe(0);
-      expect(result.periods[3].carryAfter).toBe(250);
+      expect(result.periods[3].carryAfter).toBe(150);
     });
   });
 
@@ -451,7 +451,7 @@ describe('SpendingTrackerManager.computeChartData', () => {
         intervalStart: 'Saturday',
       });
 
-      // Period 1: spend 100, carryAfter = 0 + (150-100) = +50
+      // Period 1: spend 100, newCarry = 150-100 = +50 (carryOver ON)
       const activities = [
         makeActivity('2025-01-05', -100, 'test-cat-1'),
       ];
@@ -480,7 +480,7 @@ describe('SpendingTrackerManager.computeChartData', () => {
         intervalStart: 'Saturday',
       });
 
-      // Massive overspend: carry = 0 + (150-1000) = -850
+      // Massive overspend: newCarry = 150-1000 = -850 (carryUnder ON)
       const activities = [
         makeActivity('2025-01-05', -1000, 'test-cat-1'),
       ];
@@ -582,8 +582,8 @@ describe('SpendingTrackerManager.computeChartData', () => {
         intervalStart: 'Saturday',
       });
 
-      // Period 1: spend 100, carry = +50
-      // Period 2: effective = 200, spend 0, carry = 50+(150-0) = +200
+      // Period 1: spend 100, newCarry = 150-100 = +50 (carryOver ON)
+      // Period 2: effective = 200, spend 0, newCarry = 150-0 = +150 (carryOver ON)
       const activities = [
         makeActivity('2025-01-05', -100, 'test-cat-1'),
       ];
@@ -861,7 +861,7 @@ describe('SpendingTrackerManager.computeChartData', () => {
   });
 
   describe('Multi-period carry accumulation', () => {
-    it('carryUnder ON: overspend drains over multiple periods then recovers', () => {
+    it('carryUnder ON: overspend carries for one period then resets (carryOver OFF)', () => {
       const category = makeCategory({
         threshold: 150,
         carryOver: false,
@@ -870,10 +870,10 @@ describe('SpendingTrackerManager.computeChartData', () => {
         intervalStart: 'Saturday',
       });
 
-      // Period 1: spend 500, carry = 0 + (150-500) = -350
-      // Period 2: spend 0, carry = -350 + (150-0) = -200
-      // Period 3: spend 0, carry = -200 + (150-0) = -50
-      // Period 4: spend 0, carry = -50 + (150-0) = +100 → 0 (carryOver OFF, positive zeroed)
+      // Period 1: spend 500, newCarry = 150-500 = -350 (carryUnder ON, stays)
+      // Period 2: spend 0, newCarry = 150-0 = +150 → 0 (carryOver OFF, positive zeroed)
+      // Period 3: spend 0, newCarry = 150-0 = +150 → 0 (carryOver OFF, positive zeroed)
+      // Period 4: spend 0, newCarry = 150-0 = +150 → 0 (carryOver OFF, positive zeroed)
       const activities = [
         makeActivity('2025-01-05', -500, 'test-cat-1'),
       ];
@@ -892,17 +892,19 @@ describe('SpendingTrackerManager.computeChartData', () => {
       expect(result.periods[0].effectiveThreshold).toBe(150);
       expect(result.periods[0].carryAfter).toBe(-350);
 
-      // Period 2: effective=max(0, 150-350)=0
+      // Period 2: carry=-350, effective=max(0, 150-350)=0, spend=0
+      //   newCarry = 150 - 0 = +150 → 0 (carryOver OFF)
       expect(result.periods[1].effectiveThreshold).toBe(0);
-      expect(result.periods[1].carryAfter).toBe(-200);
+      expect(result.periods[1].carryAfter).toBe(0);
 
-      // Period 3: effective=max(0, 150-200)=0
-      expect(result.periods[2].effectiveThreshold).toBe(0);
-      expect(result.periods[2].carryAfter).toBe(-50);
+      // Period 3: carry=0, effective=max(0, 150+0)=150, spend=0
+      //   newCarry = 150 - 0 = +150 → 0 (carryOver OFF)
+      expect(result.periods[2].effectiveThreshold).toBe(150);
+      expect(result.periods[2].carryAfter).toBe(0);
 
-      // Period 4: effective=max(0, 150-50)=100
-      expect(result.periods[3].effectiveThreshold).toBe(100);
-      // carry = -50 + 150 = 100. Positive, but carryOver OFF → zeroed
+      // Period 4: carry=0, effective=max(0, 150+0)=150, spend=0
+      //   newCarry = 150 - 0 = +150 → 0 (carryOver OFF)
+      expect(result.periods[3].effectiveThreshold).toBe(150);
       expect(result.periods[3].carryAfter).toBe(0);
     });
   });
@@ -990,9 +992,9 @@ describe('SpendingTrackerManager.computeChartData', () => {
       });
 
       // No activities, so every period has totalSpent = 0
-      // Period 1 (Jan 4-10): carry = 0 + (150 - 0) = 150 (carryOver ON, positive stays)
-      // Period 2 (Jan 11-17): carry = 150 + (150 - 0) = 300, then resetCarry => 0
-      // Period 3 (Jan 18-24): carry = 0 + (150 - 0) = 150
+      // Period 1 (Jan 4-10): newCarry = 150 - 0 = 150 (carryOver ON, stays)
+      // Period 2 (Jan 11-17): newCarry = 150 - 0 = 150 (carryOver ON, stays), then resetCarry => 0
+      // Period 3 (Jan 18-24): newCarry = 150 - 0 = 150 (carryOver ON, stays)
       const result = SpendingTrackerManager.computeChartData(
         category,
         [],
@@ -1004,7 +1006,7 @@ describe('SpendingTrackerManager.computeChartData', () => {
       expect(result.periods).toHaveLength(3);
       // Period 1: no resetCarry, carry accumulates normally
       expect(result.periods[0].carryAfter).toBe(150);
-      // Period 2: carry update runs first (300), then resetCarry zeroes it
+      // Period 2: newCarry = 150, then resetCarry zeroes it
       expect(result.periods[1].carryAfter).toBe(0);
       // Period 3: starts fresh from carry=0, accumulates normally
       expect(result.periods[2].carryAfter).toBe(150);

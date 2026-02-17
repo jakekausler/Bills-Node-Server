@@ -228,30 +228,30 @@ describe('SpendingTrackerManager', () => {
         expect(effectiveThreshold).toBe(0);
       });
 
-      it('Week 2: spend $0, carry goes from -350 to -200, effective=$0', () => {
-        mgr.updateCarry('test-cat-1', 500, utcDate(2025, 1, 7)); // carry = -350
-        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 14)); // carry = -350 + (150 - 0) = -200
+      it('Week 2: spend $0, carry resets to 0 (carryOver OFF clamps positive), effective=$150', () => {
+        mgr.updateCarry('test-cat-1', 500, utcDate(2025, 1, 7)); // carry = 150-500 = -350
+        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 14)); // carry = 150-0 = +150, carryOver OFF => 0
         const { effectiveThreshold } = mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 1, 21));
-        expect(effectiveThreshold).toBe(0); // max(0, 150 + (-200)) = 0
+        expect(effectiveThreshold).toBe(150); // max(0, 150 + 0) = 150
       });
 
-      it('Week 3: spend $0, carry goes from -200 to -50, effective=$0', () => {
-        mgr.updateCarry('test-cat-1', 500, utcDate(2025, 1, 7));
-        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 14));
-        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 21)); // carry = -200 + 150 = -50
+      it('Week 3: spend $0, carry stays at 0 (carryOver OFF), effective=$150', () => {
+        mgr.updateCarry('test-cat-1', 500, utcDate(2025, 1, 7));  // carry = -350
+        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 14));   // carry = 150-0=150, OFF => 0
+        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 21));   // carry = 150-0=150, OFF => 0
         const { effectiveThreshold } = mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 1, 28));
-        expect(effectiveThreshold).toBe(100); // max(0, 150 + (-50)) = 100
+        expect(effectiveThreshold).toBe(150); // max(0, 150 + 0) = 150
       });
 
-      it('Week 4: spend $0, carry goes from -50 to 0, effective=$100 then $150', () => {
-        mgr.updateCarry('test-cat-1', 500, utcDate(2025, 1, 7));
-        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 14));
-        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 21));
-        // Before updating carry for week 4, effective = 100 and remainder = 100 (spent 0)
+      it('Week 4: spend $0, carry stays at 0 (carryOver OFF), effective=$150', () => {
+        mgr.updateCarry('test-cat-1', 500, utcDate(2025, 1, 7));  // carry = -350
+        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 14));   // carry = 0 (clamped)
+        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 21));   // carry = 0 (clamped)
+        // Before updating carry for week 4, effective = 150 and remainder = 150 (spent 0)
         const remainder = mgr.computeRemainder('test-cat-1', 0, utcDate(2025, 1, 28));
-        expect(remainder).toBe(100);
+        expect(remainder).toBe(150);
 
-        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 28)); // carry = -50 + 150 = 100 -> 0 (carryOver OFF)
+        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 28)); // carry = 150-0=150, carryOver OFF => 0
         const { effectiveThreshold } = mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 2, 4));
         expect(effectiveThreshold).toBe(150); // carry zeroed because positive carry with carryOver OFF
       });
@@ -273,11 +273,11 @@ describe('SpendingTrackerManager', () => {
         const remainder = mgr.computeRemainder('test-cat-1', 100, date);
         expect(remainder).toBe(50);
 
-        mgr.updateCarry('test-cat-1', 100, date); // carry = 0 + (150 - 100) = +50
+        mgr.updateCarry('test-cat-1', 100, date); // carry = 150 - 100 = +50
       });
 
-      it('Week 2: spend $250, base $150, carry(start)=+$50, effective=$200, remainder=$0, carry(end)=-$50', () => {
-        mgr.updateCarry('test-cat-1', 100, utcDate(2025, 1, 7)); // carry = 0+(150-100) = +50
+      it('Week 2: spend $250, base $150, carry(start)=+$50, effective=$200, remainder=$0, carry(end)=-$100', () => {
+        mgr.updateCarry('test-cat-1', 100, utcDate(2025, 1, 7)); // carry = 150-100 = +50
 
         const date = utcDate(2025, 1, 14);
         const { effectiveThreshold } = mgr.getEffectiveThreshold('test-cat-1', date);
@@ -286,65 +286,65 @@ describe('SpendingTrackerManager', () => {
         const remainder = mgr.computeRemainder('test-cat-1', 250, date);
         expect(remainder).toBe(0); // max(0, 200 - 250) = 0
 
-        mgr.updateCarry('test-cat-1', 250, date); // carry = 50 + (150 - 250) = -50
+        mgr.updateCarry('test-cat-1', 250, date); // carry = 150 - 250 = -100
       });
 
-      it('Week 3: spend $0, base $150, carry(start)=-$50, effective=$100, remainder=$100, carry(end)=+$100', () => {
-        mgr.updateCarry('test-cat-1', 100, utcDate(2025, 1, 7));  // carry = +50
-        mgr.updateCarry('test-cat-1', 250, utcDate(2025, 1, 14)); // carry = -50
+      it('Week 3: spend $0, base $150, carry(start)=-$100, effective=$50, remainder=$50, carry(end)=+$150', () => {
+        mgr.updateCarry('test-cat-1', 100, utcDate(2025, 1, 7));  // carry = 150-100 = +50
+        mgr.updateCarry('test-cat-1', 250, utcDate(2025, 1, 14)); // carry = 150-250 = -100
 
         const date = utcDate(2025, 1, 21);
         const { effectiveThreshold } = mgr.getEffectiveThreshold('test-cat-1', date);
-        expect(effectiveThreshold).toBe(100); // max(0, 150 + (-50)) = 100
+        expect(effectiveThreshold).toBe(50); // max(0, 150 + (-100)) = 50
 
         const remainder = mgr.computeRemainder('test-cat-1', 0, date);
-        expect(remainder).toBe(100);
+        expect(remainder).toBe(50);
 
-        mgr.updateCarry('test-cat-1', 0, date); // carry = -50 + (150 - 0) = +100
+        mgr.updateCarry('test-cat-1', 0, date); // carry = 150 - 0 = +150
       });
 
-      it('Week 4: spend $0, base $150, carry(start)=+$100, effective=$250, remainder=$250, carry(end)=+$250', () => {
-        mgr.updateCarry('test-cat-1', 100, utcDate(2025, 1, 7));  // carry = +50
-        mgr.updateCarry('test-cat-1', 250, utcDate(2025, 1, 14)); // carry = -50
-        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 21));   // carry = +100
+      it('Week 4: spend $0, base $150, carry(start)=+$150, effective=$300, remainder=$300, carry(end)=+$150', () => {
+        mgr.updateCarry('test-cat-1', 100, utcDate(2025, 1, 7));  // carry = 150-100 = +50
+        mgr.updateCarry('test-cat-1', 250, utcDate(2025, 1, 14)); // carry = 150-250 = -100
+        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 21));   // carry = 150-0 = +150
 
         const date = utcDate(2025, 1, 28);
         const { effectiveThreshold } = mgr.getEffectiveThreshold('test-cat-1', date);
-        expect(effectiveThreshold).toBe(250); // 150 + 100
+        expect(effectiveThreshold).toBe(300); // 150 + 150
 
         const remainder = mgr.computeRemainder('test-cat-1', 0, date);
-        expect(remainder).toBe(250);
+        expect(remainder).toBe(300);
 
-        mgr.updateCarry('test-cat-1', 0, date); // carry = 100 + (150 - 0) = +250
+        mgr.updateCarry('test-cat-1', 0, date); // carry = 150 - 0 = +150
       });
 
       it('Full 4-week scenario produces correct final carry', () => {
-        mgr.updateCarry('test-cat-1', 100, utcDate(2025, 1, 7));  // carry = 0+(150-100) = +50
-        mgr.updateCarry('test-cat-1', 250, utcDate(2025, 1, 14)); // carry = 50+(150-250) = -50
-        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 21));   // carry = -50+(150-0) = +100
-        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 28));   // carry = 100+(150-0) = +250
+        mgr.updateCarry('test-cat-1', 100, utcDate(2025, 1, 7));  // carry = 150-100 = +50
+        mgr.updateCarry('test-cat-1', 250, utcDate(2025, 1, 14)); // carry = 150-250 = -100
+        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 21));   // carry = 150-0 = +150
+        mgr.updateCarry('test-cat-1', 0, utcDate(2025, 1, 28));   // carry = 150-0 = +150
 
         const { effectiveThreshold } = mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 2, 4));
-        expect(effectiveThreshold).toBe(400); // 150 + 250
+        expect(effectiveThreshold).toBe(300); // 150 + 150
       });
     });
 
     describe('alternating carry with both ON', () => {
-      it('signed carry accumulates correctly across alternating over/under-spends', () => {
+      it('signed carry reflects only current period delta across alternating over/under-spends', () => {
         const cat = makeCategory({ threshold: 150, carryOver: true, carryUnder: true });
         const mgr = new SpendingTrackerManager([cat], simulation, startDate);
 
-        // Period 1: underspend by 30 => carry = 0 + (150-120) = +30
+        // Period 1: underspend by 30 => carry = 150-120 = +30
         mgr.updateCarry('test-cat-1', 120, utcDate(2025, 1, 7));
         expect(mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 1, 14)).effectiveThreshold).toBe(180); // 150+30
 
-        // Period 2: overspend by 80 => carry = 30 + (150-230) = -50
+        // Period 2: overspend by 80 => carry = 150-230 = -80
         mgr.updateCarry('test-cat-1', 230, utcDate(2025, 1, 14));
-        expect(mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 1, 21)).effectiveThreshold).toBe(100); // 150+(-50)
+        expect(mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 1, 21)).effectiveThreshold).toBe(70); // 150+(-80)
 
-        // Period 3: underspend => carry = -50 + (150-50) = +50
+        // Period 3: underspend by 100 => carry = 150-50 = +100
         mgr.updateCarry('test-cat-1', 50, utcDate(2025, 1, 21));
-        expect(mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 1, 28)).effectiveThreshold).toBe(200); // 150+50
+        expect(mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 1, 28)).effectiveThreshold).toBe(250); // 150+100
       });
     });
   });
@@ -455,12 +455,12 @@ describe('SpendingTrackerManager', () => {
       });
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
 
-      // Underspend: carry = 0 + (150-100) = +50
+      // Underspend: carry = 150-100 = +50
       mgr.updateCarry('test-cat-1', 100, utcDate(2025, 1, 7));
       expect(mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 1, 14)).effectiveThreshold).toBe(200); // 150+50
 
       // Update carry on the threshold change date (resetCarry triggers)
-      // carry = 50 + (200 - 100) = +150, then resetCarry zeroes it -> 0
+      // carry = 200 - 100 = +100, then resetCarry zeroes it -> 0
       mgr.updateCarry('test-cat-1', 100, utcDate(2025, 3, 1));
       const { effectiveThreshold } = mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 3, 8));
       expect(effectiveThreshold).toBe(200); // base = 200, carry = 0
@@ -485,14 +485,14 @@ describe('SpendingTrackerManager', () => {
       });
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
 
-      // Underspend by 50: carry = 0 + (150-100) = +50
+      // Underspend by 50: carry = 150-100 = +50
       mgr.updateCarry('test-cat-1', 100, utcDate(2025, 1, 7));
 
       // Update carry on the threshold change date (no reset)
-      // Base threshold is now 200, carry = 50 + (200 - 150) = +100
+      // Base threshold is now 200, carry = 200 - 150 = +50
       mgr.updateCarry('test-cat-1', 150, utcDate(2025, 3, 1));
       const { effectiveThreshold } = mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 3, 8));
-      expect(effectiveThreshold).toBe(300); // 200 + 100
+      expect(effectiveThreshold).toBe(250); // 200 + 50
     });
   });
 
