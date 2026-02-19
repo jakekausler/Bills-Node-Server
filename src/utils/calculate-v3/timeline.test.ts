@@ -562,7 +562,7 @@ describe('Timeline.addSpendingTrackerEvents', () => {
       expect(events.length).toBe(4);
     });
 
-    it('should filter out periods ending before startDate', async () => {
+    it('should mark periods ending before startDate as virtual instead of filtering them out', async () => {
       const timeline = createTimeline();
       const category = makeCategory({
         id: 'skip-filter',
@@ -570,7 +570,7 @@ describe('Timeline.addSpendingTrackerEvents', () => {
         interval: 'weekly',
         intervalStart: 'Saturday',
         accountId: 'acct-1',
-        startDate: '2025-01-18', // skip periods ending before Jan 18
+        startDate: '2025-01-18', // periods ending before Jan 18 are virtual
       });
 
       const events = await addSpendingTrackerEvents(
@@ -580,16 +580,23 @@ describe('Timeline.addSpendingTrackerEvents', () => {
         utcDate(2025, 1, 31),
       );
 
-      // Period Sat Jan 4 - Fri Jan 10: periodEnd Jan 10 < Jan 18 => skipped
-      // Period Sat Jan 11 - Fri Jan 17: periodEnd Jan 17 < Jan 18 => skipped
-      // Period Sat Jan 18 - Fri Jan 24: periodEnd Jan 24 >= Jan 18 => included
-      // Period Sat Jan 25 - Fri Jan 31: periodEnd Jan 31 >= Jan 18 => included
-      expect(events.length).toBe(2);
-      expect(fmt(events[0].periodStart)).toBe('2025-01-18');
-      expect(fmt(events[1].periodStart)).toBe('2025-01-25');
+      // All 4 periods are emitted (none skipped)
+      // Period Sat Jan 4 - Fri Jan 10: periodEnd Jan 10 < Jan 18 => virtual
+      // Period Sat Jan 11 - Fri Jan 17: periodEnd Jan 17 < Jan 18 => virtual
+      // Period Sat Jan 18 - Fri Jan 24: periodEnd Jan 24 >= Jan 18 => real
+      // Period Sat Jan 25 - Fri Jan 31: periodEnd Jan 31 >= Jan 18 => real
+      expect(events.length).toBe(4);
+      expect(events[0].virtual).toBe(true);
+      expect(events[1].virtual).toBe(true);
+      expect(events[2].virtual).toBe(false);
+      expect(events[3].virtual).toBe(false);
+      expect(fmt(events[0].periodStart)).toBe('2025-01-04');
+      expect(fmt(events[1].periodStart)).toBe('2025-01-11');
+      expect(fmt(events[2].periodStart)).toBe('2025-01-18');
+      expect(fmt(events[3].periodStart)).toBe('2025-01-25');
     });
 
-    it('should set firstSpendingTracker true only for first non-skipped event', async () => {
+    it('should set firstSpendingTracker true only for first non-virtual event', async () => {
       const timeline = createTimeline();
       const category = makeCategory({
         id: 'skip-first',
@@ -607,10 +614,17 @@ describe('Timeline.addSpendingTrackerEvents', () => {
         utcDate(2025, 1, 31),
       );
 
-      // After skipping, first included event should have firstSpendingTracker=true
-      expect(events.length).toBe(2);
-      expect(events[0].firstSpendingTracker).toBe(true);
+      // All 4 events emitted; virtual ones have firstSpendingTracker=false
+      // First real (non-virtual) event has firstSpendingTracker=true
+      expect(events.length).toBe(4);
+      expect(events[0].virtual).toBe(true);
+      expect(events[0].firstSpendingTracker).toBe(false);
+      expect(events[1].virtual).toBe(true);
       expect(events[1].firstSpendingTracker).toBe(false);
+      expect(events[2].virtual).toBe(false);
+      expect(events[2].firstSpendingTracker).toBe(true);  // first real event
+      expect(events[3].virtual).toBe(false);
+      expect(events[3].firstSpendingTracker).toBe(false);
     });
 
     it('should set firstSpendingTracker true on first event when nothing is skipped', async () => {

@@ -191,6 +191,9 @@ export type SpendingTrackerEvent = TimelineEvent & {
   periodStart: Date;
   periodEnd: Date;
   firstSpendingTracker: boolean;
+  /** Virtual events process carry but don't create remainder activities.
+   *  These are periods before the category's startDate. */
+  virtual: boolean;
 };
 
 export type Segment = {

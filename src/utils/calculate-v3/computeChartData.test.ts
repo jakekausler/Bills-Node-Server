@@ -1014,4 +1014,148 @@ describe('SpendingTrackerManager.computeChartData', () => {
       expect(result.periods[2].carryAfter).toBe(0);
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Pre-period activities create carry debt (not spending)
+  // -----------------------------------------------------------------------
+  describe('Pre-period activities create carry debt', () => {
+    it('$512 pre-period spending creates carry debt that drains over ~3.4 periods', () => {
+      const category = makeCategory({
+        threshold: 150,
+        carryOver: false,
+        carryUnder: true,
+        interval: 'weekly',
+        intervalStart: 'Saturday',
+      });
+
+      // Activity on Jan 2 (Thursday), before first period starts on Jan 4 (Saturday)
+      const activities = [
+        makeActivity('2025-01-02', -512, 'test-cat-1'),
+      ];
+
+      const result = SpendingTrackerManager.computeChartData(
+        category,
+        activities,
+        { startDate: '2025-01-04', endDate: '2025-01-31' },
+        '2025-01-01',
+        simulation,
+      );
+
+      expect(result.periods).toHaveLength(4);
+
+      // Pre-period: carry = 0 + (150 - 512) = -362
+      // Period 1: totalSpent=0, carry(start)=-362, effective=max(0,150-362)=0,
+      //   remainder=0, newCarry = -362 + (150-0) = -212
+      expect(result.periods[0].totalSpent).toBe(0);
+      expect(result.periods[0].effectiveThreshold).toBe(0);
+      expect(result.periods[0].remainder).toBe(0);
+      expect(result.periods[0].carryAfter).toBe(-212);
+
+      // Period 2: carry=-212, effective=max(0,150-212)=0, spend=0
+      //   newCarry = -212 + 150 = -62
+      expect(result.periods[1].totalSpent).toBe(0);
+      expect(result.periods[1].effectiveThreshold).toBe(0);
+      expect(result.periods[1].remainder).toBe(0);
+      expect(result.periods[1].carryAfter).toBe(-62);
+
+      // Period 3: carry=-62, effective=max(0,150-62)=88, spend=0
+      //   newCarry = -62 + 150 = +88, positive => reset to 0
+      expect(result.periods[2].totalSpent).toBe(0);
+      expect(result.periods[2].effectiveThreshold).toBe(88);
+      expect(result.periods[2].remainder).toBe(88);
+      expect(result.periods[2].carryAfter).toBe(0);
+
+      // Period 4: carry=0, effective=150, spend=0
+      expect(result.periods[3].totalSpent).toBe(0);
+      expect(result.periods[3].effectiveThreshold).toBe(150);
+      expect(result.periods[3].remainder).toBe(150);
+      expect(result.periods[3].carryAfter).toBe(0);
+    });
+
+    it('pre-period activities are NOT counted as totalSpent in the first period', () => {
+      const category = makeCategory({
+        threshold: 150,
+        carryOver: false,
+        carryUnder: true,
+        interval: 'weekly',
+        intervalStart: 'Saturday',
+      });
+
+      // Mix of pre-period and in-period activities
+      const activities = [
+        makeActivity('2025-01-02', -100, 'test-cat-1'), // pre-period (before Jan 4 Saturday)
+        makeActivity('2025-01-06', -30, 'test-cat-1'),  // in-period (Mon Jan 6)
+      ];
+
+      const result = SpendingTrackerManager.computeChartData(
+        category,
+        activities,
+        { startDate: '2025-01-04', endDate: '2025-01-10' },
+        '2025-01-01',
+        simulation,
+      );
+
+      expect(result.periods).toHaveLength(1);
+      // Only the in-period $30 should count as totalSpent
+      expect(result.periods[0].totalSpent).toBe(30);
+      // Pre-period: carry = 0 + (150 - 100) = +50, positive => reset to 0
+      // So effective threshold is still 150
+      expect(result.periods[0].effectiveThreshold).toBe(150);
+    });
+
+    it('pre-period debt is forgiven when carryUnder is OFF', () => {
+      const category = makeCategory({
+        threshold: 150,
+        carryOver: false,
+        carryUnder: false,
+        interval: 'weekly',
+        intervalStart: 'Saturday',
+      });
+
+      const activities = [
+        makeActivity('2025-01-02', -512, 'test-cat-1'),
+      ];
+
+      const result = SpendingTrackerManager.computeChartData(
+        category,
+        activities,
+        { startDate: '2025-01-04', endDate: '2025-01-10' },
+        '2025-01-01',
+        simulation,
+      );
+
+      expect(result.periods).toHaveLength(1);
+      // Pre-period: carry = 0 + (150 - 512) = -362, carryUnder OFF => 0
+      expect(result.periods[0].totalSpent).toBe(0);
+      expect(result.periods[0].effectiveThreshold).toBe(150);
+      expect(result.periods[0].carryAfter).toBe(0);
+    });
+
+    it('no pre-period activities means no carry debt', () => {
+      const category = makeCategory({
+        threshold: 150,
+        carryOver: false,
+        carryUnder: true,
+        interval: 'weekly',
+        intervalStart: 'Saturday',
+      });
+
+      // All activities are within the first period
+      const activities = [
+        makeActivity('2025-01-05', -100, 'test-cat-1'),
+      ];
+
+      const result = SpendingTrackerManager.computeChartData(
+        category,
+        activities,
+        { startDate: '2025-01-04', endDate: '2025-01-10' },
+        '2025-01-01',
+        simulation,
+      );
+
+      expect(result.periods).toHaveLength(1);
+      expect(result.periods[0].totalSpent).toBe(100);
+      expect(result.periods[0].effectiveThreshold).toBe(150);
+    });
+  });
 });

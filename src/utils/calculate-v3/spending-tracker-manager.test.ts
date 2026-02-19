@@ -553,9 +553,15 @@ describe('SpendingTrackerManager', () => {
   // 5. recordSegmentActivities
   // -----------------------------------------------------------------------
   describe('recordSegmentActivities', () => {
+    // When lastProcessedPeriodEnd is null (before any spending tracker event fires),
+    // activities accumulate directly into periodSpending. Virtual events will
+    // process these via the normal carry logic. These tests simulate
+    // the normal case where a period has already been processed.
+
     it('accumulates negative amounts (expenses) correctly', () => {
       const cat = makeCategory();
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 1)); // enable direct accumulation
 
       const segment = makeSegmentResult({
         'account-1': [
@@ -570,6 +576,7 @@ describe('SpendingTrackerManager', () => {
     it('positive amounts (refunds) reduce period spending', () => {
       const cat = makeCategory();
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 1));
 
       const segment = makeSegmentResult({
         'account-1': [
@@ -584,6 +591,7 @@ describe('SpendingTrackerManager', () => {
     it('periodSpending goes negative when refunds exceed expenses (net refund increases budget)', () => {
       const cat = makeCategory();
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 1));
 
       const segment = makeSegmentResult({
         'account-1': [
@@ -600,6 +608,7 @@ describe('SpendingTrackerManager', () => {
     it('skips activities with null spendingCategory', () => {
       const cat = makeCategory();
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 1));
 
       const segment = makeSegmentResult({
         'account-1': [
@@ -614,6 +623,7 @@ describe('SpendingTrackerManager', () => {
     it('skips activities with non-matching spendingCategory', () => {
       const cat = makeCategory();
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 1));
 
       const segment = makeSegmentResult({
         'account-1': [
@@ -628,6 +638,7 @@ describe('SpendingTrackerManager', () => {
     it('skips zero-amount activities', () => {
       const cat = makeCategory();
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 1));
 
       const segment = makeSegmentResult({
         'account-1': [{ amount: 0, spendingCategory: 'test-cat-1', date: '2025-01-05' }],
@@ -657,6 +668,7 @@ describe('SpendingTrackerManager', () => {
     it('accumulates from multiple accounts in same segment', () => {
       const cat = makeCategory();
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 1));
 
       const segment = makeSegmentResult({
         'account-1': [{ amount: -50, spendingCategory: 'test-cat-1', date: '2025-01-05' }],
@@ -669,6 +681,7 @@ describe('SpendingTrackerManager', () => {
     it('handles activities with non-numeric amounts gracefully', () => {
       const cat = makeCategory();
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 1));
 
       const segment = makeSegmentResult({
         'account-1': [
@@ -679,6 +692,22 @@ describe('SpendingTrackerManager', () => {
       mgr.recordSegmentActivities(segment);
       // Non-numeric treated as 0, which is >= 0, so skipped
       expect(mgr.getPeriodSpending('test-cat-1')).toBe(50);
+    });
+
+    it('accumulates activities into periodSpending even when lastProcessedPeriodEnd is null (virtual events will process)', () => {
+      const cat = makeCategory();
+      const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      // Do NOT call markPeriodProcessed — simulates pre-first-event state
+
+      const segment = makeSegmentResult({
+        'account-1': [
+          { amount: -50, spendingCategory: 'test-cat-1', date: '2025-01-02' },
+          { amount: -30, spendingCategory: 'test-cat-1', date: '2025-01-05' },
+        ],
+      });
+      mgr.recordSegmentActivities(segment);
+      // Activities go directly into periodSpending (virtual events will process them)
+      expect(mgr.getPeriodSpending('test-cat-1')).toBe(80);
     });
   });
 
@@ -692,6 +721,7 @@ describe('SpendingTrackerManager', () => {
 
       // Modify state: carry = 0+(150-100) = +50, positive => reset to 0
       mgr.updateCarry('test-cat-1', 100, utcDate(2025, 1, 7));
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 7)); // enable direct accumulation
       const segment = makeSegmentResult({
         'account-1': [{ amount: -40, spendingCategory: 'test-cat-1', date: '2025-01-08' }],
       });
@@ -723,6 +753,7 @@ describe('SpendingTrackerManager', () => {
     it('after restore, processing produces same results (no double-counting)', () => {
       const cat = makeCategory({ threshold: 150, carryOver: true });
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 1)); // enable direct accumulation
 
       // Initial processing
       const segment = makeSegmentResult({
@@ -793,8 +824,9 @@ describe('SpendingTrackerManager', () => {
     it('affects subsequent recordSegmentActivities calls', () => {
       const cat = makeCategory();
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 1)); // enable direct accumulation
 
-      // First segment: no period processed yet, everything counts
+      // First segment: period processed, activities after cutoff count
       const segment1 = makeSegmentResult({
         'account-1': [{ amount: -50, spendingCategory: 'test-cat-1', date: '2025-01-05' }],
       });
@@ -832,6 +864,7 @@ describe('SpendingTrackerManager', () => {
     it('resets period spending to 0', () => {
       const cat = makeCategory();
       const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 1)); // enable direct accumulation
 
       const segment = makeSegmentResult({
         'account-1': [{ amount: -80, spendingCategory: 'test-cat-1', date: '2025-01-05' }],
@@ -859,6 +892,8 @@ describe('SpendingTrackerManager', () => {
       const cat1 = makeCategory({ id: 'cat-a', name: 'A', threshold: 100 });
       const cat2 = makeCategory({ id: 'cat-b', name: 'B', threshold: 200, carryOver: true });
       const mgr = new SpendingTrackerManager([cat1, cat2], simulation, startDate);
+      mgr.markPeriodProcessed('cat-a', utcDate(2025, 1, 1));
+      mgr.markPeriodProcessed('cat-b', utcDate(2025, 1, 1));
 
       const segment = makeSegmentResult({
         'account-1': [
@@ -877,6 +912,58 @@ describe('SpendingTrackerManager', () => {
 
       expect(mgr.getEffectiveThreshold('cat-a', utcDate(2025, 1, 14)).effectiveThreshold).toBe(100); // 100 + 0
       expect(mgr.getEffectiveThreshold('cat-b', utcDate(2025, 1, 14)).effectiveThreshold).toBe(200); // 200 + 0 (positive carry reset)
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Virtual period behavior (replaces processPrePeriodActivities)
+  // -----------------------------------------------------------------------
+  describe('Virtual period behavior', () => {
+    it('activities accumulated before any period processed are available via getPeriodSpending', () => {
+      const cat = makeCategory({ threshold: 150, carryOver: false, carryUnder: true });
+      const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+
+      // Activities accumulate directly into periodSpending now (no pendingActivities)
+      const segment = makeSegmentResult({
+        'account-1': [
+          { amount: -100, spendingCategory: 'test-cat-1', date: '2025-01-02' },
+          { amount: -50, spendingCategory: 'test-cat-1', date: '2025-01-06' },
+        ],
+      });
+      mgr.recordSegmentActivities(segment);
+      expect(mgr.getPeriodSpending('test-cat-1')).toBe(150);
+    });
+
+    it('virtual events process carry via updateCarry and set lastProcessedPeriodEnd via markPeriodProcessed', () => {
+      const cat = makeCategory({ threshold: 150, carryOver: false, carryUnder: true });
+      const mgr = new SpendingTrackerManager([cat], simulation, startDate);
+
+      // Simulate what the calculator does for a virtual event:
+      // 1. getPeriodSpending returns accumulated spending
+      // 2. computeRemainder calculates remainder
+      // 3. updateCarry updates carry balance
+      // 4. resetPeriodSpending resets for next period
+      // 5. markPeriodProcessed sets lastProcessedPeriodEnd
+
+      // Accumulate $512 of spending
+      const segment = makeSegmentResult({
+        'account-1': [
+          { amount: -512, spendingCategory: 'test-cat-1', date: '2025-01-02' },
+        ],
+      });
+      mgr.recordSegmentActivities(segment);
+      expect(mgr.getPeriodSpending('test-cat-1')).toBe(512);
+
+      // Process as virtual event (same steps as calculator but without creating remainder activity)
+      const totalSpent = mgr.getPeriodSpending('test-cat-1');
+      mgr.updateCarry('test-cat-1', totalSpent, utcDate(2025, 1, 10));
+      mgr.resetPeriodSpending('test-cat-1');
+      mgr.markPeriodProcessed('test-cat-1', utcDate(2025, 1, 10));
+
+      // carry = 0 + (150 - 512) = -362 (carryUnder ON, persists)
+      const { effectiveThreshold } = mgr.getEffectiveThreshold('test-cat-1', utcDate(2025, 1, 17));
+      expect(effectiveThreshold).toBe(0); // max(0, 150 + (-362)) = 0
+      expect(mgr.getPeriodSpending('test-cat-1')).toBe(0); // reset after virtual event
     });
   });
 });

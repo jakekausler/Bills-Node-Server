@@ -491,25 +491,58 @@ export class SpendingTrackerManager {
       };
     }
 
-    // 3. Process each period
+    // 3. Process pre-period activities as initial carry debt
     const today = dayjs.utc();
     let carryBalance = 0;
     let cumulativeSpent = 0;
     let cumulativeThreshold = 0;
     const chartPoints: ChartDataPoint[] = [];
 
-    for (const period of periods) {
+    // Activities before the first period's start create carry debt, not spending.
+    const firstPeriodStartDayjs = dayjs.utc(periods[0].periodStart);
+    let prePeriodSpent = 0;
+    for (const activity of consolidatedActivities) {
+      if (activity.spendingCategory !== category.id) continue;
+      const amount = typeof activity.amount === 'number' ? activity.amount : 0;
+      if (amount === 0) continue;
+      const activityDate = dayjs.utc(activity.date);
+      if (activityDate.isBefore(firstPeriodStartDayjs, 'day')) {
+        prePeriodSpent -= amount; // same sign convention: negative amounts → positive spending
+      }
+    }
+
+    if (prePeriodSpent !== 0) {
+      // Apply carry logic for pre-period spending (same algorithm as the in-loop carry update)
+      const prePeriodBaseThreshold = SpendingTrackerManager.resolveThresholdAtDate(
+        baseThreshold,
+        resolvedChanges,
+        increaseBy,
+        increaseByDate,
+        calcStartDateObj,
+        periods[0].periodEnd,
+      );
+      let newCarry = carryBalance + (prePeriodBaseThreshold - prePeriodSpent);
+      if (newCarry > 0 && !category.carryOver) { newCarry = 0; }
+      if (newCarry < 0 && !category.carryUnder) { newCarry = 0; }
+      carryBalance = newCarry;
+      if (carryBalance > 0) { carryBalance = 0; }
+    }
+
+    for (let periodIndex = 0; periodIndex < periods.length; periodIndex++) {
+      const period = periods[periodIndex];
       const periodStartDayjs = dayjs.utc(period.periodStart);
       const periodEndDayjs = dayjs.utc(period.periodEnd);
 
-      // Filter activities for this period and category
+      // Filter activities for this period and category (strict boundaries)
       const periodActivities = consolidatedActivities.filter((activity) => {
         // Exact match on category ID
         if (activity.spendingCategory !== category.id) {
           return false;
         }
         const activityDate = dayjs.utc(activity.date);
-        return !activityDate.isBefore(periodStartDayjs, 'day') && !activityDate.isAfter(periodEndDayjs, 'day');
+        const afterStart = !activityDate.isBefore(periodStartDayjs, 'day');
+        const beforeEnd = !activityDate.isAfter(periodEndDayjs, 'day');
+        return afterStart && beforeEnd;
       });
 
       // Sum spending using the same logic as recordSegmentActivities:

@@ -322,13 +322,14 @@ export class Timeline {
       );
 
       const categoryStartDate = category.startDate ? dayjs.utc(category.startDate) : null;
-      let isFirst = true;
+      let isFirstReal = true;
 
       for (const period of boundaries) {
-        // Skip periods that end before the category's startDate
-        if (categoryStartDate && dayjs.utc(period.periodEnd).isBefore(categoryStartDate, 'day')) {
-          continue;
-        }
+        // Periods ending before the category's startDate are virtual:
+        // they process carry but don't create remainder activities.
+        const isVirtual = categoryStartDate
+          ? dayjs.utc(period.periodEnd).isBefore(categoryStartDate, 'day')
+          : false;
 
         // Use noon UTC (12:00) instead of midnight UTC (00:00) to prevent
         // timezone shifts when local-time Date methods are used elsewhere.
@@ -348,11 +349,14 @@ export class Timeline {
           categoryName: category.name,
           periodStart: noonPeriodStart,
           periodEnd: noonPeriodEnd,
-          firstSpendingTracker: isFirst,
+          firstSpendingTracker: !isVirtual && isFirstReal,
+          virtual: isVirtual,
         };
 
         this.addEvent(event);
-        isFirst = false;
+        if (!isVirtual) {
+          isFirstReal = false;
+        }
       }
     }
     if (this.enableLogging) {

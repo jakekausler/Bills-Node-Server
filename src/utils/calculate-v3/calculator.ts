@@ -771,10 +771,13 @@ export class Calculator {
         if (amount === 0) continue;
 
         const activityDateDayjs = dayjs.utc(activity.date);
-        if (
-          (activityDateDayjs.isAfter(periodStartDayjs, 'day') || activityDateDayjs.isSame(periodStartDayjs, 'day')) &&
-          (activityDateDayjs.isBefore(periodEndDayjs, 'day') || activityDateDayjs.isSame(periodEndDayjs, 'day'))
-        ) {
+
+        const afterStart =
+          activityDateDayjs.isAfter(periodStartDayjs, 'day') || activityDateDayjs.isSame(periodStartDayjs, 'day');
+        const beforeEnd = activityDateDayjs.isBefore(periodEndDayjs, 'day') ||
+          activityDateDayjs.isSame(periodEndDayjs, 'day');
+
+        if (afterStart && beforeEnd) {
           // Negative amounts (expenses) add to spending; positive amounts (refunds) reduce it.
           // totalSpent CAN go negative when refunds exceed expenses. Negative totalSpent
           // means the effective budget increases (refunds add to remaining budget).
@@ -787,7 +790,7 @@ export class Calculator {
     const remainder = this.spendingTrackerManager.computeRemainder(event.categoryId, totalSpent, event.date);
 
     // 4. Update carry, reset period spending, and mark period as processed
-    //    (these must happen regardless of remainder amount)
+    //    (these must happen regardless of remainder amount or virtual status)
     this.spendingTrackerManager.updateCarry(event.categoryId, totalSpent, event.date);
     this.spendingTrackerManager.resetPeriodSpending(event.categoryId);
     this.spendingTrackerManager.markPeriodProcessed(event.categoryId, event.periodEnd);
@@ -800,12 +803,17 @@ export class Calculator {
       periodEnd: event.periodEnd,
     });
 
-    // 5. Skip activity creation for zero remainder (consistent with other event processors)
+    // 5. Virtual events process carry but don't create remainder activities
+    if (event.virtual) {
+      return new Map();
+    }
+
+    // 6. Skip activity creation for zero remainder (consistent with other event processors)
     if (remainder <= 0) {
       return new Map();
     }
 
-    // 6. Create remainder activity
+    // 7. Create remainder activity
     const remainderActivity = new ConsolidatedActivity(
       {
         id: `SPENDING-TRACKER-${event.categoryId}-${formatDate(event.periodEnd)}`,
@@ -827,13 +835,13 @@ export class Calculator {
       { spendingTrackerId: event.categoryId, firstSpendingTracker: event.firstSpendingTracker },
     );
 
-    // 7. Add to segmentResult
+    // 8. Add to segmentResult
     if (!segmentResult.activitiesAdded.has(event.accountId)) {
       segmentResult.activitiesAdded.set(event.accountId, []);
     }
     segmentResult.activitiesAdded.get(event.accountId)?.push(remainderActivity);
 
-    // 8. Update balance
+    // 9. Update balance
     const currentChange = segmentResult.balanceChanges.get(event.accountId) || 0;
     segmentResult.balanceChanges.set(event.accountId, currentChange + (-remainder));
 
