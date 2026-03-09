@@ -27,6 +27,7 @@ describe('Account', () => {
     pushStart: null,
     pushEnd: null,
     pushAccount: null,
+    interestAppliesToPositiveBalance: true,
   };
 
   describe('constructor', () => {
@@ -46,6 +47,7 @@ describe('Account', () => {
       expect(account.minimumPullAmount).toBe(50);
       expect(account.performsPulls).toBe(true);
       expect(account.performsPushes).toBe(false);
+      expect(account.interestAppliesToPositiveBalance).toBe(true);
     });
 
     it('should generate UUID when id is not provided', () => {
@@ -86,6 +88,18 @@ describe('Account', () => {
       expect(account.pushStart).toBe(null);
       expect(account.pushEnd).toBe(null);
       expect(account.pushAccount).toBe(null);
+      expect(account.interestAppliesToPositiveBalance).toBe(true);
+    });
+
+    it('should respect interestAppliesToPositiveBalance when set to false', () => {
+      const dataWithFalse: AccountData = {
+        ...mockAccountData,
+        interestAppliesToPositiveBalance: false,
+      };
+
+      const account = new Account(dataWithFalse);
+
+      expect(account.interestAppliesToPositiveBalance).toBe(false);
     });
 
     it('should handle date fields correctly', () => {
@@ -170,6 +184,8 @@ describe('Account', () => {
         pushStart: null,
         pushEnd: null,
         pushAccount: null,
+        interestAppliesToPositiveBalance: true,
+        defaultShowInGraph: false,
       });
     });
   });

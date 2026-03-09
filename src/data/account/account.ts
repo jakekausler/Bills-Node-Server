@@ -26,6 +26,7 @@ export class Account {
   earlyWithdrawlPenalty: number;
   earlyWithdrawlDate: Date | null;
   interestPayAccount: string | null;
+  interestAppliesToPositiveBalance: boolean;
   usesRMD: boolean;
   accountOwnerDOB: Date | null;
   rmdAccount: string | null;
@@ -83,6 +84,7 @@ export class Account {
     this.earlyWithdrawlPenalty = data.earlyWithdrawlPenalty === undefined ? 0 : data.earlyWithdrawlPenalty;
     this.earlyWithdrawlDate = data.earlyWithdrawlDate === undefined ? null : data.earlyWithdrawlDate;
     this.interestPayAccount = data.interestPayAccount === undefined ? null : data.interestPayAccount;
+    this.interestAppliesToPositiveBalance = data.interestAppliesToPositiveBalance ?? true;
     this.usesRMD = data.usesRMD || false;
     this.accountOwnerDOB = data.accountOwnerDOB ? new Date(data.accountOwnerDOB) : null;
     this.rmdAccount = data.rmdAccount || null;
@@ -118,6 +120,7 @@ export class Account {
       earlyWithdrawlPenalty: this.earlyWithdrawlPenalty,
       earlyWithdrawlDate: this.earlyWithdrawlDate,
       interestPayAccount: this.interestPayAccount,
+      interestAppliesToPositiveBalance: this.interestAppliesToPositiveBalance,
       usesRMD: this.usesRMD,
       accountOwnerDOB: this.accountOwnerDOB ? formatDate(this.accountOwnerDOB) : null,
       rmdAccount: this.rmdAccount,
@@ -150,6 +153,7 @@ export class Account {
       earlyWithdrawlPenalty: this.earlyWithdrawlPenalty,
       earlyWithdrawlDate: this.earlyWithdrawlDate,
       interestPayAccount: this.interestPayAccount,
+      interestAppliesToPositiveBalance: this.interestAppliesToPositiveBalance,
       usesRMD: this.usesRMD,
       accountOwnerDOB: this.accountOwnerDOB ? formatDate(this.accountOwnerDOB) : null,
       rmdAccount: this.rmdAccount,
