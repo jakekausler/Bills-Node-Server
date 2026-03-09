@@ -252,13 +252,13 @@ describe('SpendingTrackerManager.computeChartData', () => {
       expect(result.periods[0].baseThreshold).toBe(150);
       expect(result.periods[0].effectiveThreshold).toBe(150); // no carry yet
       expect(result.periods[0].remainder).toBe(50); // 150 - 100
-      // newCarry = 0 + (150 - 100) = +50, positive => reset to 0
-      expect(result.periods[0].carryAfter).toBe(0);
+      // newCarry = 0 + (150 - 100) = +50, carryOver ON => persists
+      expect(result.periods[0].carryAfter).toBe(50);
 
-      // Period 2: carry=0, effective = 150 + 0 = 150
+      // Period 2: carry=+50, effective = 150 + 50 = 200
       expect(result.periods[1].totalSpent).toBe(0);
-      expect(result.periods[1].effectiveThreshold).toBe(150);
-      expect(result.periods[1].remainder).toBe(150);
+      expect(result.periods[1].effectiveThreshold).toBe(200);
+      expect(result.periods[1].remainder).toBe(200);
     });
   });
 
@@ -370,28 +370,28 @@ describe('SpendingTrackerManager.computeChartData', () => {
       expect(result.periods).toHaveLength(4);
 
       // Period 1: carry(start)=0, effective=150, spent=100
-      //   newCarry = 0 + (150 - 100) = +50, positive => reset to 0
+      //   newCarry = 0 + (150 - 100) = +50, carryOver ON => persists
       expect(result.periods[0].effectiveThreshold).toBe(150);
       expect(result.periods[0].totalSpent).toBe(100);
-      expect(result.periods[0].carryAfter).toBe(0);
+      expect(result.periods[0].carryAfter).toBe(50);
 
-      // Period 2: carry(start)=0, effective=max(0,150+0)=150, spent=250
-      //   newCarry = 0 + (150 - 250) = -100 (carryUnder ON, negative persists)
-      expect(result.periods[1].effectiveThreshold).toBe(150);
+      // Period 2: carry(start)=+50, effective=max(0,150+50)=200, spent=250
+      //   newCarry = 50 + (150 - 250) = -50 (carryUnder ON, negative persists)
+      expect(result.periods[1].effectiveThreshold).toBe(200);
       expect(result.periods[1].totalSpent).toBe(250);
-      expect(result.periods[1].carryAfter).toBe(-100);
+      expect(result.periods[1].carryAfter).toBe(-50);
 
-      // Period 3: carry(start)=-100, effective=max(0,150-100)=50, spent=0
-      //   newCarry = -100 + (150 - 0) = +50, positive => reset to 0
-      expect(result.periods[2].effectiveThreshold).toBe(50);
+      // Period 3: carry(start)=-50, effective=max(0,150-50)=100, spent=0
+      //   newCarry = -50 + (150 - 0) = +100, carryOver ON => persists
+      expect(result.periods[2].effectiveThreshold).toBe(100);
       expect(result.periods[2].totalSpent).toBe(0);
-      expect(result.periods[2].carryAfter).toBe(0);
+      expect(result.periods[2].carryAfter).toBe(100);
 
-      // Period 4: carry(start)=0, effective=max(0,150+0)=150, spent=0
-      //   newCarry = 0 + (150 - 0) = +150, positive => reset to 0
-      expect(result.periods[3].effectiveThreshold).toBe(150);
+      // Period 4: carry(start)=+100, effective=max(0,150+100)=250, spent=0
+      //   newCarry = 100 + (150 - 0) = +250, carryOver ON => persists
+      expect(result.periods[3].effectiveThreshold).toBe(250);
       expect(result.periods[3].totalSpent).toBe(0);
-      expect(result.periods[3].carryAfter).toBe(0);
+      expect(result.periods[3].carryAfter).toBe(250);
     });
   });
 
@@ -451,7 +451,7 @@ describe('SpendingTrackerManager.computeChartData', () => {
         intervalStart: 'Saturday',
       });
 
-      // Period 1: spend 100, newCarry = 0+(150-100) = +50, positive => reset to 0
+      // Period 1: spend 100, newCarry = 0+(150-100) = +50, carryOver ON => persists
       const activities = [
         makeActivity('2025-01-05', -100, 'test-cat-1'),
       ];
@@ -465,10 +465,10 @@ describe('SpendingTrackerManager.computeChartData', () => {
       );
 
       expect(result.periods).toHaveLength(1);
-      expect(result.periods[0].carryAfter).toBe(0);
+      expect(result.periods[0].carryAfter).toBe(50);
 
-      // nextPeriodThreshold = max(0, 150 + 0) = 150
-      expect(result.nextPeriodThreshold).toBe(150);
+      // nextPeriodThreshold = max(0, 150 + 50) = 200
+      expect(result.nextPeriodThreshold).toBe(200);
     });
 
     it('nextPeriodThreshold is 0 when effective goes below 0 (clamped)', () => {
@@ -582,8 +582,8 @@ describe('SpendingTrackerManager.computeChartData', () => {
         intervalStart: 'Saturday',
       });
 
-      // Period 1: spend 100, newCarry = 0+(150-100) = +50, positive => reset to 0
-      // Period 2: carry=0, effective = 150, spend 0, newCarry = 0+(150-0) = +150, positive => reset to 0
+      // Period 1: spend 100, newCarry = 0+(150-100) = +50, carryOver ON => persists
+      // Period 2: carry=+50, effective = 150+50 = 200, spend 0, newCarry = 50+(150-0) = +200
       const activities = [
         makeActivity('2025-01-05', -100, 'test-cat-1'),
       ];
@@ -597,8 +597,8 @@ describe('SpendingTrackerManager.computeChartData', () => {
       );
 
       // Period 1: effective = 150 (carry starts at 0)
-      // Period 2: effective = 150 (carry reset to 0 after P1)
-      expect(result.cumulativeThreshold).toBe(150 + 150);
+      // Period 2: effective = 200 (carry = +50 from P1)
+      expect(result.cumulativeThreshold).toBe(150 + 200);
     });
 
     it('cumulative totals are zero when no periods exist', () => {
@@ -993,10 +993,12 @@ describe('SpendingTrackerManager.computeChartData', () => {
         ],
       });
 
-      // No activities, so every period has totalSpent = 0
-      // Period 1 (Jan 4-10): newCarry = 0+(150-0) = +150, positive => reset to 0
-      // Period 2 (Jan 11-17): newCarry = 0+(150-0) = +150, positive => reset to 0, resetCarry also => 0
-      // Period 3 (Jan 18-24): newCarry = 0+(150-0) = +150, positive => reset to 0
+      // No activities, so every period has totalSpent = 0 and hasHadActivity = false.
+      // The hasHadActivity guard prevents surplus from accumulating when no real
+      // spending has occurred, so carry stays at 0 throughout.
+      // Period 1 (Jan 4-10): hasHadActivity=false, carryBalance=0 => newCarry = 0
+      // Period 2 (Jan 11-17): hasHadActivity=false, carryBalance=0 => newCarry = 0, resetCarry is moot
+      // Period 3 (Jan 18-24): hasHadActivity=false, carryBalance=0 => newCarry = 0
       const result = SpendingTrackerManager.computeChartData(
         category,
         [],
@@ -1006,11 +1008,9 @@ describe('SpendingTrackerManager.computeChartData', () => {
       );
 
       expect(result.periods).toHaveLength(3);
-      // Period 1: positive carry reset to 0
+      // All periods: no activity => no carry accumulation
       expect(result.periods[0].carryAfter).toBe(0);
-      // Period 2: positive carry reset to 0, resetCarry also zeroes (no additional effect)
       expect(result.periods[1].carryAfter).toBe(0);
-      // Period 3: positive carry reset to 0
       expect(result.periods[2].carryAfter).toBe(0);
     });
   });

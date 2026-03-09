@@ -583,8 +583,8 @@ describe('Timeline.addSpendingTrackerEvents', () => {
       // All 4 periods are emitted (none skipped)
       // Period Sat Jan 4 - Fri Jan 10: periodEnd Jan 10 < Jan 18 => virtual
       // Period Sat Jan 11 - Fri Jan 17: periodEnd Jan 17 < Jan 18 => virtual
-      // Period Sat Jan 18 - Fri Jan 24: periodEnd Jan 24 >= Jan 18 => real
-      // Period Sat Jan 25 - Fri Jan 31: periodEnd Jan 31 >= Jan 18 => real
+      // Period Sat Jan 18 - Fri Jan 24: periodEnd Jan 24, NOT < Jan 18 => real
+      // Period Sat Jan 25 - Fri Jan 31: periodEnd Jan 31, NOT < Jan 18 => real
       expect(events.length).toBe(4);
       expect(events[0].virtual).toBe(true);
       expect(events[1].virtual).toBe(true);
@@ -622,7 +622,7 @@ describe('Timeline.addSpendingTrackerEvents', () => {
       expect(events[1].virtual).toBe(true);
       expect(events[1].firstSpendingTracker).toBe(false);
       expect(events[2].virtual).toBe(false);
-      expect(events[2].firstSpendingTracker).toBe(true);  // first real event
+      expect(events[2].firstSpendingTracker).toBe(true);  // first real event (period ending Jan 24)
       expect(events[3].virtual).toBe(false);
       expect(events[3].firstSpendingTracker).toBe(false);
     });

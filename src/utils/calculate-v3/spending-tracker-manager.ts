@@ -43,9 +43,11 @@ type CategoryState = {
   carryBalance: number;
   periodSpending: number;
   lastProcessedPeriodEnd: Date | null;
+  hasHadActivity: boolean;
   checkpointCarryBalance: number;
   checkpointPeriodSpending: number;
   checkpointLastProcessedPeriodEnd: Date | null;
+  checkpointHasHadActivity: boolean;
 };
 
 /**
@@ -131,9 +133,11 @@ export class SpendingTrackerManager {
         carryBalance: 0,
         periodSpending: 0,
         lastProcessedPeriodEnd: null,
+        hasHadActivity: false,
         checkpointCarryBalance: 0,
         checkpointPeriodSpending: 0,
         checkpointLastProcessedPeriodEnd: null,
+        checkpointHasHadActivity: false,
       });
     }
   }
@@ -271,8 +275,23 @@ export class SpendingTrackerManager {
     const state = this.categoryStates.get(categoryId)!;
     const baseThreshold = this.resolveThreshold(categoryId, date);
 
-    // Calculate new carry: accumulate this period's underspend/overspend onto existing carry
-    let newCarry = state.carryBalance + (baseThreshold - totalSpent);
+    // Track whether this category has ever had real spending.
+    // Surplus only accrues from the first period with activity onward;
+    // periods before any activity has occurred don't generate surplus.
+    if (totalSpent > 0) {
+      state.hasHadActivity = true;
+    }
+
+    // Calculate new carry: accumulate this period's underspend/overspend onto existing carry.
+    let newCarry: number;
+
+    if (state.hasHadActivity || state.carryBalance < 0) {
+      // Category has had activity (or has debt) — accumulate normally
+      newCarry = state.carryBalance + (baseThreshold - totalSpent);
+    } else {
+      // No activity has ever occurred and no debt — no surplus generated
+      newCarry = 0;
+    }
 
     // Apply carry-over rule: if positive carry and carryOver is OFF, zero it out
     if (newCarry > 0 && !config.carryOver) {
@@ -286,12 +305,6 @@ export class SpendingTrackerManager {
 
     state.carryBalance = newCarry;
 
-    // Positive carry (underspend credit) is consumed by the remainder bill
-    // Only negative carry (overspend debt) persists across periods
-    if (state.carryBalance > 0) {
-      state.carryBalance = 0;
-    }
-
     // Check if a threshold change with resetCarry applies at this date
     for (const change of config.thresholdChanges) {
       if (change.resetCarry && dayjs.utc(change.date).isSame(dayjs.utc(date), 'day')) {
@@ -299,6 +312,28 @@ export class SpendingTrackerManager {
         break;
       }
     }
+  }
+
+  /**
+   * Returns the current carry balance for a category.
+   */
+  getCarryBalance(categoryId: string): number {
+    const state = this.categoryStates.get(categoryId);
+    if (!state) {
+      throw new Error(`SpendingTrackerManager: no state for category ID "${categoryId}"`);
+    }
+    return state.carryBalance;
+  }
+
+  /**
+   * Sets the carry balance for a category directly.
+   */
+  setCarryBalance(categoryId: string, value: number): void {
+    const state = this.categoryStates.get(categoryId);
+    if (!state) {
+      throw new Error(`SpendingTrackerManager: no state for category ID "${categoryId}"`);
+    }
+    state.carryBalance = value;
   }
 
   /**
@@ -384,6 +419,7 @@ export class SpendingTrackerManager {
       state.checkpointCarryBalance = state.carryBalance;
       state.checkpointPeriodSpending = state.periodSpending;
       state.checkpointLastProcessedPeriodEnd = state.lastProcessedPeriodEnd;
+      state.checkpointHasHadActivity = state.hasHadActivity;
     }
   }
 
@@ -395,6 +431,7 @@ export class SpendingTrackerManager {
       state.carryBalance = state.checkpointCarryBalance;
       state.periodSpending = state.checkpointPeriodSpending;
       state.lastProcessedPeriodEnd = state.checkpointLastProcessedPeriodEnd;
+      state.hasHadActivity = state.checkpointHasHadActivity;
     }
   }
 
@@ -493,9 +530,11 @@ export class SpendingTrackerManager {
 
     // 3. Process pre-period activities as initial carry debt
     const today = dayjs.utc();
+    const categoryStartDate = category.startDate ? dayjs.utc(category.startDate) : null;
     let carryBalance = 0;
     let cumulativeSpent = 0;
     let cumulativeThreshold = 0;
+    let hasHadActivity = false;
     const chartPoints: ChartDataPoint[] = [];
 
     // Activities before the first period's start create carry debt, not spending.
@@ -511,6 +550,10 @@ export class SpendingTrackerManager {
       }
     }
 
+    if (prePeriodSpent > 0) {
+      hasHadActivity = true;
+    }
+
     if (prePeriodSpent !== 0) {
       // Apply carry logic for pre-period spending (same algorithm as the in-loop carry update)
       const prePeriodBaseThreshold = SpendingTrackerManager.resolveThresholdAtDate(
@@ -521,11 +564,15 @@ export class SpendingTrackerManager {
         calcStartDateObj,
         periods[0].periodEnd,
       );
-      let newCarry = carryBalance + (prePeriodBaseThreshold - prePeriodSpent);
+      let newCarry: number;
+      if (hasHadActivity || carryBalance < 0) {
+        newCarry = carryBalance + (prePeriodBaseThreshold - prePeriodSpent);
+      } else {
+        newCarry = 0;
+      }
       if (newCarry > 0 && !category.carryOver) { newCarry = 0; }
       if (newCarry < 0 && !category.carryUnder) { newCarry = 0; }
       carryBalance = newCarry;
-      if (carryBalance > 0) { carryBalance = 0; }
     }
 
     for (let periodIndex = 0; periodIndex < periods.length; periodIndex++) {
@@ -571,31 +618,49 @@ export class SpendingTrackerManager {
       // Compute effective threshold: base + carry, clamped to 0
       const effectiveThreshold = Math.max(0, periodBaseThreshold + carryBalance);
 
+      // Check if this is a future period with no spending.
+      // Future periods with $0 spending should not accumulate carry — the budget
+      // effectively resets to the base threshold each period.
+      const isFuturePeriod = periodEndDayjs.isAfter(today, 'day');
+      const isFutureWithNoSpending = isFuturePeriod && totalSpent === 0;
+
       // Compute remainder
-      const remainder = Math.max(0, effectiveThreshold - totalSpent);
+      const remainder = isFutureWithNoSpending
+        ? periodBaseThreshold
+        : Math.max(0, effectiveThreshold - totalSpent);
+
+      // Track whether this category has had real spending
+      if (totalSpent > 0) {
+        hasHadActivity = true;
+      }
 
       // Update carry balance: same algorithm and ordering as instance updateCarry()
-      // 1. Compute new carry: accumulate this period's underspend/overspend onto existing carry
-      let newCarry = carryBalance + (periodBaseThreshold - totalSpent);
-
-      // 2. Apply carry flag clamping
-      // If positive carry and carryOver is OFF, zero it out
-      if (newCarry > 0 && !category.carryOver) {
-        newCarry = 0;
-      }
-
-      // If negative carry and carryUnder is OFF, zero it out
-      if (newCarry < 0 && !category.carryUnder) {
-        newCarry = 0;
-      }
-
-      // 3. Set carry balance
-      carryBalance = newCarry;
-
-      // Positive carry (underspend credit) is consumed by the remainder bill — reset to 0
-      // Negative carry (debt) persists across periods
-      if (carryBalance > 0) {
+      // For future periods with no spending, reset carry to 0 — the budget
+      // resets to the base threshold each period with no projected spending.
+      if (isFutureWithNoSpending) {
         carryBalance = 0;
+      } else {
+        // 1. Compute new carry: accumulate this period's underspend/overspend onto existing carry
+        let newCarry: number;
+        if (hasHadActivity || carryBalance < 0) {
+          newCarry = carryBalance + (periodBaseThreshold - totalSpent);
+        } else {
+          newCarry = 0;
+        }
+
+        // 2. Apply carry flag clamping
+        // If positive carry and carryOver is OFF, zero it out
+        if (newCarry > 0 && !category.carryOver) {
+          newCarry = 0;
+        }
+
+        // If negative carry and carryUnder is OFF, zero it out
+        if (newCarry < 0 && !category.carryUnder) {
+          newCarry = 0;
+        }
+
+        // 3. Set carry balance
+        carryBalance = newCarry;
       }
 
       // 4. THEN check for resetCarry threshold changes within this period (reset wins)
@@ -623,14 +688,20 @@ export class SpendingTrackerManager {
         periodEnd: formatDate(period.periodEnd),
         totalSpent,
         baseThreshold: periodBaseThreshold,
-        effectiveThreshold,
+        effectiveThreshold: isFutureWithNoSpending ? periodBaseThreshold : effectiveThreshold,
         remainder,
-        carryAfter: carryBalance,
+        carryAfter: isFutureWithNoSpending ? 0 : carryBalance,
         isCurrent,
       });
     }
 
-    // 4. Compute nextPeriodThreshold: effective threshold for the period after the last one
+    // 4. Filter out leading periods with no spending activity
+    const firstSpendingIndex = chartPoints.findIndex((point) => point.totalSpent > 0);
+    if (firstSpendingIndex > 0) {
+      chartPoints.splice(0, firstSpendingIndex);
+    }
+
+    // 5. Compute nextPeriodThreshold: effective threshold for the period after the last one
     const lastPeriod = periods[periods.length - 1];
     // Generate one more period to find the next period start date
     const extendedEnd = dayjs.utc(lastPeriod.periodEnd).add(1, 'year').toDate();

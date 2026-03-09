@@ -791,24 +791,51 @@ export class Calculator {
       }
     }
 
-    // 3. Compute remainder
-    const remainder = this.spendingTrackerManager.computeRemainder(event.categoryId, totalSpent, event.date);
+    // 3. Check if this is a future period with no spending.
+    //    Future periods with $0 spending should not accumulate carry — the budget
+    //    effectively resets to the base threshold each period. Without this guard,
+    //    every future period would generate carry of +baseThreshold (baseThreshold - 0),
+    //    causing the remainder to grow infinitely ($150→$300→$450...).
+    const isFuturePeriod = dayjs.utc(event.periodEnd).isAfter(dayjs.utc(), 'day');
+    const isFutureWithNoSpending = isFuturePeriod && totalSpent === 0;
+
+    // 3b. Compute remainder
+    let remainder: number;
+    if (isFutureWithNoSpending) {
+      // Future periods with no spending: use base threshold as remainder (carry frozen)
+      const { baseThreshold } = this.spendingTrackerManager.getEffectiveThreshold(event.categoryId, event.date);
+      remainder = baseThreshold;
+    } else {
+      remainder = this.spendingTrackerManager.computeRemainder(event.categoryId, totalSpent, event.date);
+    }
 
     // 4. Update carry, reset period spending, and mark period as processed
     //    (these must happen regardless of remainder amount or virtual status)
-    this.spendingTrackerManager.updateCarry(event.categoryId, totalSpent, event.date);
+    //    For future periods with no spending, skip carry update to prevent infinite accumulation.
+    if (!isFutureWithNoSpending) {
+      this.spendingTrackerManager.updateCarry(event.categoryId, totalSpent, event.date);
+    }
     this.spendingTrackerManager.resetPeriodSpending(event.categoryId);
     this.spendingTrackerManager.markPeriodProcessed(event.categoryId, event.periodEnd);
 
     // 4b. Record spending tracker update for cache replay
+    //     For future periods with no spending, record totalSpent = baseThreshold so
+    //     carry delta is zero during replay (baseThreshold - baseThreshold = 0).
+    const replayTotalSpent = isFutureWithNoSpending
+      ? this.spendingTrackerManager.getEffectiveThreshold(event.categoryId, event.date).baseThreshold
+      : totalSpent;
     segmentResult.spendingTrackerUpdates.push({
       categoryId: event.categoryId,
-      totalSpent,
+      totalSpent: replayTotalSpent,
       date: event.date,
       periodEnd: event.periodEnd,
     });
 
-    // 5. Virtual events process carry but don't create remainder activities
+    // 5. Virtual events process carry but don't create remainder activities.
+    //    Carry accumulates normally (including positive carry from real spending),
+    //    but no Budget Remainder bill is created until after startDate.
+    //    The hasHadActivity guard in updateCarry() prevents phantom surplus from
+    //    virtual periods with zero spending.
     if (event.virtual) {
       return new Map();
     }
