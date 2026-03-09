@@ -108,6 +108,17 @@ export function handleInterest(
   }
   // If the next date interest will be applied is the current date, we need to add an interest activity
   if (isSame(nextInterestMap[account.id] as Date, currDate)) {
+    // Skip interest on positive balances if account opts out
+    if (account.interestAppliesToPositiveBalance === false && balanceMap[account.id] > 0) {
+      // Move to next interest period without applying interest
+      nextInterestMap[account.id] = nextDate(
+        nextInterestMap[account.id] as Date,
+        (interestMap[account.id] as Interest).compounded,
+        1,
+      );
+      return;
+    }
+
     // if (account.name === 'Mortgage') {
     //   console.log('currDate', currDate);
     //   console.log('nextInterestMap[account.id]', nextInterestMap[account.id]);
