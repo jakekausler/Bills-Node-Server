@@ -269,7 +269,8 @@ export class Engine {
     await this.balanceTracker.initializeBalances(accountsAndTransfers, options.forceRecalculation);
 
     // Process segments in order
-    for (const segment of segments) {
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
       await this.segmentProcessor.processSegment(segment, options);
     }
 

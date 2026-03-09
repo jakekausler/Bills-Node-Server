@@ -775,7 +775,7 @@ export class Timeline {
 
   private sortEvents(): void {
     this.events.sort((a, b) => {
-      const dateDiff = dayjs(a.date).diff(b.date, 'day');
+      const dateDiff = a.date.getTime() - b.date.getTime();
       if (dateDiff !== 0) return dateDiff;
 
       // Same date - sort by priority
@@ -864,6 +864,7 @@ export class Timeline {
       currentStart = dayjs.utc(currentStart).add(1, segmentSize).toDate();
       segmentCount++;
     }
+
   }
 
   /**
