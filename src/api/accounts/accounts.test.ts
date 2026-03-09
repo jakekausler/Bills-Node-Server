@@ -34,6 +34,7 @@ vi.mock('../../data/account/account', () => ({
     pushStart: data.pushStart || null,
     pushEnd: data.pushEnd || null,
     pushAccount: data.pushAccount || null,
+    interestAppliesToPositiveBalance: data.interestAppliesToPositiveBalance ?? true,
     simpleAccount: vi.fn().mockReturnValue({
       id: data.id || 'mock-id',
       name: data.name,
@@ -134,6 +135,7 @@ describe('Accounts API', () => {
         pushStart: null,
         pushEnd: null,
         pushAccount: null,
+        interestAppliesToPositiveBalance: true,
       };
 
       const newAccountData: AccountData = {
@@ -145,6 +147,7 @@ describe('Accounts API', () => {
         interestTaxRate: 0.15,
         withdrawalTaxRate: 0.25,
         earlyWithdrawlPenalty: 0.1,
+        interestAppliesToPositiveBalance: false,
         interests: [],
         activity: [],
         bills: [],
@@ -168,6 +171,7 @@ describe('Accounts API', () => {
       expect(existingAccount.interestTaxRate).toBe(0.15);
       expect(existingAccount.withdrawalTaxRate).toBe(0.25);
       expect(existingAccount.earlyWithdrawlPenalty).toBe(0.1);
+      expect(existingAccount.interestAppliesToPositiveBalance).toBe(false);
       expect(saveData).toHaveBeenCalledWith(mockAccountsAndTransfers);
       expect(result).toBe(mockAccountsAndTransfers.accounts);
     });
