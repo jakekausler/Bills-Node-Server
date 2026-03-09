@@ -305,6 +305,11 @@ export class Calculator {
     // Get the current balance of the account
     const currentBalance = this.getCurrentAccountBalance(accountId, segmentResult);
 
+    // Skip interest on positive balances if account opts out
+    if (account.interestAppliesToPositiveBalance === false && currentBalance > 0) {
+      return new Map();
+    }
+
     // Determine the APR to use (Monte Carlo sample or regular rate)
     let apr = event.rate;
 
