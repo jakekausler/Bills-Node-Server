@@ -34,6 +34,7 @@ type ResolvedCategory = {
   increaseBy: number;
   increaseByDate: string; // "MM/DD" format
   thresholdChanges: ResolvedThresholdChange[];
+  initializeDate: Date | null; // Carry tracking starts from this date
 };
 
 /**
@@ -127,6 +128,7 @@ export class SpendingTrackerManager {
         increaseBy: resolvedIncreaseBy.amount as number,
         increaseByDate: category.increaseByDate,
         thresholdChanges: resolvedChanges,
+        initializeDate: category.initializeDate ? dayjs.utc(category.initializeDate).toDate() : null,
       });
 
       this.categoryStates.set(category.id, {
@@ -151,6 +153,18 @@ export class SpendingTrackerManager {
       throw new Error(`SpendingTrackerManager: unknown category ID "${categoryId}"`);
     }
     return config;
+  }
+
+  /**
+   * Returns true if the given date is before the category's initializeDate.
+   * If initializeDate is null, returns false (all dates are valid).
+   */
+  isBeforeInitializeDate(categoryId: string, date: Date): boolean {
+    const config = this.resolvedCategories.get(categoryId);
+    if (!config || !config.initializeDate) {
+      return false;
+    }
+    return dayjs.utc(date).isBefore(dayjs.utc(config.initializeDate), 'day');
   }
 
   /**
@@ -512,11 +526,21 @@ export class SpendingTrackerManager {
     const endDateObj = new Date(dateRange.endDate + 'T12:00:00Z');
     const calcStartDateObj = new Date(calculationStartDate + 'T12:00:00Z');
 
-    // 2. Generate period boundaries
+    // 2. Use initializeDate as the effective start for period generation.
+    // This ensures carry tracking starts from initializeDate, not from the query range start.
+    const effectiveInitDate = initializeDateOverride ?? category.initializeDate;
+    const effectiveStartDate = effectiveInitDate
+      ? new Date(Math.max(
+          startDateObj.getTime(),
+          dayjs.utc(effectiveInitDate).toDate().getTime(),
+        ))
+      : startDateObj;
+
+    // 3. Generate period boundaries
     const periods = computePeriodBoundaries(
       category.interval,
       category.intervalStart,
-      startDateObj,
+      effectiveStartDate,
       endDateObj,
     );
 
@@ -529,7 +553,7 @@ export class SpendingTrackerManager {
       };
     }
 
-    // 3. Process pre-period activities as initial carry debt
+    // 4. Process pre-period activities as initial carry debt
     const today = dayjs.utc();
     let carryBalance = 0;
     let cumulativeSpent = 0;
@@ -538,13 +562,17 @@ export class SpendingTrackerManager {
     const chartPoints: ChartDataPoint[] = [];
 
     // Activities before the first period's start create carry debt, not spending.
+    // Only count activities on or after initializeDate.
     const firstPeriodStartDayjs = dayjs.utc(periods[0].periodStart);
+    const initDateDayjs = effectiveInitDate ? dayjs.utc(effectiveInitDate) : null;
     let prePeriodSpent = 0;
     for (const activity of consolidatedActivities) {
       if (activity.spendingCategory !== category.id) continue;
       const amount = typeof activity.amount === 'number' ? activity.amount : 0;
       if (amount === 0) continue;
       const activityDate = dayjs.utc(activity.date);
+      // Only count pre-period activities that are on or after initializeDate
+      if (initDateDayjs && activityDate.isBefore(initDateDayjs, 'day')) continue;
       if (activityDate.isBefore(firstPeriodStartDayjs, 'day')) {
         prePeriodSpent -= amount; // same sign convention: negative amounts → positive spending
       }
@@ -587,6 +615,10 @@ export class SpendingTrackerManager {
           return false;
         }
         const activityDate = dayjs.utc(activity.date);
+        // Skip activities before initializeDate
+        if (initDateDayjs && activityDate.isBefore(initDateDayjs, 'day')) {
+          return false;
+        }
         const afterStart = !activityDate.isBefore(periodStartDayjs, 'day');
         const beforeEnd = !activityDate.isAfter(periodEndDayjs, 'day');
         return afterStart && beforeEnd;
@@ -695,21 +727,10 @@ export class SpendingTrackerManager {
       });
     }
 
-    // 4. Filter out periods that end before initializeDate
-    const effectiveInitDate = initializeDateOverride ?? category.initializeDate;
-    if (effectiveInitDate) {
-      const initDate = dayjs.utc(effectiveInitDate);
-      const firstValidIndex = chartPoints.findIndex(
-        (point) => !dayjs.utc(point.periodEnd).isBefore(initDate, 'day'),
-      );
-      if (firstValidIndex > 0) {
-        chartPoints.splice(0, firstValidIndex);
-      } else if (firstValidIndex === -1) {
-        chartPoints.length = 0;
-      }
-    }
+    // 5. Note: Periods are already generated starting from initializeDate,
+    // so no post-hoc filtering needed.
 
-    // 5. Compute nextPeriodThreshold: effective threshold for the period after the last one
+    // 6. Compute nextPeriodThreshold: effective threshold for the period after the last one
     const lastPeriod = periods[periods.length - 1];
     // Generate one more period to find the next period start date
     const extendedEnd = dayjs.utc(lastPeriod.periodEnd).add(1, 'year').toDate();

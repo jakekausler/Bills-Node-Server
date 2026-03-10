@@ -791,6 +791,14 @@ export class Calculator {
       }
     }
 
+    // 2b. Skip carry tracking and remainder generation for periods before initializeDate.
+    //     These periods are completely invisible to the spending tracker.
+    if (this.spendingTrackerManager.isBeforeInitializeDate(event.categoryId, event.periodEnd)) {
+      this.spendingTrackerManager.resetPeriodSpending(event.categoryId);
+      this.spendingTrackerManager.markPeriodProcessed(event.categoryId, event.periodEnd);
+      return new Map();
+    }
+
     // 3. Check if this is a future period with no spending.
     //    Future periods with $0 spending should not accumulate carry — the budget
     //    effectively resets to the base threshold each period. Without this guard,
