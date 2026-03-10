@@ -671,12 +671,22 @@ export class SpendingTrackerManager {
         hasHadActivity = true;
       }
 
+      // Save carry state before update for chart point display
+      const carryBeforeUpdate = carryBalance;
+
       // Update carry balance: same algorithm and ordering as instance updateCarry()
-      // For future periods with no spending, reset carry to 0 — the budget
-      // resets to the base threshold each period with no projected spending.
+      // For future periods with no spending, pay off negative carry period-by-period
+      // using the base threshold, and reset positive carry to 0.
       if (isFutureWithNoSpending) {
-        // Only reset positive carry (surplus). Preserve negative carry (debt from real overspending).
-        if (carryBalance >= 0) {
+        if (carryBalance < 0) {
+          // Pay off debt: this period's base threshold absorbs some/all of the negative carry
+          carryBalance = carryBalance + periodBaseThreshold;
+          // If fully paid off (now positive), reset to 0 — surplus doesn't accumulate in future
+          if (carryBalance >= 0) {
+            carryBalance = 0;
+          }
+        } else {
+          // Positive carry (surplus) resets each future period
           carryBalance = 0;
         }
       } else {
@@ -728,7 +738,7 @@ export class SpendingTrackerManager {
         periodEnd: formatDate(period.periodEnd),
         totalSpent,
         baseThreshold: periodBaseThreshold,
-        effectiveThreshold: isFutureWithNoSpending ? (carryBalance < 0 ? effectiveThreshold : periodBaseThreshold) : effectiveThreshold,
+        effectiveThreshold: isFutureWithNoSpending ? (carryBeforeUpdate < 0 ? effectiveThreshold : periodBaseThreshold) : effectiveThreshold,
         remainder,
         carryAfter: isFutureWithNoSpending ? (carryBalance < 0 ? carryBalance : 0) : carryBalance,
         isCurrent,

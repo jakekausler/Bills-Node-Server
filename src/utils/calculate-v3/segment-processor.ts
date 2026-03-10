@@ -104,7 +104,7 @@ export class SegmentProcessor {
         // Without this, carry-over/carry-under state is lost when loading from cache.
         if (cachedResult.spendingTrackerUpdates) {
           for (const update of cachedResult.spendingTrackerUpdates) {
-            this.spendingTrackerManager.updateCarry(update.categoryId, update.totalSpent, update.date);
+            this.spendingTrackerManager.setCarryBalance(update.categoryId, update.carryAfter);
             this.spendingTrackerManager.resetPeriodSpending(update.categoryId);
             this.spendingTrackerManager.markPeriodProcessed(update.categoryId, update.periodEnd);
           }

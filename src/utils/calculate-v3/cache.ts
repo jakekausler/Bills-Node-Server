@@ -91,6 +91,7 @@ class SegmentResultSerializer extends Serializer {
         totalSpent: u.totalSpent,
         date: formatDate(u.date),
         periodEnd: formatDate(u.periodEnd),
+        carryAfter: u.carryAfter,
       })),
     };
 
@@ -142,6 +143,7 @@ class SegmentResultSerializer extends Serializer {
         totalSpent: u.totalSpent,
         date: parseDate(u.date),
         periodEnd: parseDate(u.periodEnd),
+        carryAfter: u.carryAfter,
       }),
     );
 

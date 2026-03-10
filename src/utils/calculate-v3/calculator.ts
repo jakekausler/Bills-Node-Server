@@ -822,10 +822,15 @@ export class Calculator {
     //    (these must happen regardless of remainder amount or virtual status)
     //    For future periods with no spending, skip carry update to prevent infinite accumulation.
     if (isFutureWithNoSpending) {
-      // Reset positive carry (surplus) for future periods — surplus is speculative.
-      // Preserve negative carry (debt) — it represents real overspending.
       const currentCarry = this.spendingTrackerManager.getCarryBalance(event.categoryId);
-      if (currentCarry >= 0) {
+      if (currentCarry < 0) {
+        // Pay off debt: this period's base threshold absorbs some/all of the negative carry
+        const { baseThreshold: bt } = this.spendingTrackerManager.getEffectiveThreshold(event.categoryId, event.date);
+        const newCarry = currentCarry + bt;
+        // If fully paid off (now positive), reset to 0 — surplus doesn't accumulate in future
+        this.spendingTrackerManager.setCarryBalance(event.categoryId, newCarry >= 0 ? 0 : newCarry);
+      } else {
+        // Positive carry (surplus) resets each future period
         this.spendingTrackerManager.setCarryBalance(event.categoryId, 0);
       }
     } else {
@@ -845,6 +850,7 @@ export class Calculator {
       totalSpent: replayTotalSpent,
       date: event.date,
       periodEnd: event.periodEnd,
+      carryAfter: this.spendingTrackerManager.getCarryBalance(event.categoryId),
     });
 
     // 5. Virtual events process carry but don't create remainder activities.

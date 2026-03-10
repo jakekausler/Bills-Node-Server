@@ -50,6 +50,7 @@ export interface SpendingTrackerUpdate {
   totalSpent: number;
   date: Date;
   periodEnd: Date;
+  carryAfter: number;
 }
 
 export type SpendingTrackerUpdateData = {
@@ -57,6 +58,7 @@ export type SpendingTrackerUpdateData = {
   totalSpent: number;
   date: DateString;
   periodEnd: DateString;
+  carryAfter: number;
 };
 
 /**

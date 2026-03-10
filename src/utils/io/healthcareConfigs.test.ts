@@ -1,11 +1,39 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadHealthcareConfigs, saveHealthcareConfigs } from './healthcareConfigs';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { HealthcareConfig } from '../../data/healthcare/types';
 import fs from 'fs/promises';
 import path from 'path';
 
-const TEST_FILE = path.join(__dirname, 'data', 'healthcare_configs_test.json');
-const BACKUP_FILE = path.join(__dirname, 'data', 'healthcare_configs.json.backup');
+const TEST_FILE = path.join(__dirname, '../../../data', 'healthcare_configs_test.json');
+
+vi.mock('./healthcareConfigs', async () => {
+  const testPath = path.join(__dirname, '../../../data', 'healthcare_configs_test.json');
+  return {
+    loadHealthcareConfigs: async () => {
+      try {
+        const data = await fs.readFile(testPath, 'utf-8');
+        const parsed = JSON.parse(data);
+        return parsed.configs || [];
+      } catch (error) {
+        const err = error as NodeJS.ErrnoException;
+        if (err.code === 'ENOENT') return [];
+        throw error;
+      }
+    },
+    saveHealthcareConfigs: async (configs: HealthcareConfig[]) => {
+      await fs.writeFile(testPath, JSON.stringify({ configs }, null, 2), 'utf-8');
+    },
+  };
+});
+
+import { loadHealthcareConfigs, saveHealthcareConfigs } from './healthcareConfigs';
+
+afterEach(async () => {
+  try {
+    await fs.unlink(TEST_FILE);
+  } catch {
+    // ignore if file doesn't exist
+  }
+});
 
 describe('healthcareConfigs', () => {
   describe('loadHealthcareConfigs', () => {
@@ -21,7 +49,7 @@ describe('healthcareConfigs', () => {
         {
           id: 'test-1',
           name: 'Test Plan',
-          personName: 'John',
+          coveredPersons: ['John'],
           startDate: '2024-01-01',
           endDate: null,
           individualDeductible: 1500,
