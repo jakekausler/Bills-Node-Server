@@ -456,6 +456,7 @@ export class SpendingTrackerManager {
     dateRange: { startDate: string; endDate: string },
     calculationStartDate: string,
     simulation: string,
+    initializeDateOverride?: string,
   ): ChartDataResponse {
     // 1. Resolve all variable-backed fields
     const resolvedThreshold = loadNumberOrVariable(
@@ -530,7 +531,6 @@ export class SpendingTrackerManager {
 
     // 3. Process pre-period activities as initial carry debt
     const today = dayjs.utc();
-    const categoryStartDate = category.startDate ? dayjs.utc(category.startDate) : null;
     let carryBalance = 0;
     let cumulativeSpent = 0;
     let cumulativeThreshold = 0;
@@ -695,10 +695,18 @@ export class SpendingTrackerManager {
       });
     }
 
-    // 4. Filter out leading periods with no spending activity
-    const firstSpendingIndex = chartPoints.findIndex((point) => point.totalSpent > 0);
-    if (firstSpendingIndex > 0) {
-      chartPoints.splice(0, firstSpendingIndex);
+    // 4. Filter out periods that end before initializeDate
+    const effectiveInitDate = initializeDateOverride ?? category.initializeDate;
+    if (effectiveInitDate) {
+      const initDate = dayjs.utc(effectiveInitDate);
+      const firstValidIndex = chartPoints.findIndex(
+        (point) => !dayjs.utc(point.periodEnd).isBefore(initDate, 'day'),
+      );
+      if (firstValidIndex > 0) {
+        chartPoints.splice(0, firstValidIndex);
+      } else if (firstValidIndex === -1) {
+        chartPoints.length = 0;
+      }
     }
 
     // 5. Compute nextPeriodThreshold: effective threshold for the period after the last one

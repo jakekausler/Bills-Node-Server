@@ -356,12 +356,14 @@ export async function getSpendingTrackerChartData(
     allActivities.push(...account.consolidatedActivity);
   }
 
-  // Compute chart data
+  // Compute chart data — pass minDate as initializeDate fallback when category has no explicit value
+  const effectiveInitializeDate = category.initializeDate ?? calculationStartDateStr;
   return SpendingTrackerManager.computeChartData(
     category,
     allActivities,
     { startDate, endDate },
     calculationStartDateStr,
     data.simulation,
+    effectiveInitializeDate,
   );
 }
