@@ -39,9 +39,10 @@ export type SpendingTrackerCategory = {
     resetCarry: boolean; // If true, carry debt/credit resets to 0 at this date
   }[]; // Must be sorted chronologically; no overlapping dates
 
-  // Start date — periods ending before this date produce no remainder bill.
-  // The skip action advances this forward by one period.
-  startDate: string | null; // "YYYY-MM-DD" or null
+  // Initialize date — determines when chart data and carry tracking begin.
+  // Periods ending before this date are excluded from chart display.
+  // When null, defaults to the system's minDate() value.
+  initializeDate: string | null; // "YYYY-MM-DD" or null
 };
 
 export type SpendingTrackerData = {
