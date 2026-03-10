@@ -23,7 +23,6 @@ import {
   createSpendingTrackerCategory,
   updateSpendingTrackerCategory,
   deleteSpendingTrackerCategory,
-  skipSpendingTrackerCategory,
   ApiError,
 } from './spendingTracker';
 
@@ -62,7 +61,7 @@ const validCategory = {
   increaseByVariable: null,
   increaseByDate: '01/01',
   thresholdChanges: [],
-  startDate: null,
+  initializeDate: null,
 };
 
 const validCategory2 = {
@@ -231,7 +230,7 @@ describe('Spending Tracker API', () => {
           increaseByVariable: null,
           increaseByDate: '01/01',
           thresholdChanges: [],
-          startDate: null,
+          initializeDate: null,
         });
       });
     });
@@ -785,146 +784,6 @@ describe('Spending Tracker API', () => {
         );
         expect(e.message).toContain('Account ID is required');
       }
-    });
-  });
-
-  describe('skipSpendingTrackerCategory', () => {
-    // Use fake timers to control "now" in the skip function
-    beforeEach(() => {
-      // Fix "now" to Wednesday 2026-01-14 00:00:00 UTC
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date(Date.UTC(2026, 0, 14)));
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it('returns 404 when category not found', () => {
-      mockLoadSpendingTrackerCategories.mockReturnValue([
-        { ...validCategory },
-      ]);
-
-      try {
-        skipSpendingTrackerCategory(mockRequest({ id: 'nonexistent' }));
-        expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e).toBeInstanceOf(ApiError);
-        expect(e.statusCode).toBe(404);
-        expect(e.message).toBe('Spending tracker category not found');
-      }
-    });
-
-    it('returns 400 when no more periods to skip', () => {
-      mockLoadSpendingTrackerCategories.mockReturnValue([
-        { ...validCategory, startDate: null },
-      ]);
-
-      // Return only 1 boundary — not enough active periods to skip
-      mockComputePeriodBoundaries.mockReturnValue([
-        {
-          periodStart: new Date(Date.UTC(2026, 0, 10)),
-          periodEnd: new Date(Date.UTC(2026, 0, 16)),
-        },
-      ]);
-
-      try {
-        skipSpendingTrackerCategory(mockRequest({ id: 'cat-1' }));
-        expect.fail('Should have thrown');
-      } catch (e: any) {
-        expect(e).toBeInstanceOf(ApiError);
-        expect(e.statusCode).toBe(400);
-        expect(e.message).toBe('No more periods to skip');
-      }
-    });
-
-    it('sets startDate to day after first period end for weekly category', () => {
-      mockLoadSpendingTrackerCategories.mockReturnValue([
-        { ...validCategory, startDate: null },
-      ]);
-
-      // Weekly Saturday-start boundaries: Sat Jan 10 - Fri Jan 16, Sat Jan 17 - Fri Jan 23, ...
-      mockComputePeriodBoundaries.mockReturnValue([
-        {
-          periodStart: new Date(Date.UTC(2026, 0, 10)),
-          periodEnd: new Date(Date.UTC(2026, 0, 16)),
-        },
-        {
-          periodStart: new Date(Date.UTC(2026, 0, 17)),
-          periodEnd: new Date(Date.UTC(2026, 0, 23)),
-        },
-        {
-          periodStart: new Date(Date.UTC(2026, 0, 24)),
-          periodEnd: new Date(Date.UTC(2026, 0, 30)),
-        },
-      ]);
-
-      const result = skipSpendingTrackerCategory(
-        mockRequest({ id: 'cat-1' }),
-      );
-
-      // First period ends 2026-01-16 => startDate should be 2026-01-17
-      expect(result.startDate).toBe('2026-01-17');
-    });
-
-    it('advances startDate when already partially skipped', () => {
-      // Category already has startDate set to 2026-01-17 (skipped first period)
-      mockLoadSpendingTrackerCategories.mockReturnValue([
-        { ...validCategory, startDate: '2026-01-17' },
-      ]);
-
-      // Boundaries returned from computePeriodBoundaries include all periods
-      mockComputePeriodBoundaries.mockReturnValue([
-        {
-          periodStart: new Date(Date.UTC(2026, 0, 10)),
-          periodEnd: new Date(Date.UTC(2026, 0, 16)),
-        },
-        {
-          periodStart: new Date(Date.UTC(2026, 0, 17)),
-          periodEnd: new Date(Date.UTC(2026, 0, 23)),
-        },
-        {
-          periodStart: new Date(Date.UTC(2026, 0, 24)),
-          periodEnd: new Date(Date.UTC(2026, 0, 30)),
-        },
-      ]);
-
-      const result = skipSpendingTrackerCategory(
-        mockRequest({ id: 'cat-1' }),
-      );
-
-      // First period (ending Jan 16) is before startDate (Jan 17), so filtered out.
-      // Active boundaries start at Jan 17 - Jan 23.
-      // Skip that period: startDate becomes Jan 23 + 1 day = 2026-01-24
-      expect(result.startDate).toBe('2026-01-24');
-    });
-
-    it('saves categories and resets cache', () => {
-      mockLoadSpendingTrackerCategories.mockReturnValue([
-        { ...validCategory, startDate: null },
-      ]);
-
-      mockComputePeriodBoundaries.mockReturnValue([
-        {
-          periodStart: new Date(Date.UTC(2026, 0, 10)),
-          periodEnd: new Date(Date.UTC(2026, 0, 16)),
-        },
-        {
-          periodStart: new Date(Date.UTC(2026, 0, 17)),
-          periodEnd: new Date(Date.UTC(2026, 0, 23)),
-        },
-      ]);
-
-      skipSpendingTrackerCategory(mockRequest({ id: 'cat-1' }));
-
-      expect(mockSaveSpendingTrackerCategories).toHaveBeenCalledOnce();
-      expect(mockResetCache).toHaveBeenCalledOnce();
-
-      // Verify the saved categories array contains the updated startDate
-      const savedCategories =
-        mockSaveSpendingTrackerCategories.mock.calls[0][0];
-      expect(savedCategories).toHaveLength(1);
-      expect(savedCategories[0].startDate).toBe('2026-01-17');
     });
   });
 });
