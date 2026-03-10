@@ -804,15 +804,15 @@ export class Calculator {
     //    effectively resets to the base threshold each period. Without this guard,
     //    every future period would generate carry of +baseThreshold (baseThreshold - 0),
     //    causing the remainder to grow infinitely ($150→$300→$450...).
-    const isFuturePeriod = dayjs.utc(event.periodEnd).isAfter(dayjs.utc(), 'day');
+    const isFuturePeriod = dayjs.utc(event.periodStart).isAfter(dayjs.utc(), 'day');
     const isFutureWithNoSpending = isFuturePeriod && totalSpent === 0;
 
     // 3b. Compute remainder
     let remainder: number;
     if (isFutureWithNoSpending) {
       // Future periods with no spending: use base threshold as remainder (carry frozen)
-      const { baseThreshold } = this.spendingTrackerManager.getEffectiveThreshold(event.categoryId, event.date);
-      remainder = baseThreshold;
+      const { effectiveThreshold } = this.spendingTrackerManager.getEffectiveThreshold(event.categoryId, event.date);
+      remainder = effectiveThreshold;
     } else {
       remainder = this.spendingTrackerManager.computeRemainder(event.categoryId, totalSpent, event.date);
     }
