@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Timeline } from './timeline';
 import { EventType, SpendingTrackerEvent } from './types';
 import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
@@ -35,7 +35,7 @@ function makeCategory(overrides: Partial<SpendingTrackerCategory> & { id: string
     increaseByVariable: null,
     increaseByDate: '01/01',
     thresholdChanges: [],
-    startDate: null,
+    initializeDate: null,
     ...overrides,
   };
 }
@@ -537,10 +537,26 @@ describe('Timeline.addSpendingTrackerEvents', () => {
     });
   });
 
-  // ─── 7. startDate Filtering ──────────────────────────────────────
+  // ─── 7. Runtime Computed startDate Filtering ──────────────────────────────────────
 
-  describe('startDate filtering', () => {
-    it('should generate all events when startDate is null', async () => {
+  describe('runtime computed startDate filtering', () => {
+    // Setup fake timers for deterministic "today" behavior
+    // Each test overrides this as needed
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('should generate all events when all periods are in or after current period', async () => {
+      // Set today to Jan 4 2025 (Saturday), start of the first period
+      // Current period: Sat Jan 4 - Fri Jan 10
+      // computedStartDate = Jan 4
+      // All periods end on or after Jan 4, so none are virtual
+      vi.setSystemTime(new Date('2025-01-04T00:00:00Z'));
+
       const timeline = createTimeline();
       const category = makeCategory({
         id: 'skip-null',
@@ -548,7 +564,6 @@ describe('Timeline.addSpendingTrackerEvents', () => {
         interval: 'weekly',
         intervalStart: 'Saturday',
         accountId: 'acct-1',
-        startDate: null,
       });
 
       const events = await addSpendingTrackerEvents(
@@ -559,10 +574,24 @@ describe('Timeline.addSpendingTrackerEvents', () => {
       );
 
       // 4 weekly periods: Sat-Fri each (Jan 4-10, 11-17, 18-24, 25-31)
+      // All are non-virtual since today (Jan 4) is in the first period
       expect(events.length).toBe(4);
+      for (const event of events) {
+        expect(event.virtual).toBe(false);
+      }
     });
 
-    it('should mark periods ending before startDate as virtual instead of filtering them out', async () => {
+    it('should mark periods ending before current period as virtual', async () => {
+      // Set today to Jan 18 2025 (Saturday), start of the third period
+      // Current period: Sat Jan 18 - Fri Jan 24
+      // computedStartDate = Jan 18
+      // Periods ending before Jan 18 are virtual:
+      // - Period Sat Jan 4 - Fri Jan 10: ends Jan 10 < Jan 18 => virtual
+      // - Period Sat Jan 11 - Fri Jan 17: ends Jan 17 < Jan 18 => virtual
+      // - Period Sat Jan 18 - Fri Jan 24: ends Jan 24, not before Jan 18 => real
+      // - Period Sat Jan 25 - Fri Jan 31: ends Jan 31, not before Jan 18 => real
+      vi.setSystemTime(new Date('2025-01-18T00:00:00Z'));
+
       const timeline = createTimeline();
       const category = makeCategory({
         id: 'skip-filter',
@@ -570,7 +599,6 @@ describe('Timeline.addSpendingTrackerEvents', () => {
         interval: 'weekly',
         intervalStart: 'Saturday',
         accountId: 'acct-1',
-        startDate: '2025-01-18', // periods ending before Jan 18 are virtual
       });
 
       const events = await addSpendingTrackerEvents(
@@ -581,10 +609,6 @@ describe('Timeline.addSpendingTrackerEvents', () => {
       );
 
       // All 4 periods are emitted (none skipped)
-      // Period Sat Jan 4 - Fri Jan 10: periodEnd Jan 10 < Jan 18 => virtual
-      // Period Sat Jan 11 - Fri Jan 17: periodEnd Jan 17 < Jan 18 => virtual
-      // Period Sat Jan 18 - Fri Jan 24: periodEnd Jan 24, NOT < Jan 18 => real
-      // Period Sat Jan 25 - Fri Jan 31: periodEnd Jan 31, NOT < Jan 18 => real
       expect(events.length).toBe(4);
       expect(events[0].virtual).toBe(true);
       expect(events[1].virtual).toBe(true);
@@ -597,6 +621,12 @@ describe('Timeline.addSpendingTrackerEvents', () => {
     });
 
     it('should set firstSpendingTracker true only for first non-virtual event', async () => {
+      // Set today to Jan 18 2025 (Saturday)
+      // Current period: Sat Jan 18 - Fri Jan 24
+      // computedStartDate = Jan 18
+      // First 2 periods are virtual, third is first real event
+      vi.setSystemTime(new Date('2025-01-18T00:00:00Z'));
+
       const timeline = createTimeline();
       const category = makeCategory({
         id: 'skip-first',
@@ -604,7 +634,6 @@ describe('Timeline.addSpendingTrackerEvents', () => {
         interval: 'weekly',
         intervalStart: 'Saturday',
         accountId: 'acct-1',
-        startDate: '2025-01-18',
       });
 
       const events = await addSpendingTrackerEvents(
@@ -627,7 +656,14 @@ describe('Timeline.addSpendingTrackerEvents', () => {
       expect(events[3].firstSpendingTracker).toBe(false);
     });
 
-    it('should set firstSpendingTracker true on first event when nothing is skipped', async () => {
+    it('should set firstSpendingTracker true on first event when all periods are non-virtual', async () => {
+      // Set today to Jan 1 2025 (Wednesday), within the first monthly period
+      // Monthly with intervalStart='1' means periods are month-by-month starting on the 1st
+      // Current period: Jan 1 - Jan 31
+      // computedStartDate = Jan 1
+      // All three periods (Jan, Feb, Mar) end on or after Jan 1, so none are virtual
+      vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+
       const timeline = createTimeline();
       const category = makeCategory({
         id: 'no-skip-first',
@@ -635,7 +671,6 @@ describe('Timeline.addSpendingTrackerEvents', () => {
         interval: 'monthly',
         intervalStart: '1',
         accountId: 'acct-1',
-        startDate: null,
       });
 
       const events = await addSpendingTrackerEvents(

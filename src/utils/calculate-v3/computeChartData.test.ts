@@ -53,7 +53,7 @@ function makeCategory(overrides: Partial<SpendingTrackerCategory> = {}): Spendin
     increaseByVariable: null,
     increaseByDate: '01/01',
     thresholdChanges: [],
-    startDate: null,
+    initializeDate: null,
     ...overrides,
   };
 }
