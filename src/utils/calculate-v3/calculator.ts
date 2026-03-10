@@ -810,9 +810,9 @@ export class Calculator {
     // 3b. Compute remainder
     let remainder: number;
     if (isFutureWithNoSpending) {
-      // Future periods with no spending: use base threshold as remainder (carry frozen)
-      const { effectiveThreshold } = this.spendingTrackerManager.getEffectiveThreshold(event.categoryId, event.date);
-      remainder = effectiveThreshold;
+      // Future periods with no spending: use base threshold only (carry resets)
+      const { baseThreshold } = this.spendingTrackerManager.getEffectiveThreshold(event.categoryId, event.date);
+      remainder = baseThreshold;
     } else {
       remainder = this.spendingTrackerManager.computeRemainder(event.categoryId, totalSpent, event.date);
     }
@@ -820,7 +820,10 @@ export class Calculator {
     // 4. Update carry, reset period spending, and mark period as processed
     //    (these must happen regardless of remainder amount or virtual status)
     //    For future periods with no spending, skip carry update to prevent infinite accumulation.
-    if (!isFutureWithNoSpending) {
+    if (isFutureWithNoSpending) {
+      // Reset carry for future periods so it doesn't leak into subsequent periods
+      this.spendingTrackerManager.setCarryBalance(event.categoryId, 0);
+    } else {
       this.spendingTrackerManager.updateCarry(event.categoryId, totalSpent, event.date);
     }
     this.spendingTrackerManager.resetPeriodSpending(event.categoryId);
