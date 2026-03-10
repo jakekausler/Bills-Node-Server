@@ -658,7 +658,7 @@ export class SpendingTrackerManager {
       // Check if this is a future period with no spending.
       // Future periods with $0 spending should not accumulate carry — the budget
       // effectively resets to the base threshold each period.
-      const isFuturePeriod = periodEndDayjs.isAfter(today, 'day');
+      const isFuturePeriod = periodStartDayjs.isAfter(today, 'day');
       const isFutureWithNoSpending = isFuturePeriod && totalSpent === 0;
 
       // Compute remainder
