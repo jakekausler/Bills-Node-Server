@@ -321,15 +321,24 @@ export class Timeline {
         endDate,
       );
 
-      const categoryStartDate = category.startDate ? dayjs.utc(category.startDate) : null;
+      // Compute startDate as the first day of the current period.
+      // Periods ending before today's period start are virtual:
+      // they process carry but don't create remainder activities.
+      const today = dayjs.utc().startOf('day');
+      const todayBoundaries = computePeriodBoundaries(
+        category.interval,
+        category.intervalStart,
+        today.subtract(1, 'year').toDate(),
+        today.add(1, 'day').toDate(),
+      );
+      const currentPeriod = todayBoundaries.find(
+        b => !dayjs.utc(b.periodStart).isAfter(today, 'day') && !dayjs.utc(b.periodEnd).isBefore(today, 'day'),
+      );
+      const computedStartDate = currentPeriod ? dayjs.utc(currentPeriod.periodStart) : today;
       let isFirstReal = true;
 
       for (const period of boundaries) {
-        // Periods ending before the category's startDate are virtual:
-        // they process carry but don't create remainder activities.
-        const isVirtual = categoryStartDate
-          ? dayjs.utc(period.periodEnd).isBefore(categoryStartDate, 'day')
-          : false;
+        const isVirtual = dayjs.utc(period.periodEnd).isBefore(computedStartDate, 'day');
 
         // Use noon UTC (12:00) instead of midnight UTC (00:00) to prevent
         // timezone shifts when local-time Date methods are used elsewhere.

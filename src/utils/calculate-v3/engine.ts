@@ -184,28 +184,23 @@ export class Engine {
       actualStartDate,
     );
 
-    // For categories with a startDate (skip), pre-set lastProcessedPeriodEnd so that
-    // recordSegmentActivities filters out activities from before the first active period.
-    // Without this, spending from skipped periods incorrectly accumulates into periodSpending.
+    // Pre-set lastProcessedPeriodEnd so that recordSegmentActivities filters out
+    // activities from before the first active (non-virtual) period.
+    // The first active period is the current period (computed from today's date).
     for (const category of spendingTrackerCategories) {
-      if (category.startDate) {
-        const categoryStartDate = dayjs.utc(category.startDate);
-        const boundaries = computePeriodBoundaries(
-          category.interval,
-          category.intervalStart,
-          actualStartDate,
-          options.endDate,
-        );
-        // Find the first period that doesn't end before the category's startDate
-        const firstActivePeriod = boundaries.find(
-          b => !dayjs.utc(b.periodEnd).isBefore(categoryStartDate, 'day')
-        );
-        if (firstActivePeriod) {
-          // Set lastProcessedPeriodEnd to the day before the first active period's start.
-          // This causes recordSegmentActivities to skip activities before this period.
-          const filterDate = dayjs.utc(firstActivePeriod.periodStart).subtract(1, 'day').toDate();
-          spendingTrackerManager.markPeriodProcessed(category.id, filterDate);
-        }
+      const today = dayjs.utc().startOf('day');
+      const todayBoundaries = computePeriodBoundaries(
+        category.interval,
+        category.intervalStart,
+        today.subtract(1, 'year').toDate(),
+        today.add(1, 'day').toDate(),
+      );
+      const currentPeriod = todayBoundaries.find(
+        b => !dayjs.utc(b.periodStart).isAfter(today, 'day') && !dayjs.utc(b.periodEnd).isBefore(today, 'day'),
+      );
+      if (currentPeriod) {
+        const filterDate = dayjs.utc(currentPeriod.periodStart).subtract(1, 'day').toDate();
+        spendingTrackerManager.markPeriodProcessed(category.id, filterDate);
       }
     }
 
