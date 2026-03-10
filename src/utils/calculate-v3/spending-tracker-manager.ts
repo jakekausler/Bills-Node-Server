@@ -663,7 +663,7 @@ export class SpendingTrackerManager {
 
       // Compute remainder
       const remainder = isFutureWithNoSpending
-        ? periodBaseThreshold
+        ? (carryBalance < 0 ? Math.max(0, effectiveThreshold) : periodBaseThreshold)
         : Math.max(0, effectiveThreshold - totalSpent);
 
       // Track whether this category has had real spending
@@ -675,7 +675,10 @@ export class SpendingTrackerManager {
       // For future periods with no spending, reset carry to 0 — the budget
       // resets to the base threshold each period with no projected spending.
       if (isFutureWithNoSpending) {
-        carryBalance = 0;
+        // Only reset positive carry (surplus). Preserve negative carry (debt from real overspending).
+        if (carryBalance >= 0) {
+          carryBalance = 0;
+        }
       } else {
         // 1. Compute new carry: accumulate this period's underspend/overspend onto existing carry
         let newCarry: number;
@@ -725,9 +728,9 @@ export class SpendingTrackerManager {
         periodEnd: formatDate(period.periodEnd),
         totalSpent,
         baseThreshold: periodBaseThreshold,
-        effectiveThreshold: isFutureWithNoSpending ? periodBaseThreshold : effectiveThreshold,
+        effectiveThreshold: isFutureWithNoSpending ? (carryBalance < 0 ? effectiveThreshold : periodBaseThreshold) : effectiveThreshold,
         remainder,
-        carryAfter: isFutureWithNoSpending ? 0 : carryBalance,
+        carryAfter: isFutureWithNoSpending ? (carryBalance < 0 ? carryBalance : 0) : carryBalance,
         isCurrent,
       });
     }

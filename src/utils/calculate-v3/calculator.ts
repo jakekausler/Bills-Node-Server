@@ -810,9 +810,10 @@ export class Calculator {
     // 3b. Compute remainder
     let remainder: number;
     if (isFutureWithNoSpending) {
-      // Future periods with no spending: use base threshold only (carry resets)
-      const { baseThreshold } = this.spendingTrackerManager.getEffectiveThreshold(event.categoryId, event.date);
-      remainder = baseThreshold;
+      // Future periods: use effectiveThreshold if carrying debt, baseThreshold otherwise
+      const { baseThreshold, effectiveThreshold } = this.spendingTrackerManager.getEffectiveThreshold(event.categoryId, event.date);
+      const currentCarry = this.spendingTrackerManager.getCarryBalance(event.categoryId);
+      remainder = currentCarry < 0 ? effectiveThreshold : baseThreshold;
     } else {
       remainder = this.spendingTrackerManager.computeRemainder(event.categoryId, totalSpent, event.date);
     }
@@ -821,8 +822,12 @@ export class Calculator {
     //    (these must happen regardless of remainder amount or virtual status)
     //    For future periods with no spending, skip carry update to prevent infinite accumulation.
     if (isFutureWithNoSpending) {
-      // Reset carry for future periods so it doesn't leak into subsequent periods
-      this.spendingTrackerManager.setCarryBalance(event.categoryId, 0);
+      // Reset positive carry (surplus) for future periods — surplus is speculative.
+      // Preserve negative carry (debt) — it represents real overspending.
+      const currentCarry = this.spendingTrackerManager.getCarryBalance(event.categoryId);
+      if (currentCarry >= 0) {
+        this.spendingTrackerManager.setCarryBalance(event.categoryId, 0);
+      }
     } else {
       this.spendingTrackerManager.updateCarry(event.categoryId, totalSpent, event.date);
     }
