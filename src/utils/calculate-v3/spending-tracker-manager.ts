@@ -135,7 +135,7 @@ export class SpendingTrackerManager {
         carryBalance: 0,
         periodSpending: 0,
         lastProcessedPeriodEnd: null,
-        hasHadActivity: false,
+        hasHadActivity: category.initializeDate !== null,
         checkpointCarryBalance: 0,
         checkpointPeriodSpending: 0,
         checkpointLastProcessedPeriodEnd: null,
@@ -250,7 +250,7 @@ export class SpendingTrackerManager {
       config.thresholdChanges,
       config.increaseBy,
       config.increaseByDate,
-      this.startDate,
+      config.initializeDate ?? this.startDate,
       date,
     );
   }
@@ -526,7 +526,7 @@ export class SpendingTrackerManager {
     const endDateObj = new Date(dateRange.endDate + 'T12:00:00Z');
     const calcStartDateObj = new Date(calculationStartDate + 'T12:00:00Z');
 
-    // 2. Use initializeDate as the effective start for period generation.
+    // 2. Compute effective initDate and inflation anchor before period generation
     // This ensures carry tracking starts from initializeDate, not from the query range start.
     const effectiveInitDate = initializeDateOverride ?? category.initializeDate;
     const effectiveStartDate = effectiveInitDate
@@ -535,6 +535,11 @@ export class SpendingTrackerManager {
           dayjs.utc(effectiveInitDate).toDate().getTime(),
         ))
       : startDateObj;
+
+    // Inflation anchor: use initializeDate when available, fallback to calcStartDateObj
+    const inflationAnchor = effectiveInitDate
+      ? new Date(effectiveInitDate + 'T12:00:00Z')
+      : calcStartDateObj;
 
     // 3. Generate period boundaries
     const periods = computePeriodBoundaries(
@@ -558,7 +563,7 @@ export class SpendingTrackerManager {
     let carryBalance = 0;
     let cumulativeSpent = 0;
     let cumulativeThreshold = 0;
-    let hasHadActivity = false;
+    let hasHadActivity = effectiveInitDate !== null && effectiveInitDate !== undefined;
     const chartPoints: ChartDataPoint[] = [];
 
     // Activities before the first period's start create carry debt, not spending.
@@ -589,7 +594,7 @@ export class SpendingTrackerManager {
         resolvedChanges,
         increaseBy,
         increaseByDate,
-        calcStartDateObj,
+        inflationAnchor,
         periods[0].periodEnd,
       );
       let newCarry: number;
@@ -643,7 +648,7 @@ export class SpendingTrackerManager {
         resolvedChanges,
         increaseBy,
         increaseByDate,
-        calcStartDateObj,
+        inflationAnchor,
         period.periodEnd,
       );
 
@@ -749,7 +754,7 @@ export class SpendingTrackerManager {
         resolvedChanges,
         increaseBy,
         increaseByDate,
-        calcStartDateObj,
+        inflationAnchor,
         nextPeriodDate,
       );
       nextPeriodThreshold = Math.max(0, nextBaseThreshold + carryBalance);
