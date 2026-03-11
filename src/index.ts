@@ -70,6 +70,12 @@ declare global {
   }
 }
 
+const asyncHandler =
+  (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+
 const app: Express = express();
 const port = process.env.PORT || 5002;
 
@@ -114,207 +120,207 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
 // Account routes
 app
   .route('/api/accounts')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await getSimpleAccounts(req));
-  })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await addAccount(req));
-  })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .put(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await updateAccounts(req));
-  });
+  }));
 
 // Account graph routes
-app.get('/api/accounts/:accountId/graph', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/accounts/:accountId/graph', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getAccountGraph(req));
-});
+}));
 
-app.get('/api/accounts/graph', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/accounts/graph', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getGraphForAccounts(req));
-});
+}));
 
 app
   .route('/api/accounts/:accountId')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await getAccount(req));
-  })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .put(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await updateAccount(req));
-  })
-  .delete(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await removeAccount(req));
-  });
+  }));
 
 // Account balance route
-app.get('/api/accounts/:accountId/today_balance', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/accounts/:accountId/today_balance', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getTodayBalance(req));
-});
+}));
 
 // Activity routes
 app
   .route('/api/accounts/:accountId/activity')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await getAccountActivity(req));
-  })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await addActivity(req));
-  });
+  }));
 
 app
   .route('/api/accounts/:accountId/activity/:activityId')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await getSpecificActivity(req));
-  })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .put(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await updateSpecificActivity(req));
-  })
-  .delete(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await deleteSpecificActivity(req));
-  });
+  }));
 
 app
   .route('/api/accounts/:accountId/activity/:activityId/change_account/:newAccountId')
-  .post(verifyToken, async (req: Request, res: Response) => {
+  .post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await changeAccountForActivity(req));
-  });
+  }));
 
 // Bill routes
 app
   .route('/api/accounts/:accountId/bills')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await getAccountBills(req));
-  })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await addBill(req));
-  });
+  }));
 
 app
   .route('/api/accounts/:accountId/bills/:billId')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await getSpecificBill(req));
-  })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .put(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await updateSpecificBill(req));
-  })
-  .delete(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await deleteSpecificBill(req));
-  });
+  }));
 
 app
   .route('/api/accounts/:accountId/bills/:billId/change_account/:newAccountId')
-  .post(verifyToken, async (req: Request, res: Response) => {
+  .post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await changeAccountForBill(req));
-  });
+  }));
 
 // Calendar routes
-app.get('/api/calendar/bills', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/calendar/bills', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getCalendarBills(req));
-});
+}));
 
 // Interest routes
 app
   .route('/api/accounts/:accountId/interests')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await getAccountInterests(req));
-  })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await addInterest(req));
-  })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .put(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await updateInterest(req));
-  });
+  }));
 
 app
   .route('/api/accounts/:accountId/interests/:interestId')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await getSpecificInterest(req));
-  })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .put(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await updateSpecificInterest(req));
-  })
-  .delete(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await deleteSpecificInterest(req));
-  });
+  }));
 
 // Consolidated activity routes
-app.get('/api/accounts/:accountId/consolidated_activity', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/accounts/:accountId/consolidated_activity', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getConsolidatedActivity(req));
-});
+}));
 
 app.get(
   '/api/accounts/:accountId/consolidated_activity/:activityId',
   verifyToken,
-  async (req: Request, res: Response) => {
+  asyncHandler(async (req: Request, res: Response) => {
     res.json(await getSpecificConsolidatedActivity(req));
-  },
+  }),
 );
 
 // Category routes
 app
   .route('/api/categories')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await getCategories(req));
-  })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await addCategory(req));
-  })
-  .delete(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await deleteCategory(req));
-  });
+  }));
 
-app.get('/api/categories/breakdown', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/categories/breakdown', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getCategoryBreakdown(req));
-});
+}));
 
-app.get('/api/categories/:section/transactions', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/categories/:section/transactions', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getCategorySectionTransactions(req));
-});
+}));
 
-app.get('/api/categories/:section/breakdown', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/categories/:section/breakdown', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getCategorySectionBreakdown(req));
-});
+}));
 
-app.get('/api/categories/:section/:item/transactions', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/categories/:section/:item/transactions', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getCategorySectionItemTransactions(req));
-});
+}));
 
 // Simulation routes
 app
   .route('/api/simulations')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await getSimulations(req));
-  })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .put(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await updateSimulations(req));
-  });
+  }));
 
-app.get('/api/simulations/used_variables', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/simulations/used_variables', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getUsedVariables(req));
-});
+}));
 
 // Name categories route
-app.get('/api/names', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/names', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getNameCategories(req));
-});
+}));
 
 // Flow route
-app.get('/api/flow', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/flow', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getFlow(req));
-});
+}));
 
 // Monte Carlo route
-app.get('/api/monte_carlo/start_simulation', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/monte_carlo/start_simulation', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await startSimulation(req));
-});
+}));
 
 // New Monte Carlo simulation routes
-app.post('/api/monte_carlo/simulations', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/monte_carlo/simulations', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     res.json(await startSimulation(req));
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
-});
+}));
 
 app.get('/api/monte_carlo/simulations', verifyToken, (req: Request, res: Response) => {
   try {
@@ -351,7 +357,7 @@ interface User {
   password: string;
 }
 
-app.post('/api/auth/token', async (req: Request, res: Response) => {
+app.post('/api/auth/token', asyncHandler(async (req: Request, res: Response) => {
   const { username, password } = req.body;
   let connection;
   try {
@@ -385,7 +391,7 @@ app.post('/api/auth/token', async (req: Request, res: Response) => {
       connection.end();
     }
   }
-});
+}));
 
 app.post('/api/auth/logout', verifyToken, (_req: Request, res: Response) => {
   res.json({ token: null });
@@ -401,16 +407,16 @@ app.get('/api/auth/validate', (req: Request, res: Response) => {
   res.json({ token: userId });
 });
 
-app.get('/api/moneyMovement', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/moneyMovement', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getMoneyMovementChart(req));
-});
+}));
 
-app.get('/api/sharedSpending', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/sharedSpending', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.send(await getSharedSpending(req));
-});
+}));
 
 // Healthcare config routes
-app.get('/api/healthcare/configs', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/healthcare/configs', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     const configs = await loadHealthcareConfigs();
     res.json(configs);
@@ -418,9 +424,9 @@ app.get('/api/healthcare/configs', verifyToken, async (req: Request, res: Respon
     console.error('Error loading healthcare configs:', error);
     res.status(500).json({ error: 'Failed to load healthcare configs' });
   }
-});
+}));
 
-app.post('/api/healthcare/configs', verifyToken, async (req: Request, res: Response) => {
+app.post('/api/healthcare/configs', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     // Validate coveredPersons is a non-empty array
     if (!Array.isArray(req.body.coveredPersons) ||
@@ -459,9 +465,9 @@ app.post('/api/healthcare/configs', verifyToken, async (req: Request, res: Respo
     console.error('Error creating healthcare config:', error);
     res.status(500).json({ error: 'Failed to create healthcare config' });
   }
-});
+}));
 
-app.put('/api/healthcare/configs/:id', verifyToken, async (req: Request, res: Response) => {
+app.put('/api/healthcare/configs/:id', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     // Validate coveredPersons is a non-empty array
     if (!Array.isArray(req.body.coveredPersons) ||
@@ -482,9 +488,9 @@ app.put('/api/healthcare/configs/:id', verifyToken, async (req: Request, res: Re
     console.error('Error updating healthcare config:', error);
     res.status(500).json({ error: 'Failed to update healthcare config' });
   }
-});
+}));
 
-app.delete('/api/healthcare/configs/:id', verifyToken, async (req: Request, res: Response) => {
+app.delete('/api/healthcare/configs/:id', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     const configs = await loadHealthcareConfigs();
     const configExists = configs.some(c => c.id === req.params.id);
@@ -500,9 +506,9 @@ app.delete('/api/healthcare/configs/:id', verifyToken, async (req: Request, res:
     console.error('Error deleting healthcare config:', error);
     res.status(500).json({ error: 'Failed to delete healthcare config' });
   }
-});
+}));
 
-app.get('/api/healthcare/progress', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/healthcare/progress', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     const simulation = req.query.simulation as string;
 
@@ -516,9 +522,9 @@ app.get('/api/healthcare/progress', verifyToken, async (req: Request, res: Respo
     console.error('Error getting healthcare progress:', error);
     res.status(500).json({ error: 'Failed to get healthcare progress' });
   }
-});
+}));
 
-app.get('/api/healthcare/expenses', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/healthcare/expenses', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     const simulation = req.query.simulation as string;
 
@@ -532,9 +538,9 @@ app.get('/api/healthcare/expenses', verifyToken, async (req: Request, res: Respo
     console.error('Error getting healthcare expenses:', error);
     res.status(500).json({ error: 'Failed to get healthcare expenses' });
   }
-});
+}));
 
-app.get('/api/healthcare/progress-history', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/healthcare/progress-history', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     const simulation = req.query.simulation as string;
     const startDate = req.query.startDate as string;
@@ -559,12 +565,12 @@ app.get('/api/healthcare/progress-history', verifyToken, async (req: Request, re
     console.error('Error getting healthcare progress history:', error);
     res.status(500).json({ error: 'Failed to get healthcare progress history' });
   }
-});
+}));
 
 // Spending Tracker routes
 app
   .route('/api/spending-tracker')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     try {
       res.json(await getSpendingTrackerCategories(req));
     } catch (e: unknown) {
@@ -575,8 +581,8 @@ app
         res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
       }
     }
-  })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     try {
       res.json(await createSpendingTrackerCategory(req));
     } catch (e: unknown) {
@@ -587,11 +593,11 @@ app
         res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
       }
     }
-  });
+  }));
 
 app
   .route('/api/spending-tracker/:id')
-  .get(verifyToken, async (req: Request, res: Response) => {
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     try {
       res.json(await getSpendingTrackerCategory(req));
     } catch (e: unknown) {
@@ -602,8 +608,8 @@ app
         res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
       }
     }
-  })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .put(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     try {
       res.json(await updateSpendingTrackerCategory(req));
     } catch (e: unknown) {
@@ -614,8 +620,8 @@ app
         res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
       }
     }
-  })
-  .delete(verifyToken, async (req: Request, res: Response) => {
+  }))
+  .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     try {
       res.json(await deleteSpendingTrackerCategory(req));
     } catch (e: unknown) {
@@ -626,9 +632,9 @@ app
         res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
       }
     }
-  });
+  }));
 
-app.get('/api/spending-tracker/:id/chart-data', verifyToken, async (req: Request, res: Response) => {
+app.get('/api/spending-tracker/:id/chart-data', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     res.json(await getSpendingTrackerChartData(req));
   } catch (e: unknown) {
@@ -639,7 +645,7 @@ app.get('/api/spending-tracker/:id/chart-data', verifyToken, async (req: Request
       res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
     }
   }
-});
+}));
 
 // Serve frontend for all non-API routes (SPA fallback)
 app.get('*', (req: Request, res: Response) => {

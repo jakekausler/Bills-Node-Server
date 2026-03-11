@@ -17,6 +17,17 @@ vi.mock('../io/healthcareConfigs', () => ({
   loadHealthcareConfigs: vi.fn(() => Promise.resolve(mockConfigs)),
 }));
 
+vi.mock('../io/retirement', () => ({
+  loadPensionsAndSocialSecurity: vi.fn().mockReturnValue({
+    pensions: [],
+    socialSecurities: [],
+  }),
+}));
+
+vi.mock('../io/spendingTracker', () => ({
+  loadSpendingTrackerCategories: vi.fn().mockReturnValue([]),
+}));
+
 describe('Healthcare Integration Tests', () => {
   let engine: Engine;
 
