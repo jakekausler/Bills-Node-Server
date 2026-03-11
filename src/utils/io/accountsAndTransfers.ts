@@ -4,13 +4,14 @@ import { AccountsAndTransfers, AccountsAndTransfersData } from '../../data/accou
 import { Activity } from '../../data/activity/activity';
 import { Bill } from '../../data/bill/bill';
 import { resetCache } from './cache';
+import { DATA_CACHE, MAX_CACHE_SIZE, clearDataCache } from './dataCache';
 import { calculateAllActivity } from '../calculate-v3/engine';
 import { CalculationConfig } from '../calculate-v3/types';
 import { formatDate } from '../date/date';
 
 export const FILE_NAME = 'data';
 
-const CACHE = new Map<string, AccountsAndTransfers>();
+export { clearDataCache } from './dataCache';
 
 /**
  * Loads accounts and transfers data with caching support
@@ -40,11 +41,10 @@ export async function loadData(
   } = {},
 ): Promise<AccountsAndTransfers> {
   const cacheKey = `${simulation}-${startDate.toISOString()}-${endDate.toISOString()}`;
-  // if (CACHE.has(cacheKey)) {
-  //   return CACHE.get(cacheKey)!;
-  // }
-
-  // console.log('Loading data for', formatDate(startDate), 'to', formatDate(endDate));
+  const skipCache = options.forceRecalculation || options.monteCarlo;
+  if (!skipCache && DATA_CACHE.has(cacheKey)) {
+    return DATA_CACHE.get(cacheKey)!;
+  }
 
   const accountsAndTransfers = getAccountsAndTransfers(simulation);
   const result = await calculateAllActivity(
@@ -59,7 +59,13 @@ export async function loadData(
     options.enableLogging ?? false,
     calculationConfig,
   );
-  // CACHE.set(cacheKey, result);
+  if (!skipCache) {
+    if (DATA_CACHE.size >= MAX_CACHE_SIZE) {
+      const firstKey = DATA_CACHE.keys().next().value;
+      if (firstKey) DATA_CACHE.delete(firstKey);
+    }
+    DATA_CACHE.set(cacheKey, result);
+  }
   return result;
 }
 
@@ -109,5 +115,6 @@ export function saveData(data: AccountsAndTransfers) {
     bills: data.transfers.bills.map((bill) => bill.serialize()),
   };
   save<AccountsAndTransfersData>({ accounts, transfers }, `${FILE_NAME}.json`);
+  clearDataCache();
   resetCache();
 }

@@ -117,10 +117,10 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     res.json(await getSimpleAccounts(req));
   })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  .post(verifyToken, async (req: Request, res: Response) => {
     res.json(await addAccount(req));
   })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  .put(verifyToken, async (req: Request, res: Response) => {
     res.json(await updateAccounts(req));
   });
 
@@ -138,7 +138,7 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     res.json(await getAccount(req));
   })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  .put(verifyToken, async (req: Request, res: Response) => {
     res.json(await updateAccount(req));
   })
   .delete(verifyToken, async (req: Request, res: Response) => {
@@ -156,7 +156,7 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     res.json(await getAccountActivity(req));
   })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  .post(verifyToken, async (req: Request, res: Response) => {
     res.json(await addActivity(req));
   });
 
@@ -165,7 +165,7 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     res.json(await getSpecificActivity(req));
   })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  .put(verifyToken, async (req: Request, res: Response) => {
     res.json(await updateSpecificActivity(req));
   })
   .delete(verifyToken, async (req: Request, res: Response) => {
@@ -184,7 +184,7 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     res.json(await getAccountBills(req));
   })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  .post(verifyToken, async (req: Request, res: Response) => {
     res.json(await addBill(req));
   });
 
@@ -193,7 +193,7 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     res.json(await getSpecificBill(req));
   })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  .put(verifyToken, async (req: Request, res: Response) => {
     res.json(await updateSpecificBill(req));
   })
   .delete(verifyToken, async (req: Request, res: Response) => {
@@ -217,10 +217,10 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     res.json(await getAccountInterests(req));
   })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  .post(verifyToken, async (req: Request, res: Response) => {
     res.json(await addInterest(req));
   })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  .put(verifyToken, async (req: Request, res: Response) => {
     res.json(await updateInterest(req));
   });
 
@@ -229,7 +229,7 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     res.json(await getSpecificInterest(req));
   })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  .put(verifyToken, async (req: Request, res: Response) => {
     res.json(await updateSpecificInterest(req));
   })
   .delete(verifyToken, async (req: Request, res: Response) => {
@@ -255,7 +255,7 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     res.json(await getCategories(req));
   })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  .post(verifyToken, async (req: Request, res: Response) => {
     res.json(await addCategory(req));
   })
   .delete(verifyToken, async (req: Request, res: Response) => {
@@ -284,7 +284,7 @@ app
   .get(verifyToken, async (req: Request, res: Response) => {
     res.json(await getSimulations(req));
   })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  .put(verifyToken, async (req: Request, res: Response) => {
     res.json(await updateSimulations(req));
   });
 
@@ -576,7 +576,7 @@ app
       }
     }
   })
-  .put(verifyToken, async (req: Request, res: Response) => {
+  .post(verifyToken, async (req: Request, res: Response) => {
     try {
       res.json(await createSpendingTrackerCategory(req));
     } catch (e: unknown) {
@@ -603,7 +603,7 @@ app
       }
     }
   })
-  .post(verifyToken, async (req: Request, res: Response) => {
+  .put(verifyToken, async (req: Request, res: Response) => {
     try {
       res.json(await updateSpendingTrackerCategory(req));
     } catch (e: unknown) {

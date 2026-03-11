@@ -45,7 +45,7 @@ import { calculateAllActivity } from '../calculate-v3/engine';
 import { Account } from '../../data/account/account';
 import { Activity } from '../../data/activity/activity';
 import { Bill } from '../../data/bill/bill';
-import { loadData, getAccountsAndTransfers, saveData, FILE_NAME } from './accountsAndTransfers';
+import { loadData, getAccountsAndTransfers, saveData, clearDataCache, FILE_NAME } from './accountsAndTransfers';
 
 const mockAccountData = {
   id: 'account-1',
@@ -83,6 +83,7 @@ const mockRawData = {
 describe('accountsAndTransfers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearDataCache();
   });
 
   describe('FILE_NAME', () => {
@@ -369,6 +370,125 @@ describe('accountsAndTransfers', () => {
         calcConfig,
       );
     });
+
+    it('should cache results from calculateAllActivity', async () => {
+      vi.mocked(load).mockReturnValue(mockRawData);
+      const mockResult = { accounts: [], transfers: { activity: [], bills: [] } };
+      vi.mocked(calculateAllActivity).mockResolvedValue(mockResult);
+
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-12-31');
+
+      // First call should call calculateAllActivity
+      await loadData(startDate, endDate, 'Default');
+      expect(calculateAllActivity).toHaveBeenCalledTimes(1);
+
+      // Second call with same parameters should use cache and not call calculateAllActivity
+      await loadData(startDate, endDate, 'Default');
+      expect(calculateAllActivity).toHaveBeenCalledTimes(1);
+    });
+
+    it('should use different cache entries for different simulations', async () => {
+      vi.mocked(load).mockReturnValue(mockRawData);
+      const mockResult = { accounts: [], transfers: { activity: [], bills: [] } };
+      vi.mocked(calculateAllActivity).mockResolvedValue(mockResult);
+
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-12-31');
+
+      // Load with different simulations
+      await loadData(startDate, endDate, 'Default');
+      await loadData(startDate, endDate, 'MySimulation');
+
+      // Both should call calculateAllActivity separately
+      expect(calculateAllActivity).toHaveBeenCalledTimes(2);
+    });
+
+    it('should use different cache entries for different date ranges', async () => {
+      vi.mocked(load).mockReturnValue(mockRawData);
+      const mockResult = { accounts: [], transfers: { activity: [], bills: [] } };
+      vi.mocked(calculateAllActivity).mockResolvedValue(mockResult);
+
+      const startDate1 = new Date('2024-01-01');
+      const endDate1 = new Date('2024-12-31');
+      const startDate2 = new Date('2024-06-01');
+      const endDate2 = new Date('2024-06-30');
+
+      // Load with different date ranges
+      await loadData(startDate1, endDate1, 'Default');
+      await loadData(startDate2, endDate2, 'Default');
+
+      // Both should call calculateAllActivity separately
+      expect(calculateAllActivity).toHaveBeenCalledTimes(2);
+    });
+
+    it('should return cached result on subsequent calls', async () => {
+      vi.mocked(load).mockReturnValue(mockRawData);
+      const mockResult = { accounts: [{ id: 'acc-1' }], transfers: { activity: [], bills: [] } };
+      vi.mocked(calculateAllActivity).mockResolvedValue(mockResult);
+
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-12-31');
+
+      const result1 = await loadData(startDate, endDate, 'Default');
+      const result2 = await loadData(startDate, endDate, 'Default');
+
+      expect(result1).toBe(result2);
+    });
+
+    it('should skip cache when monteCarlo option is true', async () => {
+      vi.mocked(load).mockReturnValue(mockRawData);
+      const mockResult = { accounts: [], transfers: { activity: [], bills: [] } };
+      vi.mocked(calculateAllActivity).mockResolvedValue(mockResult);
+
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-12-31');
+
+      // First call with monteCarlo: false should cache
+      await loadData(startDate, endDate, 'Default', {}, { monteCarlo: false });
+      expect(calculateAllActivity).toHaveBeenCalledTimes(1);
+
+      // Second call with monteCarlo: true should skip cache and recalculate
+      await loadData(startDate, endDate, 'Default', {}, { monteCarlo: true, simulationNumber: 0, totalSimulations: 1 });
+      expect(calculateAllActivity).toHaveBeenCalledTimes(2);
+    });
+
+    it('should skip cache when forceRecalculation option is true', async () => {
+      vi.mocked(load).mockReturnValue(mockRawData);
+      const mockResult = { accounts: [], transfers: { activity: [], bills: [] } };
+      vi.mocked(calculateAllActivity).mockResolvedValue(mockResult);
+
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-12-31');
+
+      // First call should cache
+      await loadData(startDate, endDate, 'Default');
+      expect(calculateAllActivity).toHaveBeenCalledTimes(1);
+
+      // Second call with forceRecalculation: true should skip cache
+      await loadData(startDate, endDate, 'Default', {}, { forceRecalculation: true });
+      expect(calculateAllActivity).toHaveBeenCalledTimes(2);
+    });
+
+    it('should invalidate cache when saveData is called', async () => {
+      vi.mocked(load).mockReturnValue(mockRawData);
+      const mockResult = { accounts: [], transfers: { activity: [], bills: [] } };
+      vi.mocked(calculateAllActivity).mockResolvedValue(mockResult);
+
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-12-31');
+
+      // First call populates cache
+      await loadData(startDate, endDate, 'Default');
+      expect(calculateAllActivity).toHaveBeenCalledTimes(1);
+
+      // Save data (should invalidate cache)
+      saveData({ accounts: [], transfers: { activity: [], bills: [] } });
+
+      // Second call should not use cache
+      await loadData(startDate, endDate, 'Default');
+      expect(calculateAllActivity).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('saveData', () => {
@@ -454,6 +574,50 @@ describe('accountsAndTransfers', () => {
       saveData(data);
 
       expect(resetCache).toHaveBeenCalled();
+    });
+  });
+
+  describe('clearDataCache', () => {
+    it('should clear the in-memory cache', async () => {
+      vi.mocked(load).mockReturnValue(mockRawData);
+      const mockResult = { accounts: [], transfers: { activity: [], bills: [] } };
+      vi.mocked(calculateAllActivity).mockResolvedValue(mockResult);
+
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-12-31');
+
+      // Load data to populate cache
+      await loadData(startDate, endDate, 'Default');
+      expect(calculateAllActivity).toHaveBeenCalledTimes(1);
+
+      // Clear cache
+      clearDataCache();
+
+      // Load again with same parameters - should call calculateAllActivity again
+      await loadData(startDate, endDate, 'Default');
+      expect(calculateAllActivity).toHaveBeenCalledTimes(2);
+    });
+
+    it('should clear cache for all simulations', async () => {
+      vi.mocked(load).mockReturnValue(mockRawData);
+      const mockResult = { accounts: [], transfers: { activity: [], bills: [] } };
+      vi.mocked(calculateAllActivity).mockResolvedValue(mockResult);
+
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-12-31');
+
+      // Load with different simulations to populate cache
+      await loadData(startDate, endDate, 'Default');
+      await loadData(startDate, endDate, 'MySimulation');
+      expect(calculateAllActivity).toHaveBeenCalledTimes(2);
+
+      // Clear cache
+      clearDataCache();
+
+      // Load again - both should call calculateAllActivity
+      await loadData(startDate, endDate, 'Default');
+      await loadData(startDate, endDate, 'MySimulation');
+      expect(calculateAllActivity).toHaveBeenCalledTimes(4);
     });
   });
 });

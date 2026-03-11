@@ -1,5 +1,6 @@
 import { load, save, checkExists } from './io';
 import { SpendingTrackerCategory, SpendingTrackerData } from '../../data/spendingTracker/types';
+import { clearDataCache } from './dataCache';
 
 const FILE_NAME = 'spending-tracker';
 
@@ -14,4 +15,5 @@ export function loadSpendingTrackerCategories(): SpendingTrackerCategory[] {
 export function saveSpendingTrackerCategories(categories: SpendingTrackerCategory[]): void {
   const data: SpendingTrackerData = { categories };
   save<SpendingTrackerData>(data, `${FILE_NAME}.json`);
+  clearDataCache();
 }

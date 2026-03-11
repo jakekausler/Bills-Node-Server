@@ -4,6 +4,7 @@ import { LoadedSimulations } from './types';
 import { save } from './io';
 import { load } from './io';
 import { resetCache } from './cache';
+import { clearDataCache } from './dataCache';
 
 const FILE_PATH = 'simulations.json';
 
@@ -79,5 +80,6 @@ export function saveSimulations(simulations: Simulations) {
     selected: simulation.selected,
   }));
   save(toSave, FILE_PATH);
+  clearDataCache();
   resetCache();
 }
