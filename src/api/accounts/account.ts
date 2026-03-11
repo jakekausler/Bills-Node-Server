@@ -42,9 +42,25 @@ export async function updateAccount(request: Request) {
  */
 export async function removeAccount(request: Request) {
   const data = await getData<AccountData>(request);
+  const beforeLength = data.accountsAndTransfers.accounts.length;
   data.accountsAndTransfers.accounts = data.accountsAndTransfers.accounts.filter(
     (a) => a.id !== request.params.accountId,
   );
-  saveData(data.accountsAndTransfers);
+  if (data.accountsAndTransfers.accounts.length < beforeLength) {
+    const removedAccountId = request.params.accountId;
+    // Clean up dangling references to the removed account
+    for (const account of data.accountsAndTransfers.accounts) {
+      if (account.interestPayAccount === removedAccountId) {
+        account.interestPayAccount = null;
+      }
+      if (account.rmdAccount === removedAccountId) {
+        account.rmdAccount = null;
+      }
+      if (account.pushAccount === removedAccountId) {
+        account.pushAccount = null;
+      }
+    }
+    saveData(data.accountsAndTransfers);
+  }
   return request.params.accountId;
 }

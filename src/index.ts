@@ -2,6 +2,7 @@ import express, { Express, NextFunction, Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import path from 'path';
 import fs from 'fs';
+import { appendFile } from 'fs/promises';
 import { getSimpleAccounts, addAccount, updateAccounts } from './api/accounts/accounts';
 import { getAccount, updateAccount, removeAccount } from './api/accounts/account';
 import { getGraphForAccounts } from './api/accounts/graph';
@@ -49,6 +50,7 @@ import mysql from 'mysql';
 import 'dotenv/config';
 import jwt from 'jsonwebtoken';
 import { promisify } from 'util';
+import rateLimit from 'express-rate-limit';
 import { getMoneyMovementChart } from './api/moneyMovement/movement';
 import { loadHealthcareConfigs, saveHealthcareConfigs } from './utils/io/healthcareConfigs';
 import { v4 as uuidv4 } from 'uuid';
@@ -79,6 +81,19 @@ const asyncHandler =
   (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
+
+const apiErrorHandler = (fn: (req: Request) => Promise<any>) =>
+  asyncHandler(async (req: Request, res: Response) => {
+    try {
+      res.json(await fn(req));
+    } catch (e: unknown) {
+      if (e instanceof ApiError) {
+        res.status(e.statusCode).json({ error: e.message });
+      } else {
+        throw e;
+      }
+    }
+  });
 
 const app: Express = express();
 const port = process.env.PORT || 5002;
@@ -119,6 +134,7 @@ const isTokenValid = (token?: string) => {
 
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   if (process.env.DISABLE_AUTH === 'true') {
+    req.userId = 0;
     next();
     return;
   }
@@ -372,7 +388,13 @@ interface User {
   password: string;
 }
 
-app.post('/api/auth/token', asyncHandler(async (req: Request, res: Response) => {
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many login attempts' },
+});
+
+app.post('/api/auth/token', authLimiter, asyncHandler(async (req: Request, res: Response) => {
   const { username, password } = req.body;
   try {
     const query = promisify(pool.query).bind(pool);
@@ -634,82 +656,16 @@ app.get('/api/healthcare/progress-history', verifyToken, asyncHandler(async (req
 // Spending Tracker routes
 app
   .route('/api/spending-tracker')
-  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
-    try {
-      res.json(await getSpendingTrackerCategories(req));
-    } catch (e: unknown) {
-      if (e instanceof ApiError) {
-        res.status(e.statusCode).json({ error: e.message });
-      } else {
-        console.error('Spending tracker error:', e);
-        res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
-      }
-    }
-  }))
-  .post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
-    try {
-      res.json(await createSpendingTrackerCategory(req));
-    } catch (e: unknown) {
-      if (e instanceof ApiError) {
-        res.status(e.statusCode).json({ error: e.message });
-      } else {
-        console.error('Spending tracker error:', e);
-        res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
-      }
-    }
-  }));
+  .get(verifyToken, apiErrorHandler(getSpendingTrackerCategories))
+  .post(verifyToken, apiErrorHandler(createSpendingTrackerCategory));
 
 app
   .route('/api/spending-tracker/:id')
-  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
-    try {
-      res.json(await getSpendingTrackerCategory(req));
-    } catch (e: unknown) {
-      if (e instanceof ApiError) {
-        res.status(e.statusCode).json({ error: e.message });
-      } else {
-        console.error('Spending tracker error:', e);
-        res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
-      }
-    }
-  }))
-  .put(verifyToken, asyncHandler(async (req: Request, res: Response) => {
-    try {
-      res.json(await updateSpendingTrackerCategory(req));
-    } catch (e: unknown) {
-      if (e instanceof ApiError) {
-        res.status(e.statusCode).json({ error: e.message });
-      } else {
-        console.error('Spending tracker error:', e);
-        res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
-      }
-    }
-  }))
-  .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
-    try {
-      res.json(await deleteSpendingTrackerCategory(req));
-    } catch (e: unknown) {
-      if (e instanceof ApiError) {
-        res.status(e.statusCode).json({ error: e.message });
-      } else {
-        console.error('Spending tracker error:', e);
-        res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
-      }
-    }
-  }));
+  .get(verifyToken, apiErrorHandler(getSpendingTrackerCategory))
+  .put(verifyToken, apiErrorHandler(updateSpendingTrackerCategory))
+  .delete(verifyToken, apiErrorHandler(deleteSpendingTrackerCategory));
 
-app.get('/api/spending-tracker/:id/chart-data', verifyToken, asyncHandler(async (req: Request, res: Response) => {
-  try {
-    res.json(await getSpendingTrackerChartData(req));
-  } catch (e: unknown) {
-    if (e instanceof ApiError) {
-      res.status(e.statusCode).json({ error: e.message });
-    } else {
-      console.error('Spending tracker chart-data error:', e);
-      res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
-    }
-  }
-}));
+app.get('/api/spending-tracker/:id/chart-data', verifyToken, apiErrorHandler(getSpendingTrackerChartData));
 
 // Dev-only frontend logging endpoints
 const FRONTEND_LOG_FILE = '/tmp/frontend.log';
@@ -723,7 +679,7 @@ if (process.env.DISABLE_AUTH === 'true') {
     }
     const formattedArgs = args.map((arg: any) => JSON.stringify(arg)).join(' ');
     const logLine = `[${timestamp}] [${level}] ${formattedArgs}\n`;
-    fs.appendFileSync(FRONTEND_LOG_FILE, logLine);
+    appendFile(FRONTEND_LOG_FILE, logLine).catch(() => {});
     res.json({ ok: true });
   });
 

@@ -225,7 +225,7 @@ describe('Account API', () => {
         { id: 'account-1', name: 'Account 1' },
         { id: 'account-2', name: 'Account 2' },
       ]);
-      expect(saveData).toHaveBeenCalledWith(mockData.accountsAndTransfers);
+      expect(saveData).not.toHaveBeenCalled();
       expect(result).toBe('non-existent');
     });
 

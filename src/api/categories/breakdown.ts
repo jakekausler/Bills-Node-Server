@@ -51,18 +51,18 @@ export async function getCategoryBreakdown(request: Request) {
         ret[section] = 0;
       }
       if (activity.isTransfer) {
-        // If the activity is a transfer and has a category, subtract the amount
-        // from the category - but it will be subtracted again when the other
-        // account is processed. Because of this, we only subtract half the
+        // If the activity is a transfer and has a category, add the amount
+        // to the category - but it will be added again when the other
+        // account is processed. Because of this, we only add half the
         // amount on each side of the transfer.
         // If the other half of the transfer is not in the selected accounts,
-        // Then subtract the full amount.
+        // Then add the full amount.
         if (activity.to && !selectedAccounts.includes(activity.to)) {
-          ret[section] -= Math.round((activity.amount as number) * 100) / 100;
+          ret[section] += Math.round((activity.amount as number) * 100) / 100;
         } else if (activity.fro && !selectedAccounts.includes(activity.fro)) {
-          ret[section] -= Math.round((activity.amount as number) * 100) / 100;
+          ret[section] += Math.round((activity.amount as number) * 100) / 100;
         } else {
-          ret[section] -= Math.round((activity.amount as number) * 50) / 100;
+          ret[section] += Math.round((activity.amount as number) * 50) / 100;
         }
       } else {
         // Add the amount (negative for debits, positive for credits) to the category

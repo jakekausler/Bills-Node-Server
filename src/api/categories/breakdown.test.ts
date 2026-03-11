@@ -276,10 +276,9 @@ describe('Category Breakdown API', () => {
 
       const result = await getCategoryBreakdown(mockRequest);
 
-      // Transfer logic: ret[section] -= (-1500) = ret[section] += 1500
-      // But positive values are filtered out because they're not expenses
-      // This is correct behavior - transfers shouldn't count as spending
-      expect(result).toEqual({});
+      // Transfer logic: ret[section] += (-1500) = ret[section] + (-1500)
+      // This counts the full transfer amount as an expense
+      expect(result).toEqual({ Housing: 1500 });
     });
 
     it('should remove positive category totals', async () => {
