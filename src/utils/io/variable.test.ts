@@ -6,7 +6,7 @@ vi.mock('fs', async () => {
   return {
     ...actual,
     readFileSync: vi.fn(),
-    createWriteStream: vi.fn(),
+    writeFileSync: vi.fn(),
   };
 });
 
@@ -14,18 +14,6 @@ vi.mock('fs', async () => {
 vi.mock('csv-parse/sync', () => ({
   parse: vi.fn(),
 }));
-
-// Mock fast-csv
-vi.mock('fast-csv', () => {
-  const mockStream = {
-    pipe: vi.fn().mockReturnThis(),
-    write: vi.fn().mockReturnThis(),
-    end: vi.fn().mockReturnThis(),
-  };
-  return {
-    format: vi.fn().mockReturnValue(mockStream),
-  };
-});
 
 // Mock the io module
 vi.mock('./io', () => ({
@@ -53,9 +41,8 @@ vi.mock('../date/date', () => ({
   formatDate: vi.fn((date: Date) => date.toISOString().split('T')[0]),
 }));
 
-import { readFileSync, createWriteStream } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { parse as parseSync } from 'csv-parse/sync';
-import * as csv from 'fast-csv';
 import { backup, shouldBackup } from './io';
 import { loadVariableValue } from '../simulation/loadVariableValue';
 import { loadVariables, saveVariables } from './variable';
@@ -189,9 +176,6 @@ describe('variable IO functions', () => {
   describe('saveVariables', () => {
     it('should not call backup when shouldBackup returns false', () => {
       vi.mocked(shouldBackup).mockReturnValue(false);
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
 
       saveVariables([]);
 
@@ -200,9 +184,6 @@ describe('variable IO functions', () => {
 
     it('should call backup when shouldBackup returns true', () => {
       vi.mocked(shouldBackup).mockReturnValue(true);
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
 
       saveVariables([]);
 
@@ -211,30 +192,13 @@ describe('variable IO functions', () => {
 
     it('should check shouldBackup for variables.csv', () => {
       vi.mocked(shouldBackup).mockReturnValue(false);
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
 
       saveVariables([]);
 
       expect(shouldBackup).toHaveBeenCalledWith('variables.csv');
     });
 
-    it('should create a CSV format stream with headers: true', () => {
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
-
-      saveVariables([]);
-
-      expect(csv.format).toHaveBeenCalledWith({ headers: true });
-    });
-
-    it('should write the header row with variable + simulation names', () => {
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
-
+    it('should write header row with variable + simulation names', () => {
       const simulations = [
         { name: 'Default', enabled: true, selected: true, variables: {} },
         { name: 'Conservative', enabled: true, selected: false, variables: {} },
@@ -242,14 +206,11 @@ describe('variable IO functions', () => {
 
       saveVariables(simulations);
 
-      expect(mockStream.write).toHaveBeenCalledWith(['variable', 'Default', 'Conservative']);
+      const expectedContent = '"variable","Default","Conservative"';
+      expect(writeFileSync).toHaveBeenCalledWith(expect.stringContaining('variables.csv'), expect.stringContaining(expectedContent));
     });
 
     it('should write sorted variable rows for each simulation', () => {
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
-
       const simulations = [
         {
           name: 'Default',
@@ -264,19 +225,20 @@ describe('variable IO functions', () => {
 
       saveVariables(simulations);
 
-      // Variables should be written in sorted order (aVariable before zVariable)
-      const writeCalls = vi.mocked(mockStream.write).mock.calls;
-      const variableRows = writeCalls.filter((call) => Array.isArray(call[0]) && call[0][0] !== 'variable');
+      const callArgs = vi.mocked(writeFileSync).mock.calls[0];
+      const content = callArgs[1] as string;
 
-      expect(variableRows[0][0][0]).toBe('aVariable');
-      expect(variableRows[1][0][0]).toBe('zVariable');
+      // Variables should be written in sorted order (aVariable before zVariable)
+      const lines = content.split('\n');
+      const aVariableLine = lines.find(line => line.startsWith('"aVariable"'));
+      const zVariableLine = lines.find(line => line.startsWith('"zVariable"'));
+
+      expect(aVariableLine).toBeDefined();
+      expect(zVariableLine).toBeDefined();
+      expect(content.indexOf('"aVariable"')).toBeLessThan(content.indexOf('"zVariable"'));
     });
 
     it('should write number values as strings', () => {
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
-
       const simulations = [
         {
           name: 'Default',
@@ -290,17 +252,13 @@ describe('variable IO functions', () => {
 
       saveVariables(simulations);
 
-      const writeCalls = vi.mocked(mockStream.write).mock.calls;
-      const rateRow = writeCalls.find((call) => Array.isArray(call[0]) && call[0][0] === 'rate');
-      expect(rateRow).toBeDefined();
-      expect(rateRow![0][1]).toBe('0.05');
+      const callArgs = vi.mocked(writeFileSync).mock.calls[0];
+      const content = callArgs[1] as string;
+
+      expect(content).toContain('"rate","0.05"');
     });
 
     it('should write string values as strings', () => {
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
-
       const simulations = [
         {
           name: 'Default',
@@ -314,17 +272,13 @@ describe('variable IO functions', () => {
 
       saveVariables(simulations);
 
-      const writeCalls = vi.mocked(mockStream.write).mock.calls;
-      const labelRow = writeCalls.find((call) => Array.isArray(call[0]) && call[0][0] === 'label');
-      expect(labelRow).toBeDefined();
-      expect(labelRow![0][1]).toBe('someString');
+      const callArgs = vi.mocked(writeFileSync).mock.calls[0];
+      const content = callArgs[1] as string;
+
+      expect(content).toContain('"label","someString"');
     });
 
     it('should format Date values using formatDate utility', () => {
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
-
       const testDate = new Date('2030-01-15T12:00:00Z');
       const simulations = [
         {
@@ -339,40 +293,20 @@ describe('variable IO functions', () => {
 
       saveVariables(simulations);
 
-      const writeCalls = vi.mocked(mockStream.write).mock.calls;
-      const dateRow = writeCalls.find((call) => Array.isArray(call[0]) && call[0][0] === 'retirementDate');
-      expect(dateRow).toBeDefined();
+      const callArgs = vi.mocked(writeFileSync).mock.calls[0];
+      const content = callArgs[1] as string;
+
       // formatDate is mocked to return ISO date string split at T
-      expect(dateRow![0][1]).toBe('2030-01-15');
+      expect(content).toContain('"retirementDate","2030-01-15"');
     });
 
-    it('should call stream.end() after writing all rows', () => {
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
-
+    it('should write content to variables.csv using writeFileSync', () => {
       saveVariables([{ name: 'Default', enabled: true, selected: true, variables: {} }]);
 
-      expect(mockStream.end).toHaveBeenCalledTimes(1);
-    });
-
-    it('should pipe stream to a write stream for variables.csv', () => {
-      const mockWriteStream = {};
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue(mockWriteStream as any);
-
-      saveVariables([]);
-
-      expect(createWriteStream).toHaveBeenCalledWith(expect.stringContaining('variables.csv'));
-      expect(mockStream.pipe).toHaveBeenCalledWith(mockWriteStream);
+      expect(writeFileSync).toHaveBeenCalledWith(expect.stringContaining('variables.csv'), expect.any(String));
     });
 
     it('should collect all unique variable names across simulations that share the same variables', () => {
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
-
       // All simulations must share the same variable keys — the source code accesses
       // simulation.variables[variable] for every collected variable name without null-checking
       const simulations = [
@@ -400,25 +334,27 @@ describe('variable IO functions', () => {
 
       saveVariables(simulations);
 
-      const writeCalls = vi.mocked(mockStream.write).mock.calls;
-      const variableRowNames = writeCalls
-        .filter((call) => Array.isArray(call[0]) && call[0][0] !== 'variable')
-        .map((call) => call[0][0]);
+      const callArgs = vi.mocked(writeFileSync).mock.calls[0];
+      const content = callArgs[1] as string;
 
-      // Should have 3 variable rows written in sorted order
-      expect(variableRowNames).toEqual(['varA', 'varB', 'varC']);
+      // Should have variable rows written in sorted order
+      expect(content).toContain('"varA"');
+      expect(content).toContain('"varB"');
+      expect(content).toContain('"varC"');
+
+      // Check order
+      expect(content.indexOf('"varA"')).toBeLessThan(content.indexOf('"varB"'));
+      expect(content.indexOf('"varB"')).toBeLessThan(content.indexOf('"varC"'));
     });
 
     it('should handle empty simulations array', () => {
-      const mockStream = { pipe: vi.fn().mockReturnThis(), write: vi.fn(), end: vi.fn() };
-      vi.mocked(csv.format).mockReturnValue(mockStream as any);
-      vi.mocked(createWriteStream).mockReturnValue({} as any);
-
       saveVariables([]);
 
+      const callArgs = vi.mocked(writeFileSync).mock.calls[0];
+      const content = callArgs[1] as string;
+
       // Should write header row with only 'variable' column
-      expect(mockStream.write).toHaveBeenCalledWith(['variable']);
-      expect(mockStream.end).toHaveBeenCalled();
+      expect(content).toContain('"variable"');
     });
   });
 });

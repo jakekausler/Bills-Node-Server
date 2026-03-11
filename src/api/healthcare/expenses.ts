@@ -86,7 +86,7 @@ function calculateRemainingAmounts(
   expenseDate: Date,
   config: HealthcareConfig,
   planYear: number,
-  allExpenses: ConsolidatedActivity[],
+  sortedExpenses: ConsolidatedActivity[],
   billLookup: Map<string, number>
 ): {
   individualDeductibleRemaining: number;
@@ -118,9 +118,8 @@ function calculateRemainingAmounts(
   let familyDeductibleSpent = 0;
   let familyOOPSpent = 0;
 
-  // Process all expenses up to but NOT including current expense chronologically
-  // First, sort ALL expenses with stable ordering (date, then name)
-  const sortedExpenses = allExpenses
+  // Filter sorted expenses for this plan year and config
+  const relevantSortedExpenses = sortedExpenses
     .filter(e => {
       const eDate = dayjs.utc(e.date).toDate();
       const isHealthcare = e.isHealthcare;
@@ -130,31 +129,18 @@ function calculateRemainingAmounts(
       const beforeEnd = eDate < planYearEnd;
 
       return isHealthcare && hasPerson && isCovered && afterStart && beforeEnd;
-    })
-    .sort((a, b) => {
-      const dateA = dayjs.utc(a.date).valueOf();
-      const dateB = dayjs.utc(b.date).valueOf();
-      if (dateA !== dateB) {
-        return dateA - dateB;
-      }
-      // Stable tiebreaker: use expense name (or id if names are identical)
-      const nameCompare = a.name.localeCompare(b.name);
-      if (nameCompare !== 0) {
-        return nameCompare;
-      }
-      return a.id.localeCompare(b.id);
     });
 
-  // Find the index of the current expense in sorted list
-  const currentExpenseIndex = sortedExpenses.findIndex(e => e.id === expense.id);
+  // Find the index of the current expense in filtered sorted list
+  const currentExpenseIndex = relevantSortedExpenses.findIndex(e => e.id === expense.id);
 
   // Only process expenses BEFORE the current expense (0 to currentExpenseIndex-1)
-  const relevantExpenses = currentExpenseIndex === -1
+  const expensesToProcess = currentExpenseIndex === -1
     ? [] // If not found, don't process any (safety fallback)
-    : sortedExpenses.slice(0, currentExpenseIndex);
+    : relevantSortedExpenses.slice(0, currentExpenseIndex);
 
   // Process each expense to build running totals
-  for (const e of relevantExpenses) {
+  for (const e of expensesToProcess) {
     const person = e.healthcarePerson!;
     const personData = personSpending.get(person)!;
 
@@ -337,7 +323,7 @@ export async function getHealthcareExpenses(
   const filterStartDate = startDateStr ? dayjs.utc(startDateStr).toDate() : null;
   const filterEndDate = endDateStr ? dayjs.utc(endDateStr).toDate() : null;
 
-  // First, collect ALL healthcare activities (not just filtered ones)
+  // First, collect ALL healthcare activities and pre-sort them
   // We need all activities to calculate running totals correctly
   const allHealthcareActivities: ConsolidatedActivity[] = [];
   for (const account of calculatedData.accounts) {
@@ -350,6 +336,20 @@ export async function getHealthcareExpenses(
       }
     }
   }
+
+  // Pre-sort all healthcare activities once (date, name, id)
+  const sortedHealthcareActivities = allHealthcareActivities.sort((a, b) => {
+    const dateA = dayjs.utc(a.date).valueOf();
+    const dateB = dayjs.utc(b.date).valueOf();
+    if (dateA !== dateB) {
+      return dateA - dateB;
+    }
+    const nameCompare = a.name.localeCompare(b.name);
+    if (nameCompare !== 0) {
+      return nameCompare;
+    }
+    return a.id.localeCompare(b.id);
+  });
 
   // Collect healthcare expenses with remaining amounts
   const expenses: HealthcareExpense[] = [];
@@ -398,7 +398,7 @@ export async function getHealthcareExpenses(
           expenseDate,
           config,
           planYear,
-          allHealthcareActivities,
+          sortedHealthcareActivities,
           billLookup
         );
       }

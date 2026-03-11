@@ -24,12 +24,14 @@ dayjs.extend(utc);
  *
  * @param category - The category to validate
  * @param allCategories - All existing categories (for uniqueness check)
+ * @param accounts - Array of existing accounts (for account ID validation)
  * @param excludeId - ID to exclude from uniqueness check (for updates)
  * @returns Array of validation error messages
  */
 function validateCategory(
   category: SpendingTrackerCategory,
   allCategories: SpendingTrackerCategory[],
+  accounts: any[],
   excludeId?: string,
 ): string[] {
   const errors: string[] = [];
@@ -61,9 +63,8 @@ function validateCategory(
   if (!category.accountId) {
     errors.push('Account ID is required');
   } else {
-    // Validate account exists by loading raw data file
-    const data = load<AccountsAndTransfersData>('data.json');
-    const accountExists = data.accounts.some(
+    // Validate account exists using provided accounts array
+    const accountExists = accounts.some(
       (a) => a.id === category.accountId,
     );
     if (!accountExists) {
@@ -160,6 +161,7 @@ export function createSpendingTrackerCategory(
   request: Request,
 ): SpendingTrackerCategory {
   const categories = loadSpendingTrackerCategories();
+  const data = load<AccountsAndTransfersData>('data.json');
 
   const newCategory: SpendingTrackerCategory = {
     id: uuidv4(),
@@ -180,7 +182,7 @@ export function createSpendingTrackerCategory(
     initializeDate: request.body.initializeDate ?? null,
   };
 
-  const errors = validateCategory(newCategory, categories);
+  const errors = validateCategory(newCategory, categories, data.accounts);
   if (errors.length > 0) {
     throw new ApiError(errors.join('; '), 400);
   }
@@ -217,6 +219,7 @@ export function updateSpendingTrackerCategory(
 ): SpendingTrackerCategory {
   const { id } = request.params;
   const categories = loadSpendingTrackerCategories();
+  const data = load<AccountsAndTransfersData>('data.json');
   const existingIndex = categories.findIndex((c) => c.id === id);
 
   if (existingIndex === -1) {
@@ -244,7 +247,7 @@ export function updateSpendingTrackerCategory(
     initializeDate: request.body.initializeDate ?? categories[existingIndex].initializeDate ?? null,
   };
 
-  const errors = validateCategory(updatedCategory, categories, id);
+  const errors = validateCategory(updatedCategory, categories, data.accounts, id);
   if (errors.length > 0) {
     throw new ApiError(errors.join('; '), 400);
   }

@@ -13,6 +13,7 @@ export class BalanceTracker {
   private accounts: Account[];
   private cache: CacheManager;
   private startDate: Date | null;
+  private accountMap: Map<string, Account>;
 
   // Current state
   private balances: Record<string, number> = {};
@@ -25,6 +26,8 @@ export class BalanceTracker {
     this.accounts = accounts.map((account) => new Account(account.serialize()));
     this.cache = cache;
     this.startDate = startDate;
+    // Build index map for O(1) account lookups
+    this.accountMap = new Map(this.accounts.map((acc) => [acc.id, acc]));
   }
 
   async initializeBalances(
@@ -196,7 +199,7 @@ export class BalanceTracker {
    * Gets the account by id
    */
   findAccountById(accountId: string): Account | undefined {
-    return this.accounts.find((acc) => acc.id === accountId);
+    return this.accountMap.get(accountId);
   }
 
   /**

@@ -83,6 +83,17 @@ const asyncHandler =
 const app: Express = express();
 const port = process.env.PORT || 5002;
 
+// Create MySQL connection pool at module level
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USERNAME,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
 // Middleware
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -363,16 +374,8 @@ interface User {
 
 app.post('/api/auth/token', asyncHandler(async (req: Request, res: Response) => {
   const { username, password } = req.body;
-  let connection;
   try {
-    connection = mysql.createConnection({
-      host: process.env.MYSQL_HOST,
-      user: process.env.MYSQL_USERNAME,
-      password: process.env.MYSQL_PASSWORD,
-      database: process.env.MYSQL_DATABASE,
-    });
-
-    const query = promisify(connection.query).bind(connection);
+    const query = promisify(pool.query).bind(pool);
     const results = (await query({
       sql: 'SELECT * FROM users WHERE username = ?',
       values: [username],
@@ -395,10 +398,6 @@ app.post('/api/auth/token', asyncHandler(async (req: Request, res: Response) => 
   } catch (err) {
     console.error(err);
     res.status(401).json({ token: 'INVALID' });
-  } finally {
-    if (connection) {
-      connection.end();
-    }
   }
 }));
 

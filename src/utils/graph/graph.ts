@@ -210,11 +210,11 @@ export function loadYearlyGraph(
   let currentYear = 0;
   const { yearBalance, idxMap } = initializeYearlyGraphData(accountsAndTransfers.accounts);
 
+  if (currDate < startDate) {
+    currDate = new Date(startDate);
+  }
+
   while (currDate.getTime() <= endDate.getTime()) {
-    if (currDate.getTime() < startDate.getTime()) {
-      currDate = dayjs.utc(currDate).add(1, 'day').toDate();
-      continue;
-    }
 
     currentYear = initializeNewYear(currDate, currentYear, labels, yearBalance, accountsAndTransfers.accounts);
 
@@ -347,11 +347,11 @@ function loadActivityGraph(
   let currDate = minDate;
   const { datasets, idxMap, balanceMap } = initializeActivityGraphData(accountsAndTransfers.accounts);
 
+  if (currDate < startDate) {
+    currDate = new Date(startDate);
+  }
+
   while (currDate.getTime() <= endDate.getTime()) {
-    if (currDate.getTime() < startDate.getTime()) {
-      currDate = dayjs.utc(currDate).add(1, 'day').toDate();
-      continue;
-    }
 
     labels.push(formatDate(currDate));
 

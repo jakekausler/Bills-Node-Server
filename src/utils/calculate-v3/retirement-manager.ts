@@ -5,6 +5,11 @@ import { loadAverageWageIndex } from '../io/averageWageIndex';
 import { loadBendPoints } from '../io/bendPoints';
 import { load } from '../io/io';
 
+// Module-level caches for expensive disk I/O operations
+let cachedWageIndex: Record<number, number> | null = null;
+let cachedBendPoints: Record<number, { first: number; second: number }> | null = null;
+let cachedRMDTable: RMDTableType | null = null;
+
 export class RetirementManager {
   // List of social securities
   private socialSecurities: SocialSecurity[];
@@ -172,7 +177,10 @@ export class RetirementManager {
 
   private getAverageWageIndex(yearTurn60: number) {
     // Load everything we have data for
-    const averageWageIndex = loadAverageWageIndex();
+    if (!cachedWageIndex) {
+      cachedWageIndex = loadAverageWageIndex();
+    }
+    const averageWageIndex = cachedWageIndex;
     // Extrapolate the average indices until the year the person turns 60 using the average rate of increase of all the years we have data for
     const highestYear = Math.max(...Object.keys(averageWageIndex).map((x) => parseInt(x)));
     const years = Object.keys(averageWageIndex)
@@ -194,7 +202,10 @@ export class RetirementManager {
 
   private getBendPoints(yearTurns62: number) {
     // Load the bend points we have data for
-    const bendPoints = loadBendPoints();
+    if (!cachedBendPoints) {
+      cachedBendPoints = loadBendPoints();
+    }
+    const bendPoints = cachedBendPoints;
     // Extrapolate the bend points until the year the person turns 62 using the average rate of increase of all the years we have data for
     const highestYear = Math.max(...Object.keys(bendPoints).map((x) => parseInt(x)));
     const years = Object.keys(bendPoints)
@@ -295,8 +306,11 @@ export class RetirementManager {
    * RMD Calculations
    ***************/
   private loadRMDTable() {
-    const rmdTable = load<RMDTableType>('rmd.json');
-    return Object.fromEntries(Object.entries(rmdTable).map(([k, v]) => [parseInt(k), v]));
+    if (!cachedRMDTable) {
+      const rmdTable = load<RMDTableType>('rmd.json');
+      cachedRMDTable = Object.fromEntries(Object.entries(rmdTable).map(([k, v]) => [parseInt(k), v]));
+    }
+    return cachedRMDTable;
   }
 
   public rmd(balance: number, age: number) {

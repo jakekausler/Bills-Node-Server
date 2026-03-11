@@ -1,6 +1,5 @@
 import { parse as parseSync } from 'csv-parse/sync';
-import * as csv from 'fast-csv';
-import { createWriteStream, readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { Simulations, Variables } from '../simulation/types';
 import { loadVariableValue } from '../simulation/loadVariableValue';
 import { formatDate } from '../date/date';
@@ -84,24 +83,30 @@ export function saveVariables(simulations: Simulations) {
   if (shouldBackup(FILE_PATH)) {
     backup(FILE_PATH);
   }
-  const stream = csv.format({ headers: true });
-  stream.pipe(createWriteStream(path.join(BASE_DATA_DIR, FILE_PATH)));
-  stream.write(['variable', ...simulations.map((simulation) => simulation.name)]);
+
+  // Build CSV content manually
+  const lines: string[] = [];
+
+  // Header row: variable, simulation names
+  const header = ['variable', ...simulations.map((simulation) => simulation.name)];
+  lines.push(header.map((h) => `"${h}"`).join(','));
+
+  // Collect all variables
   const allVariables = new Set<string>();
   for (const simulation of simulations) {
     for (const variable of Object.keys(simulation.variables)) {
       allVariables.add(variable);
     }
   }
+
+  // Data rows: variable name, then values per simulation
   for (const variable of [...allVariables].sort()) {
     const row: string[] = [variable];
     for (const simulation of simulations) {
       const varEntry = simulation.variables[variable];
       if (!varEntry) {
         row.push('');
-        continue;
-      }
-      if (
+      } else if (
         typeof varEntry.value === 'string' ||
         typeof varEntry.value === 'number'
       ) {
@@ -110,7 +115,9 @@ export function saveVariables(simulations: Simulations) {
         row.push(formatDate(varEntry.value as Date));
       }
     }
-    stream.write(row);
+    lines.push(row.map((v) => `"${v}"`).join(','));
   }
-  stream.end();
+
+  // Write synchronously
+  writeFileSync(path.join(BASE_DATA_DIR, FILE_PATH), lines.join('\n'));
 }
