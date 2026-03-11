@@ -40,7 +40,7 @@ export async function getCategoryBreakdown(request: Request) {
       continue;
     }
     for (const activity of account.consolidatedActivity) {
-      if (activity.category == '') {
+      if (!activity.category) {
         continue;
       }
       const section = activity.category.split('.')[0];

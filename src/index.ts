@@ -718,6 +718,10 @@ const FRONTEND_LOG_FILE = '/tmp/frontend.log';
 if (process.env.DISABLE_AUTH === 'true') {
   app.post('/api/dev/log', (req: Request, res: Response) => {
     const { level, args, timestamp } = req.body;
+    if (!Array.isArray(args)) {
+      res.status(400).json({ error: 'args must be an array' });
+      return;
+    }
     const formattedArgs = args.map((arg: any) => JSON.stringify(arg)).join(' ');
     const logLine = `[${timestamp}] [${level}] ${formattedArgs}\n`;
     fs.appendFileSync(FRONTEND_LOG_FILE, logLine);

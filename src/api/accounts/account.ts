@@ -25,6 +25,9 @@ export async function getAccount(request: Request) {
  */
 export async function updateAccount(request: Request) {
   const data = await getData<AccountData>(request);
+  if (!data.data.name || typeof data.data.name !== 'string' || data.data.name.trim() === '') {
+    throw new Error('Account name is required');
+  }
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   account.name = data.data.name;
   saveData(data.accountsAndTransfers);

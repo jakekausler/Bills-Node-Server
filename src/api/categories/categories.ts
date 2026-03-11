@@ -50,6 +50,10 @@ export async function addCategory(request: Request) {
   const categories = loadCategories();
   const path = data.path;
 
+  if (!Array.isArray(path)) {
+    return { error: 'Invalid path: must be an array' };
+  }
+
   if (path.length === 0 || path.length > 2) {
     return { error: 'Invalid path' };
   }
@@ -102,6 +106,10 @@ export async function deleteCategory(request: Request) {
   const data = await getData(request);
   const categories = loadCategories();
   const path = data.path;
+
+  if (!Array.isArray(path)) {
+    return { error: 'Invalid path: must be an array' };
+  }
 
   if (path.length === 0 || path.length > 2) {
     return { error: 'Invalid path' };
