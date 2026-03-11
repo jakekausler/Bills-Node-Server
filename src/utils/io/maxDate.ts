@@ -1,4 +1,4 @@
-import { loadData } from './accountsAndTransfers';
+import { AccountsAndTransfers } from '../../data/account/types';
 
 /**
  * Finds the maximum date across all financial data (activities, bills, interests, and transfers)
@@ -10,13 +10,12 @@ import { loadData } from './accountsAndTransfers';
  * - Transfer activities
  * - Transfer bills (start and end dates)
  *
- * The result is cached for performance, so subsequent calls return the cached value.
- *
+ * @param accountsAndTransfers - The data containing accounts and transfers to scan
  * @returns The maximum date found across all financial data, or current date if no data exists
  */
-export async function maxDate() {
+export function maxDate(accountsAndTransfers: AccountsAndTransfers) {
   let maxDate = new Date(0); // Start with Unix epoch (earliest possible date)
-  const { accounts, transfers } = await loadData(new Date(), new Date());
+  const { accounts, transfers } = accountsAndTransfers;
   for (const account of accounts) {
     for (const activity of account.activity) {
       if (maxDate < activity.date) {

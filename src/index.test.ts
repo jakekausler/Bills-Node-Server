@@ -20,7 +20,6 @@ vi.mock('./api/accounts/interests/interest');
 vi.mock('./api/calendar/bills');
 vi.mock('./api/accounts/consolidatedActivity/consolidatedActivity');
 vi.mock('./api/accounts/consolidatedActivity/specificConsolidatedActivity');
-vi.mock('./api/accounts/consolidatedActivity/sharedSpending');
 vi.mock('./api/categories/categories');
 vi.mock('./api/categories/breakdown');
 vi.mock('./api/categories/section/item/transactions');

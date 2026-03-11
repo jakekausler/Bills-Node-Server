@@ -5,6 +5,20 @@ import path from 'path';
 export const BASE_DATA_DIR = path.join(__dirname, '../../../data');
 
 /**
+ * Validates that a file path is within the BASE_DATA_DIR to prevent path traversal attacks
+ * @param fn - Filename to validate
+ * @returns Resolved path if valid
+ * @throws Error if path traversal is attempted
+ */
+function safePath(fn: string): string {
+  const resolved = path.resolve(BASE_DATA_DIR, fn);
+  if (!resolved.startsWith(path.resolve(BASE_DATA_DIR))) {
+    throw new Error('Invalid file path');
+  }
+  return resolved;
+}
+
+/**
  * Loads and parses JSON data from a file
  * @template T - The expected type of the loaded data
  * @param fn - Filename relative to the data directory
@@ -12,7 +26,7 @@ export const BASE_DATA_DIR = path.join(__dirname, '../../../data');
  * @throws Error if file cannot be read or parsed
  */
 export function load<T>(fn: string): T {
-  const data = readFileSync(path.join(BASE_DATA_DIR, fn), 'utf8');
+  const data = readFileSync(safePath(fn), 'utf8');
   return JSON.parse(data) as T;
 }
 
@@ -35,7 +49,7 @@ export const backup = (fn: string) => {
     const oldest = backups.sort((a, b) => a.localeCompare(b))[0];
     unlinkSync(path.join(BACKUP_DIR, oldest));
   }
-  copyFileSync(path.join(BASE_DATA_DIR, fn), path.join(BACKUP_DIR, `${fn}.${Date.now()}`));
+  copyFileSync(safePath(fn), path.join(BACKUP_DIR, `${fn}.${Date.now()}`));
 };
 
 /**
@@ -65,7 +79,7 @@ export function save<T>(data: T, fn: string) {
   if (shouldBackup(fn)) {
     backup(fn);
   }
-  writeFileSync(path.join(BASE_DATA_DIR, fn), JSON.stringify(data, null, 2));
+  writeFileSync(safePath(fn), JSON.stringify(data, null, 2));
 }
 
 /**
@@ -74,5 +88,5 @@ export function save<T>(data: T, fn: string) {
  * @returns True if file exists, false otherwise
  */
 export function checkExists(fn: string) {
-  return existsSync(path.join(BASE_DATA_DIR, fn));
+  return existsSync(safePath(fn));
 }

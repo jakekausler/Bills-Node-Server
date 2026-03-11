@@ -26,7 +26,6 @@ import { getSpecificInterest, updateSpecificInterest, deleteSpecificInterest } f
 import { getCalendarBills } from './api/calendar/bills';
 import { getConsolidatedActivity } from './api/accounts/consolidatedActivity/consolidatedActivity';
 import { getSpecificConsolidatedActivity } from './api/accounts/consolidatedActivity/specificConsolidatedActivity';
-import { getSharedSpending } from './api/accounts/consolidatedActivity/sharedSpending';
 import { getCategories, addCategory, deleteCategory } from './api/categories/categories';
 import { getCategoryBreakdown } from './api/categories/breakdown';
 import { getCategorySectionItemTransactions } from './api/categories/section/item/transactions';
@@ -425,10 +424,6 @@ app.get('/api/moneyMovement', verifyToken, asyncHandler(async (req: Request, res
   res.json(await getMoneyMovementChart(req));
 }));
 
-app.get('/api/sharedSpending', verifyToken, asyncHandler(async (req: Request, res: Response) => {
-  res.send(await getSharedSpending(req));
-}));
-
 // Healthcare config routes
 app.get('/api/healthcare/configs', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
@@ -471,7 +466,35 @@ app.post('/api/healthcare/configs', verifyToken, asyncHandler(async (req: Reques
     }
 
     const configs = await loadHealthcareConfigs();
-    const newConfig = { ...req.body, id: uuidv4() };
+    const {
+      name,
+      coveredPersons,
+      startDate,
+      endDate,
+      individualDeductible,
+      individualOutOfPocketMax,
+      familyDeductible,
+      familyOutOfPocketMax,
+      hsaAccountId,
+      hsaReimbursementEnabled,
+      resetMonth,
+      resetDay,
+    } = req.body;
+    const newConfig = {
+      id: uuidv4(),
+      name,
+      coveredPersons,
+      startDate,
+      endDate,
+      individualDeductible,
+      individualOutOfPocketMax,
+      familyDeductible,
+      familyOutOfPocketMax,
+      hsaAccountId,
+      hsaReimbursementEnabled,
+      resetMonth,
+      resetDay,
+    };
     configs.push(newConfig);
     await saveHealthcareConfigs(configs);
     res.json(newConfig);
@@ -495,7 +518,35 @@ app.put('/api/healthcare/configs/:id', verifyToken, asyncHandler(async (req: Req
     if (index === -1) {
       return res.status(404).json({ error: 'Config not found' });
     }
-    configs[index] = { ...req.body, id: req.params.id };
+    const {
+      name,
+      coveredPersons,
+      startDate,
+      endDate,
+      individualDeductible,
+      individualOutOfPocketMax,
+      familyDeductible,
+      familyOutOfPocketMax,
+      hsaAccountId,
+      hsaReimbursementEnabled,
+      resetMonth,
+      resetDay,
+    } = req.body;
+    configs[index] = {
+      id: req.params.id,
+      name,
+      coveredPersons,
+      startDate,
+      endDate,
+      individualDeductible,
+      individualOutOfPocketMax,
+      familyDeductible,
+      familyOutOfPocketMax,
+      hsaAccountId,
+      hsaReimbursementEnabled,
+      resetMonth,
+      resetDay,
+    };
     await saveHealthcareConfigs(configs);
     res.json(configs[index]);
   } catch (error) {

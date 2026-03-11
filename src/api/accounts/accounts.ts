@@ -50,7 +50,7 @@ function updateBasicAccountProperties(account: Account, newAccount: AccountData)
     account.hidden = newAccount.hidden;
   }
   if (newAccount.defaultShowInGraph !== account.defaultShowInGraph) {
-    account.defaultShowInGraph = newAccount.defaultShowInGraph || false;
+    account.defaultShowInGraph = newAccount.defaultShowInGraph ?? false;
   }
 }
 
@@ -61,13 +61,13 @@ function updateBasicAccountProperties(account: Account, newAccount: AccountData)
  */
 function updateAccountTaxSettings(account: Account, newAccount: AccountData): void {
   if (newAccount.interestTaxRate !== account.interestTaxRate) {
-    account.interestTaxRate = newAccount.interestTaxRate || 0;
+    account.interestTaxRate = newAccount.interestTaxRate ?? 0;
   }
   if (newAccount.withdrawalTaxRate !== account.withdrawalTaxRate) {
-    account.withdrawalTaxRate = newAccount.withdrawalTaxRate || 0;
+    account.withdrawalTaxRate = newAccount.withdrawalTaxRate ?? 0;
   }
   if (newAccount.earlyWithdrawlPenalty !== account.earlyWithdrawlPenalty) {
-    account.earlyWithdrawlPenalty = newAccount.earlyWithdrawlPenalty || 0;
+    account.earlyWithdrawlPenalty = newAccount.earlyWithdrawlPenalty ?? 0;
   }
   if (newAccount.earlyWithdrawlDate !== account.earlyWithdrawlDate) {
     account.earlyWithdrawlDate = newAccount.earlyWithdrawlDate || null;
@@ -84,16 +84,16 @@ function updateAccountTaxSettings(account: Account, newAccount: AccountData): vo
  */
 function updateAccountPullPushSettings(account: Account, newAccount: AccountData): void {
   if (newAccount.pullPriority !== account.pullPriority) {
-    account.pullPriority = newAccount.pullPriority || -1;
+    account.pullPriority = newAccount.pullPriority ?? -1;
   }
   if (newAccount.minimumBalance !== account.minimumBalance) {
-    account.minimumBalance = newAccount.minimumBalance || null;
+    account.minimumBalance = newAccount.minimumBalance ?? null;
   }
   if (newAccount.maximumBalance !== account.maximumBalance) {
-    account.maximumBalance = newAccount.maximumBalance || null;
+    account.maximumBalance = newAccount.maximumBalance ?? null;
   }
   if (newAccount.minimumPullAmount !== account.minimumPullAmount) {
-    account.minimumPullAmount = newAccount.minimumPullAmount || null;
+    account.minimumPullAmount = newAccount.minimumPullAmount ?? null;
   }
   if (newAccount.performsPulls !== account.performsPulls) {
     account.performsPulls = newAccount.performsPulls || false;

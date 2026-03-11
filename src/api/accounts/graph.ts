@@ -29,6 +29,7 @@ export async function getAccountGraph(request: Request) {
 export async function getGraphForAccounts(request: Request) {
   const selectedSimulations = getSelectedSimulations(request, ['Default']);
   const simulationGraphs: Record<string, GraphData> = {};
+  const originalSimulation = request.query.simulation;
 
   for (const simulation of selectedSimulations) {
     request.query.simulation = simulation;
@@ -49,5 +50,6 @@ export async function getGraphForAccounts(request: Request) {
     );
   }
 
+  request.query.simulation = originalSimulation;
   return simulationGraphs;
 }

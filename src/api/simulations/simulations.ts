@@ -73,6 +73,15 @@ export function getSimulations(_request: Request) {
  * ```
  */
 export function updateSimulations(request: Request) {
-  saveSimulations(request.body);
-  return request.body;
+  const simulations = request.body;
+  if (!Array.isArray(simulations)) {
+    throw new Error('Simulations data must be an array');
+  }
+  for (const sim of simulations) {
+    if (typeof sim.name !== 'string' || typeof sim.enabled !== 'boolean' || typeof sim.selected !== 'boolean') {
+      throw new Error('Invalid simulation format: each simulation must have name (string), enabled (boolean), and selected (boolean)');
+    }
+  }
+  saveSimulations(simulations);
+  return simulations;
 }

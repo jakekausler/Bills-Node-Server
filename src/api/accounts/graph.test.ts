@@ -183,8 +183,8 @@ describe('Graph API', () => {
 
       await getGraphForAccounts(mockRequest);
 
-      // The request.query.simulation should be set for each simulation
-      expect(mockRequest.query.simulation).toBe('Sim2'); // Last one processed
+      // The request.query.simulation should be restored to its original value (undefined)
+      expect(mockRequest.query.simulation).toBeUndefined();
     });
 
     it('should handle empty accounts array', async () => {
