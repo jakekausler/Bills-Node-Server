@@ -615,9 +615,9 @@ Variables (stored in `variables.csv`) allow users to model different financial s
 
 The priority system (0 through 3) ensures deterministic and financially correct processing order within each date:
 
-1. **Interest first (0)**: Accrued interest updates balances before transactions
-2. **Transactions next (1)**: Regular debits and credits process against updated balances
-3. **Transfers and income (2)**: Inter-account movements and retirement income
+1. **Interest and push/pull transfers first (0)**: Accrued interest updates balances before transactions; auto-generated push/pull transfers also run at this level to rebalance accounts early
+2. **Activities and activity transfers (1)**: One-time transactions and manual inter-account transfers process against updated balances
+3. **Bills, bill transfers, and retirement income (2)**: Recurring bill payments, bill-driven inter-account transfers, social security, and pension income
 4. **Spending tracking (2.5)**: Budget tracking after transactions settle
 5. **Tax and RMD last (3)**: Calculated after all other financial activity is known
 
