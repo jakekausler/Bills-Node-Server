@@ -137,8 +137,8 @@ export class Bill {
         amountVariable: increaseByVariable,
       } = loadNumberOrVariable(data.increaseBy, data.increaseByIsVariable, data.increaseByVariable, simulation);
 
-      this.increaseBy = [true, false].includes(increaseByIsVariable) ? (increaseBy as number) : 0.03;
-      this.increaseByIsVariable = [true, false].includes(increaseByIsVariable) ? increaseByIsVariable : true;
+      this.increaseBy = increaseBy as number;
+      this.increaseByIsVariable = increaseByIsVariable;
       this.increaseByVariable = increaseByVariable || 'INFLATION';
     } catch (e) {
       throw new Error(`Error loading increaseBy for bill "${this.name}": ${e instanceof Error ? e.message : e}`);

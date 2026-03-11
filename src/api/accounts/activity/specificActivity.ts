@@ -79,8 +79,8 @@ export async function updateSpecificActivity(request: Request) {
   activity.flagColor = data.data.flagColor;
   activity.isHealthcare = data.data.isHealthcare || false;
   activity.healthcarePerson = data.data.healthcarePerson || null;
-  activity.copayAmount = data.data.copayAmount || null;
-  activity.coinsurancePercent = data.data.coinsurancePercent || null;
+  activity.copayAmount = data.data.copayAmount ?? null;
+  activity.coinsurancePercent = data.data.coinsurancePercent ?? null;
   activity.countsTowardDeductible = data.data.countsTowardDeductible ?? true;
   activity.countsTowardOutOfPocket = data.data.countsTowardOutOfPocket ?? true;
   activity.spendingCategory = data.data.spendingCategory ?? null;

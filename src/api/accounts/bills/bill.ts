@@ -174,8 +174,8 @@ async function updateBillAsBill(request: Request) {
   bill.flagColor = data.data.flagColor;
   bill.isHealthcare = data.data.isHealthcare || false;
   bill.healthcarePerson = data.data.healthcarePerson || null;
-  bill.copayAmount = data.data.copayAmount || null;
-  bill.coinsurancePercent = data.data.coinsurancePercent || null;
+  bill.copayAmount = data.data.copayAmount ?? null;
+  bill.coinsurancePercent = data.data.coinsurancePercent ?? null;
   bill.countsTowardDeductible = data.data.countsTowardDeductible ?? true;
   bill.countsTowardOutOfPocket = data.data.countsTowardOutOfPocket ?? true;
   bill.spendingCategory = data.data.spendingCategory ?? null;

@@ -5,6 +5,7 @@ import { Bill } from '../bill/bill';
 import { Interest } from '../interest/interest';
 import { ConsolidatedActivity } from '../activity/consolidatedActivity';
 import { formatDate, parseDate } from '../../utils/date/date';
+import { DateString } from '../../utils/date/types';
 
 /**
  * Represents a financial account with activities, bills, and interests
@@ -83,19 +84,19 @@ export class Account {
     this.interestTaxRate = data.interestTaxRate === undefined ? 0 : data.interestTaxRate;
     this.withdrawalTaxRate = data.withdrawalTaxRate === undefined ? 0 : data.withdrawalTaxRate;
     this.earlyWithdrawlPenalty = data.earlyWithdrawlPenalty === undefined ? 0 : data.earlyWithdrawlPenalty;
-    this.earlyWithdrawlDate = data.earlyWithdrawlDate ? parseDate(data.earlyWithdrawlDate as any) : null;
+    this.earlyWithdrawlDate = data.earlyWithdrawlDate || null;
     this.interestPayAccount = data.interestPayAccount === undefined ? null : data.interestPayAccount;
     this.interestAppliesToPositiveBalance = data.interestAppliesToPositiveBalance ?? true;
     this.usesRMD = data.usesRMD || false;
-    this.accountOwnerDOB = data.accountOwnerDOB ? parseDate(data.accountOwnerDOB as any) : null;
+    this.accountOwnerDOB = data.accountOwnerDOB ? parseDate(data.accountOwnerDOB as DateString) : null;
     this.rmdAccount = data.rmdAccount || null;
     this.minimumBalance = data.minimumBalance ?? null;
     this.maximumBalance = data.maximumBalance ?? null;
     this.minimumPullAmount = data.minimumPullAmount ?? null;
     this.performsPulls = data.performsPulls || false;
     this.performsPushes = data.performsPushes || false;
-    this.pushStart = data.pushStart ? parseDate(data.pushStart as any) : null;
-    this.pushEnd = data.pushEnd ? parseDate(data.pushEnd as any) : null;
+    this.pushStart = data.pushStart ? parseDate(data.pushStart as DateString) : null;
+    this.pushEnd = data.pushEnd ? parseDate(data.pushEnd as DateString) : null;
     this.pushAccount = data.pushAccount || null;
     this.defaultShowInGraph = data.defaultShowInGraph || false;
   }

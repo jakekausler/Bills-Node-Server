@@ -2,8 +2,9 @@ import { Request } from 'express';
 import { getData } from '../../utils/net/request';
 import { loadHealthcareConfigs } from '../../utils/io/healthcareConfigs';
 import { calculateAllActivity } from '../../utils/calculate-v3/engine';
-import { HealthcareConfig } from '../../data/healthcare/types.d';
+import { HealthcareConfig } from '../../data/healthcare/types';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
+import { Account } from '../../data/account/account';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
@@ -240,7 +241,7 @@ function calculateRemainingAmounts(
 function findHSAReimbursement(
   expense: { date: string; patientCost: number },
   accountId: string,
-  allAccounts: any[]
+  allAccounts: Account[]
 ): number {
   // Look for HSA accounts
   for (const account of allAccounts) {

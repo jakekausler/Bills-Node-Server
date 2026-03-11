@@ -28,7 +28,7 @@ vi.mock('./api/names/names');
 vi.mock('./api/flow/flow');
 vi.mock('./api/categories/section/transactions');
 vi.mock('./api/categories/section/breakdown');
-vi.mock('./api/accounts/monteCarlo/monteCarlo');
+vi.mock('./api/monteCarlo/monteCarlo');
 vi.mock('./api/moneyMovement/movement');
 vi.mock('./utils/io/healthcareConfigs');
 vi.mock('./api/spendingTracker/spendingTracker');
