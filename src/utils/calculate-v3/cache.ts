@@ -353,7 +353,7 @@ export class CacheManager {
   async clear(): Promise<void> {
     // Only delete entries belonging to this simulation
     for (const key of CacheManager.memoryCache.keys()) {
-      if (key.includes(this.simulation)) {
+      if (key.endsWith('_' + this.simulation)) {
         CacheManager.memoryCache.delete(key);
       }
     }

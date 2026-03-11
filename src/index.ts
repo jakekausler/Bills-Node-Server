@@ -136,12 +136,12 @@ app
   }));
 
 // Account graph routes
-app.get('/api/accounts/:accountId/graph', verifyToken, asyncHandler(async (req: Request, res: Response) => {
-  res.json(await getAccountGraph(req));
-}));
-
 app.get('/api/accounts/graph', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getGraphForAccounts(req));
+}));
+
+app.get('/api/accounts/:accountId/graph', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  res.json(await getAccountGraph(req));
 }));
 
 app
@@ -379,6 +379,11 @@ app.post('/api/auth/token', asyncHandler(async (req: Request, res: Response) => 
       values: [username],
     })) as User[];
     const user = results[0];
+
+    if (!user) {
+      res.json({ token: 'INVALID' });
+      return;
+    }
 
     if (!(await bcrypt.compare(password, user.password))) {
       res.json({ token: 'INVALID' });
