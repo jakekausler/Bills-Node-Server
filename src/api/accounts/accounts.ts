@@ -89,6 +89,9 @@ function updateAccountPullPushSettings(account: Account, newAccount: AccountData
   if (newAccount.minimumBalance !== account.minimumBalance) {
     account.minimumBalance = newAccount.minimumBalance || null;
   }
+  if (newAccount.maximumBalance !== account.maximumBalance) {
+    account.maximumBalance = newAccount.maximumBalance || null;
+  }
   if (newAccount.minimumPullAmount !== account.minimumPullAmount) {
     account.minimumPullAmount = newAccount.minimumPullAmount || null;
   }

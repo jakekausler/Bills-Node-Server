@@ -31,6 +31,7 @@ export class Account {
   accountOwnerDOB: Date | null;
   rmdAccount: string | null;
   minimumBalance: number | null;
+  maximumBalance: number | null;
   minimumPullAmount: number | null;
   performsPulls: boolean;
   performsPushes: boolean;
@@ -89,6 +90,7 @@ export class Account {
     this.accountOwnerDOB = data.accountOwnerDOB ? parseDate(data.accountOwnerDOB as any) : null;
     this.rmdAccount = data.rmdAccount || null;
     this.minimumBalance = data.minimumBalance || null;
+    this.maximumBalance = data.maximumBalance || null;
     this.minimumPullAmount = data.minimumPullAmount || null;
     this.performsPulls = data.performsPulls || false;
     this.performsPushes = data.performsPushes || false;
@@ -125,6 +127,7 @@ export class Account {
       accountOwnerDOB: this.accountOwnerDOB ? formatDate(this.accountOwnerDOB) : null,
       rmdAccount: this.rmdAccount,
       minimumBalance: this.minimumBalance,
+      maximumBalance: this.maximumBalance,
       minimumPullAmount: this.minimumPullAmount,
       performsPulls: this.performsPulls,
       performsPushes: this.performsPushes,
@@ -158,6 +161,7 @@ export class Account {
       accountOwnerDOB: this.accountOwnerDOB ? formatDate(this.accountOwnerDOB) : null,
       rmdAccount: this.rmdAccount,
       minimumBalance: this.minimumBalance,
+      maximumBalance: this.maximumBalance,
       minimumPullAmount: this.minimumPullAmount,
       performsPulls: this.performsPulls,
       performsPushes: this.performsPushes,

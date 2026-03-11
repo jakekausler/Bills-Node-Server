@@ -65,7 +65,7 @@ export class PushPullHandler {
   private addPushEvents(segment: Segment, account: Account, minBalance: number): boolean {
     // Calculate the amount to push
     let pushAmount = 0;
-    let toPush = minBalance - (account.minimumBalance ?? 0) - (account.minimumPullAmount ?? 0) * 4;
+    let toPush = minBalance - (account.maximumBalance ?? 0);
     if (toPush <= 0) {
       return false;
     }
@@ -206,11 +206,11 @@ export class PushPullHandler {
     performsPushes: boolean,
     performsPulls: boolean,
   ): { pushNeeded: boolean; pullNeeded: boolean } {
-    // Push needed if the minimum balance is greater than the minimum balance + 4 times the minimum pull amount
+    // Push needed if the minimum balance is greater than the maximum balance
     let pushNeeded =
       performsPushes &&
-      account.minimumBalance &&
-      minBalance > account.minimumBalance + (account.minimumPullAmount ?? 0) * 4;
+      account.maximumBalance &&
+      minBalance > account.maximumBalance;
     // Pull needed if the minimum balance is less than the minimum balance
     let pullNeeded = performsPulls && account.minimumBalance && minBalance < account.minimumBalance;
 

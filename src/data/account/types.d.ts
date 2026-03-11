@@ -39,6 +39,7 @@ export type AccountData = {
   accountOwnerDOB?: string | null;
   rmdAccount?: string | null;
   minimumBalance?: number | null;
+  maximumBalance?: number | null;
   minimumPullAmount?: number | null;
   performsPulls?: boolean;
   performsPushes?: boolean;
