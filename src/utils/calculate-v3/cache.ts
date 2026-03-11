@@ -246,7 +246,7 @@ export class CacheManager {
     const entry: CacheEntry<T> = {
       data: value,
       timestamp: new Date(),
-      expiresAt: options.expiresAt ? new Date(Date.now() + options.expiresAt.getTime()) : null,
+      expiresAt: options.expiresAt ?? null,
     };
 
     if (this.config.useDiskCache) {
@@ -351,7 +351,12 @@ export class CacheManager {
   }
 
   async clear(): Promise<void> {
-    CacheManager.memoryCache.clear();
+    // Only delete entries belonging to this simulation
+    for (const key of CacheManager.memoryCache.keys()) {
+      if (key.includes(this.simulation)) {
+        CacheManager.memoryCache.delete(key);
+      }
+    }
     if (this.config.useDiskCache) {
       // Clear disk cache directory
       try {

@@ -228,7 +228,7 @@ export interface CacheEntry<T> {
 }
 
 export type CacheOptions = {
-  expiresAt: Date | null; // Expiration time in milliseconds
+  expiresAt: Date | null; // Absolute expiration date
 };
 
 /**

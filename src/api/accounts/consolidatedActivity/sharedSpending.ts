@@ -7,9 +7,7 @@ import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 
 export async function getSharedSpending(request: Request) {
-  console.log('Request:', request);
   const data = await getData(request, { defaultEndDate: dayjs.utc().add(12, 'month').toDate() });
-  console.log('Data:', data);
   const account = data.accountsAndTransfers.accounts.find((a: Account) => a.name === 'Costco');
   if (!account) {
     throw new Error('Account not found');
@@ -23,7 +21,6 @@ export async function getSharedSpending(request: Request) {
     }
     months[month].push(a);
   });
-  console.log('Shared spending:', months);
   const entries = Object.entries(months).map(([month, activities]) => ({
     month,
     spending:
@@ -32,7 +29,6 @@ export async function getSharedSpending(request: Request) {
           100,
       ) / 100,
   }));
-  console.log('Shared spending:', entries);
   const lines = entries.map(
     (entry) => `<tr><td><b>${entry.month}</b></td><td>$ ${entry.spending.toFixed(2)}</td></tr>`,
   );

@@ -71,6 +71,10 @@ declare global {
   }
 }
 
+if (!process.env.JWT_SECRET && process.env.DISABLE_AUTH !== 'true') {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+
 const asyncHandler =
   (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) =>
   (req: Request, res: Response, next: NextFunction) => {

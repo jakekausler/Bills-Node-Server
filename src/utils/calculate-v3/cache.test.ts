@@ -57,7 +57,8 @@ describe('CacheManager', () => {
 
   afterEach(async () => {
     // Wipe shared static memory cache after each test
-    const mgr = new CacheManager(config, 'cleanup-sim');
+    // Use 'sim-1' since that's what the tests use
+    const mgr = new CacheManager(config, 'sim-1');
     await mgr.clear();
   });
 
@@ -74,8 +75,8 @@ describe('CacheManager', () => {
       const mgr = initializeCache(config, 'sim-1');
       // Monte Carlo disabled: set should persist, get should return data
       const serializer = makeSimpleSerializer();
-      await mgr.set('test-key', { value: 42 }, serializer);
-      const result = await mgr.get('test-key', serializer);
+      await mgr.set('test-key_sim-1', { value: 42 }, serializer);
+      const result = await mgr.get('test-key_sim-1', serializer);
       expect(result).toEqual({ value: 42 });
     });
   });
@@ -98,8 +99,8 @@ describe('CacheManager', () => {
       const mgr = new CacheManager(config, 'sim-1');
       const serializer = makeSimpleSerializer();
 
-      await mgr.set('my-key', { hello: 'world' }, serializer);
-      const result = await mgr.get('my-key', serializer);
+      await mgr.set('my-key_sim-1', { hello: 'world' }, serializer);
+      const result = await mgr.get('my-key_sim-1', serializer);
 
       expect(result).toEqual({ hello: 'world' });
     });
@@ -114,18 +115,18 @@ describe('CacheManager', () => {
       const mgr = new CacheManager(config, 'sim-1');
       const serializer = makeSimpleSerializer();
 
-      await mgr.set('key', { v: 1 }, serializer);
-      await mgr.set('key', { v: 2 }, serializer);
+      await mgr.set('key_sim-1', { v: 1 }, serializer);
+      await mgr.set('key_sim-1', { v: 2 }, serializer);
 
-      expect(await mgr.get('key', serializer)).toEqual({ v: 2 });
+      expect(await mgr.get('key_sim-1', serializer)).toEqual({ v: 2 });
     });
 
     it('stores nothing and returns null when monteCarlo mode is enabled', async () => {
       const mgr = new CacheManager(config, 'sim-1', true /* monteCarlo */);
       const serializer = makeSimpleSerializer();
 
-      await mgr.set('key', { v: 1 }, serializer);
-      expect(await mgr.get('key', serializer)).toBeNull();
+      await mgr.set('key_sim-1', { v: 1 }, serializer);
+      expect(await mgr.get('key_sim-1', serializer)).toBeNull();
     });
 
     it('returns null when no expiry is set and key does not exist', async () => {
@@ -141,9 +142,9 @@ describe('CacheManager', () => {
       const serializer = makeSimpleSerializer();
 
       // expiresAt is a future time delta (1 hour from now)
-      await mgr.set('key', { v: 99 }, serializer, { expiresAt: new Date(3600_000) });
+      await mgr.set('key_sim-1', { v: 99 }, serializer, { expiresAt: new Date(Date.now() + 3600_000) });
 
-      const result = await mgr.get('key', serializer);
+      const result = await mgr.get('key_sim-1', serializer);
       expect(result).toEqual({ v: 99 });
     });
   });
@@ -160,15 +161,15 @@ describe('CacheManager', () => {
     it('returns true for a valid (non-expired) key in memory', async () => {
       const mgr = new CacheManager(config, 'sim-1');
       const serializer = makeSimpleSerializer();
-      await mgr.set('key', { v: 1 }, serializer);
-      expect(await mgr.has('key')).toBe(true);
+      await mgr.set('key_sim-1', { v: 1 }, serializer);
+      expect(await mgr.has('key_sim-1')).toBe(true);
     });
 
     it('returns false when in Monte Carlo mode', async () => {
       const mgr = new CacheManager(config, 'sim-1', true);
       const serializer = makeSimpleSerializer();
-      await mgr.set('key', { v: 1 }, serializer);
-      expect(await mgr.has('key')).toBe(false);
+      await mgr.set('key_sim-1', { v: 1 }, serializer);
+      expect(await mgr.has('key_sim-1')).toBe(false);
     });
   });
 
@@ -180,10 +181,10 @@ describe('CacheManager', () => {
       const mgr = new CacheManager(config, 'sim-1');
       const serializer = makeSimpleSerializer();
 
-      await mgr.set('key', { v: 1 }, serializer);
-      await mgr.delete('key');
+      await mgr.set('key_sim-1', { v: 1 }, serializer);
+      await mgr.delete('key_sim-1');
 
-      expect(await mgr.get('key', serializer)).toBeNull();
+      expect(await mgr.get('key_sim-1', serializer)).toBeNull();
     });
 
     it('is a no-op for a non-existent key', async () => {
@@ -210,12 +211,12 @@ describe('CacheManager', () => {
       const mgr = new CacheManager(config, 'sim-1');
       const serializer = makeSimpleSerializer();
 
-      await mgr.set('key-1', 1, serializer);
-      await mgr.set('key-2', 2, serializer);
+      await mgr.set('key-1_sim-1', 1, serializer);
+      await mgr.set('key-2_sim-1', 2, serializer);
       await mgr.clear();
 
-      expect(await mgr.get('key-1', serializer)).toBeNull();
-      expect(await mgr.get('key-2', serializer)).toBeNull();
+      expect(await mgr.get('key-1_sim-1', serializer)).toBeNull();
+      expect(await mgr.get('key-2_sim-1', serializer)).toBeNull();
     });
 
     it('attempts to clear disk files when useDiskCache is true', async () => {
@@ -317,25 +318,25 @@ describe('CacheManager', () => {
       const mgr = new CacheManager(config, 'sim-1');
       const serializer = makeSimpleSerializer();
 
-      await mgr.set('foo_key1', 1, serializer);
-      await mgr.set('foo_key2', 2, serializer);
-      await mgr.set('bar_key3', 3, serializer);
+      await mgr.set('foo_key1_sim-1', 1, serializer);
+      await mgr.set('foo_key2_sim-1', 2, serializer);
+      await mgr.set('bar_key3_sim-1', 3, serializer);
 
       await mgr.clearByPrefix('foo_');
 
-      expect(await mgr.get('foo_key1', serializer)).toBeNull();
-      expect(await mgr.get('foo_key2', serializer)).toBeNull();
-      expect(await mgr.get('bar_key3', serializer)).toEqual(3);
+      expect(await mgr.get('foo_key1_sim-1', serializer)).toBeNull();
+      expect(await mgr.get('foo_key2_sim-1', serializer)).toBeNull();
+      expect(await mgr.get('bar_key3_sim-1', serializer)).toEqual(3);
     });
 
     it('is a no-op when no keys match the prefix', async () => {
       const mgr = new CacheManager(config, 'sim-1');
       const serializer = makeSimpleSerializer();
-      await mgr.set('mykey', 'value', serializer);
+      await mgr.set('mykey_sim-1', 'value', serializer);
 
       await expect(mgr.clearByPrefix('nonexistent_')).resolves.toBeUndefined();
 
-      expect(await mgr.get('mykey', serializer)).toBe('value');
+      expect(await mgr.get('mykey_sim-1', serializer)).toBe('value');
     });
   });
 
@@ -436,13 +437,13 @@ describe('CacheManager', () => {
 
       await mgr.set('calc_2025-01-01_2025-12-31_sim-1', 'a', serializer);
       await mgr.set('calc_2024-01-01_2024-12-31_sim-1', 'b', serializer);
-      await mgr.set('other_key', 'c', serializer);
+      await mgr.set('other_key_sim-1', 'c', serializer);
 
       await mgr.clearCalculationResults();
 
       expect(await mgr.get('calc_2025-01-01_2025-12-31_sim-1', serializer)).toBeNull();
       expect(await mgr.get('calc_2024-01-01_2024-12-31_sim-1', serializer)).toBeNull();
-      expect(await mgr.get('other_key', serializer)).toBe('c');
+      expect(await mgr.get('other_key_sim-1', serializer)).toBe('c');
     });
   });
 

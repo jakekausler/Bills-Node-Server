@@ -11,6 +11,8 @@ import {
 import { SimulationProgress } from '../../utils/monteCarlo/types';
 import { PercentileGraphData } from '../../utils/monteCarlo/statisticsGraph';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 interface MonteCarloRequestData {
   totalSimulations?: number;
   batchSize?: number;
@@ -40,6 +42,10 @@ export function getSimulationStatus(req: Request): SimulationProgress {
     throw new Error('Simulation ID is required');
   }
 
+  if (!UUID_REGEX.test(id)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
   const progress = getSimulationProgress(id);
 
   if (!progress) {
@@ -65,6 +71,10 @@ export function getSimulationGraph(req: Request): PercentileGraphData {
 
   if (!id) {
     throw new Error('Simulation ID is required');
+  }
+
+  if (!UUID_REGEX.test(id)) {
+    throw new Error('Invalid simulation ID format');
   }
 
   if (!isSimulationComplete(id)) {

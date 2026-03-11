@@ -96,13 +96,18 @@ export function saveVariables(simulations: Simulations) {
   for (const variable of [...allVariables].sort()) {
     const row: string[] = [variable];
     for (const simulation of simulations) {
+      const varEntry = simulation.variables[variable];
+      if (!varEntry) {
+        row.push('');
+        continue;
+      }
       if (
-        typeof simulation.variables[variable].value === 'string' ||
-        typeof simulation.variables[variable].value === 'number'
+        typeof varEntry.value === 'string' ||
+        typeof varEntry.value === 'number'
       ) {
-        row.push(simulation.variables[variable].value.toString());
+        row.push(varEntry.value.toString());
       } else {
-        row.push(formatDate(simulation.variables[variable].value as Date));
+        row.push(formatDate(varEntry.value as Date));
       }
     }
     stream.write(row);
