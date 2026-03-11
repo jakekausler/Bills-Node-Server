@@ -1,6 +1,6 @@
 import { Account } from './account';
 import { Activity } from '../activity/activity';
-import { ActivityData } from '../activity/types';
+import { ActivityData, ConsolidatedActivityData } from '../activity/types';
 import { Bill } from '../bill/bill';
 import { BillData } from '../bill/types';
 import { InterestData } from '../interest/types';

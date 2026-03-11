@@ -380,12 +380,12 @@ app.post('/api/auth/token', asyncHandler(async (req: Request, res: Response) => 
     const user = results[0];
 
     if (!user) {
-      res.json({ token: 'INVALID' });
+      res.status(401).json({ token: 'INVALID' });
       return;
     }
 
     if (!(await bcrypt.compare(password, user.password))) {
-      res.json({ token: 'INVALID' });
+      res.status(401).json({ token: 'INVALID' });
       return;
     }
 
@@ -394,7 +394,7 @@ app.post('/api/auth/token', asyncHandler(async (req: Request, res: Response) => 
     res.json({ token });
   } catch (err) {
     console.error(err);
-    res.json({ token: 'INVALID' });
+    res.status(401).json({ token: 'INVALID' });
   } finally {
     if (connection) {
       connection.end();
@@ -741,7 +741,12 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+// Export app for testing
+export { app };
+
+// Start server (only in non-test mode)
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+}

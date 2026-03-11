@@ -31,7 +31,7 @@ export async function getCategorySectionTransactions(request: Request) {
       continue;
     }
     for (const activity of account.consolidatedActivity) {
-      if (activity.category.startsWith(section) && !foundIds.has(activity.id)) {
+      if (activity.category.split('.')[0] === section && !foundIds.has(activity.id)) {
         ret.push(activity);
         foundIds.add(activity.id);
       }

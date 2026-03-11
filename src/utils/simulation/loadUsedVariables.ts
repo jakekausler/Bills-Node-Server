@@ -194,45 +194,55 @@ export function loadUsedVariables(
     }
   }
   for (const s of socialSecurity) {
-    if (!usedVariables[s.startDateVariable]) {
-      usedVariables[s.startDateVariable] = [];
+    if (s.startDateVariable) {
+      if (!usedVariables[s.startDateVariable]) {
+        usedVariables[s.startDateVariable] = [];
+      }
+      usedVariables[s.startDateVariable].push({
+        type: 'socialSecurity',
+        name: s.name,
+        date: formatDate(s.startDate),
+      });
     }
-    usedVariables[s.startDateVariable].push({
-      type: 'socialSecurity',
-      name: s.name,
-      date: formatDate(s.startDate),
-    });
-    if (!usedVariables[s.birthDateVariable]) {
-      usedVariables[s.birthDateVariable] = [];
+    if (s.birthDateVariable) {
+      if (!usedVariables[s.birthDateVariable]) {
+        usedVariables[s.birthDateVariable] = [];
+      }
+      usedVariables[s.birthDateVariable].push({
+        type: 'socialSecurity',
+        name: s.name,
+      });
     }
-    usedVariables[s.birthDateVariable].push({
-      type: 'socialSecurity',
-      name: s.name,
-    });
   }
   for (const p of pensions) {
-    if (!usedVariables[p.startDateVariable]) {
-      usedVariables[p.startDateVariable] = [];
+    if (p.startDateVariable) {
+      if (!usedVariables[p.startDateVariable]) {
+        usedVariables[p.startDateVariable] = [];
+      }
+      usedVariables[p.startDateVariable].push({
+        type: 'pension',
+        name: p.name,
+        date: formatDate(p.startDate),
+      });
     }
-    usedVariables[p.startDateVariable].push({
-      type: 'pension',
-      name: p.name,
-      date: formatDate(p.startDate),
-    });
-    if (!usedVariables[p.birthDateVariable]) {
-      usedVariables[p.birthDateVariable] = [];
+    if (p.birthDateVariable) {
+      if (!usedVariables[p.birthDateVariable]) {
+        usedVariables[p.birthDateVariable] = [];
+      }
+      usedVariables[p.birthDateVariable].push({
+        type: 'pension',
+        name: p.name,
+      });
     }
-    usedVariables[p.birthDateVariable].push({
-      type: 'pension',
-      name: p.name,
-    });
-    if (!usedVariables[p.workStartDateVariable]) {
-      usedVariables[p.workStartDateVariable] = [];
+    if (p.workStartDateVariable) {
+      if (!usedVariables[p.workStartDateVariable]) {
+        usedVariables[p.workStartDateVariable] = [];
+      }
+      usedVariables[p.workStartDateVariable].push({
+        type: 'pension',
+        name: p.name,
+      });
     }
-    usedVariables[p.workStartDateVariable].push({
-      type: 'pension',
-      name: p.name,
-    });
   }
   for (const category of spendingTrackerCategories) {
     if (category.thresholdIsVariable && category.thresholdVariable) {

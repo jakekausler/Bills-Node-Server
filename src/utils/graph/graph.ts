@@ -91,7 +91,9 @@ function combineActivityDatasets(datasets: ActivityDataset[]): ActivityDataset[]
           return value;
         });
       })(),
-      activity: datasets.map((d) => d.activity).flat(),
+      activity: datasets.length === 0 ? [] : datasets[0].activity.map((_, i) =>
+  datasets.flatMap((d) => d.activity[i] ?? [])
+),
     },
   ];
 }
@@ -299,6 +301,7 @@ function processAccountActivitiesForActivityGraph(
  * @param datasets - Activity datasets array
  */
 function removeEmptyDays(labels: string[], datasets: ActivityDataset[]): void {
+  if (datasets.length === 0) return;
   // Find empty days to remove (excluding first and last day)
   const toRemove: number[] = [];
   for (let i = 0; i < labels.length; i++) {

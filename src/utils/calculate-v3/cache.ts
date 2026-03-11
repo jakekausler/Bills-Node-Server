@@ -1,4 +1,5 @@
 import { mkdir, readdir, readFile, unlink, writeFile } from 'fs/promises';
+import { mkdirSync } from 'fs';
 import {
   CalculationConfig,
   Segment,
@@ -216,11 +217,11 @@ export class CacheManager {
     this.initializeSerializers();
   }
 
-  private async initializeDiskCache() {
+  private initializeDiskCache() {
     if (this.config.useDiskCache) {
       // Initialize disk cache directory
       try {
-        await mkdir(this.diskCacheDir, { recursive: true });
+        mkdirSync(this.diskCacheDir, { recursive: true });
       } catch (error) {
         console.warn('Failed to create disk cache directory:', `${error}`);
       }

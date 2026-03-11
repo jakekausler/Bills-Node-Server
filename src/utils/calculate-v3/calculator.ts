@@ -127,7 +127,7 @@ export class Calculator {
 
     // Generate HSA reimbursement if enabled
     if (config.hsaReimbursementEnabled && config.hsaAccountId) {
-      this.generateHSAReimbursement(config.hsaAccountId, event.accountId, patientCost, event.date, segmentResult);
+      this.generateHSAReimbursement(config.hsaAccountId, event.accountId, patientCost, event.date, segmentResult, activity.name);
     }
 
     // Update balance
@@ -146,6 +146,7 @@ export class Calculator {
     patientCost: number,
     date: Date,
     segmentResult: SegmentResult,
+    activityName: string,
   ): void {
     try {
       // Get HSA account balance
@@ -164,7 +165,7 @@ export class Calculator {
 
       // Create HSA withdrawal activity (negative to HSA)
       const hsaWithdrawal = new ConsolidatedActivity({
-        id: `HSA-REIMBURSE-${date.getTime()}`,
+        id: `HSA-REIMBURSE-${activityName}-${date.getTime()}`,
         name: 'HSA Reimbursement',
         amount: -reimbursementAmount,
         amountIsVariable: false,
@@ -284,7 +285,7 @@ export class Calculator {
 
     // Generate HSA reimbursement if enabled
     if (config.hsaReimbursementEnabled && config.hsaAccountId) {
-      this.generateHSAReimbursement(config.hsaAccountId, event.accountId, patientCost, event.date, segmentResult);
+      this.generateHSAReimbursement(config.hsaAccountId, event.accountId, patientCost, event.date, segmentResult, bill.name);
     }
 
     // Update balance
@@ -339,7 +340,7 @@ export class Calculator {
     if (account.interestPayAccount && account.interestTaxRate !== 0) {
       const taxableOccurence: TaxableOccurence = {
         date: event.date,
-        year: event.date.getFullYear(),
+        year: event.date.getUTCFullYear(),
         amount: interestAmount,
         taxRate: account.interestTaxRate,
       };
@@ -441,7 +442,7 @@ export class Calculator {
         (toAccount.type === 'Savings' || toAccount.type === 'Investment')
       ) {
         if (Math.abs(internalAmount) > fromAccountBalance) {
-          internalAmount = Math.min(Math.abs(internalAmount), fromAccountBalance > 0 ? -fromAccountBalance : 0);
+          internalAmount = -Math.min(Math.abs(internalAmount), Math.max(0, fromAccountBalance));
         }
       }
     }
@@ -522,7 +523,7 @@ export class Calculator {
       if (taxRate !== 0) {
         const taxableOccurence: TaxableOccurence = {
           date: fromActivity.date,
-          year: fromActivity.date.getFullYear(),
+          year: fromActivity.date.getUTCFullYear(),
           amount: internalAmount,
           taxRate,
         };
@@ -542,7 +543,7 @@ export class Calculator {
       if (earlyWithdrawlPenalty !== 0 && earlyWithdrawlDate && isBefore(fromActivity.date, earlyWithdrawlDate)) {
         const taxableOccurence: TaxableOccurence = {
           date: fromActivity.date,
-          year: fromActivity.date.getFullYear(),
+          year: fromActivity.date.getUTCFullYear(),
           amount: internalAmount,
           taxRate: earlyWithdrawlPenalty,
         };
@@ -653,7 +654,7 @@ export class Calculator {
     const accountId = account.id;
 
     // Calculate the tax amount
-    const amount = -this.taxManager.calculateTotalTaxOwed(accountId, event.date.getFullYear() - 1);
+    const amount = -this.taxManager.calculateTotalTaxOwed(accountId, event.date.getUTCFullYear() - 1);
     if (amount === 0) {
       return new Map();
     }

@@ -30,10 +30,11 @@ export async function getCategorySectionBreakdown(request: Request) {
       continue;
     }
     for (const activity of account.consolidatedActivity) {
-      if (!activity.category?.startsWith(section)) {
+      if (activity.category?.split('.')[0] !== section) {
         continue;
       }
       const item = activity.category.split('.')[1];
+      if (!item) continue;
       if (!(item in ret)) {
         ret[item] = 0;
       }

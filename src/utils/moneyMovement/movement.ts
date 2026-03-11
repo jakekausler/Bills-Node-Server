@@ -52,6 +52,9 @@ export type MovementChartData = {
  * @returns Chart data with labels and datasets for each account
  */
 export function getMoneyMovementChartData(movement: Movement): MovementChartData {
+  if (Object.keys(movement).length === 0) {
+    return { labels: [], datasets: [] };
+  }
   const labels = Object.keys(movement).map((year) => year.toString());
   const firstYear = Object.keys(movement)[0];
   const datasets = Object.keys(movement[Number(firstYear)]).map((accountName) => {

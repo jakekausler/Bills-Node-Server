@@ -49,7 +49,10 @@ export async function getHealthcareProgressHistory(
   // Also group by date only for family-level aggregates
   const byDate = new Map<string, HealthcareExpense>();
   for (const expense of configExpenses) {
-    byDate.set(expense.date, expense);
+    const existing = byDate.get(expense.date);
+    if (!existing || expense.familyDeductibleRemaining < existing.familyDeductibleRemaining) {
+      byDate.set(expense.date, expense);
+    }
   }
 
   // Transform to progress data points (both per-person and family)

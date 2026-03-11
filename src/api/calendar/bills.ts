@@ -53,15 +53,19 @@ export async function getCalendarBills(request: Request) {
       }
       if (activity.billId) {
         let bill: Bill;
-        if (activity.isTransfer) {
-          // Only show negative transfers so that the bill is not double-counted
-          if ((activity.amount as number) < 0) {
-            bill = getById<Bill>(data.accountsAndTransfers.transfers.bills, activity.billId);
+        try {
+          if (activity.isTransfer) {
+            // Only show negative transfers so that the bill is not double-counted
+            if ((activity.amount as number) < 0) {
+              bill = getById<Bill>(data.accountsAndTransfers.transfers.bills, activity.billId);
+            } else {
+              continue;
+            }
           } else {
-            continue;
+            bill = getById<Bill>(account.bills, activity.billId);
           }
-        } else {
-          bill = getById<Bill>(account.bills, activity.billId);
+        } catch {
+          continue;
         }
         ret.push({
           account: account.name,

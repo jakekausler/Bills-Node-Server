@@ -122,24 +122,8 @@ export class BalanceTracker {
   getAccountsWithFilteredDates(startDate: Date | null, endDate: Date): Account[] {
     // Clone accounts before filtering to avoid mutating the source data
     return this.accounts.map((account) => {
-      // Debug: Log HSA account state BEFORE cloning
-      if (account.name === 'Jane HSA') {
-        console.log(`[DEBUG getAccountsWithFilteredDates] Jane HSA BEFORE clone:`, {
-          consolidatedActivityLength: account.consolidatedActivity?.length || 0,
-          activities: account.consolidatedActivity?.map(a => ({ name: a.name, date: a.date, isTransfer: a.isTransfer })) || []
-        });
-      }
-
       // Create a deep clone of the account with consolidatedActivity
       const clonedAccount = new Account(account.serialize(true));
-
-      // Debug: Log HSA account state AFTER cloning
-      if (account.name === 'Jane HSA') {
-        console.log(`[DEBUG getAccountsWithFilteredDates] Jane HSA AFTER clone:`, {
-          consolidatedActivityLength: clonedAccount.consolidatedActivity?.length || 0,
-          activities: clonedAccount.consolidatedActivity?.map(a => ({ name: a.name, date: a.date, isTransfer: a.isTransfer })) || []
-        });
-      }
 
       if (!clonedAccount.consolidatedActivity) {
         clonedAccount.consolidatedActivity = [];
@@ -167,14 +151,6 @@ export class BalanceTracker {
 
         return afterStart && beforeEnd;
       });
-
-      // Debug: Log HSA account state AFTER filtering
-      if (account.name === 'Jane HSA') {
-        console.log(`[DEBUG getAccountsWithFilteredDates] Jane HSA AFTER filter:`, {
-          consolidatedActivityLength: clonedAccount.consolidatedActivity?.length || 0,
-          activities: clonedAccount.consolidatedActivity?.map(a => ({ name: a.name, date: a.date, isTransfer: a.isTransfer })) || []
-        });
-      }
 
       return clonedAccount;
     });

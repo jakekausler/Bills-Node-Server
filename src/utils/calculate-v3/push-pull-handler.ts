@@ -150,7 +150,7 @@ export class PushPullHandler {
 
       // Create the pull activity
       const pullActivity = new Activity({
-        id: `AUTO-PULL_${account.id}_${segment.startDate.getTime()}`,
+        id: `AUTO-PULL_${account.id}_from_${pullableAccount.id}_${segment.startDate.getTime()}`,
         name: `Auto Pull from ${pullableAccount.name}`,
         amount: availableAmount,
         amountIsVariable: false,
@@ -168,7 +168,7 @@ export class PushPullHandler {
 
       // Create the pull event
       const pullEvent: ActivityTransferEvent = {
-        id: `AUTO-PULL_${account.id}_${segment.startDate.getTime()}`,
+        id: `AUTO-PULL_${account.id}_from_${pullableAccount.id}_${segment.startDate.getTime()}`,
         type: EventType.activityTransfer,
         date: segment.startDate,
         accountId: account.id,
