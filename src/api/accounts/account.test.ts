@@ -16,7 +16,7 @@ describe('Account API', () => {
   });
 
   describe('getAccount', () => {
-    it('should return a simplified account object', () => {
+    it('should return a simplified account object', async () => {
       const mockAccount = {
         id: 'account-1',
         name: 'Test Account',
@@ -37,10 +37,10 @@ describe('Account API', () => {
         params: { accountId: 'account-1' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById).mockReturnValue(mockAccount as any);
 
-      const result = getAccount(mockRequest);
+      const result = await getAccount(mockRequest);
 
       expect(getData).toHaveBeenCalledWith(mockRequest);
       expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-1');
@@ -52,7 +52,7 @@ describe('Account API', () => {
       });
     });
 
-    it('should handle account lookup correctly', () => {
+    it('should handle account lookup correctly', async () => {
       const mockAccount = {
         id: 'account-2',
         name: 'Another Account',
@@ -73,10 +73,10 @@ describe('Account API', () => {
         params: { accountId: 'account-2' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById).mockReturnValue(mockAccount as any);
 
-      const result = getAccount(mockRequest);
+      const result = await getAccount(mockRequest);
 
       expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-2');
       expect(result).toEqual({
@@ -88,7 +88,7 @@ describe('Account API', () => {
   });
 
   describe('updateAccount', () => {
-    it('should update account name and save data', () => {
+    it('should update account name and save data', async () => {
       const mockAccount = {
         id: 'account-1',
         name: 'Old Name',
@@ -112,10 +112,10 @@ describe('Account API', () => {
         params: { accountId: 'account-1' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById).mockReturnValue(mockAccount as any);
 
-      const result = updateAccount(mockRequest);
+      const result = await updateAccount(mockRequest);
 
       expect(getData).toHaveBeenCalledWith(mockRequest);
       expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-1');
@@ -129,7 +129,7 @@ describe('Account API', () => {
       });
     });
 
-    it('should handle account update with different data', () => {
+    it('should handle account update with different data', async () => {
       const mockAccount = {
         id: 'account-3',
         name: 'Original Name',
@@ -153,10 +153,10 @@ describe('Account API', () => {
         params: { accountId: 'account-3' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById).mockReturnValue(mockAccount as any);
 
-      const result = updateAccount(mockRequest);
+      const result = await updateAccount(mockRequest);
 
       expect(mockAccount.name).toBe('Updated Name');
       expect(saveData).toHaveBeenCalledWith(mockData.accountsAndTransfers);
@@ -169,7 +169,7 @@ describe('Account API', () => {
   });
 
   describe('removeAccount', () => {
-    it('should remove account and save data', () => {
+    it('should remove account and save data', async () => {
       const mockAccounts = [
         { id: 'account-1', name: 'Account 1' },
         { id: 'account-2', name: 'Account 2' },
@@ -187,9 +187,9 @@ describe('Account API', () => {
         params: { accountId: 'account-2' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
 
-      const result = removeAccount(mockRequest);
+      const result = await removeAccount(mockRequest);
 
       expect(getData).toHaveBeenCalledWith(mockRequest);
       expect(mockData.accountsAndTransfers.accounts).toEqual([
@@ -200,7 +200,7 @@ describe('Account API', () => {
       expect(result).toBe('account-2');
     });
 
-    it('should handle removing non-existent account', () => {
+    it('should handle removing non-existent account', async () => {
       const mockAccounts = [
         { id: 'account-1', name: 'Account 1' },
         { id: 'account-2', name: 'Account 2' },
@@ -217,9 +217,9 @@ describe('Account API', () => {
         params: { accountId: 'non-existent' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
 
-      const result = removeAccount(mockRequest);
+      const result = await removeAccount(mockRequest);
 
       expect(mockData.accountsAndTransfers.accounts).toEqual([
         { id: 'account-1', name: 'Account 1' },
@@ -229,7 +229,7 @@ describe('Account API', () => {
       expect(result).toBe('non-existent');
     });
 
-    it('should handle removing last account', () => {
+    it('should handle removing last account', async () => {
       const mockAccounts = [{ id: 'account-1', name: 'Only Account' }];
 
       const mockData = {
@@ -243,9 +243,9 @@ describe('Account API', () => {
         params: { accountId: 'account-1' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
 
-      const result = removeAccount(mockRequest);
+      const result = await removeAccount(mockRequest);
 
       expect(mockData.accountsAndTransfers.accounts).toEqual([]);
       expect(saveData).toHaveBeenCalledWith(mockData.accountsAndTransfers);

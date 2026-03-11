@@ -11,7 +11,7 @@ describe('getFlow', () => {
     vi.clearAllMocks();
   });
 
-  it('should return empty object as placeholder', () => {
+  it('should return empty object as placeholder', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [],
@@ -24,15 +24,15 @@ describe('getFlow', () => {
 
     const mockRequest = createMockRequest();
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getFlow(mockRequest);
+    const result = await getFlow(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(result).toEqual({});
   });
 
-  it('should pass through query parameters to getData', () => {
+  it('should pass through query parameters to getData', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [],
@@ -51,15 +51,15 @@ describe('getFlow', () => {
       },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getFlow(mockRequest);
+    const result = await getFlow(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(result).toEqual({});
   });
 
-  it('should handle different request configurations', () => {
+  it('should handle different request configurations', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [{ id: 'account-1', name: 'Test Account' }],
@@ -79,9 +79,9 @@ describe('getFlow', () => {
       },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getFlow(mockRequest);
+    const result = await getFlow(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(result).toEqual({});

@@ -46,7 +46,7 @@ const mockRequestData = {
 describe('Graph API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetData.mockReturnValue(mockRequestData);
+    mockGetData.mockResolvedValue(mockRequestData);
     mockGetById.mockReturnValue(mockAccount);
     mockLoadGraph.mockReturnValue(mockGraphData);
   });
@@ -57,8 +57,8 @@ describe('Graph API', () => {
       query: {},
     } as unknown as Request;
 
-    it('should return graph data for a specific account', () => {
-      const result = getAccountGraph(mockRequest);
+    it('should return graph data for a specific account', async () => {
+      const result = await getAccountGraph(mockRequest);
 
       expect(mockGetData).toHaveBeenCalledWith(mockRequest);
       expect(mockGetById).toHaveBeenCalledWith(mockRequestData.accountsAndTransfers.accounts, 'account-123');
@@ -69,21 +69,22 @@ describe('Graph API', () => {
         },
         mockRequestData.startDate,
         mockRequestData.endDate,
+        undefined,
       );
       expect(result).toEqual(mockGraphData);
     });
 
-    it('should handle different date ranges', () => {
+    it('should handle different date ranges', async () => {
       const customData = {
         ...mockRequestData,
         startDate: new Date('2023-06-01T00:00:00Z'),
         endDate: new Date('2023-08-31T23:59:59Z'),
       };
-      mockGetData.mockReturnValue(customData);
+      mockGetData.mockResolvedValue(customData);
 
-      getAccountGraph(mockRequest);
+      await getAccountGraph(mockRequest);
 
-      expect(mockLoadGraph).toHaveBeenCalledWith(expect.any(Object), customData.startDate, customData.endDate);
+      expect(mockLoadGraph).toHaveBeenCalledWith(expect.any(Object), customData.startDate, customData.endDate, undefined);
     });
   });
 
@@ -97,10 +98,10 @@ describe('Graph API', () => {
       mockGetSelectedSimulations.mockReturnValue(['Default']);
     });
 
-    it('should return graph data for multiple simulations', () => {
+    it('should return graph data for multiple simulations', async () => {
       mockGetSelectedSimulations.mockReturnValue(['Default', 'Conservative']);
 
-      const result = getGraphForAccounts(mockRequest);
+      const result = await getGraphForAccounts(mockRequest);
 
       expect(mockGetSelectedSimulations).toHaveBeenCalledWith(mockRequest, ['Default']);
       expect(mockGetData).toHaveBeenCalledTimes(2); // Once for each simulation
@@ -111,22 +112,22 @@ describe('Graph API', () => {
       });
     });
 
-    it('should use selected accounts when provided', () => {
+    it('should use selected accounts when provided', async () => {
       const dataWithSelectedAccounts = {
         ...mockRequestData,
         selectedAccounts: ['account-123', 'account-456'],
       };
-      mockGetData.mockReturnValue(dataWithSelectedAccounts);
+      mockGetData.mockResolvedValue(dataWithSelectedAccounts);
       mockGetById.mockReturnValueOnce(mockAccount).mockReturnValueOnce({ id: 'account-456', name: 'Second Account' });
 
-      getGraphForAccounts(mockRequest);
+      await getGraphForAccounts(mockRequest);
 
       expect(mockGetById).toHaveBeenCalledTimes(2);
       expect(mockGetById).toHaveBeenCalledWith(mockRequestData.accountsAndTransfers.accounts, 'account-123');
       expect(mockGetById).toHaveBeenCalledWith(mockRequestData.accountsAndTransfers.accounts, 'account-456');
     });
 
-    it('should filter out hidden accounts when no accounts selected', () => {
+    it('should filter out hidden accounts when no accounts selected', async () => {
       const accountsWithHidden = [
         { id: 'account-1', name: 'Visible Account', hidden: false },
         { id: 'account-2', name: 'Hidden Account', hidden: true },
@@ -141,9 +142,9 @@ describe('Graph API', () => {
         },
         selectedAccounts: [],
       };
-      mockGetData.mockReturnValue(dataWithHiddenAccounts);
+      mockGetData.mockResolvedValue(dataWithHiddenAccounts);
 
-      getGraphForAccounts(mockRequest);
+      await getGraphForAccounts(mockRequest);
 
       expect(mockLoadGraph).toHaveBeenCalledWith(
         {
@@ -155,37 +156,38 @@ describe('Graph API', () => {
         },
         expect.any(Date),
         expect.any(Date),
+        undefined,
       );
     });
 
-    it('should handle single simulation', () => {
+    it('should handle single simulation', async () => {
       mockGetSelectedSimulations.mockReturnValue(['Custom']);
 
-      const result = getGraphForAccounts(mockRequest);
+      const result = await getGraphForAccounts(mockRequest);
 
       expect(result).toHaveProperty('Custom');
       expect(Object.keys(result)).toHaveLength(1);
     });
 
-    it('should handle empty selected simulations with default', () => {
+    it('should handle empty selected simulations with default', async () => {
       mockGetSelectedSimulations.mockReturnValue(['Default']);
 
-      const result = getGraphForAccounts(mockRequest);
+      const result = await getGraphForAccounts(mockRequest);
 
       expect(result).toHaveProperty('Default');
       expect(Object.keys(result)).toHaveLength(1);
     });
 
-    it('should modify request query simulation for each iteration', () => {
+    it('should modify request query simulation for each iteration', async () => {
       mockGetSelectedSimulations.mockReturnValue(['Sim1', 'Sim2']);
 
-      getGraphForAccounts(mockRequest);
+      await getGraphForAccounts(mockRequest);
 
       // The request.query.simulation should be set for each simulation
       expect(mockRequest.query.simulation).toBe('Sim2'); // Last one processed
     });
 
-    it('should handle empty accounts array', () => {
+    it('should handle empty accounts array', async () => {
       const dataWithNoAccounts = {
         ...mockRequestData,
         accountsAndTransfers: {
@@ -193,9 +195,9 @@ describe('Graph API', () => {
           accounts: [],
         },
       };
-      mockGetData.mockReturnValue(dataWithNoAccounts);
+      mockGetData.mockResolvedValue(dataWithNoAccounts);
 
-      const result = getGraphForAccounts(mockRequest);
+      const result = await getGraphForAccounts(mockRequest);
 
       expect(mockLoadGraph).toHaveBeenCalledWith(
         {
@@ -204,6 +206,7 @@ describe('Graph API', () => {
         },
         expect.any(Date),
         expect.any(Date),
+        undefined,
       );
       expect(result).toHaveProperty('Default');
     });

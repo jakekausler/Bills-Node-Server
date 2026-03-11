@@ -1,6 +1,7 @@
 import { HealthcareConfig } from '../../data/healthcare/types';
 import { Bill } from '../../data/bill/bill';
 import { Activity } from '../../data/activity/activity';
+import { parseDate } from '../../utils/date/date';
 
 type YearTracker = {
   planYear: number;
@@ -32,13 +33,13 @@ export class HealthcareManager {
         return false;
       }
 
-      const startDate = new Date(config.startDate);
+      const startDate = parseDate(config.startDate);
       if (date < startDate) {
         return false;
       }
 
       if (config.endDate) {
-        const endDate = new Date(config.endDate);
+        const endDate = parseDate(config.endDate);
         if (date > endDate) {
           return false;
         }
@@ -54,8 +55,8 @@ export class HealthcareManager {
 
     // If multiple matches, return the most recent (latest start date)
     matchingConfigs.sort((a, b) => {
-      const dateA = new Date(a.startDate);
-      const dateB = new Date(b.startDate);
+      const dateA = parseDate(a.startDate);
+      const dateB = parseDate(b.startDate);
       return dateB.getTime() - dateA.getTime();
     });
 
@@ -66,12 +67,12 @@ export class HealthcareManager {
    * Determine which plan year a date falls in based on reset date
    */
   private getPlanYear(config: HealthcareConfig, date: Date): number {
-    const currentYear = date.getFullYear();
+    const currentYear = date.getUTCFullYear();
     const resetMonth = config.resetMonth;
     const resetDay = config.resetDay;
 
-    const dateMonth = date.getMonth();
-    const dateDay = date.getDate();
+    const dateMonth = date.getUTCMonth();
+    const dateDay = date.getUTCDate();
 
     // Check if current date is before the reset date in the current year
     if (dateMonth < resetMonth || (dateMonth === resetMonth && dateDay < resetDay)) {

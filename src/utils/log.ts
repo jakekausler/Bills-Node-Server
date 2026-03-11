@@ -15,15 +15,10 @@ export function logToFile(message: string, reset: boolean = false) {
   logFile.end();
 }
 
-const functionTimings: Record<string, number> = {};
-
-function _getIndent() {
-  return '|  '.repeat(Object.keys(functionTimings).length);
-}
-
 /**
- * Starts timing for a function (currently disabled)
+ * Starts timing for a function (currently disabled — logic commented out)
  *
+ * Still referenced by src/utils/graph/graph.ts and legacy calculate/ code.
  * TODO: Needs to handle recursive calls
  * @param _fn - Function or function name to start timing for
  */
@@ -34,8 +29,9 @@ export function startTiming(_fn: Function | string) {
 }
 
 /**
- * Ends timing for a function (currently disabled)
+ * Ends timing for a function (currently disabled — logic commented out)
  *
+ * Still referenced by src/utils/graph/graph.ts and legacy calculate/ code.
  * @param _fn - Function or function name to end timing for
  */
 export function endTiming(_fn: Function | string) {
@@ -89,18 +85,3 @@ export function stopProgressBar() {
   }
   progressBar.stop();
 }
-
-// export function logProgressDate(
-//   startDate: Date,
-//   currDate: Date,
-//   endDate: Date,
-//   simulationNumber: number,
-//   maxSimulations: number,
-// ) {
-//   // const progress = ((currDate.getTime() - startDate.getTime()) / (endDate.getTime() - startDate.getTime())) * 100;
-//   // console.log(
-//   //   `=== ${getIndent()}|  ${formatDate(currDate)} ${progress.toFixed(2)}%${
-//   //     simulationNumber !== -1 ? ` ${simulationNumber}` : ''
-//   //   }${maxSimulations !== -1 ? ` / ${maxSimulations}` : ''}`,
-//   // );
-// }

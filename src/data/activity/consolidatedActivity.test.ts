@@ -156,6 +156,8 @@ describe('ConsolidatedActivity', () => {
         firstBill: true,
         interestId: 'test-interest-id',
         firstInterest: true,
+        spendingTrackerId: null,
+        firstSpendingTracker: false,
       });
     });
 

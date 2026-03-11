@@ -176,7 +176,7 @@ function initializeNewYear(
   yearBalance: YearBalances,
   accounts: any[],
 ): number {
-  const newYear = currDate.getFullYear();
+  const newYear = currDate.getUTCFullYear();
   if (newYear !== currentYear) {
     labels.push(formatDate(currDate));
     for (const acc of accounts) {

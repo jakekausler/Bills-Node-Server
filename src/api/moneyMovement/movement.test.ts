@@ -13,7 +13,7 @@ describe('getMoneyMovementChart', () => {
     vi.clearAllMocks();
   });
 
-  it('should get money movement chart data', () => {
+  it('should get money movement chart data', async () => {
     const mockAccountsAndTransfers = {
       accounts: [
         {
@@ -70,11 +70,11 @@ describe('getMoneyMovementChart', () => {
       },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(getMoneyMovement).mockReturnValue(mockMovement);
     vi.mocked(getMoneyMovementChartData).mockReturnValue(mockChartData);
 
-    const result = getMoneyMovementChart(mockRequest);
+    const result = await getMoneyMovementChart(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(getMoneyMovement).toHaveBeenCalledWith(
@@ -86,7 +86,7 @@ describe('getMoneyMovementChart', () => {
     expect(result).toEqual(mockChartData);
   });
 
-  it('should handle empty accounts and transfers', () => {
+  it('should handle empty accounts and transfers', async () => {
     const mockAccountsAndTransfers = {
       accounts: [],
       transfers: { activity: [], bills: [] },
@@ -107,11 +107,11 @@ describe('getMoneyMovementChart', () => {
 
     const mockRequest = createMockRequest();
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(getMoneyMovement).mockReturnValue(mockMovement);
     vi.mocked(getMoneyMovementChartData).mockReturnValue(mockChartData);
 
-    const result = getMoneyMovementChart(mockRequest);
+    const result = await getMoneyMovementChart(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(getMoneyMovement).toHaveBeenCalledWith(
@@ -123,7 +123,7 @@ describe('getMoneyMovementChart', () => {
     expect(result).toEqual(mockChartData);
   });
 
-  it('should handle multi-year date ranges', () => {
+  it('should handle multi-year date ranges', async () => {
     const mockAccountsAndTransfers = {
       accounts: [
         {
@@ -171,11 +171,11 @@ describe('getMoneyMovementChart', () => {
       },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(getMoneyMovement).mockReturnValue(mockMovement);
     vi.mocked(getMoneyMovementChartData).mockReturnValue(mockChartData);
 
-    const result = getMoneyMovementChart(mockRequest);
+    const result = await getMoneyMovementChart(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(getMoneyMovement).toHaveBeenCalledWith(
@@ -187,7 +187,7 @@ describe('getMoneyMovementChart', () => {
     expect(result).toEqual(mockChartData);
   });
 
-  it('should pass through query parameters to getData', () => {
+  it('should pass through query parameters to getData', async () => {
     const mockAccountsAndTransfers = {
       accounts: [],
       transfers: { activity: [], bills: [] },
@@ -208,16 +208,16 @@ describe('getMoneyMovementChart', () => {
       },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(getMoneyMovement).mockReturnValue({});
     vi.mocked(getMoneyMovementChartData).mockReturnValue({ labels: [], datasets: [] });
 
-    getMoneyMovementChart(mockRequest);
+    await getMoneyMovementChart(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
   });
 
-  it('should handle single account movements', () => {
+  it('should handle single account movements', async () => {
     const mockAccountsAndTransfers = {
       accounts: [
         {
@@ -257,11 +257,11 @@ describe('getMoneyMovementChart', () => {
 
     const mockRequest = createMockRequest();
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(getMoneyMovement).mockReturnValue(mockMovement);
     vi.mocked(getMoneyMovementChartData).mockReturnValue(mockChartData);
 
-    const result = getMoneyMovementChart(mockRequest);
+    const result = await getMoneyMovementChart(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(getMoneyMovement).toHaveBeenCalledWith(

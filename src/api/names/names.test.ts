@@ -13,7 +13,7 @@ describe('getNameCategories', () => {
     vi.clearAllMocks();
   });
 
-  it('should get name categories from loaded data', () => {
+  it('should get name categories from loaded data', async () => {
     const mockAccountsAndTransfers = {
       accounts: [
         {
@@ -51,17 +51,17 @@ describe('getNameCategories', () => {
       },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(loadNameCategories).mockReturnValue(mockNameCategories);
 
-    const result = getNameCategories(mockRequest);
+    const result = await getNameCategories(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(loadNameCategories).toHaveBeenCalledWith(mockAccountsAndTransfers);
     expect(result).toEqual(mockNameCategories);
   });
 
-  it('should handle empty accounts and transfers', () => {
+  it('should handle empty accounts and transfers', async () => {
     const mockAccountsAndTransfers = {
       accounts: [],
       transfers: {
@@ -78,17 +78,17 @@ describe('getNameCategories', () => {
 
     const mockRequest = createMockRequest();
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(loadNameCategories).mockReturnValue({});
 
-    const result = getNameCategories(mockRequest);
+    const result = await getNameCategories(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(loadNameCategories).toHaveBeenCalledWith(mockAccountsAndTransfers);
     expect(result).toEqual({});
   });
 
-  it('should pass through query parameters to getData', () => {
+  it('should pass through query parameters to getData', async () => {
     const mockAccountsAndTransfers = {
       accounts: [],
       transfers: { activity: [], bills: [] },
@@ -106,15 +106,15 @@ describe('getNameCategories', () => {
       },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(loadNameCategories).mockReturnValue({});
 
-    getNameCategories(mockRequest);
+    await getNameCategories(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
   });
 
-  it('should handle accounts with multiple activities of same name', () => {
+  it('should handle accounts with multiple activities of same name', async () => {
     const mockAccountsAndTransfers = {
       accounts: [
         {
@@ -143,17 +143,17 @@ describe('getNameCategories', () => {
 
     const mockRequest = createMockRequest();
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(loadNameCategories).mockReturnValue(mockNameCategories);
 
-    const result = getNameCategories(mockRequest);
+    const result = await getNameCategories(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(loadNameCategories).toHaveBeenCalledWith(mockAccountsAndTransfers);
     expect(result).toEqual(mockNameCategories);
   });
 
-  it('should handle complex data structures', () => {
+  it('should handle complex data structures', async () => {
     const mockAccountsAndTransfers = {
       accounts: [
         {
@@ -191,10 +191,10 @@ describe('getNameCategories', () => {
 
     const mockRequest = createMockRequest();
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(loadNameCategories).mockReturnValue(mockNameCategories);
 
-    const result = getNameCategories(mockRequest);
+    const result = await getNameCategories(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(loadNameCategories).toHaveBeenCalledWith(mockAccountsAndTransfers);

@@ -1,21 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { minDate } from './minDate';
-import { resetCache } from './cache';
-import { loadData } from './accountsAndTransfers';
-
-// Mock the dependencies
-vi.mock('./accountsAndTransfers', () => ({
-  loadData: vi.fn(),
-}));
 
 describe('minDate', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    resetCache(); // Reset cache instead of mocking
-  });
-
-  it('should return cached MIN_DATE if available', () => {
-    // First call will set the cache
+  it('should return consistent results for same data', () => {
     const mockData = {
       accounts: [
         {
@@ -26,13 +13,11 @@ describe('minDate', () => {
       ],
       transfers: { activity: [], bills: [] },
     };
-    vi.mocked(loadData).mockReturnValue(mockData as any);
 
-    const firstResult = minDate();
-    const secondResult = minDate();
+    const firstResult = minDate(mockData as any);
+    const secondResult = minDate(mockData as any);
 
     expect(firstResult).toEqual(secondResult);
-    expect(loadData).toHaveBeenCalledTimes(1); // Should only call loadData once
   });
 
   it('should find minimum date from activities', () => {
@@ -50,9 +35,7 @@ describe('minDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
-
-    const result = minDate();
+    const result = minDate(mockData as any);
 
     expect(result).toEqual(new Date('2024-01-01'));
   });
@@ -75,9 +58,7 @@ describe('minDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
-
-    const result = minDate();
+    const result = minDate(mockData as any);
 
     expect(result).toEqual(new Date('2024-01-01'));
   });
@@ -100,9 +81,7 @@ describe('minDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
-
-    const result = minDate();
+    const result = minDate(mockData as any);
 
     expect(result).toEqual(new Date('2024-01-01'));
   });
@@ -122,9 +101,7 @@ describe('minDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
-
-    const result = minDate();
+    const result = minDate(mockData as any);
 
     expect(result).toEqual(new Date('2024-01-01'));
   });
@@ -138,9 +115,7 @@ describe('minDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
-
-    const result = minDate();
+    const result = minDate(mockData as any);
 
     expect(result).toEqual(new Date('2024-01-01'));
   });
@@ -157,9 +132,7 @@ describe('minDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
-
-    const result = minDate();
+    const result = minDate(mockData as any);
 
     expect(result).toEqual(new Date('2024-01-01'));
   });
@@ -176,9 +149,7 @@ describe('minDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
-
-    const result = minDate();
+    const result = minDate(mockData as any);
 
     expect(result).toEqual(new Date('2024-01-01'));
   });
@@ -192,9 +163,7 @@ describe('minDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
-
-    const result = minDate();
+    const result = minDate(mockData as any);
 
     // Should return a date close to now
     expect(result).toBeInstanceOf(Date);
@@ -215,9 +184,7 @@ describe('minDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
-
-    const result = minDate();
+    const result = minDate(mockData as any);
 
     expect(result).toEqual(new Date('2024-01-01'));
   });

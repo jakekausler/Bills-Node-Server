@@ -112,3 +112,27 @@ export function isAfter(date1: Date, date2: Date): boolean {
 export function isAfterOrSame(date1: Date, date2: Date): boolean {
   return isAfter(date1, date2) || isSame(date1, date2);
 }
+
+/**
+ * Calculates the next date based on the period and number of periods
+ * @param date - The date to calculate the next date from
+ * @param period - The period type (day, week, month, year)
+ * @param nPeriods - The number of periods to advance
+ * @returns The next date
+ */
+export function nextDate(date: Date, period: string, nPeriods: number): Date {
+  if (period.startsWith('day')) {
+    return dayjs.utc(date).add(nPeriods, 'day').toDate();
+  } else if (period.startsWith('week')) {
+    return dayjs
+      .utc(date)
+      .add(nPeriods * 7, 'day')
+      .toDate();
+  } else if (period.startsWith('month')) {
+    return dayjs.utc(date).add(nPeriods, 'month').toDate();
+  } else if (period.startsWith('year')) {
+    return dayjs.utc(date).add(nPeriods, 'year').toDate();
+  } else {
+    throw new Error(`Invalid period: ${period}`);
+  }
+}

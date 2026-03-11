@@ -614,5 +614,58 @@ describe('HealthcareManager', () => {
       // Should charge 100% because deductible was reset
       expect(cost).toBe(200);
     });
+
+    it('returns cached result when same expense is calculated twice on the same date', () => {
+      const mockExpense = {
+        id: 'expense-abc-123',
+        amount: 200,
+        copayAmount: null,
+        coinsurancePercent: 20,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: true,
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+
+      // First call calculates the actual cost
+      const cost1 = manager.calculatePatientCost(mockExpense as any, testConfig, date);
+      expect(cost1).toBe(200); // Before deductible: 100%
+
+      // Second call on same expense+date should return cached result
+      // (even if we mutate expense.amount, the cached result is used)
+      const mutatedExpense = { ...mockExpense, amount: 9999 };
+      const cost2 = manager.calculatePatientCost(mutatedExpense as any, testConfig, date);
+
+      // Should return original cached value, not recalculate
+      expect(cost2).toBe(200);
+    });
+  });
+
+  describe('calculateDeductibleBasedCost - OOP tracking edge cases', () => {
+    it('does not track toward OOP when countsTowardOutOfPocket is false (after deductible)', () => {
+      const mockExpense = {
+        amount: 200,
+        copayAmount: null,
+        coinsurancePercent: 20,
+        countsTowardDeductible: true,
+        countsTowardOutOfPocket: false, // NOT tracking toward OOP
+        healthcarePerson: 'John',
+      };
+
+      const date = new Date('2024-06-15');
+      // Meet deductible first
+      manager.recordHealthcareExpense('John', date, 1500, 1500, testConfig);
+
+      // After deductible, coinsurance applies; OOP not counted
+      const cost = manager['calculateDeductibleBasedCost'](mockExpense as any, testConfig, 200, 'John', date);
+
+      // Should charge 20% coinsurance
+      expect(cost).toBe(40);
+
+      // OOP should not increase beyond the initial recorded 1500
+      const oopProgress = manager.getOOPProgress(testConfig, date, 'John');
+      expect(oopProgress.individualRemaining).toBe(3500); // 5000 - 1500 (OOP not incremented by this call)
+    });
   });
 });

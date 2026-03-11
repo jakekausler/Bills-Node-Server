@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { maxDate } from './maxDate';
-import { resetCache } from './cache';
 import { loadData } from './accountsAndTransfers';
 
 // Mock the dependencies
@@ -11,11 +10,9 @@ vi.mock('./accountsAndTransfers', () => ({
 describe('maxDate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    resetCache(); // Reset cache instead of mocking
   });
 
-  it('should return cached MAX_DATE if available', () => {
-    // First call will set the cache
+  it('should return consistent results for same data', async () => {
     const mockData = {
       accounts: [
         {
@@ -26,16 +23,15 @@ describe('maxDate', () => {
       ],
       transfers: { activity: [], bills: [] },
     };
-    vi.mocked(loadData).mockReturnValue(mockData as any);
+    vi.mocked(loadData).mockResolvedValue(mockData as any);
 
-    const firstResult = maxDate();
-    const secondResult = maxDate();
+    const firstResult = await maxDate();
+    const secondResult = await maxDate();
 
     expect(firstResult).toEqual(secondResult);
-    expect(loadData).toHaveBeenCalledTimes(1); // Should only call loadData once
   });
 
-  it('should find maximum date from activities', () => {
+  it('should find maximum date from activities', async () => {
     const mockData = {
       accounts: [
         {
@@ -50,14 +46,14 @@ describe('maxDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
+    vi.mocked(loadData).mockResolvedValue(mockData as any);
 
-    const result = maxDate();
+    const result = await maxDate();
 
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
-  it('should find maximum date from bills', () => {
+  it('should find maximum date from bills', async () => {
     const mockData = {
       accounts: [
         {
@@ -75,14 +71,14 @@ describe('maxDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
+    vi.mocked(loadData).mockResolvedValue(mockData as any);
 
-    const result = maxDate();
+    const result = await maxDate();
 
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
-  it('should handle bills with null endDate', () => {
+  it('should handle bills with null endDate', async () => {
     const mockData = {
       accounts: [
         {
@@ -100,14 +96,14 @@ describe('maxDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
+    vi.mocked(loadData).mockResolvedValue(mockData as any);
 
-    const result = maxDate();
+    const result = await maxDate();
 
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
-  it('should find maximum date from interests', () => {
+  it('should find maximum date from interests', async () => {
     const mockData = {
       accounts: [
         {
@@ -122,14 +118,14 @@ describe('maxDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
+    vi.mocked(loadData).mockResolvedValue(mockData as any);
 
-    const result = maxDate();
+    const result = await maxDate();
 
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
-  it('should find maximum date from transfer activities', () => {
+  it('should find maximum date from transfer activities', async () => {
     const mockData = {
       accounts: [],
       transfers: {
@@ -138,14 +134,14 @@ describe('maxDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
+    vi.mocked(loadData).mockResolvedValue(mockData as any);
 
-    const result = maxDate();
+    const result = await maxDate();
 
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
-  it('should find maximum date from transfer bills', () => {
+  it('should find maximum date from transfer bills', async () => {
     const mockData = {
       accounts: [],
       transfers: {
@@ -157,14 +153,14 @@ describe('maxDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
+    vi.mocked(loadData).mockResolvedValue(mockData as any);
 
-    const result = maxDate();
+    const result = await maxDate();
 
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
-  it('should handle transfer bills with null endDate', () => {
+  it('should handle transfer bills with null endDate', async () => {
     const mockData = {
       accounts: [],
       transfers: {
@@ -176,14 +172,14 @@ describe('maxDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
+    vi.mocked(loadData).mockResolvedValue(mockData as any);
 
-    const result = maxDate();
+    const result = await maxDate();
 
     expect(result).toEqual(new Date('2024-12-31'));
   });
 
-  it('should return current date if no data found', () => {
+  it('should return current date if no data found', async () => {
     const mockData = {
       accounts: [],
       transfers: {
@@ -192,15 +188,15 @@ describe('maxDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
+    vi.mocked(loadData).mockResolvedValue(mockData as any);
 
-    const result = maxDate();
+    const result = await maxDate();
 
     // Should return a date close to now
     expect(result).toBeInstanceOf(Date);
   });
 
-  it('should find maximum date across all data types', () => {
+  it('should find maximum date across all data types', async () => {
     const mockData = {
       accounts: [
         {
@@ -215,9 +211,9 @@ describe('maxDate', () => {
       },
     };
 
-    vi.mocked(loadData).mockReturnValue(mockData as any);
+    vi.mocked(loadData).mockResolvedValue(mockData as any);
 
-    const result = maxDate();
+    const result = await maxDate();
 
     expect(result).toEqual(new Date('2024-12-31'));
   });

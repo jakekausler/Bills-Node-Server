@@ -141,8 +141,7 @@ export class Bill {
       this.increaseByIsVariable = [true, false].includes(increaseByIsVariable) ? increaseByIsVariable : true;
       this.increaseByVariable = increaseByVariable || 'INFLATION';
     } catch (e) {
-      console.log('Error loading increaseBy for bill', this.name);
-      throw e;
+      throw new Error(`Error loading increaseBy for bill "${this.name}": ${e instanceof Error ? e.message : e}`);
     }
 
     this.increaseByDate = this.setIncreaseByDate(data.increaseByDate);
@@ -345,7 +344,7 @@ export class Bill {
    */
   checkAnnualDates(date: Date) {
     const dateMonth = date.getUTCMonth() + 1;
-    const dateDay = date.getUTCDate() + 1;
+    const dateDay = date.getUTCDate();
     if (this.annualStartDate && this.annualEndDate) {
       const [annualStartMonth, annualStartDay] = this.getUTCMonthAndDay(this.annualStartDate);
       const [annualEndMonth, annualEndDay] = this.getUTCMonthAndDay(this.annualEndDate);
@@ -363,11 +362,11 @@ export class Bill {
         }
         // Otherwise, if we are before the start date, advance to the start date of the current year
         if (dateMonth < annualStartMonth || (dateMonth === annualStartMonth && dateDay <= annualStartDay)) {
-          return new Date(date.getFullYear(), annualStartMonth, annualStartDay);
+          return new Date(Date.UTC(date.getUTCFullYear(), annualStartMonth - 1, annualStartDay));
         }
         // Otherwise, if we are after the end date, advance to the start date of the next year
         if (dateMonth > annualEndMonth || (dateMonth === annualEndMonth && dateDay >= annualEndDay)) {
-          return new Date(date.getFullYear() + 1, annualStartMonth, annualStartDay);
+          return new Date(Date.UTC(date.getUTCFullYear() + 1, annualStartMonth - 1, annualStartDay));
         }
       } else {
         // Handle annual dates that span multiple years (start date is after end date)
@@ -383,7 +382,7 @@ export class Bill {
           return date;
         }
         // Otherwise, we are before the start date but after the end date, advance to the start date of the current year
-        return new Date(date.getFullYear(), annualStartMonth, annualStartDay);
+        return new Date(Date.UTC(date.getUTCFullYear(), annualStartMonth - 1, annualStartDay));
       }
     } else if (this.annualStartDate) {
       const [annualStartMonth, annualStartDay] = this.getUTCMonthAndDay(this.annualStartDate);
@@ -393,7 +392,7 @@ export class Bill {
         return date;
       }
       // Otherwise, we are before the start date, advance to the start date of the current year
-      return new Date(date.getFullYear(), annualStartMonth, annualStartDay);
+      return new Date(Date.UTC(date.getUTCFullYear(), annualStartMonth - 1, annualStartDay));
     } else if (this.annualEndDate) {
       const [annualEndMonth, annualEndDay] = this.getUTCMonthAndDay(this.annualEndDate);
       // If we are before the end date
@@ -402,7 +401,7 @@ export class Bill {
         return date;
       }
       // Otherwise, we are after the end date, advance to the first day of the next year
-      return new Date(date.getFullYear() + 1, 1, 1);
+      return new Date(Date.UTC(date.getUTCFullYear() + 1, 0, 1));
     }
     // Handle annual dates lasting the entire year (start date is empty and end date is empty)
     // There is no need to check the dates, as the bill is always within the year

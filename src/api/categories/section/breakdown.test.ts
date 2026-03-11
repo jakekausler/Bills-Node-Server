@@ -11,7 +11,7 @@ describe('getCategorySectionBreakdown', () => {
     vi.clearAllMocks();
   });
 
-  it('should calculate category breakdown for a section', () => {
+  it('should calculate category breakdown for a section', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -47,9 +47,9 @@ describe('getCategorySectionBreakdown', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionBreakdown(mockRequest);
+    const result = await getCategorySectionBreakdown(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(result).toEqual({
@@ -58,7 +58,7 @@ describe('getCategorySectionBreakdown', () => {
     });
   });
 
-  it('should handle selected accounts filtering', () => {
+  it('should handle selected accounts filtering', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -96,16 +96,16 @@ describe('getCategorySectionBreakdown', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionBreakdown(mockRequest);
+    const result = await getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
       Groceries: 100,
     });
   });
 
-  it('should handle hidden accounts filtering', () => {
+  it('should handle hidden accounts filtering', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -143,16 +143,16 @@ describe('getCategorySectionBreakdown', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionBreakdown(mockRequest);
+    const result = await getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
       Groceries: 100,
     });
   });
 
-  it('should handle transfer activities with half amount adjustment', () => {
+  it('should handle transfer activities with half amount adjustment', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -180,16 +180,16 @@ describe('getCategorySectionBreakdown', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionBreakdown(mockRequest);
+    const result = await getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
       Transfer: 100, // Half of 200
     });
   });
 
-  it('should handle transfer activities with full amount when other account not selected', () => {
+  it('should handle transfer activities with full amount when other account not selected', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -217,16 +217,16 @@ describe('getCategorySectionBreakdown', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionBreakdown(mockRequest);
+    const result = await getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
       Transfer: 200, // Full amount
     });
   });
 
-  it('should exclude activities that do not match section', () => {
+  it('should exclude activities that do not match section', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -262,9 +262,9 @@ describe('getCategorySectionBreakdown', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionBreakdown(mockRequest);
+    const result = await getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
       Groceries: 100,
@@ -272,7 +272,7 @@ describe('getCategorySectionBreakdown', () => {
     });
   });
 
-  it('should exclude positive amounts (credits) from breakdown', () => {
+  it('should exclude positive amounts (credits) from breakdown', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -303,9 +303,9 @@ describe('getCategorySectionBreakdown', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionBreakdown(mockRequest);
+    const result = await getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
       Groceries: 100,
@@ -313,7 +313,7 @@ describe('getCategorySectionBreakdown', () => {
     });
   });
 
-  it('should handle empty section', () => {
+  it('should handle empty section', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -339,14 +339,14 @@ describe('getCategorySectionBreakdown', () => {
       params: { section: 'NonExistent' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionBreakdown(mockRequest);
+    const result = await getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({});
   });
 
-  it('should handle activities with null or undefined category', () => {
+  it('should handle activities with null or undefined category', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -382,9 +382,9 @@ describe('getCategorySectionBreakdown', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionBreakdown(mockRequest);
+    const result = await getCategorySectionBreakdown(mockRequest);
 
     expect(result).toEqual({
       Groceries: 25,

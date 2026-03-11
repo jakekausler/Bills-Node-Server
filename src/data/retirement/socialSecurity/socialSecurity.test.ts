@@ -171,6 +171,99 @@ describe('SocialSecurity', () => {
     });
   });
 
+  describe('serialize', () => {
+    it('should return a SocialSecurityData object with all non-computed fields', () => {
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
+
+      const socialSecurity = new SocialSecurity(mockSocialSecurityData);
+      const serialized = socialSecurity.serialize();
+
+      expect(serialized).toEqual({
+        name: 'Test Social Security',
+        payToAcccount: 'account-123',
+        paycheckNames: ['Social Security Payment'],
+        paycheckAccounts: ['account-123'],
+        paycheckCategories: ['Income'],
+        startDateVariable: 'retirementDate',
+        birthDateVariable: 'birthDate',
+        priorAnnualNetIncomes: [50000, 52000, 54000, 56000, 58000],
+        priorAnnualNetIncomeYears: [2019, 2020, 2021, 2022, 2023],
+      });
+    });
+
+    it('should not include computed fields in serialized output', () => {
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
+
+      const socialSecurity = new SocialSecurity(mockSocialSecurityData);
+      const serialized = socialSecurity.serialize();
+
+      expect(serialized).not.toHaveProperty('startDate');
+      expect(serialized).not.toHaveProperty('birthDate');
+      expect(serialized).not.toHaveProperty('startAge');
+      expect(serialized).not.toHaveProperty('average35YearPayInflationAdjusted');
+      expect(serialized).not.toHaveProperty('monthlyPay');
+      expect(serialized).not.toHaveProperty('yearTurn60');
+      expect(serialized).not.toHaveProperty('collectionAge');
+    });
+
+    it('should serialize data with empty income arrays', () => {
+      const dataWithEmptyArrays = {
+        ...mockSocialSecurityData,
+        priorAnnualNetIncomes: [],
+        priorAnnualNetIncomeYears: [],
+      };
+
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
+
+      const socialSecurity = new SocialSecurity(dataWithEmptyArrays);
+      const serialized = socialSecurity.serialize();
+
+      expect(serialized.priorAnnualNetIncomes).toEqual([]);
+      expect(serialized.priorAnnualNetIncomeYears).toEqual([]);
+    });
+
+    it('should serialize data with multiple paycheck configurations', () => {
+      const dataWithMultiplePaychecks = {
+        ...mockSocialSecurityData,
+        paycheckNames: ['SS Payment 1', 'SS Payment 2'],
+        paycheckAccounts: ['account-1', 'account-2'],
+        paycheckCategories: ['Income', 'Retirement Income'],
+      };
+
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
+
+      const socialSecurity = new SocialSecurity(dataWithMultiplePaychecks);
+      const serialized = socialSecurity.serialize();
+
+      expect(serialized.paycheckNames).toEqual(['SS Payment 1', 'SS Payment 2']);
+      expect(serialized.paycheckAccounts).toEqual(['account-1', 'account-2']);
+      expect(serialized.paycheckCategories).toEqual(['Income', 'Retirement Income']);
+    });
+
+    it('should reflect mutations made after construction', () => {
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
+
+      const socialSecurity = new SocialSecurity(mockSocialSecurityData);
+      socialSecurity.name = 'Updated Name';
+      socialSecurity.priorAnnualNetIncomes = [60000, 65000];
+
+      const serialized = socialSecurity.serialize();
+
+      expect(serialized.name).toBe('Updated Name');
+      expect(serialized.priorAnnualNetIncomes).toEqual([60000, 65000]);
+    });
+  });
+
   describe('age calculations', () => {
     it('should handle edge case where start date is before birthday in start year', () => {
       vi.clearAllMocks();

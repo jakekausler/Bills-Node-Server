@@ -8,6 +8,9 @@ vi.mock('../../utils/io/categories');
 vi.mock('../../utils/io/cache');
 vi.mock('../../utils/calculate-v3/period-utils');
 vi.mock('uuid', () => ({ v4: vi.fn(() => 'test-uuid-123') }));
+vi.mock('../../utils/net/request');
+vi.mock('../../utils/io/minDate');
+vi.mock('../../utils/calculate-v3/spending-tracker-manager');
 
 import {
   loadSpendingTrackerCategories,
@@ -17,12 +20,16 @@ import { load } from '../../utils/io/io';
 import { loadCategories, saveCategories } from '../../utils/io/categories';
 import { resetCache } from '../../utils/io/cache';
 import { computePeriodBoundaries } from '../../utils/calculate-v3/period-utils';
+import { getData } from '../../utils/net/request';
+import { minDate } from '../../utils/io/minDate';
+import { SpendingTrackerManager } from '../../utils/calculate-v3/spending-tracker-manager';
 import {
   getSpendingTrackerCategories,
   getSpendingTrackerCategory,
   createSpendingTrackerCategory,
   updateSpendingTrackerCategory,
   deleteSpendingTrackerCategory,
+  getSpendingTrackerChartData,
   ApiError,
 } from './spendingTracker';
 
@@ -37,6 +44,9 @@ const mockLoadCats = vi.mocked(loadCategories);
 const mockSaveCats = vi.mocked(saveCategories);
 const mockResetCache = vi.mocked(resetCache);
 const mockComputePeriodBoundaries = vi.mocked(computePeriodBoundaries);
+const mockGetData = vi.mocked(getData);
+const mockMinDate = vi.mocked(minDate);
+const mockComputeChartData = vi.mocked(SpendingTrackerManager.computeChartData);
 
 const mockRequest = (params = {}, body = {}, query = {}) =>
   ({
@@ -453,6 +463,155 @@ describe('Spending Tracker API', () => {
 
         expect(result).toEqual({ success: true });
       });
+    });
+  });
+
+  describe('getSpendingTrackerChartData', () => {
+    const mockChartResponse = {
+      data: [{ date: '2024-01-01', spent: 100, threshold: 150, carry: 0 }],
+      summary: { total: 100, average: 100, periodsOver: 0, periodsUnder: 1 },
+    };
+
+    const mockAccountsAndTransfers = {
+      accounts: [
+        {
+          id: 'account-1',
+          consolidatedActivity: [
+            { id: 'act-1', date: '2024-01-15', amount: -50, name: 'Lunch' },
+          ],
+        },
+      ],
+      transfers: { activity: [], bills: [] },
+    };
+
+    const mockEngineData = {
+      simulation: 'Default',
+      accountsAndTransfers: mockAccountsAndTransfers,
+      startDate: new Date('2024-01-01'),
+      endDate: new Date('2024-12-31'),
+    };
+
+    beforeEach(() => {
+      mockGetData.mockResolvedValue(mockEngineData as any);
+      mockMinDate.mockReturnValue(new Date('2024-01-01'));
+      mockComputeChartData.mockReturnValue(mockChartResponse as any);
+    });
+
+    it('throws 404 when category not found', async () => {
+      mockLoadSpendingTrackerCategories.mockReturnValue([validCategory]);
+
+      await expect(
+        getSpendingTrackerChartData(mockRequest({ id: 'nonexistent' }, {}, { startDate: '2024-01-01', endDate: '2024-12-31' })),
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Spending tracker category not found',
+      });
+    });
+
+    it('throws 400 when startDate is missing', async () => {
+      mockLoadSpendingTrackerCategories.mockReturnValue([validCategory]);
+
+      await expect(
+        getSpendingTrackerChartData(mockRequest({ id: 'cat-1' }, {}, { endDate: '2024-12-31' })),
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'startDate and endDate query parameters are required',
+      });
+    });
+
+    it('throws 400 when endDate is missing', async () => {
+      mockLoadSpendingTrackerCategories.mockReturnValue([validCategory]);
+
+      await expect(
+        getSpendingTrackerChartData(mockRequest({ id: 'cat-1' }, {}, { startDate: '2024-01-01' })),
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'startDate and endDate query parameters are required',
+      });
+    });
+
+    it('returns chart data from SpendingTrackerManager', async () => {
+      mockLoadSpendingTrackerCategories.mockReturnValue([validCategory]);
+
+      const result = await getSpendingTrackerChartData(
+        mockRequest({ id: 'cat-1' }, {}, { startDate: '2024-01-01', endDate: '2024-12-31' }),
+      );
+
+      expect(result).toBe(mockChartResponse);
+    });
+
+    it('calls SpendingTrackerManager.computeChartData with correct arguments', async () => {
+      mockLoadSpendingTrackerCategories.mockReturnValue([validCategory]);
+      mockMinDate.mockReturnValue(new Date('2024-01-01'));
+
+      await getSpendingTrackerChartData(
+        mockRequest({ id: 'cat-1' }, {}, { startDate: '2024-03-01', endDate: '2024-09-30' }),
+      );
+
+      expect(mockComputeChartData).toHaveBeenCalledOnce();
+      const callArgs = mockComputeChartData.mock.calls[0];
+      expect(callArgs[0]).toEqual(validCategory);
+      expect(callArgs[2]).toEqual({ startDate: '2024-03-01', endDate: '2024-09-30' });
+      expect(callArgs[3]).toBe('2024-01-01');
+    });
+
+    it('collects consolidated activities from all accounts', async () => {
+      const multiAccountData = {
+        ...mockEngineData,
+        accountsAndTransfers: {
+          accounts: [
+            {
+              id: 'account-1',
+              consolidatedActivity: [
+                { id: 'act-1', date: '2024-01-15', amount: -50, name: 'Lunch' },
+              ],
+            },
+            {
+              id: 'account-2',
+              consolidatedActivity: [
+                { id: 'act-2', date: '2024-02-10', amount: -75, name: 'Dinner' },
+              ],
+            },
+          ],
+          transfers: { activity: [], bills: [] },
+        },
+      };
+      mockGetData.mockResolvedValue(multiAccountData as any);
+      mockLoadSpendingTrackerCategories.mockReturnValue([validCategory]);
+
+      await getSpendingTrackerChartData(
+        mockRequest({ id: 'cat-1' }, {}, { startDate: '2024-01-01', endDate: '2024-12-31' }),
+      );
+
+      const allActivitiesArg = mockComputeChartData.mock.calls[0][1];
+      expect(allActivitiesArg).toHaveLength(2);
+      expect(allActivitiesArg[0].id).toBe('act-1');
+      expect(allActivitiesArg[1].id).toBe('act-2');
+    });
+
+    it('uses category initializeDate when set', async () => {
+      const categoryWithInitDate = { ...validCategory, initializeDate: '2023-06-01' };
+      mockLoadSpendingTrackerCategories.mockReturnValue([categoryWithInitDate]);
+
+      await getSpendingTrackerChartData(
+        mockRequest({ id: 'cat-1' }, {}, { startDate: '2024-01-01', endDate: '2024-12-31' }),
+      );
+
+      const initializeDateArg = mockComputeChartData.mock.calls[0][5];
+      expect(initializeDateArg).toBe('2023-06-01');
+    });
+
+    it('falls back to calculationStartDate when initializeDate is null', async () => {
+      const categoryWithNoInitDate = { ...validCategory, initializeDate: null };
+      mockLoadSpendingTrackerCategories.mockReturnValue([categoryWithNoInitDate]);
+      mockMinDate.mockReturnValue(new Date('2022-03-15'));
+
+      await getSpendingTrackerChartData(
+        mockRequest({ id: 'cat-1' }, {}, { startDate: '2024-01-01', endDate: '2024-12-31' }),
+      );
+
+      const initializeDateArg = mockComputeChartData.mock.calls[0][5];
+      expect(initializeDateArg).toBe('2022-03-15');
     });
   });
 

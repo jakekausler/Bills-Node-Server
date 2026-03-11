@@ -15,7 +15,7 @@ describe('getTodayBalance', () => {
     vi.clearAllMocks();
   });
 
-  it('should get today balance for specified account', () => {
+  it('should get today balance for specified account', async () => {
     const mockAccount = {
       id: 'account-1',
       name: 'Test Account',
@@ -34,11 +34,11 @@ describe('getTodayBalance', () => {
       params: { accountId: 'account-1' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(getById).mockReturnValue(mockAccount as any);
     vi.mocked(todayBalance).mockReturnValue(1250.5);
 
-    const result = getTodayBalance(mockRequest);
+    const result = await getTodayBalance(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-1');
@@ -46,7 +46,7 @@ describe('getTodayBalance', () => {
     expect(result).toBe(1250.5);
   });
 
-  it('should handle different account types', () => {
+  it('should handle different account types', async () => {
     const mockAccount = {
       id: 'savings-1',
       name: 'Savings Account',
@@ -66,11 +66,11 @@ describe('getTodayBalance', () => {
       params: { accountId: 'savings-1' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(getById).mockReturnValue(mockAccount as any);
     vi.mocked(todayBalance).mockReturnValue(5123.75);
 
-    const result = getTodayBalance(mockRequest);
+    const result = await getTodayBalance(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'savings-1');
@@ -78,7 +78,7 @@ describe('getTodayBalance', () => {
     expect(result).toBe(5123.75);
   });
 
-  it('should handle zero balance accounts', () => {
+  it('should handle zero balance accounts', async () => {
     const mockAccount = {
       id: 'empty-account',
       name: 'Empty Account',
@@ -97,11 +97,11 @@ describe('getTodayBalance', () => {
       params: { accountId: 'empty-account' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(getById).mockReturnValue(mockAccount as any);
     vi.mocked(todayBalance).mockReturnValue(0);
 
-    const result = getTodayBalance(mockRequest);
+    const result = await getTodayBalance(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'empty-account');
@@ -109,7 +109,7 @@ describe('getTodayBalance', () => {
     expect(result).toBe(0);
   });
 
-  it('should handle negative balance accounts', () => {
+  it('should handle negative balance accounts', async () => {
     const mockAccount = {
       id: 'overdraft-account',
       name: 'Overdraft Account',
@@ -128,11 +128,11 @@ describe('getTodayBalance', () => {
       params: { accountId: 'overdraft-account' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(getById).mockReturnValue(mockAccount as any);
     vi.mocked(todayBalance).mockReturnValue(-275.25);
 
-    const result = getTodayBalance(mockRequest);
+    const result = await getTodayBalance(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'overdraft-account');
@@ -140,7 +140,7 @@ describe('getTodayBalance', () => {
     expect(result).toBe(-275.25);
   });
 
-  it('should pass through query parameters to getData', () => {
+  it('should pass through query parameters to getData', async () => {
     const mockAccount = {
       id: 'account-1',
       name: 'Test Account',
@@ -164,11 +164,11 @@ describe('getTodayBalance', () => {
       },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
     vi.mocked(getById).mockReturnValue(mockAccount as any);
     vi.mocked(todayBalance).mockReturnValue(1000);
 
-    getTodayBalance(mockRequest);
+    await getTodayBalance(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
   });

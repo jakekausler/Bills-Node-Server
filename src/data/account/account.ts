@@ -4,7 +4,7 @@ import { Activity } from '../activity/activity';
 import { Bill } from '../bill/bill';
 import { Interest } from '../interest/interest';
 import { ConsolidatedActivity } from '../activity/consolidatedActivity';
-import { formatDate } from '../../utils/date/date';
+import { formatDate, parseDate } from '../../utils/date/date';
 
 /**
  * Represents a financial account with activities, bills, and interests
@@ -55,12 +55,12 @@ export class Account {
     this.activity = data.activity
       ? data.activity
           .map((activity) => new Activity(activity, simulation))
-          .sort((a, b) => a.date.getUTCDate() - b.date.getUTCDate())
+          .sort((a, b) => a.date.getTime() - b.date.getTime())
       : [];
     this.bills = data.bills
       ? data.bills
           .map((bill) => new Bill(bill, simulation))
-          .sort((a, b) => a.startDate.getUTCDate() - b.startDate.getUTCDate())
+          .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
       : [];
     this.consolidatedActivity = data.consolidatedActivity
       ? data.consolidatedActivity.map(
@@ -86,14 +86,14 @@ export class Account {
     this.interestPayAccount = data.interestPayAccount === undefined ? null : data.interestPayAccount;
     this.interestAppliesToPositiveBalance = data.interestAppliesToPositiveBalance ?? true;
     this.usesRMD = data.usesRMD || false;
-    this.accountOwnerDOB = data.accountOwnerDOB ? new Date(data.accountOwnerDOB) : null;
+    this.accountOwnerDOB = data.accountOwnerDOB ? parseDate(data.accountOwnerDOB as any) : null;
     this.rmdAccount = data.rmdAccount || null;
     this.minimumBalance = data.minimumBalance || null;
     this.minimumPullAmount = data.minimumPullAmount || null;
     this.performsPulls = data.performsPulls || false;
     this.performsPushes = data.performsPushes || false;
-    this.pushStart = data.pushStart ? new Date(data.pushStart) : null;
-    this.pushEnd = data.pushEnd ? new Date(data.pushEnd) : null;
+    this.pushStart = data.pushStart ? parseDate(data.pushStart as any) : null;
+    this.pushEnd = data.pushEnd ? parseDate(data.pushEnd as any) : null;
     this.pushAccount = data.pushAccount || null;
     this.defaultShowInGraph = data.defaultShowInGraph || false;
   }

@@ -132,14 +132,9 @@ export function insertInterest(
 ) {
   account.activity.push(new Activity(data, simulation));
   interest.advance();
-  for (const i of account.interests) {
-    if (interest.id === i.id) {
-      continue;
-    }
-    if (i.applicableDate <= interest.applicableDate) {
-      account.interests.splice(account.interests.indexOf(i), 1);
-    }
-  }
+  account.interests = account.interests.filter(
+    (i) => i.id === interest.id || i.applicableDate > interest.applicableDate,
+  );
 }
 
 /**

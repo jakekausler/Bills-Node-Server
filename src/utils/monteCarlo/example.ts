@@ -112,7 +112,4 @@ async function waitForCompletion(simulationId: string): Promise<string | null> {
   });
 }
 
-// Uncomment the lines below to run the examples
-runExample();
-
 export { runExample, checkSimulationExample, waitForCompletion };

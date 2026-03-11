@@ -16,7 +16,7 @@ describe('Category Breakdown API', () => {
   });
 
   describe('getCategoryBreakdown', () => {
-    it('should calculate category breakdown for all accounts when none selected', () => {
+    it('should calculate category breakdown for all accounts when none selected', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -41,9 +41,9 @@ describe('Category Breakdown API', () => {
         selectedAccounts: [],
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCategoryBreakdown(mockRequest);
+      const result = await getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
         Housing: 1500,
@@ -51,7 +51,7 @@ describe('Category Breakdown API', () => {
       });
     });
 
-    it('should filter out hidden accounts when no accounts selected', () => {
+    it('should filter out hidden accounts when no accounts selected', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -82,16 +82,16 @@ describe('Category Breakdown API', () => {
         selectedAccounts: [],
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCategoryBreakdown(mockRequest);
+      const result = await getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
         Housing: 1500,
       });
     });
 
-    it('should only include selected accounts when specified', () => {
+    it('should only include selected accounts when specified', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -122,16 +122,16 @@ describe('Category Breakdown API', () => {
         selectedAccounts: ['account-1'],
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCategoryBreakdown(mockRequest);
+      const result = await getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
         Housing: 1500,
       });
     });
 
-    it('should skip activities with empty categories', () => {
+    it('should skip activities with empty categories', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -156,16 +156,16 @@ describe('Category Breakdown API', () => {
         selectedAccounts: [],
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCategoryBreakdown(mockRequest);
+      const result = await getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
         Housing: 1000,
       });
     });
 
-    it('should skip Ignore and Income categories', () => {
+    it('should skip Ignore and Income categories', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -195,16 +195,16 @@ describe('Category Breakdown API', () => {
         selectedAccounts: [],
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCategoryBreakdown(mockRequest);
+      const result = await getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
         Housing: 1500,
       });
     });
 
-    it('should handle transfers with half amount calculation', () => {
+    it('should handle transfers with half amount calculation', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -239,9 +239,9 @@ describe('Category Breakdown API', () => {
         selectedAccounts: ['account-1', 'account-2'],
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCategoryBreakdown(mockRequest);
+      const result = await getCategoryBreakdown(mockRequest);
 
       // For transfers, both sides are processed:
       // account-1: -1500 * 0.5 = -750 (subtracted from Housing)
@@ -250,7 +250,7 @@ describe('Category Breakdown API', () => {
       expect(result).toEqual({});
     });
 
-    it('should handle transfers with full amount when other account not selected', () => {
+    it('should handle transfers with full amount when other account not selected', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -272,9 +272,9 @@ describe('Category Breakdown API', () => {
         selectedAccounts: ['account-1'], // Only account-1 selected
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCategoryBreakdown(mockRequest);
+      const result = await getCategoryBreakdown(mockRequest);
 
       // Transfer logic: ret[section] -= (-1500) = ret[section] += 1500
       // But positive values are filtered out because they're not expenses
@@ -282,7 +282,7 @@ describe('Category Breakdown API', () => {
       expect(result).toEqual({});
     });
 
-    it('should remove positive category totals', () => {
+    it('should remove positive category totals', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -312,9 +312,9 @@ describe('Category Breakdown API', () => {
         selectedAccounts: [],
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCategoryBreakdown(mockRequest);
+      const result = await getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
         Housing: 1500,
@@ -322,7 +322,7 @@ describe('Category Breakdown API', () => {
       // Income and Refund should be filtered out (Income by skip logic, Refund by positive amount)
     });
 
-    it('should handle multiple items in same category', () => {
+    it('should handle multiple items in same category', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -352,16 +352,16 @@ describe('Category Breakdown API', () => {
         selectedAccounts: [],
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCategoryBreakdown(mockRequest);
+      const result = await getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
         Housing: 1800, // Sum of all Housing expenses
       });
     });
 
-    it('should handle rounding correctly', () => {
+    it('should handle rounding correctly', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -381,16 +381,16 @@ describe('Category Breakdown API', () => {
         selectedAccounts: [],
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCategoryBreakdown(mockRequest);
+      const result = await getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({
         Housing: 1501, // Rounded to nearest cent
       });
     });
 
-    it('should return empty object when no expenses match criteria', () => {
+    it('should return empty object when no expenses match criteria', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -415,9 +415,9 @@ describe('Category Breakdown API', () => {
         selectedAccounts: [],
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCategoryBreakdown(mockRequest);
+      const result = await getCategoryBreakdown(mockRequest);
 
       expect(result).toEqual({});
     });

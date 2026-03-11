@@ -49,14 +49,14 @@ export class MonteCarloHandler {
         const segmentKey = `${year}-${month + 1}`;
         // console.log(`Generating segment samples for ${segmentKey} ${year}-${month + 1}`);
         const segmentSamples: Record<MonteCarloSampleType, number> = {
-          [MonteCarloSampleType.HYSA]: this.drawSample(MonteCarloSampleType.HYSA, new Date(year, month, 1)),
-          [MonteCarloSampleType.LYSA]: this.drawSample(MonteCarloSampleType.LYSA, new Date(year, month, 1)),
-          [MonteCarloSampleType.PORTFOLIO]: this.drawSample(MonteCarloSampleType.PORTFOLIO, new Date(year, month, 1)),
-          [MonteCarloSampleType.INFLATION]: this.drawSample(MonteCarloSampleType.INFLATION, new Date(year, month, 1)),
-          [MonteCarloSampleType.RAISE]: this.drawSample(MonteCarloSampleType.RAISE, new Date(year, month, 1)),
+          [MonteCarloSampleType.HYSA]: this.drawSample(MonteCarloSampleType.HYSA, new Date(Date.UTC(year, month, 1))),
+          [MonteCarloSampleType.LYSA]: this.drawSample(MonteCarloSampleType.LYSA, new Date(Date.UTC(year, month, 1))),
+          [MonteCarloSampleType.PORTFOLIO]: this.drawSample(MonteCarloSampleType.PORTFOLIO, new Date(Date.UTC(year, month, 1))),
+          [MonteCarloSampleType.INFLATION]: this.drawSample(MonteCarloSampleType.INFLATION, new Date(Date.UTC(year, month, 1))),
+          [MonteCarloSampleType.RAISE]: this.drawSample(MonteCarloSampleType.RAISE, new Date(Date.UTC(year, month, 1))),
           [MonteCarloSampleType.LIMIT_INCREASE_401K]: this.drawSample(
             MonteCarloSampleType.LIMIT_INCREASE_401K,
-            new Date(year, month, 1),
+            new Date(Date.UTC(year, month, 1)),
           ),
         };
         samples[segmentKey] = segmentSamples;
@@ -126,7 +126,7 @@ export class MonteCarloHandler {
       throw new Error('Portfolio makeup data not loaded');
     }
 
-    const year = date.getFullYear();
+    const year = date.getUTCFullYear();
     const yearStr = year.toString();
 
     if (this.portfolioMakeup[yearStr]) {

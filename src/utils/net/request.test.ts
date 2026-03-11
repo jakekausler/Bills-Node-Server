@@ -24,7 +24,7 @@ const mockRetirementData = {
 describe('Request Utility', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLoadData.mockReturnValue(mockAccountsData as any);
+    mockLoadData.mockResolvedValue(mockAccountsData as any);
     mockLoadPensionsAndSocialSecurity.mockReturnValue(mockRetirementData as any);
   });
 
@@ -68,13 +68,13 @@ describe('Request Utility', () => {
   });
 
   describe('getData', () => {
-    it('should return complete request data with defaults', () => {
+    it('should return complete request data with defaults', async () => {
       const mockRequest = {
         query: {},
         body: '{"test": "value"}',
       } as Request;
 
-      const result = getData(mockRequest);
+      const result = await getData(mockRequest);
 
       expect(result).toMatchObject({
         simulation: 'Default',
@@ -92,7 +92,7 @@ describe('Request Utility', () => {
       expect(result.endDate).toBeInstanceOf(Date);
     });
 
-    it('should parse query parameters correctly', () => {
+    it('should parse query parameters correctly', async () => {
       const mockRequest = {
         query: {
           simulation: 'TestSim',
@@ -108,7 +108,7 @@ describe('Request Utility', () => {
         body: 'raw data',
       } as Request;
 
-      const result = getData(mockRequest);
+      const result = await getData(mockRequest);
 
       expect(result.simulation).toBe('TestSim');
       expect(result.selectedAccounts).toEqual(['acc1', 'acc2', 'acc3']);
@@ -120,7 +120,7 @@ describe('Request Utility', () => {
       expect(result.data).toBe('raw data');
     });
 
-    it('should handle boolean string variations', () => {
+    it('should handle boolean string variations', async () => {
       const mockRequest = {
         query: {
           isTransfer: 'TRUE',
@@ -130,20 +130,20 @@ describe('Request Utility', () => {
         body: '',
       } as Request;
 
-      const result = getData(mockRequest);
+      const result = await getData(mockRequest);
 
       expect(result.isTransfer).toBe(true);
       expect(result.asActivity).toBe(false);
       expect(result.skip).toBe(false);
     });
 
-    it('should parse JSON body when valid', () => {
+    it('should parse JSON body when valid', async () => {
       const mockRequest = {
         query: {},
         body: '{"amount": 100, "description": "test transaction"}',
       } as Request;
 
-      const result = getData(mockRequest);
+      const result = await getData(mockRequest);
 
       expect(result.data).toEqual({
         amount: 100,
@@ -151,18 +151,18 @@ describe('Request Utility', () => {
       });
     });
 
-    it('should handle non-JSON body gracefully', () => {
+    it('should handle non-JSON body gracefully', async () => {
       const mockRequest = {
         query: {},
         body: 'invalid json {',
       } as Request;
 
-      const result = getData(mockRequest);
+      const result = await getData(mockRequest);
 
       expect(result.data).toBe('invalid json {');
     });
 
-    it('should use custom defaults when provided', () => {
+    it('should use custom defaults when provided', async () => {
       const mockRequest = {
         query: {},
         body: '',
@@ -180,7 +180,7 @@ describe('Request Utility', () => {
         defaultPath: ['custom', 'path'],
       };
 
-      const result = getData(mockRequest, customDefaults);
+      const result = await getData(mockRequest, customDefaults);
 
       expect(result.simulation).toBe('CustomSim');
       expect(result.selectedAccounts).toEqual(['default-account']);
@@ -190,7 +190,7 @@ describe('Request Utility', () => {
       expect(result.path).toEqual(['custom', 'path']);
     });
 
-    it('should call loadData and loadPensionsAndSocialSecurity with correct parameters', () => {
+    it('should call loadData and loadPensionsAndSocialSecurity with correct parameters', async () => {
       const mockRequest = {
         query: {
           simulation: 'TestSim',
@@ -205,13 +205,12 @@ describe('Request Utility', () => {
         overrideStartDateForCalculations: new Date('2022-01-01'),
       };
 
-      getData(mockRequest, undefined, options);
+      await getData(mockRequest, undefined, options);
 
       expect(mockLoadData).toHaveBeenCalledWith(
         new Date('2022-01-01'), // overrideStartDateForCalculations
         expect.any(Date), // endDate
         'TestSim',
-        true, // updateCache
       );
       expect(mockLoadPensionsAndSocialSecurity).toHaveBeenCalledWith('TestSim');
     });

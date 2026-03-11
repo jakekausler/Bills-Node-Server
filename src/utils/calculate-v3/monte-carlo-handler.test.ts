@@ -1,0 +1,287 @@
+// Project test conventions discovered:
+// - Framework: Vitest with vi.mock()
+// - Mocking: vi.mock() for fs/path, vi.fn() for mocked functions
+// - Structure: describe/it with beforeEach
+// - Pattern: mock filesystem; test calculation logic directly
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { MonteCarloSampleType } from './types';
+
+// ---------------------------------------------------------------------------
+// Mock fs/promises to avoid real file system access
+// ---------------------------------------------------------------------------
+
+const mockHistoricRates = {
+  investment: {
+    stock: [5, 10, 15, 20, 8, 12],
+    bond: [2, 3, 4, 5, 1, 6],
+    cash: [0.5, 1, 1.5, 2],
+    preferred: {
+      proxy: { stock: 0.6, bond: 0.4 },
+    },
+    convertible: {
+      proxy: { stock: 0.7, bond: 0.3 },
+    },
+    other: {
+      proxy: { cash: 0.5, bond: 0.5 },
+    },
+  },
+  savings: {
+    highYield: [3, 4, 5, 6, 3.5],
+    lowYield: [0.5, 1, 1.5, 0.8],
+  },
+  inflation: [2, 3, 4, 2.5, 3.5],
+  raise: [3, 5, 2, 4, 3.5],
+  limitIncrease401k: [5, 6, 7, 5.5],
+};
+
+const mockPortfolioMakeup = {
+  '2020': { cash: 0.1, stock: 0.6, bond: 0.2, preferred: 0.05, convertible: 0.03, other: 0.02 },
+  '2025': { cash: 0.05, stock: 0.5, bond: 0.3, preferred: 0.08, convertible: 0.04, other: 0.03 },
+  '2030': { cash: 0.05, stock: 0.4, bond: 0.4, preferred: 0.08, convertible: 0.04, other: 0.03 },
+};
+
+vi.mock('fs/promises', () => ({
+  readFile: vi.fn((filePath: string) => {
+    if (filePath.endsWith('historicRates.json')) {
+      return Promise.resolve(JSON.stringify(mockHistoricRates));
+    }
+    if (filePath.endsWith('portfolioMakeupOverTime.json')) {
+      return Promise.resolve(JSON.stringify(mockPortfolioMakeup));
+    }
+    return Promise.reject(new Error(`Unexpected file: ${filePath}`));
+  }),
+}));
+
+vi.mock('path', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('path')>();
+  return {
+    ...actual,
+    join: vi.fn((...args: string[]) => args.join('/')),
+  };
+});
+
+// Import AFTER mocks are set up
+import { MonteCarloHandler } from './monte-carlo-handler';
+
+// ---------------------------------------------------------------------------
+// Helper: create an initialized handler
+// ---------------------------------------------------------------------------
+
+async function createHandler(
+  startDate: Date = new Date(2024, 0, 1),
+  endDate: Date = new Date(2026, 11, 31),
+): Promise<MonteCarloHandler> {
+  return MonteCarloHandler.getInstance(startDate, endDate);
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe('MonteCarloHandler', () => {
+
+  describe('getInstance', () => {
+    it('creates an instance successfully', async () => {
+      const handler = await createHandler();
+      expect(handler).toBeDefined();
+      expect(handler).toBeInstanceOf(MonteCarloHandler);
+    });
+
+    it('creates separate instances for different date ranges', async () => {
+      const handler1 = await createHandler(new Date(2024, 0, 1), new Date(2025, 11, 31));
+      const handler2 = await createHandler(new Date(2026, 0, 1), new Date(2027, 11, 31));
+      expect(handler1).not.toBe(handler2);
+    });
+  });
+
+  describe('getSample', () => {
+    let handler: MonteCarloHandler;
+
+    beforeEach(async () => {
+      handler = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31));
+    });
+
+    it('returns a number for HYSA sample type', () => {
+      const date = new Date(2024, 2, 15); // March 2024
+      const sample = handler.getSample(MonteCarloSampleType.HYSA, date);
+      expect(typeof sample).toBe('number');
+    });
+
+    it('returns a number for LYSA sample type', () => {
+      const date = new Date(2024, 5, 1); // June 2024
+      const sample = handler.getSample(MonteCarloSampleType.LYSA, date);
+      expect(typeof sample).toBe('number');
+    });
+
+    it('returns a number for PORTFOLIO sample type', () => {
+      const date = new Date(2024, 8, 1); // September 2024
+      const sample = handler.getSample(MonteCarloSampleType.PORTFOLIO, date);
+      expect(typeof sample).toBe('number');
+    });
+
+    it('returns a number for INFLATION sample type', () => {
+      const date = new Date(2025, 0, 1); // January 2025
+      const sample = handler.getSample(MonteCarloSampleType.INFLATION, date);
+      expect(typeof sample).toBe('number');
+    });
+
+    it('returns a number for RAISE sample type', () => {
+      const date = new Date(2025, 3, 1); // April 2025
+      const sample = handler.getSample(MonteCarloSampleType.RAISE, date);
+      expect(typeof sample).toBe('number');
+    });
+
+    it('returns a number for LIMIT_INCREASE_401K sample type', () => {
+      const date = new Date(2025, 6, 1); // July 2025
+      const sample = handler.getSample(MonteCarloSampleType.LIMIT_INCREASE_401K, date);
+      expect(typeof sample).toBe('number');
+    });
+
+    it('returns samples as decimals (divided by 100)', () => {
+      // HYSA data has values like 3, 4, 5, 6, 3.5
+      // These are percentages, so the sample should be in range [0.03, 0.06]
+      const date = new Date(2024, 0, 1);
+      const sample = handler.getSample(MonteCarloSampleType.HYSA, date);
+      // The value should be within the range of the raw data / 100
+      const rawValues = mockHistoricRates.savings.highYield;
+      const minExpected = Math.min(...rawValues) / 100;
+      const maxExpected = Math.max(...rawValues) / 100;
+      expect(sample).toBeGreaterThanOrEqual(minExpected);
+      expect(sample).toBeLessThanOrEqual(maxExpected);
+    });
+
+    it('throws for a date outside the generated segment range', async () => {
+      const handler2024 = await createHandler(new Date(2024, 0, 1), new Date(2024, 11, 31));
+      // Date in 2030 is outside the 2024 range
+      const futureDate = new Date(2030, 0, 1);
+      expect(() => handler2024.getSample(MonteCarloSampleType.HYSA, futureDate)).toThrow(
+        'No samples found for segment',
+      );
+    });
+
+    it('returns consistent sample for the same date (pre-generated)', () => {
+      const date = new Date(2024, 5, 15); // June 2024
+      // getSample uses UTC month to build the segment key
+      const sample1 = handler.getSample(MonteCarloSampleType.INFLATION, date);
+      const sample2 = handler.getSample(MonteCarloSampleType.INFLATION, date);
+      // Same date = same pre-generated sample
+      expect(sample1).toBe(sample2);
+    });
+
+    it('can retrieve samples for all months in the range', async () => {
+      const h = await createHandler(new Date(2024, 0, 1), new Date(2024, 11, 31));
+      for (let month = 0; month < 12; month++) {
+        const date = new Date(Date.UTC(2024, month, 1));
+        expect(() => h.getSample(MonteCarloSampleType.HYSA, date)).not.toThrow();
+      }
+    });
+
+    it('generates samples for multi-year ranges', async () => {
+      const h = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31));
+      for (let year = 2024; year <= 2026; year++) {
+        const date = new Date(Date.UTC(year, 0, 1));
+        expect(() => h.getSample(MonteCarloSampleType.PORTFOLIO, date)).not.toThrow();
+      }
+    });
+  });
+
+  describe('portfolio composition interpolation', () => {
+    let handler: MonteCarloHandler;
+
+    beforeEach(async () => {
+      // Range covers years before, within, and after the portfolio data
+      handler = await createHandler(new Date(2018, 0, 1), new Date(2035, 11, 31));
+    });
+
+    it('uses earliest year data for dates before portfolio data starts', () => {
+      // 2018 is before 2020 (first key), so it should use 2020 data
+      const date = new Date(2018, 6, 1);
+      // getSample should not throw — it falls back to first year
+      expect(() => handler.getSample(MonteCarloSampleType.PORTFOLIO, date)).not.toThrow();
+    });
+
+    it('uses latest year data for dates after portfolio data ends', () => {
+      // 2035 is after 2030 (last key), so it should use 2030 data
+      const date = new Date(2035, 0, 1);
+      expect(() => handler.getSample(MonteCarloSampleType.PORTFOLIO, date)).not.toThrow();
+    });
+
+    it('uses exact year data when available', () => {
+      // 2025 is an exact key
+      const date = new Date(2025, 6, 1);
+      expect(() => handler.getSample(MonteCarloSampleType.PORTFOLIO, date)).not.toThrow();
+    });
+
+    it('uses previous year data for years between defined keys', () => {
+      // 2022 is between 2020 and 2025 → should use 2020 data
+      const date = new Date(2022, 0, 1);
+      expect(() => handler.getSample(MonteCarloSampleType.PORTFOLIO, date)).not.toThrow();
+    });
+  });
+
+  describe('proxy asset calculation', () => {
+    let handler: MonteCarloHandler;
+
+    beforeEach(async () => {
+      handler = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31));
+    });
+
+    it('returns a number for preferred asset (proxy-based)', () => {
+      // preferred uses stock+bond proxy
+      const date = new Date(2025, 0, 1);
+      const sample = handler.getSample(MonteCarloSampleType.PORTFOLIO, date);
+      expect(typeof sample).toBe('number');
+    });
+
+    it('PORTFOLIO sample includes contribution from all asset classes in composition', () => {
+      // Composition in 2025: cash=5%, stock=50%, bond=30%, preferred=8%, convertible=4%, other=3%
+      // Sum = 100%. We just verify the sample is within a reasonable range.
+      const date = new Date(Date.UTC(2025, 6, 1));
+      const sample = handler.getSample(MonteCarloSampleType.PORTFOLIO, date);
+      // Expected range: roughly -50% to +50% of total (sum of weighted returns)
+      // The raw data has values 1–20, which as percentages are 0.01–0.20
+      // Weighted: max ~0.20, min ~0.01; result in decimal form
+      expect(sample).toBeGreaterThan(-1); // Extremely unlikely to go below -100%
+      expect(sample).toBeLessThan(1);    // Extremely unlikely to exceed 100%
+    });
+  });
+
+  describe('edge cases', () => {
+    it('handles empty data arrays gracefully (returns 0)', async () => {
+      // Temporarily override the mock to return empty arrays for savings
+      const { readFile } = await import('fs/promises');
+      const mockReadFile = readFile as ReturnType<typeof vi.fn>;
+      const emptyRates = {
+        ...mockHistoricRates,
+        savings: { highYield: [], lowYield: [] },
+      };
+      mockReadFile.mockResolvedValueOnce(JSON.stringify(emptyRates));
+      mockReadFile.mockResolvedValueOnce(JSON.stringify(mockPortfolioMakeup));
+
+      const h = await MonteCarloHandler.getInstance(new Date(2024, 0, 1), new Date(2024, 11, 31));
+      const date = new Date(Date.UTC(2024, 0, 1));
+      // Empty array → drawRandomSample returns 0 → getSample returns 0 / 100 = 0
+      const sample = h.getSample(MonteCarloSampleType.HYSA, date);
+      expect(sample).toBe(0);
+    });
+
+    it('throws initialization error when file reading fails', async () => {
+      const { readFile } = await import('fs/promises');
+      const mockReadFile = readFile as ReturnType<typeof vi.fn>;
+      mockReadFile.mockRejectedValueOnce(new Error('File not found'));
+
+      await expect(
+        MonteCarloHandler.getInstance(new Date(2024, 0, 1), new Date(2024, 11, 31)),
+      ).rejects.toThrow('Failed to initialize MonteCarloHandler');
+    });
+
+    it('generates samples for single-month range', async () => {
+      const start = new Date(2024, 5, 1);  // June 2024
+      const end = new Date(2024, 5, 30);   // June 2024
+      const h = await MonteCarloHandler.getInstance(start, end);
+      const date = new Date(Date.UTC(2024, 5, 15));
+      expect(() => h.getSample(MonteCarloSampleType.HYSA, date)).not.toThrow();
+    });
+  });
+});

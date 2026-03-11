@@ -44,16 +44,16 @@ describe('Categories API', () => {
   });
 
   describe('addCategory', () => {
-    it('should add new section when path has one element', () => {
+    it('should add new section when path has one element', async () => {
       const mockCategories = {
         Housing: ['Rent', 'Utilities'],
         Food: ['Groceries'],
       };
 
       mockLoadCategories.mockReturnValue(mockCategories);
-      mockGetData.mockReturnValue({ path: ['Transportation'] });
+      mockGetData.mockResolvedValue({ path: ['Transportation'] });
 
-      const result = addCategory(mockRequest);
+      const result = await addCategory(mockRequest);
 
       expect(result).toEqual({
         Housing: ['Rent', 'Utilities'],
@@ -67,16 +67,16 @@ describe('Categories API', () => {
       });
     });
 
-    it('should add item to existing section when path has two elements', () => {
+    it('should add item to existing section when path has two elements', async () => {
       const mockCategories = {
         Housing: ['Rent', 'Utilities'],
         Food: ['Groceries'],
       };
 
       mockLoadCategories.mockReturnValue(mockCategories);
-      mockGetData.mockReturnValue({ path: ['Housing', 'Insurance'] });
+      mockGetData.mockResolvedValue({ path: ['Housing', 'Insurance'] });
 
-      const result = addCategory(mockRequest);
+      const result = await addCategory(mockRequest);
 
       expect(result.Housing).toContain('Insurance');
       expect(result.Housing).toContain('Rent');
@@ -86,16 +86,16 @@ describe('Categories API', () => {
       expect(result.Housing).toEqual(['Insurance', 'Rent', 'Utilities']);
     });
 
-    it('should create new section and add item when section does not exist', () => {
+    it('should create new section and add item when section does not exist', async () => {
       const mockCategories = {
         Housing: ['Rent', 'Utilities'],
         Food: ['Groceries'],
       };
 
       mockLoadCategories.mockReturnValue(mockCategories);
-      mockGetData.mockReturnValue({ path: ['Transportation', 'Gas'] });
+      mockGetData.mockResolvedValue({ path: ['Transportation', 'Gas'] });
 
-      const result = addCategory(mockRequest);
+      const result = await addCategory(mockRequest);
 
       expect(result).toEqual({
         Housing: ['Rent', 'Utilities'],
@@ -104,51 +104,51 @@ describe('Categories API', () => {
       });
     });
 
-    it('should deduplicate items when adding duplicate', () => {
+    it('should deduplicate items when adding duplicate', async () => {
       const mockCategories = {
         Housing: ['Rent', 'Utilities'],
         Food: ['Groceries'],
       };
 
       mockLoadCategories.mockReturnValue(mockCategories);
-      mockGetData.mockReturnValue({ path: ['Housing', 'Rent'] }); // Rent already exists
+      mockGetData.mockResolvedValue({ path: ['Housing', 'Rent'] }); // Rent already exists
 
-      const result = addCategory(mockRequest);
+      const result = await addCategory(mockRequest);
 
       // Should deduplicate and maintain only unique items
       expect(result.Housing).toEqual(['Rent', 'Utilities']);
     });
 
-    it('should sort items alphabetically', () => {
+    it('should sort items alphabetically', async () => {
       const mockCategories = {
         Housing: ['Rent', 'Utilities'],
         Food: ['Groceries'],
       };
 
       mockLoadCategories.mockReturnValue(mockCategories);
-      mockGetData.mockReturnValue({ path: ['Housing', 'Mortgage'] });
+      mockGetData.mockResolvedValue({ path: ['Housing', 'Mortgage'] });
 
-      const result = addCategory(mockRequest);
+      const result = await addCategory(mockRequest);
 
       // The result should be sorted alphabetically
       expect(result.Housing).toEqual(['Mortgage', 'Rent', 'Utilities']);
     });
 
-    it('should return error for empty path', () => {
+    it('should return error for empty path', async () => {
       mockLoadCategories.mockReturnValue({});
-      mockGetData.mockReturnValue({ path: [] });
+      mockGetData.mockResolvedValue({ path: [] });
 
-      const result = addCategory(mockRequest);
+      const result = await addCategory(mockRequest);
 
       expect(result).toEqual({ error: 'Invalid path' });
       expect(mockSaveCategories).not.toHaveBeenCalled();
     });
 
-    it('should return error for path with more than 2 elements', () => {
+    it('should return error for path with more than 2 elements', async () => {
       mockLoadCategories.mockReturnValue({});
-      mockGetData.mockReturnValue({ path: ['Housing', 'Rent', 'Monthly'] });
+      mockGetData.mockResolvedValue({ path: ['Housing', 'Rent', 'Monthly'] });
 
-      const result = addCategory(mockRequest);
+      const result = await addCategory(mockRequest);
 
       expect(result).toEqual({ error: 'Invalid path' });
       expect(mockSaveCategories).not.toHaveBeenCalled();
@@ -156,16 +156,16 @@ describe('Categories API', () => {
   });
 
   describe('deleteCategory', () => {
-    it('should delete entire section when path has one element', () => {
+    it('should delete entire section when path has one element', async () => {
       const mockCategories = {
         Housing: ['Rent', 'Utilities'],
         Food: ['Groceries', 'Dining'],
       };
 
       mockLoadCategories.mockReturnValue(mockCategories);
-      mockGetData.mockReturnValue({ path: ['Housing'] });
+      mockGetData.mockResolvedValue({ path: ['Housing'] });
 
-      const result = deleteCategory(mockRequest);
+      const result = await deleteCategory(mockRequest);
 
       expect(result).toEqual({
         Food: ['Groceries', 'Dining'],
@@ -175,16 +175,16 @@ describe('Categories API', () => {
       });
     });
 
-    it('should delete specific item when path has two elements', () => {
+    it('should delete specific item when path has two elements', async () => {
       const mockCategories = {
         Housing: ['Rent', 'Utilities'],
         Food: ['Groceries', 'Dining'],
       };
 
       mockLoadCategories.mockReturnValue(mockCategories);
-      mockGetData.mockReturnValue({ path: ['Housing', 'Rent'] });
+      mockGetData.mockResolvedValue({ path: ['Housing', 'Rent'] });
 
-      const result = deleteCategory(mockRequest);
+      const result = await deleteCategory(mockRequest);
 
       expect(result).toEqual({
         Housing: ['Utilities'],
@@ -196,66 +196,66 @@ describe('Categories API', () => {
       });
     });
 
-    it('should handle deleting non-existent section', () => {
+    it('should handle deleting non-existent section', async () => {
       const mockCategories = {
         Housing: ['Rent', 'Utilities'],
         Food: ['Groceries', 'Dining'],
       };
 
       mockLoadCategories.mockReturnValue(mockCategories);
-      mockGetData.mockReturnValue({ path: ['Transportation'] });
+      mockGetData.mockResolvedValue({ path: ['Transportation'] });
 
-      const result = deleteCategory(mockRequest);
+      const result = await deleteCategory(mockRequest);
 
       expect(result).toEqual(mockCategories);
       expect(mockSaveCategories).toHaveBeenCalledWith(mockCategories);
     });
 
-    it('should handle deleting non-existent item', () => {
+    it('should handle deleting non-existent item', async () => {
       const mockCategories = {
         Housing: ['Rent', 'Utilities'],
         Food: ['Groceries', 'Dining'],
       };
 
       mockLoadCategories.mockReturnValue(mockCategories);
-      mockGetData.mockReturnValue({ path: ['Housing', 'Insurance'] });
+      mockGetData.mockResolvedValue({ path: ['Housing', 'Insurance'] });
 
-      const result = deleteCategory(mockRequest);
+      const result = await deleteCategory(mockRequest);
 
       expect(result).toEqual(mockCategories);
       expect(mockSaveCategories).toHaveBeenCalledWith(mockCategories);
     });
 
-    it('should handle deleting item from non-existent section', () => {
+    it('should handle deleting item from non-existent section', async () => {
       const mockCategories = {
         Housing: ['Rent', 'Utilities'],
         Food: ['Groceries', 'Dining'],
       };
 
       mockLoadCategories.mockReturnValue(mockCategories);
-      mockGetData.mockReturnValue({ path: ['Transportation', 'Gas'] });
+      mockGetData.mockResolvedValue({ path: ['Transportation', 'Gas'] });
 
-      const result = deleteCategory(mockRequest);
+      const result = await deleteCategory(mockRequest);
 
       expect(result).toEqual(mockCategories);
       expect(mockSaveCategories).toHaveBeenCalledWith(mockCategories);
     });
 
-    it('should return error for empty path', () => {
+    it('should return error for empty path', async () => {
       mockLoadCategories.mockReturnValue({});
-      mockGetData.mockReturnValue({ path: [] });
+      mockGetData.mockResolvedValue({ path: [] });
 
-      const result = deleteCategory(mockRequest);
+      const result = await deleteCategory(mockRequest);
 
       expect(result).toEqual({ error: 'Invalid path' });
       expect(mockSaveCategories).not.toHaveBeenCalled();
     });
 
-    it('should return error for path with more than 2 elements', () => {
+    it('should return error for path with more than 2 elements', async () => {
       mockLoadCategories.mockReturnValue({});
-      mockGetData.mockReturnValue({ path: ['Housing', 'Rent', 'Monthly'] });
+      mockGetData.mockResolvedValue({ path: ['Housing', 'Rent', 'Monthly'] });
 
-      const result = deleteCategory(mockRequest);
+      const result = await deleteCategory(mockRequest);
 
       expect(result).toEqual({ error: 'Invalid path' });
       expect(mockSaveCategories).not.toHaveBeenCalled();

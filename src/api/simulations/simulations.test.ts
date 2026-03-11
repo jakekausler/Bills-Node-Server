@@ -256,7 +256,7 @@ describe('Simulations API', () => {
   });
 
   describe('updateSimulations', () => {
-    it('should save simulations data and return it', () => {
+    it('should save simulations data and return it', async () => {
       const mockSimulationsData: Simulations = [
         {
           name: 'Updated Scenario',
@@ -275,27 +275,27 @@ describe('Simulations API', () => {
         },
       ];
 
-      mockGetData.mockReturnValue({ data: mockSimulationsData });
+      mockGetData.mockResolvedValue({ data: mockSimulationsData });
 
-      const result = updateSimulations(mockRequest);
+      const result = await updateSimulations(mockRequest);
 
       expect(result).toEqual(mockSimulationsData);
       expect(mockSaveSimulations).toHaveBeenCalledWith(mockSimulationsData);
       expect(mockGetData).toHaveBeenCalledWith(mockRequest);
     });
 
-    it('should handle empty simulations array', () => {
+    it('should handle empty simulations array', async () => {
       const mockSimulationsData: Simulations = [];
 
-      mockGetData.mockReturnValue({ data: mockSimulationsData });
+      mockGetData.mockResolvedValue({ data: mockSimulationsData });
 
-      const result = updateSimulations(mockRequest);
+      const result = await updateSimulations(mockRequest);
 
       expect(result).toEqual([]);
       expect(mockSaveSimulations).toHaveBeenCalledWith([]);
     });
 
-    it('should handle multiple simulations with different configurations', () => {
+    it('should handle multiple simulations with different configurations', async () => {
       const mockSimulationsData: Simulations = [
         {
           name: 'Conservative',
@@ -335,15 +335,15 @@ describe('Simulations API', () => {
         },
       ];
 
-      mockGetData.mockReturnValue({ data: mockSimulationsData });
+      mockGetData.mockResolvedValue({ data: mockSimulationsData });
 
-      const result = updateSimulations(mockRequest);
+      const result = await updateSimulations(mockRequest);
 
       expect(result).toEqual(mockSimulationsData);
       expect(mockSaveSimulations).toHaveBeenCalledWith(mockSimulationsData);
     });
 
-    it('should handle simulations with complex variable structures', () => {
+    it('should handle simulations with complex variable structures', async () => {
       const mockSimulationsData: Simulations = [
         {
           name: 'Complex Scenario',
@@ -378,9 +378,9 @@ describe('Simulations API', () => {
         },
       ];
 
-      mockGetData.mockReturnValue({ data: mockSimulationsData });
+      mockGetData.mockResolvedValue({ data: mockSimulationsData });
 
-      const result = updateSimulations(mockRequest);
+      const result = await updateSimulations(mockRequest);
 
       expect(result).toEqual(mockSimulationsData);
       expect(mockSaveSimulations).toHaveBeenCalledWith(mockSimulationsData);

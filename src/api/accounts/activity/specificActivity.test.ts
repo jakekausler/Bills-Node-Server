@@ -23,7 +23,7 @@ describe('Specific Activity API', () => {
   });
 
   describe('getSpecificActivity', () => {
-    it('should return transfer activity when isTransfer is true', () => {
+    it('should return transfer activity when isTransfer is true', async () => {
       const mockActivity = {
         id: 'activity-1',
         name: 'Transfer Activity',
@@ -43,17 +43,17 @@ describe('Specific Activity API', () => {
         params: { activityId: 'activity-1' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById).mockReturnValue(mockActivity as any);
 
-      const result = getSpecificActivity(mockRequest);
+      const result = await getSpecificActivity(mockRequest);
 
       expect(getData).toHaveBeenCalledWith(mockRequest);
       expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.transfers.activity, 'activity-1');
       expect(result).toBe(mockActivity);
     });
 
-    it('should return account activity when isTransfer is false', () => {
+    it('should return account activity when isTransfer is false', async () => {
       const mockActivity = {
         id: 'activity-2',
         name: 'Regular Activity',
@@ -76,12 +76,12 @@ describe('Specific Activity API', () => {
         params: { accountId: 'account-1', activityId: 'activity-2' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById)
         .mockReturnValueOnce(mockAccount as any)
         .mockReturnValueOnce(mockActivity as any);
 
-      const result = getSpecificActivity(mockRequest);
+      const result = await getSpecificActivity(mockRequest);
 
       expect(getData).toHaveBeenCalledWith(mockRequest);
       expect(getById).toHaveBeenNthCalledWith(1, mockData.accountsAndTransfers.accounts, 'account-1');
@@ -91,7 +91,7 @@ describe('Specific Activity API', () => {
   });
 
   describe('updateSpecificActivity', () => {
-    it('should update transfer activity', () => {
+    it('should update transfer activity', async () => {
       const mockActivity = {
         id: 'activity-1',
         name: 'Old Name',
@@ -126,11 +126,11 @@ describe('Specific Activity API', () => {
         params: { activityId: 'activity-1' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockActivity, idx: 0 } as any);
       vi.mocked(parseDate).mockReturnValue(new Date('2024-01-15'));
 
-      const result = updateSpecificActivity(mockRequest);
+      const result = await updateSpecificActivity(mockRequest);
 
       expect(getData).toHaveBeenCalledWith(mockRequest);
       expect(getByIdWithIdx).toHaveBeenCalledWith(mockData.accountsAndTransfers.transfers.activity, 'activity-1');
@@ -141,7 +141,7 @@ describe('Specific Activity API', () => {
       expect(result).toBe('activity-1');
     });
 
-    it('should update regular activity', () => {
+    it('should update regular activity', async () => {
       const mockActivity = {
         id: 'activity-2',
         name: 'Old Name',
@@ -177,12 +177,12 @@ describe('Specific Activity API', () => {
         params: { accountId: 'account-1', activityId: 'activity-2' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById).mockReturnValue(mockAccount as any);
       vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockActivity, idx: 0 } as any);
       vi.mocked(parseDate).mockReturnValue(new Date('2024-01-16'));
 
-      const result = updateSpecificActivity(mockRequest);
+      const result = await updateSpecificActivity(mockRequest);
 
       expect(mockActivity.name).toBe('Updated Name');
       expect(mockActivity.isTransfer).toBe(false);
@@ -190,7 +190,7 @@ describe('Specific Activity API', () => {
       expect(result).toBe('activity-2');
     });
 
-    it('should handle converting transfer to regular activity', () => {
+    it('should handle converting transfer to regular activity', async () => {
       const mockActivity = {
         id: 'activity-3',
         name: 'Transfer Activity',
@@ -229,12 +229,12 @@ describe('Specific Activity API', () => {
         params: { accountId: 'account-1', activityId: 'activity-3' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockActivity, idx: 0 } as any);
       vi.mocked(getById).mockReturnValue(mockAccount as any);
       vi.mocked(parseDate).mockReturnValue(new Date('2024-01-17'));
 
-      const result = updateSpecificActivity(mockRequest);
+      const result = await updateSpecificActivity(mockRequest);
 
       expect(mockActivity.isTransfer).toBe(false);
       expect(mockAccount.activity).toContain(mockActivity);
@@ -242,7 +242,7 @@ describe('Specific Activity API', () => {
       expect(result).toBe('activity-3');
     });
 
-    it('should handle converting regular activity to transfer', () => {
+    it('should handle converting regular activity to transfer', async () => {
       const mockActivity = {
         id: 'activity-4',
         name: 'Regular Activity',
@@ -283,12 +283,12 @@ describe('Specific Activity API', () => {
         params: { accountId: 'account-1', activityId: 'activity-4' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById).mockReturnValue(mockAccount as any);
       vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockActivity, idx: 0 } as any);
       vi.mocked(parseDate).mockReturnValue(new Date('2024-01-18'));
 
-      const result = updateSpecificActivity(mockRequest);
+      const result = await updateSpecificActivity(mockRequest);
 
       expect(mockActivity.isTransfer).toBe(true);
       expect(mockData.accountsAndTransfers.transfers.activity).toContain(mockActivity);
@@ -298,7 +298,7 @@ describe('Specific Activity API', () => {
   });
 
   describe('deleteSpecificActivity', () => {
-    it('should delete transfer activity', () => {
+    it('should delete transfer activity', async () => {
       const mockActivity = {
         id: 'activity-1',
         name: 'Transfer Activity',
@@ -322,10 +322,10 @@ describe('Specific Activity API', () => {
         params: { activityId: 'activity-1' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockActivity, idx: 0 } as any);
 
-      const result = deleteSpecificActivity(mockRequest);
+      const result = await deleteSpecificActivity(mockRequest);
 
       expect(getData).toHaveBeenCalledWith(mockRequest);
       expect(getByIdWithIdx).toHaveBeenCalledWith(mockData.accountsAndTransfers.transfers.activity, 'activity-1');
@@ -334,7 +334,7 @@ describe('Specific Activity API', () => {
       expect(result).toBe('activity-1');
     });
 
-    it('should delete regular activity', () => {
+    it('should delete regular activity', async () => {
       const mockActivity = {
         id: 'activity-2',
         name: 'Regular Activity',
@@ -361,11 +361,11 @@ describe('Specific Activity API', () => {
         params: { accountId: 'account-1', activityId: 'activity-2' },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById).mockReturnValue(mockAccount as any);
       vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockActivity, idx: 0 } as any);
 
-      const result = deleteSpecificActivity(mockRequest);
+      const result = await deleteSpecificActivity(mockRequest);
 
       expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-1');
       expect(getByIdWithIdx).toHaveBeenCalledWith(mockAccount.activity, 'activity-2');
@@ -376,7 +376,7 @@ describe('Specific Activity API', () => {
   });
 
   describe('changeAccountForActivity', () => {
-    it('should change account for transfer activity', () => {
+    it('should change account for transfer activity', async () => {
       const mockActivity = {
         id: 'activity-1',
         name: 'Transfer Activity',
@@ -414,13 +414,13 @@ describe('Specific Activity API', () => {
         },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById)
         .mockReturnValueOnce(mockOldAccount as any)
         .mockReturnValueOnce(mockActivity as any)
         .mockReturnValueOnce(mockNewAccount as any);
 
-      const result = changeAccountForActivity(mockRequest);
+      const result = await changeAccountForActivity(mockRequest);
 
       expect(getById).toHaveBeenNthCalledWith(1, mockData.accountsAndTransfers.accounts, 'account-1');
       expect(getById).toHaveBeenNthCalledWith(2, mockData.accountsAndTransfers.transfers.activity, 'activity-1');
@@ -430,7 +430,7 @@ describe('Specific Activity API', () => {
       expect(result).toBe('activity-1');
     });
 
-    it('should change account for regular activity', () => {
+    it('should change account for regular activity', async () => {
       const mockActivity = {
         id: 'activity-2',
         name: 'Regular Activity',
@@ -464,13 +464,13 @@ describe('Specific Activity API', () => {
         },
       });
 
-      vi.mocked(getData).mockReturnValue(mockData as any);
+      vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById)
         .mockReturnValueOnce(mockOldAccount as any)
         .mockReturnValueOnce(mockActivity as any)
         .mockReturnValueOnce(mockNewAccount as any);
 
-      const result = changeAccountForActivity(mockRequest);
+      const result = await changeAccountForActivity(mockRequest);
 
       expect(mockOldAccount.activity).toEqual([]);
       expect(mockNewAccount.activity).toContain(mockActivity);

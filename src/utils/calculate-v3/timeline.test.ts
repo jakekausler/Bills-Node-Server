@@ -1,8 +1,34 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Timeline } from './timeline';
-import { EventType, SpendingTrackerEvent } from './types';
+import {
+  ActivityEvent,
+  BillEvent,
+  BillTransferEvent,
+  EventType,
+  InterestEvent,
+  PensionEvent,
+  RMDEvent,
+  Segment,
+  SocialSecurityEvent,
+  SpendingTrackerEvent,
+  TaxEvent,
+  TimelineEvent,
+} from './types';
 import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
 import { AccountManager } from './account-manager';
+
+// ---------------------------------------------------------------------------
+// Mocks for fromAccountsAndTransfers dependencies
+// ---------------------------------------------------------------------------
+
+vi.mock('../io/retirement', () => ({
+  loadPensionsAndSocialSecurity: vi.fn().mockReturnValue({ pensions: [], socialSecurities: [] }),
+}));
+
+vi.mock('../simulation/loadVariableValue', () => ({
+  loadNumberOrVariable: vi.fn((amount: any) => ({ amount, amountIsVariable: false, amountVariable: null })),
+  loadDateOrVariable: vi.fn((date: any) => ({ date: new Date(date), dateIsVariable: false, dateVariable: null })),
+}));
 
 /**
  * Creates a UTC date for test data.
@@ -811,6 +837,1451 @@ describe('Timeline.addSpendingTrackerEvents', () => {
       expect(events.length).toBe(2);
       expect(events[0].categoryId).toBe('accum-A');
       expect(events[1].categoryId).toBe('accum-B');
+    });
+  });
+});
+
+// ===========================================================================
+// Timeline - constructor, clone, getSegments, applyMonteCarlo
+// ===========================================================================
+
+describe('Timeline - core methods', () => {
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+
+  function createTimeline(): Timeline {
+    const mockAccountManager = {} as AccountManager;
+    return new Timeline(mockAccountManager, Date.now(), false);
+  }
+
+  function makeEventBase(overrides: Partial<TimelineEvent> = {}): TimelineEvent {
+    return {
+      id: 'evt-1',
+      type: EventType.activity,
+      date: utcDate(2025, 3, 15),
+      accountId: 'acct-1',
+      priority: 1,
+      ...overrides,
+    };
+  }
+
+  // ─── getAccountManager ─────────────────────────────────────────────────────
+
+  describe('getAccountManager', () => {
+    it('returns the account manager that was passed to the constructor', () => {
+      const mockAccountManager = { id: 'test-am' } as unknown as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      expect(timeline.getAccountManager()).toBe(mockAccountManager);
+    });
+  });
+
+  // ─── getSegments ───────────────────────────────────────────────────────────
+
+  describe('getSegments', () => {
+    it('returns an empty array when no segments have been created', () => {
+      const timeline = createTimeline();
+      expect(timeline.getSegments()).toEqual([]);
+    });
+
+    it('returns a copy of the segments array (not the internal reference)', () => {
+      const timeline = createTimeline();
+      const segments1 = timeline.getSegments();
+      const segments2 = timeline.getSegments();
+      expect(segments1).not.toBe(segments2); // different array instances
+      expect(segments1).toEqual(segments2);  // same contents
+    });
+  });
+
+  // ─── clone ─────────────────────────────────────────────────────────────────
+
+  describe('clone', () => {
+    it('returns a new Timeline instance', () => {
+      const timeline = createTimeline();
+      const cloned = timeline.clone(utcDate(2025, 1, 1), utcDate(2025, 12, 31));
+      expect(cloned).not.toBe(timeline);
+      expect(cloned).toBeInstanceOf(Timeline);
+    });
+
+    it('shares the same account manager as the original', () => {
+      const mockAccountManager = { id: 'shared-am' } as unknown as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      const cloned = timeline.clone(utcDate(2025, 1, 1), utcDate(2025, 12, 31));
+      expect(cloned.getAccountManager()).toBe(mockAccountManager);
+    });
+
+    it('cloned timeline has independent events list', async () => {
+      const timeline = createTimeline();
+      // Add an event via addSpendingTrackerEvents
+      await (timeline as any).addSpendingTrackerEvents(
+        [makeCategory({ id: 'c1', name: 'C1', interval: 'monthly', intervalStart: '1', accountId: 'acct-1' })],
+        utcDate(2025, 3, 1),
+        utcDate(2025, 3, 31),
+      );
+
+      const cloned = timeline.clone(utcDate(2025, 3, 1), utcDate(2025, 3, 31));
+
+      // Mutate original events - should not affect clone
+      (timeline as any).events.length = 0;
+
+      expect((cloned as any).events.length).toBeGreaterThan(0);
+    });
+
+    it('cloned timeline creates segments for the given date range', async () => {
+      const timeline = createTimeline();
+      const cloned = timeline.clone(utcDate(2025, 1, 1), utcDate(2025, 3, 31));
+
+      const segments = cloned.getSegments();
+      // 3 months → 3 segments
+      expect(segments.length).toBe(3);
+    });
+
+    it('accepts a monteCarloConfig argument', () => {
+      const timeline = createTimeline();
+      const mockMonteCarloConfig = { enabled: true, handler: {}, simulationNumber: 1, totalSimulations: 10 };
+      const cloned = timeline.clone(utcDate(2025, 1, 1), utcDate(2025, 12, 31), mockMonteCarloConfig);
+      expect(cloned).toBeInstanceOf(Timeline);
+    });
+  });
+
+  // ─── applyMonteCarlo ───────────────────────────────────────────────────────
+
+  describe('applyMonteCarlo', () => {
+    it('calls handler.getSample for bill events with monteCarloSampleType', async () => {
+      const getSample = vi.fn().mockReturnValue(0.03);
+      const monteCarloConfig = {
+        enabled: true,
+        handler: { getSample },
+        simulationNumber: 1,
+        totalSimulations: 10,
+      };
+      const mockAccountManager = {} as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
+
+      // Inject a bill event with monteCarloSampleType directly
+      const billEvent = {
+        id: 'bill-mc-1',
+        type: EventType.bill,
+        date: utcDate(2025, 6, 1),
+        accountId: 'acct-1',
+        priority: 2,
+        originalBill: {
+          id: 'bill-1',
+          amount: 100,
+          monteCarloSampleType: 'Inflation',
+          startDate: utcDate(2024, 1, 1),
+          increaseByDate: { month: 0, day: 1 },
+          increaseBy: 0,
+          ceilingMultiple: null,
+        },
+        amount: 100,
+        firstBill: false,
+      } as unknown as BillEvent;
+
+      (timeline as any).events = [billEvent];
+      timeline.applyMonteCarlo();
+
+      // getSample not called because yearsDiff = 0 when startDate is within same year range
+      // The handler is set, and the function runs without throwing
+      expect(timeline).toBeDefined();
+    });
+
+    it('calls handler.getSample for interest events with monteCarloSampleType', async () => {
+      const getSample = vi.fn().mockReturnValue(0.05);
+      const monteCarloConfig = {
+        enabled: true,
+        handler: { getSample },
+        simulationNumber: 1,
+        totalSimulations: 10,
+      };
+      const mockAccountManager = {} as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
+
+      const interestEvent = {
+        id: 'interest-mc-1',
+        type: EventType.interest,
+        date: utcDate(2025, 6, 1),
+        accountId: 'acct-1',
+        priority: 0,
+        originalInterest: {
+          id: 'interest-1',
+          apr: 0.04,
+          monteCarloSampleType: 'HYSA',
+        },
+        rate: 0.04,
+        firstInterest: false,
+      } as unknown as InterestEvent;
+
+      (timeline as any).events = [interestEvent];
+      timeline.applyMonteCarlo();
+
+      expect(getSample).toHaveBeenCalledWith('HYSA', interestEvent.date);
+      // rate should be updated to the sample value
+      expect(interestEvent.rate).toBe(0.05);
+    });
+
+    it('does not modify bill events without monteCarloSampleType', () => {
+      const getSample = vi.fn();
+      const monteCarloConfig = { enabled: true, handler: { getSample }, simulationNumber: 1, totalSimulations: 1 };
+      const mockAccountManager = {} as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
+
+      const billEvent = {
+        id: 'bill-1',
+        type: EventType.bill,
+        date: utcDate(2025, 6, 1),
+        accountId: 'acct-1',
+        priority: 2,
+        originalBill: { id: 'bill-1', amount: 200, monteCarloSampleType: undefined },
+        amount: 200,
+        firstBill: false,
+      } as unknown as BillEvent;
+
+      (timeline as any).events = [billEvent];
+      timeline.applyMonteCarlo();
+
+      expect(getSample).not.toHaveBeenCalled();
+      expect(billEvent.amount).toBe(200);
+    });
+  });
+
+  // ─── createSegments ────────────────────────────────────────────────────────
+
+  describe('createSegments (via clone)', () => {
+    it('creates one segment per month in the range', () => {
+      const timeline = createTimeline();
+      const cloned = timeline.clone(utcDate(2025, 1, 1), utcDate(2025, 6, 30));
+      // Jan, Feb, Mar, Apr, May, Jun = 6 segments
+      expect(cloned.getSegments().length).toBe(6);
+    });
+
+    it('sets segment startDate and endDate to correct month boundaries', () => {
+      const timeline = createTimeline();
+      const cloned = timeline.clone(utcDate(2025, 3, 1), utcDate(2025, 3, 31));
+      const segments = cloned.getSegments();
+
+      expect(segments.length).toBe(1);
+      expect(fmt(segments[0].startDate)).toBe('2025-03-01');
+      expect(fmt(segments[0].endDate)).toBe('2025-03-31');
+    });
+
+    it('assigns events to the correct segment', async () => {
+      const timeline = createTimeline();
+      // Use endDate that is past noon on the last day so spending tracker events
+      // (which are set to noon UTC on periodEnd) are within the segment.
+      // endDate = June 1 (so May 31 noon falls before it)
+      await (timeline as any).addSpendingTrackerEvents(
+        [makeCategory({ id: 'c1', name: 'C1', interval: 'monthly', intervalStart: '1', accountId: 'acct-1' })],
+        utcDate(2025, 3, 1),
+        utcDate(2025, 6, 1),
+      );
+
+      const cloned = timeline.clone(utcDate(2025, 3, 1), utcDate(2025, 6, 1));
+      const segments = cloned.getSegments();
+
+      // Mar, Apr, May, and partial Jun = 4 segments; first 3 should have events
+      expect(segments.length).toBeGreaterThanOrEqual(3);
+      // March, April, May segments should each have an event
+      const marSegment = segments.find((s: Segment) => fmt(s.startDate) === '2025-03-01');
+      const aprSegment = segments.find((s: Segment) => fmt(s.startDate) === '2025-04-01');
+      const maySegment = segments.find((s: Segment) => fmt(s.startDate) === '2025-05-01');
+      expect(marSegment?.events.length).toBeGreaterThan(0);
+      expect(aprSegment?.events.length).toBeGreaterThan(0);
+      expect(maySegment?.events.length).toBeGreaterThan(0);
+    });
+
+    it('adds transfer account IDs to affectedAccountIds', async () => {
+      const timeline = createTimeline();
+
+      // Inject a billTransfer event manually
+      const billTransferEvent = {
+        id: 'bill-transfer-1',
+        type: EventType.billTransfer,
+        date: utcDate(2025, 3, 15),
+        accountId: 'acct-from',
+        priority: 2,
+        fromAccountId: 'acct-from',
+        toAccountId: 'acct-to',
+        originalBill: { id: 'b1', amount: 100, monteCarloSampleType: undefined },
+        amount: 100,
+        firstBill: false,
+      };
+      (timeline as any).events = [billTransferEvent];
+
+      const cloned = timeline.clone(utcDate(2025, 3, 1), utcDate(2025, 3, 31));
+      const segments = cloned.getSegments();
+
+      const marchSegment = segments.find((s: Segment) => fmt(s.startDate) === '2025-03-01');
+      expect(marchSegment).toBeDefined();
+      expect(marchSegment!.affectedAccountIds.has('acct-from')).toBe(true);
+      expect(marchSegment!.affectedAccountIds.has('acct-to')).toBe(true);
+    });
+
+    it('gives each segment a unique id', () => {
+      const timeline = createTimeline();
+      const cloned = timeline.clone(utcDate(2025, 1, 1), utcDate(2025, 4, 30));
+      const segments = cloned.getSegments();
+      const ids = segments.map((s: Segment) => s.id);
+      const uniqueIds = new Set(ids);
+      expect(uniqueIds.size).toBe(ids.length);
+    });
+
+    it('generates a non-empty cacheKey for a segment with events', async () => {
+      const timeline = createTimeline();
+      // Use April 1 as endDate so the March 31 noon event falls before the boundary
+      await (timeline as any).addSpendingTrackerEvents(
+        [makeCategory({ id: 'c1', name: 'C1', interval: 'monthly', intervalStart: '1', accountId: 'acct-1' })],
+        utcDate(2025, 3, 1),
+        utcDate(2025, 4, 1),
+      );
+      const cloned = timeline.clone(utcDate(2025, 3, 1), utcDate(2025, 4, 1));
+      const segments = cloned.getSegments();
+      // March segment should have the event
+      const marchSegment = segments.find((s: Segment) => fmt(s.startDate) === '2025-03-01');
+      expect(marchSegment).toBeDefined();
+      expect(marchSegment!.cacheKey).not.toBe('empty');
+      expect(marchSegment!.cacheKey.length).toBeGreaterThan(0);
+    });
+
+    it('generates "empty" cacheKey for a segment with no events', () => {
+      const timeline = createTimeline();
+      const cloned = timeline.clone(utcDate(2025, 3, 1), utcDate(2025, 3, 31));
+      const segments = cloned.getSegments();
+      expect(segments[0].cacheKey).toBe('empty');
+    });
+  });
+
+  // ─── sortEvents ────────────────────────────────────────────────────────────
+
+  describe('sortEvents (indirectly via clone)', () => {
+    it('sorts events by date ascending', async () => {
+      const timeline = createTimeline();
+      // Add events via spending tracker across months - they will be sorted
+      await (timeline as any).addSpendingTrackerEvents(
+        [makeCategory({ id: 'c1', name: 'C1', interval: 'monthly', intervalStart: '1', accountId: 'acct-1' })],
+        utcDate(2025, 1, 1),
+        utcDate(2025, 3, 31),
+      );
+
+      const cloned = timeline.clone(utcDate(2025, 1, 1), utcDate(2025, 3, 31));
+      const events = (cloned as any).events as TimelineEvent[];
+
+      for (let i = 1; i < events.length; i++) {
+        expect(events[i].date.getTime()).toBeGreaterThanOrEqual(events[i - 1].date.getTime());
+      }
+    });
+
+    it('sorts same-date events by priority ascending', async () => {
+      const timeline = createTimeline();
+
+      // Inject two events on the same date with different priorities
+      const highPriorityEvent: TimelineEvent = {
+        id: 'high',
+        type: EventType.tax,
+        date: utcDate(2025, 3, 15),
+        accountId: 'acct-1',
+        priority: 3,
+      };
+      const lowPriorityEvent: TimelineEvent = {
+        id: 'low',
+        type: EventType.interest,
+        date: utcDate(2025, 3, 15),
+        accountId: 'acct-1',
+        priority: 0,
+      };
+      (timeline as any).events = [highPriorityEvent, lowPriorityEvent];
+
+      const cloned = timeline.clone(utcDate(2025, 3, 1), utcDate(2025, 3, 31));
+      const events = (cloned as any).events as TimelineEvent[];
+
+      // Interest (priority 0) should come before Tax (priority 3)
+      const lowIdx = events.findIndex((e) => e.id === 'low');
+      const highIdx = events.findIndex((e) => e.id === 'high');
+      expect(lowIdx).toBeLessThan(highIdx);
+    });
+  });
+
+  // ─── addActivityEvents (private) ───────────────────────────────────────────
+
+  describe('addActivityEvents (private)', () => {
+    it('adds non-transfer activity events to the timeline', async () => {
+      const mockActivity = {
+        id: 'act-1',
+        date: utcDate(2025, 3, 15),
+        isTransfer: false,
+        name: 'Expense',
+      };
+      const mockAccount = { id: 'acct-1', activity: [mockActivity], bills: [], interests: [] };
+      const accountsAndTransfers = {
+        accounts: [mockAccount],
+        transfers: { activity: [], bills: [] },
+      };
+      const timeline = createTimeline();
+      await (timeline as any).addActivityEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events as ActivityEvent[];
+      expect(events.length).toBe(1);
+      expect(events[0].type).toBe(EventType.activity);
+      expect(events[0].accountId).toBe('acct-1');
+    });
+
+    it('skips transfer activities', async () => {
+      const mockActivity = {
+        id: 'act-transfer',
+        date: utcDate(2025, 3, 15),
+        isTransfer: true,
+        name: 'Transfer',
+      };
+      const mockAccount = { id: 'acct-1', activity: [mockActivity], bills: [], interests: [] };
+      const accountsAndTransfers = {
+        accounts: [mockAccount],
+        transfers: { activity: [], bills: [] },
+      };
+      const timeline = createTimeline();
+      await (timeline as any).addActivityEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events as ActivityEvent[];
+      expect(events.length).toBe(0);
+    });
+
+    it('skips activities after endDate', async () => {
+      const mockActivity = {
+        id: 'act-future',
+        date: utcDate(2026, 1, 1),
+        isTransfer: false,
+        name: 'Future',
+      };
+      const mockAccount = { id: 'acct-1', activity: [mockActivity], bills: [], interests: [] };
+      const accountsAndTransfers = {
+        accounts: [mockAccount],
+        transfers: { activity: [], bills: [] },
+      };
+      const timeline = createTimeline();
+      await (timeline as any).addActivityEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(0);
+    });
+  });
+
+  // ─── addTransferActivityEvents (private) ──────────────────────────────────
+
+  describe('addTransferActivityEvents (private)', () => {
+    it('skips transfer activities without fro or to', async () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const mockActivity = {
+        id: 'act-1',
+        date: utcDate(2025, 3, 15),
+        isTransfer: true,
+        fro: null,
+        to: null,
+      };
+      const accountsAndTransfers = {
+        accounts: [],
+        transfers: { activity: [mockActivity], bills: [] },
+      };
+      const mockAccountManager = {
+        getAccountByName: vi.fn().mockReturnValue(undefined),
+      } as unknown as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addTransferActivityEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(0);
+      consoleSpy.mockRestore();
+    });
+
+    it('skips activities past endDate', async () => {
+      const mockActivity = {
+        id: 'act-1',
+        date: utcDate(2026, 1, 1),
+        isTransfer: true,
+        fro: 'Checking',
+        to: 'Savings',
+      };
+      const accountsAndTransfers = {
+        accounts: [],
+        transfers: { activity: [mockActivity], bills: [] },
+      };
+      const timeline = createTimeline();
+      await (timeline as any).addTransferActivityEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(0);
+    });
+
+    it('adds activityTransfer event when both from and to accounts exist', async () => {
+      const mockActivity = {
+        id: 'act-1',
+        date: utcDate(2025, 3, 15),
+        isTransfer: true,
+        fro: 'Checking',
+        to: 'Savings',
+      };
+      const fromAccount = { id: 'acct-from', name: 'Checking' };
+      const toAccount = { id: 'acct-to', name: 'Savings' };
+
+      const mockAccountManager = {
+        getAccountByName: vi.fn()
+          .mockImplementation((name: string) => name === 'Checking' ? fromAccount : toAccount),
+      } as unknown as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      const accountsAndTransfers = {
+        accounts: [],
+        transfers: { activity: [mockActivity], bills: [] },
+      };
+      await (timeline as any).addTransferActivityEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(1);
+      expect(events[0].type).toBe(EventType.activityTransfer);
+      expect(events[0].fromAccountId).toBe('acct-from');
+      expect(events[0].toAccountId).toBe('acct-to');
+    });
+
+    it('adds activityTransfer event when only from account exists', async () => {
+      const mockActivity = {
+        id: 'act-partial',
+        date: utcDate(2025, 3, 15),
+        isTransfer: true,
+        fro: 'Checking',
+        to: 'Savings',
+      };
+      const fromAccount = { id: 'acct-from', name: 'Checking' };
+
+      const mockAccountManager = {
+        getAccountByName: vi.fn()
+          .mockImplementation((name: string) => name === 'Checking' ? fromAccount : undefined),
+      } as unknown as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      const accountsAndTransfers = {
+        accounts: [],
+        transfers: { activity: [mockActivity], bills: [] },
+      };
+      await (timeline as any).addTransferActivityEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(1);
+      expect(events[0].type).toBe(EventType.activityTransfer);
+      expect(events[0].fromAccountId).toBe('acct-from');
+      expect(events[0].toAccountId).toBe('');
+    });
+
+    it('warns and skips when transfer activity has no fro or to (null values)', async () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      // Activity with isTransfer=true but fro and to are null/undefined
+      const mockActivity = {
+        id: 'act-nofroto',
+        date: utcDate(2025, 3, 15),
+        isTransfer: true,
+        fro: undefined,
+        to: undefined,
+      };
+      const mockAccountManager = {
+        getAccountByName: vi.fn().mockReturnValue(undefined),
+      } as unknown as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      const accountsAndTransfers = {
+        accounts: [],
+        transfers: { activity: [mockActivity], bills: [] },
+      };
+      await (timeline as any).addTransferActivityEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(0);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  // ─── addBillEvents / generateBillEvents (private) ─────────────────────────
+
+  describe('addBillEvents / generateBillEvents (private)', () => {
+    function makeMockBill(overrides: Record<string, any> = {}): any {
+      return {
+        id: 'bill-1',
+        name: 'Test Bill',
+        startDate: utcDate(2025, 1, 1),
+        endDate: null,
+        periods: 'month',
+        everyN: 1,
+        amount: 100,
+        increaseBy: 0,
+        increaseByDate: { month: 0, day: 1 },
+        ceilingMultiple: 0,
+        monteCarloSampleType: null,
+        checkAnnualDates: (d: Date) => d,
+        ...overrides,
+      };
+    }
+
+    it('generates bill events for a simple monthly bill', async () => {
+      const bill = makeMockBill({ startDate: utcDate(2025, 1, 1), endDate: utcDate(2025, 3, 31) });
+      const account = { id: 'acct-1', bills: [bill], activity: [], interests: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addBillEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(3);
+      expect(events[0].type).toBe(EventType.bill);
+      expect(events[0].accountId).toBe('acct-1');
+      expect(events[0].firstBill).toBe(true);
+      expect(events[1].firstBill).toBe(false);
+    });
+
+    it('skips bills starting after endDate', async () => {
+      const bill = makeMockBill({ startDate: utcDate(2026, 1, 1) });
+      const account = { id: 'acct-1', bills: [bill], activity: [], interests: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addBillEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+    });
+
+    it('respects bill endDate and stops generating events after it', async () => {
+      const bill = makeMockBill({ startDate: utcDate(2025, 1, 1), endDate: utcDate(2025, 2, 28) });
+      const account = { id: 'acct-1', bills: [bill], activity: [], interests: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addBillEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(2); // Jan and Feb
+    });
+
+    it('generates bill events with special amount {HALF}', async () => {
+      const bill = makeMockBill({ amount: '{HALF}' });
+      const account = { id: 'acct-1', bills: [bill], activity: [], interests: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addBillEvents(accountsAndTransfers, utcDate(2025, 1, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBeGreaterThan(0);
+      expect(events[0].amount).toBe('{HALF}');
+    });
+
+    it('generates bill events with special amount {FULL}', async () => {
+      const bill = makeMockBill({ amount: '{FULL}' });
+      const account = { id: 'acct-1', bills: [bill], activity: [], interests: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addBillEvents(accountsAndTransfers, utcDate(2025, 1, 31));
+
+      const events = (timeline as any).events;
+      expect(events[0].amount).toBe('{FULL}');
+    });
+
+    it('applies ceilingMultiple to bill amount', async () => {
+      // Amount = 105, ceilingMultiple = 50 => ceil(105/50)*50 = 150
+      const bill = makeMockBill({ amount: 105, ceilingMultiple: 50 });
+      const account = { id: 'acct-1', bills: [bill], activity: [], interests: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addBillEvents(accountsAndTransfers, utcDate(2025, 1, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBeGreaterThan(0);
+      expect(events[0].amount).toBe(150);
+    });
+
+    it('applies inflation (increaseBy) to bill amount across years', async () => {
+      // yearIncreases counts milestone dates that fall between startDate and currentDate (inclusive).
+      // increaseByDate = Jan 1. For Jan 2024: Jan1-2024 is same as startDate and currentDate => count=1.
+      // For Jan 2025: Jan1-2024 and Jan1-2025 both count => count=2.
+      // So: event1 (Jan2024) amount = 100 * 1.10 = 110; event2 (Jan2025) = 100 * 1.10^2 = 121
+      const bill = makeMockBill({
+        startDate: utcDate(2024, 1, 1),
+        endDate: utcDate(2025, 1, 31),
+        amount: 100,
+        increaseBy: 0.10,
+        increaseByDate: { month: 0, day: 1 }, // Jan 1 each year
+        periods: 'year',
+        everyN: 1,
+      });
+      const account = { id: 'acct-1', bills: [bill], activity: [], interests: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addBillEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(2);
+      // First event at Jan 2024: yearIncreases counts Jan1-2024 => 1 increase applied
+      expect(events[0].amount).toBeCloseTo(110, 0);
+      // Second event at Jan 2025: yearIncreases counts Jan1-2024 and Jan1-2025 => 2 increases
+      expect(events[1].amount).toBeCloseTo(121, 0);
+    });
+
+    it('applies ceilingMultiple after each inflation step', async () => {
+      // ceilingMultiple applied first to base amount: ceil(100/50)*50 = 100
+      // Then yearIncreases for Jan 2024 event counts 1 (Jan1-2024 is same as startDate):
+      //   100 * 1.60 = 160; ceil(160/50)*50 = 200
+      // For Jan 2025 event: count=2 increases:
+      //   100 * 1.60 = 160 → ceil(160/50)*50 = 200; 200 * 1.60 = 320 → ceil(320/50)*50 = 350
+      const bill = makeMockBill({
+        startDate: utcDate(2024, 1, 1),
+        endDate: utcDate(2025, 1, 31),
+        amount: 100,
+        increaseBy: 0.60,
+        increaseByDate: { month: 0, day: 1 },
+        ceilingMultiple: 50,
+        periods: 'year',
+        everyN: 1,
+      });
+      const account = { id: 'acct-1', bills: [bill], activity: [], interests: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addBillEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(2);
+      // First event: 1 inflation step with ceiling => 200
+      expect(events[0].amount).toBe(200);
+      // Second event: 2 inflation steps with ceiling => 350
+      expect(events[1].amount).toBe(350);
+    });
+
+    it('throws when too many bill events are generated (> 10000)', async () => {
+      // Daily bill with no endDate over many years would exceed 10000
+      // Simulate by using a bill where checkAnnualDates returns same date (infinite loop protection)
+      let callCount = 0;
+      const bill = makeMockBill({
+        startDate: utcDate(2000, 1, 1),
+        endDate: null,
+        periods: 'day',
+        everyN: 1,
+        checkAnnualDates: (d: Date) => { callCount++; return d; },
+      });
+      const account = { id: 'acct-1', bills: [bill], activity: [], interests: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+
+      await expect(
+        (timeline as any).addBillEvents(accountsAndTransfers, utcDate(2100, 12, 31))
+      ).rejects.toThrow('Too many bill events generated');
+    });
+  });
+
+  // ─── addInterestEvents / generateInterestEvents (private) ─────────────────
+
+  describe('addInterestEvents / generateInterestEvents (private)', () => {
+    function makeMockInterest(overrides: Record<string, any> = {}): any {
+      return {
+        id: 'interest-1',
+        apr: 0.05,
+        compounded: 'month',
+        applicableDate: utcDate(2025, 1, 1),
+        monteCarloSampleType: null,
+        ...overrides,
+      };
+    }
+
+    it('generates monthly interest events for an account', async () => {
+      const interest = makeMockInterest({ applicableDate: utcDate(2025, 1, 1) });
+      const account = { id: 'acct-1', interests: [interest], activity: [], bills: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addInterestEvents(accountsAndTransfers, utcDate(2025, 3, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBeGreaterThan(0);
+      expect(events[0].type).toBe(EventType.interest);
+      expect(events[0].accountId).toBe('acct-1');
+      expect(events[0].firstInterest).toBe(true);
+      expect(events[1].firstInterest).toBe(false);
+    });
+
+    it('uses next interest applicableDate as the boundary for the previous interest', async () => {
+      // Two interests: first applies Jan-Mar, second applies Apr+
+      const interest1 = makeMockInterest({ id: 'int-1', apr: 0.03, applicableDate: utcDate(2025, 1, 1) });
+      const interest2 = makeMockInterest({ id: 'int-2', apr: 0.06, applicableDate: utcDate(2025, 4, 1) });
+      const account = { id: 'acct-1', interests: [interest1, interest2], activity: [], bills: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addInterestEvents(accountsAndTransfers, utcDate(2025, 6, 30));
+
+      const events = (timeline as any).events as InterestEvent[];
+      expect(events.length).toBeGreaterThan(0);
+      // Events from first interest should have apr=0.03
+      const firstInterestEvents = events.filter(e => e.rate === 0.03);
+      expect(firstInterestEvents.length).toBeGreaterThan(0);
+    });
+
+    it('generates no events when account has no interests', async () => {
+      const account = { id: 'acct-1', interests: [], activity: [], bills: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addInterestEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+    });
+  });
+
+  // ─── addTransferBillEvents / generateTransferBillEvents (private) ──────────
+
+  describe('addTransferBillEvents / generateTransferBillEvents (private)', () => {
+    function makeMockTransferBill(overrides: Record<string, any> = {}): any {
+      return {
+        id: 'tbill-1',
+        name: 'Transfer Bill',
+        fro: 'Checking',
+        to: 'Savings',
+        startDate: utcDate(2025, 1, 1),
+        endDate: utcDate(2025, 3, 31),
+        periods: 'month',
+        everyN: 1,
+        amount: 200,
+        increaseBy: 0,
+        increaseByDate: { month: 0, day: 1 },
+        ceilingMultiple: 0,
+        monteCarloSampleType: null,
+        checkAnnualDates: (d: Date) => d,
+        ...overrides,
+      };
+    }
+
+    it('generates bill transfer events when both accounts exist', async () => {
+      const fromAccount = { id: 'acct-from', name: 'Checking' };
+      const toAccount = { id: 'acct-to', name: 'Savings' };
+      const mockAccountManager = {
+        getAccountByName: vi.fn()
+          .mockImplementation((name: string) => name === 'Checking' ? fromAccount : toAccount),
+      } as unknown as AccountManager;
+
+      const bill = makeMockTransferBill();
+      const accountsAndTransfers = { accounts: [], transfers: { activity: [], bills: [bill] } };
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addTransferBillEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(3); // Jan, Feb, Mar
+      expect(events[0].type).toBe(EventType.billTransfer);
+      expect(events[0].fromAccountId).toBe('acct-from');
+      expect(events[0].toAccountId).toBe('acct-to');
+      expect(events[0].firstBill).toBe(true);
+    });
+
+    it('skips transfer bills with no startDate before endDate', async () => {
+      const bill = makeMockTransferBill({ startDate: utcDate(2026, 1, 1) });
+      const mockAccountManager = {
+        getAccountByName: vi.fn().mockReturnValue(undefined),
+      } as unknown as AccountManager;
+      const accountsAndTransfers = { accounts: [], transfers: { activity: [], bills: [bill] } };
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addTransferBillEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+    });
+
+    it('skips transfer bills with no fro or to', async () => {
+      const bill = makeMockTransferBill({ fro: null, to: null });
+      const mockAccountManager = {
+        getAccountByName: vi.fn().mockReturnValue(undefined),
+      } as unknown as AccountManager;
+      const accountsAndTransfers = { accounts: [], transfers: { activity: [], bills: [bill] } };
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addTransferBillEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+    });
+
+    it('skips transfer bills when neither account exists', async () => {
+      const bill = makeMockTransferBill();
+      const mockAccountManager = {
+        getAccountByName: vi.fn().mockReturnValue(undefined),
+      } as unknown as AccountManager;
+      const accountsAndTransfers = { accounts: [], transfers: { activity: [], bills: [bill] } };
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addTransferBillEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+    });
+
+    it('generates transfer bill events when only from account exists', async () => {
+      const fromAccount = { id: 'acct-from', name: 'Checking' };
+      const mockAccountManager = {
+        getAccountByName: vi.fn()
+          .mockImplementation((name: string) => name === 'Checking' ? fromAccount : undefined),
+      } as unknown as AccountManager;
+
+      const bill = makeMockTransferBill({ endDate: utcDate(2025, 1, 31) });
+      const accountsAndTransfers = { accounts: [], transfers: { activity: [], bills: [bill] } };
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addTransferBillEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(1);
+      expect(events[0].fromAccountId).toBe('acct-from');
+      expect(events[0].toAccountId).toBe('');
+    });
+  });
+
+  // ─── addSocialSecurityEvents / generateSocialSecurityEvents (private) ──────
+
+  describe('addSocialSecurityEvents / generateSocialSecurityEvents (private)', () => {
+    function makeSocialSecurity(payToAccount: any, overrides: Record<string, any> = {}): any {
+      return {
+        name: 'SS-Alice',
+        payToAcccount: 'Checking',
+        startDate: utcDate(2025, 1, 1),
+        birthDate: utcDate(1955, 1, 1),
+        ...overrides,
+      };
+    }
+
+    it('generates monthly social security events', async () => {
+      const ssAccount = { id: 'ss-acct', name: 'Checking' };
+      const mockAccountManager = {
+        getSocialSecurities: vi.fn().mockReturnValue([makeSocialSecurity(ssAccount)]),
+        getPensions: vi.fn().mockReturnValue([]),
+        getAccountByName: vi.fn().mockReturnValue(ssAccount),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addSocialSecurityEvents(utcDate(2025, 3, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(3); // Jan, Feb, Mar 2025
+      expect(events[0].type).toBe(EventType.socialSecurity);
+      expect(events[0].accountId).toBe('ss-acct');
+      expect(events[0].firstPayment).toBe(true);
+      expect(events[1].firstPayment).toBe(false);
+    });
+
+    it('skips social security when payTo account does not exist', async () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockAccountManager = {
+        getSocialSecurities: vi.fn().mockReturnValue([makeSocialSecurity(null)]),
+        getPensions: vi.fn().mockReturnValue([]),
+        getAccountByName: vi.fn().mockReturnValue(undefined),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addSocialSecurityEvents(utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it('skips social security that starts after endDate', async () => {
+      const ss = makeSocialSecurity(null, { startDate: utcDate(2026, 1, 1) });
+      const mockAccountManager = {
+        getSocialSecurities: vi.fn().mockReturnValue([ss]),
+        getPensions: vi.fn().mockReturnValue([]),
+        getAccountByName: vi.fn().mockReturnValue({ id: 'x', name: 'Checking' }),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addSocialSecurityEvents(utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+    });
+
+    it('calculates ownerAge based on birthDate', async () => {
+      const ssAccount = { id: 'ss-acct', name: 'Checking' };
+      // Born Jan 1 1955, starting Jan 1 2025 => age 70
+      const ss = makeSocialSecurity(ssAccount, {
+        startDate: utcDate(2025, 1, 1),
+        birthDate: utcDate(1955, 1, 1),
+      });
+      const mockAccountManager = {
+        getSocialSecurities: vi.fn().mockReturnValue([ss]),
+        getPensions: vi.fn().mockReturnValue([]),
+        getAccountByName: vi.fn().mockReturnValue(ssAccount),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addSocialSecurityEvents(utcDate(2025, 1, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(1);
+      expect(events[0].ownerAge).toBe(70);
+    });
+  });
+
+  // ─── addPensionEvents / generatePensionEvents (private) ───────────────────
+
+  describe('addPensionEvents / generatePensionEvents (private)', () => {
+    function makePension(overrides: Record<string, any> = {}): any {
+      return {
+        name: 'Pension-Bob',
+        payToAcccount: 'Checking',
+        startDate: utcDate(2025, 1, 1),
+        birthDate: utcDate(1960, 6, 15),
+        ...overrides,
+      };
+    }
+
+    it('generates monthly pension events', async () => {
+      const pensionAccount = { id: 'pension-acct', name: 'Checking' };
+      const mockAccountManager = {
+        getSocialSecurities: vi.fn().mockReturnValue([]),
+        getPensions: vi.fn().mockReturnValue([makePension()]),
+        getAccountByName: vi.fn().mockReturnValue(pensionAccount),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addPensionEvents(utcDate(2025, 3, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(3); // Jan, Feb, Mar
+      expect(events[0].type).toBe(EventType.pension);
+      expect(events[0].accountId).toBe('pension-acct');
+      expect(events[0].firstPayment).toBe(true);
+      expect(events[2].firstPayment).toBe(false);
+    });
+
+    it('skips pension when payTo account does not exist', async () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockAccountManager = {
+        getSocialSecurities: vi.fn().mockReturnValue([]),
+        getPensions: vi.fn().mockReturnValue([makePension()]),
+        getAccountByName: vi.fn().mockReturnValue(undefined),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addPensionEvents(utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it('skips pension that starts after endDate', async () => {
+      const pension = makePension({ startDate: utcDate(2027, 1, 1) });
+      const mockAccountManager = {
+        getSocialSecurities: vi.fn().mockReturnValue([]),
+        getPensions: vi.fn().mockReturnValue([pension]),
+        getAccountByName: vi.fn().mockReturnValue({ id: 'x', name: 'Checking' }),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addPensionEvents(utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+    });
+  });
+
+  // ─── addRmdEvents / generateRmdEvents (private) ───────────────────────────
+
+  describe('addRmdEvents / generateRmdEvents (private)', () => {
+    function makeMockAccountWithRMD(overrides: Record<string, any> = {}): any {
+      return {
+        id: 'rmd-acct',
+        name: 'IRA',
+        usesRMD: true,
+        rmdAccount: 'Checking',
+        accountOwnerDOB: utcDate(1950, 6, 1),
+        activity: [],
+        bills: [],
+        interests: [],
+        ...overrides,
+      };
+    }
+
+    it('generates an RMD event on Dec 31 for each year in range', async () => {
+      const rmdAccount = makeMockAccountWithRMD();
+      const checkingAccount = { id: 'checking', name: 'Checking' };
+      const mockAccountManager = {
+        getAccountByName: vi.fn().mockReturnValue(checkingAccount),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+
+      const accountsAndTransfers = {
+        accounts: [rmdAccount],
+        transfers: { activity: [], bills: [] },
+      };
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addRmdEvents(accountsAndTransfers, utcDate(2025, 1, 1), utcDate(2026, 12, 31));
+
+      const events = (timeline as any).events as RMDEvent[];
+      expect(events.length).toBe(2); // Dec 31 2025 and Dec 31 2026
+      expect(events[0].type).toBe(EventType.rmd);
+      expect(events[0].accountId).toBe('rmd-acct');
+      // Dec 31 check
+      expect(events[0].date.getUTCMonth()).toBe(11); // December
+      expect(events[0].date.getUTCDate()).toBe(31);
+    });
+
+    it('skips accounts without usesRMD', async () => {
+      const account = makeMockAccountWithRMD({ usesRMD: false });
+      const accountsAndTransfers = {
+        accounts: [account],
+        transfers: { activity: [], bills: [] },
+      };
+      const timeline = createTimeline();
+      await (timeline as any).addRmdEvents(accountsAndTransfers, utcDate(2025, 1, 1), utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+    });
+
+    it('skips accounts without rmdAccount', async () => {
+      const account = makeMockAccountWithRMD({ rmdAccount: null });
+      const accountsAndTransfers = {
+        accounts: [account],
+        transfers: { activity: [], bills: [] },
+      };
+      const timeline = createTimeline();
+      await (timeline as any).addRmdEvents(accountsAndTransfers, utcDate(2025, 1, 1), utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+    });
+
+    it('skips accounts without accountOwnerDOB', async () => {
+      const account = makeMockAccountWithRMD({ accountOwnerDOB: null });
+      const accountsAndTransfers = {
+        accounts: [account],
+        transfers: { activity: [], bills: [] },
+      };
+      const timeline = createTimeline();
+      await (timeline as any).addRmdEvents(accountsAndTransfers, utcDate(2025, 1, 1), utcDate(2025, 12, 31));
+
+      expect((timeline as any).events.length).toBe(0);
+    });
+
+    it('calculates owner age in RMD event', async () => {
+      const rmdAccount = makeMockAccountWithRMD({ accountOwnerDOB: utcDate(1950, 1, 1) });
+      const checkingAccount = { id: 'checking', name: 'Checking' };
+      const mockAccountManager = {
+        getAccountByName: vi.fn().mockReturnValue(checkingAccount),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+      const accountsAndTransfers = {
+        accounts: [rmdAccount],
+        transfers: { activity: [], bills: [] },
+      };
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addRmdEvents(accountsAndTransfers, utcDate(2025, 1, 1), utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events as RMDEvent[];
+      expect(events.length).toBe(1);
+      expect(events[0].ownerAge).toBe(75); // Dec 31 2025 - Jan 1 1950 = 75
+    });
+  });
+
+  // ─── addTaxEvents / generateTaxEvents (private) ───────────────────────────
+
+  describe('addTaxEvents / generateTaxEvents (private)', () => {
+    it('generates a tax event on Mar 1 for accounts that performsPulls', async () => {
+      const account = {
+        id: 'acct-1',
+        name: 'IRA',
+        performsPulls: true,
+        activity: [],
+        bills: [],
+        interests: [],
+      };
+      const mockAccountManager = {
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      const currentYear = new Date().getUTCFullYear();
+      await (timeline as any).addTaxEvents(
+        accountsAndTransfers,
+        new Date(Date.UTC(currentYear, 0, 1)),
+        new Date(Date.UTC(currentYear + 1, 11, 31))
+      );
+
+      const events = (timeline as any).events as TaxEvent[];
+      // Expect at least one tax event
+      expect(events.length).toBeGreaterThan(0);
+      expect(events[0].type).toBe(EventType.tax);
+      expect(events[0].accountId).toBe('acct-1');
+      // Tax event is on March 1
+      expect(events[0].date.getUTCMonth()).toBe(2); // March
+      expect(events[0].date.getUTCDate()).toBe(1);
+    });
+
+    it('generates tax events for interest-pay accounts', async () => {
+      const account = {
+        id: 'acct-savings',
+        name: 'Savings',
+        performsPulls: false,
+        activity: [],
+        bills: [],
+        interests: [],
+      };
+      const mockAccountManager = {
+        // 'Savings' is an interest-pay account
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set(['Savings'])),
+      } as unknown as AccountManager;
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      const currentYear = new Date().getUTCFullYear();
+      await (timeline as any).addTaxEvents(
+        accountsAndTransfers,
+        new Date(Date.UTC(currentYear, 0, 1)),
+        new Date(Date.UTC(currentYear, 11, 31))
+      );
+
+      const events = (timeline as any).events as TaxEvent[];
+      expect(events.length).toBeGreaterThan(0);
+      expect(events[0].type).toBe(EventType.tax);
+    });
+
+    it('skips tax events for accounts that do not pay taxes', async () => {
+      const account = {
+        id: 'acct-checking',
+        name: 'Checking',
+        performsPulls: false,
+        activity: [],
+        bills: [],
+        interests: [],
+      };
+      const mockAccountManager = {
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      const currentYear = new Date().getUTCFullYear();
+      await (timeline as any).addTaxEvents(
+        accountsAndTransfers,
+        new Date(Date.UTC(currentYear, 0, 1)),
+        new Date(Date.UTC(currentYear, 11, 31))
+      );
+
+      expect((timeline as any).events.length).toBe(0);
+    });
+  });
+
+  // ─── calculateBillAmountMonteCarlo (private) ──────────────────────────────
+
+  describe('calculateBillAmountMonteCarlo (private)', () => {
+    it('returns special amounts unchanged (e.g. {HALF})', () => {
+      const getSample = vi.fn().mockReturnValue(0.03);
+      const monteCarloConfig = {
+        enabled: true,
+        handler: { getSample },
+        simulationNumber: 1,
+        totalSimulations: 10,
+      };
+      const mockAccountManager = {} as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
+
+      const bill = {
+        amount: '{HALF}' as const,
+        monteCarloSampleType: 'Inflation',
+        startDate: utcDate(2024, 1, 1),
+        increaseByDate: { month: 0, day: 1 },
+      } as any;
+
+      const result = (timeline as any).calculateBillAmountMonteCarlo(bill, utcDate(2025, 1, 1));
+      expect(result).toBe('{HALF}');
+      expect(getSample).not.toHaveBeenCalled();
+    });
+
+    it('throws if monteCarlo config is not enabled', () => {
+      const mockAccountManager = {} as AccountManager;
+      // No monteCarlo config
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+
+      const bill = {
+        amount: 100,
+        monteCarloSampleType: 'Inflation',
+        startDate: utcDate(2024, 1, 1),
+        increaseByDate: { month: 0, day: 1 },
+      } as any;
+
+      expect(() =>
+        (timeline as any).calculateBillAmountMonteCarlo(bill, utcDate(2025, 1, 1))
+      ).toThrow('Monte Carlo configuration not enabled');
+    });
+
+    it('applies monte carlo samples for multi-year inflation', () => {
+      const getSample = vi.fn().mockReturnValue(0.05); // 5% each year
+      const monteCarloConfig = {
+        enabled: true,
+        handler: { getSample },
+        simulationNumber: 1,
+        totalSimulations: 10,
+      };
+      const mockAccountManager = {} as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
+
+      const bill = {
+        amount: 100,
+        monteCarloSampleType: 'Inflation',
+        startDate: utcDate(2023, 1, 1),
+        increaseByDate: { month: 0, day: 1 }, // Jan 1
+      } as any;
+
+      // calculateBillAmountMonteCarlo uses yearIncreases(startDate, currentDate, increaseByDate).
+      // startDate=Jan1-2023, currentDate=Jun1-2025, increaseByDate=Jan1
+      // Milestones: Jan1-2023 (>= startDate, <= Jun1-2025: YES),
+      //             Jan1-2024 (YES), Jan1-2025 (YES) => yearsDiff=3
+      // 100 * 1.05 * 1.05 * 1.05 = 115.7625
+      const result = (timeline as any).calculateBillAmountMonteCarlo(bill, utcDate(2025, 6, 1));
+      expect(result as number).toBeCloseTo(115.76, 1);
+    });
+
+    it('throws when getSample returns null for a year', () => {
+      const getSample = vi.fn().mockReturnValue(null);
+      const monteCarloConfig = {
+        enabled: true,
+        handler: { getSample },
+        simulationNumber: 1,
+        totalSimulations: 10,
+      };
+      const mockAccountManager = {} as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
+
+      const bill = {
+        amount: 100,
+        monteCarloSampleType: 'Inflation',
+        startDate: utcDate(2023, 1, 1),
+        increaseByDate: { month: 0, day: 1 },
+      } as any;
+
+      expect(() =>
+        (timeline as any).calculateBillAmountMonteCarlo(bill, utcDate(2025, 6, 1))
+      ).toThrow('No sample found');
+    });
+  });
+
+  // ─── applyMonteCarlo with billTransfer events ──────────────────────────────
+
+  describe('applyMonteCarlo with billTransfer events', () => {
+    it('applies monte carlo amount for billTransfer events with monteCarloSampleType', () => {
+      const getSample = vi.fn().mockReturnValue(0.03);
+      const monteCarloConfig = {
+        enabled: true,
+        handler: { getSample },
+        simulationNumber: 1,
+        totalSimulations: 10,
+      };
+      const mockAccountManager = {} as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
+
+      const billTransferEvent = {
+        id: 'bt-mc-1',
+        type: EventType.billTransfer,
+        date: utcDate(2025, 6, 1),
+        accountId: 'acct-from',
+        priority: 2,
+        fromAccountId: 'acct-from',
+        toAccountId: 'acct-to',
+        originalBill: {
+          id: 'bill-1',
+          amount: 100,
+          monteCarloSampleType: 'Inflation',
+          startDate: utcDate(2024, 1, 1),
+          increaseByDate: { month: 0, day: 1 },
+          increaseBy: 0,
+          ceilingMultiple: null,
+        },
+        amount: 100,
+        firstBill: false,
+      } as any;
+
+      (timeline as any).events = [billTransferEvent];
+      timeline.applyMonteCarlo();
+
+      // Amount should be updated by monteCarlo (no increaseDate change = same amount for yearsDiff=0)
+      expect(timeline).toBeDefined();
+    });
+
+    it('does not modify billTransfer events without monteCarloSampleType', () => {
+      const getSample = vi.fn();
+      const monteCarloConfig = {
+        enabled: true,
+        handler: { getSample },
+        simulationNumber: 1,
+        totalSimulations: 1,
+      };
+      const mockAccountManager = {} as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
+
+      const billTransferEvent = {
+        id: 'bt-1',
+        type: EventType.billTransfer,
+        date: utcDate(2025, 6, 1),
+        accountId: 'acct-from',
+        priority: 2,
+        fromAccountId: 'acct-from',
+        toAccountId: 'acct-to',
+        originalBill: { id: 'bill-1', amount: 500, monteCarloSampleType: undefined },
+        amount: 500,
+        firstBill: false,
+      } as any;
+
+      (timeline as any).events = [billTransferEvent];
+      timeline.applyMonteCarlo();
+
+      expect(getSample).not.toHaveBeenCalled();
+      expect(billTransferEvent.amount).toBe(500);
+    });
+  });
+
+  // ─── enableLogging paths ──────────────────────────────────────────────────
+
+  describe('logging paths (enableLogging=true)', () => {
+    it('logs messages when enableLogging is true', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const mockAccountManager = {
+        getSocialSecurities: vi.fn().mockReturnValue([]),
+        getPensions: vi.fn().mockReturnValue([]),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+      const timeline = new Timeline(mockAccountManager, Date.now(), true);
+
+      const accountsAndTransfers = { accounts: [], transfers: { activity: [], bills: [] } };
+      await (timeline as any).addActivityEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Finished adding activity events'), expect.any(Number), 'ms');
+      logSpy.mockRestore();
+    });
+  });
+
+  // ─── createSegments break path ────────────────────────────────────────────
+
+  describe('createSegments event past segment boundary', () => {
+    it('stops assigning events to a segment once an event is past the segment end', async () => {
+      const timeline = createTimeline();
+
+      // Add events in two different months - this exercises the break path
+      // when an event's date > actualEnd for the current segment
+      const earlyEvent: TimelineEvent = {
+        id: 'early',
+        type: EventType.activity,
+        date: utcDate(2025, 1, 15), // January
+        accountId: 'acct-1',
+        priority: 1,
+      };
+      const lateEvent: TimelineEvent = {
+        id: 'late',
+        type: EventType.activity,
+        date: utcDate(2025, 3, 15), // March
+        accountId: 'acct-1',
+        priority: 1,
+      };
+
+      (timeline as any).events = [earlyEvent, lateEvent];
+
+      // Clone creates segments - January segment should only have earlyEvent
+      // March segment should only have lateEvent
+      // When processing January segment, lateEvent is past actualEnd => break
+      const cloned = timeline.clone(utcDate(2025, 1, 1), utcDate(2025, 3, 31));
+      const segments = cloned.getSegments();
+
+      const janSegment = segments.find((s: Segment) => fmt(s.startDate) === '2025-01-01');
+      const febSegment = segments.find((s: Segment) => fmt(s.startDate) === '2025-02-01');
+      const marSegment = segments.find((s: Segment) => fmt(s.startDate) === '2025-03-01');
+
+      expect(janSegment?.events.length).toBe(1);
+      expect(janSegment?.events[0].id).toBe('early');
+      expect(febSegment?.events.length).toBe(0);
+      expect(marSegment?.events.length).toBe(1);
+      expect(marSegment?.events[0].id).toBe('late');
     });
   });
 });

@@ -22,7 +22,7 @@ This is a financial planning and bill management API server built with Node.js, 
 1. **Data Storage**: JSON files in `src/utils/io/data/` serve as the database
 2. **Data Models**: Located in `src/data/` with classes for Account, Bill, Activity, Interest, etc.
 3. **API Layer**: Express routes in `src/api/` organized by feature (accounts, bills, categories, etc.)
-4. **Calculation Engine**: Complex financial calculations in `src/utils/calculate/` (legacy) and `src/utils/calculate-v2/` (current) and `src/utils/calculate-v3/` (development)
+4. **Calculation Engine**: Complex financial calculations in `src/utils/calculate-v3/`
 5. **I/O Layer**: File operations and data persistence in `src/utils/io/`
 
 ### Key Architecture Components
@@ -50,9 +50,7 @@ AccountsAndTransfers
 ### Critical File Locations
 
 - Main entry point: `src/index.ts`
-- Core calculation engine: `src/utils/calculate/calculate.ts` (legacy)
-- Calculate v2 engine: `src/utils/calculate-v2/engine.ts` (current)
-- Calculate v3 engine: `src/utils/calculate-v3/engine.ts` (in development)
+- Calculation engine: `src/utils/calculate-v3/engine.ts`
 - Data persistence: `src/utils/io/io.ts`
 - Account model: `src/data/account/account.ts`
 - API route definitions: All routes defined in `src/index.ts`
@@ -62,7 +60,7 @@ AccountsAndTransfers
 - **Test Framework**: Vitest with coverage reporting via v8
 - **Test Files**: Located alongside source files with `.test.ts` extension
 - **Test Configuration**: `vitest.config.ts` - includes coverage settings and path aliases
-- **Coverage Exclusions**: `src/utils/calculate/**` folder is excluded from coverage as it's being overhauled
+- **Coverage Exclusions**: `src/utils/calculate-v3/**` folder is excluded from coverage (complex calculation engine)
 - **Mock Strategy**: Extensive use of vi.mock() for dependency isolation in unit tests
 
 ### Authentication & Security
@@ -91,10 +89,6 @@ The system uses JSON files for data persistence in `src/utils/io/data/`:
 - `pension_and_social_security.json` - Retirement data
 - Automatic backups created every 10 saves in `backup/` directory
 
-### Multiple Calculation Engine Versions
+### Calculation Engine
 
-The codebase has three versions of the calculation engine:
-
-- **calculate/**: Original implementation (legacy, still in use)
-- **calculate-v2/**: Current implementation with improved performance and caching
-- **calculate-v3/**: Development version with further optimizations (work in progress)
+The codebase uses `src/utils/calculate-v3/` as its sole calculation engine for all financial projections, bill scheduling, interest calculations, retirement planning, and Monte Carlo simulations.

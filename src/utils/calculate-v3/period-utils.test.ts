@@ -372,6 +372,98 @@ describe('computePeriodBoundaries', () => {
     });
   });
 
+  describe('error cases', () => {
+    describe('weekly', () => {
+      it('should throw when intervalStart is an invalid day name', () => {
+        expect(() =>
+          computePeriodBoundaries('weekly', 'Funday', utcDate(2025, 1, 1), utcDate(2025, 1, 31)),
+        ).toThrow('Invalid weekly intervalStart "Funday"');
+      });
+
+      it('should throw when intervalStart is an empty string', () => {
+        expect(() =>
+          computePeriodBoundaries('weekly', '', utcDate(2025, 1, 1), utcDate(2025, 1, 31)),
+        ).toThrow('Invalid weekly intervalStart ""');
+      });
+
+      it('should throw when intervalStart is a number string not in day names', () => {
+        expect(() =>
+          computePeriodBoundaries('weekly', '1', utcDate(2025, 1, 1), utcDate(2025, 1, 31)),
+        ).toThrow('Invalid weekly intervalStart "1"');
+      });
+    });
+
+    describe('monthly', () => {
+      it('should throw when intervalStart is not a number', () => {
+        expect(() =>
+          computePeriodBoundaries('monthly', 'abc', utcDate(2025, 1, 1), utcDate(2025, 1, 31)),
+        ).toThrow('Invalid monthly intervalStart "abc"');
+      });
+
+      it('should throw when intervalStart is 0', () => {
+        expect(() =>
+          computePeriodBoundaries('monthly', '0', utcDate(2025, 1, 1), utcDate(2025, 1, 31)),
+        ).toThrow('Invalid monthly intervalStart "0"');
+      });
+
+      it('should throw when intervalStart is 29', () => {
+        expect(() =>
+          computePeriodBoundaries('monthly', '29', utcDate(2025, 1, 1), utcDate(2025, 1, 31)),
+        ).toThrow('Invalid monthly intervalStart "29"');
+      });
+
+      it('should throw when intervalStart is negative', () => {
+        expect(() =>
+          computePeriodBoundaries('monthly', '-1', utcDate(2025, 1, 1), utcDate(2025, 1, 31)),
+        ).toThrow('Invalid monthly intervalStart "-1"');
+      });
+    });
+
+    describe('yearly', () => {
+      it('should throw when intervalStart has no slash', () => {
+        expect(() =>
+          computePeriodBoundaries('yearly', '0101', utcDate(2025, 1, 1), utcDate(2025, 12, 31)),
+        ).toThrow('Invalid yearly intervalStart "0101"');
+      });
+
+      it('should throw when intervalStart has invalid month (00)', () => {
+        expect(() =>
+          computePeriodBoundaries('yearly', '00/15', utcDate(2025, 1, 1), utcDate(2025, 12, 31)),
+        ).toThrow('Invalid month "00"');
+      });
+
+      it('should throw when intervalStart has invalid month (13)', () => {
+        expect(() =>
+          computePeriodBoundaries('yearly', '13/15', utcDate(2025, 1, 1), utcDate(2025, 12, 31)),
+        ).toThrow('Invalid month "13"');
+      });
+
+      it('should throw when intervalStart has invalid day (0)', () => {
+        expect(() =>
+          computePeriodBoundaries('yearly', '06/00', utcDate(2025, 1, 1), utcDate(2025, 12, 31)),
+        ).toThrow('Invalid day "00"');
+      });
+
+      it('should throw when intervalStart has invalid day (32)', () => {
+        expect(() =>
+          computePeriodBoundaries('yearly', '06/32', utcDate(2025, 1, 1), utcDate(2025, 12, 31)),
+        ).toThrow('Invalid day "32"');
+      });
+
+      it('should throw when intervalStart has non-numeric month', () => {
+        expect(() =>
+          computePeriodBoundaries('yearly', 'MM/15', utcDate(2025, 1, 1), utcDate(2025, 12, 31)),
+        ).toThrow('Invalid month "MM"');
+      });
+
+      it('should throw when intervalStart has non-numeric day', () => {
+        expect(() =>
+          computePeriodBoundaries('yearly', '06/DD', utcDate(2025, 1, 1), utcDate(2025, 12, 31)),
+        ).toThrow('Invalid day "DD"');
+      });
+    });
+  });
+
   describe('edge cases', () => {
     it('should return empty array when endDate is before startDate', () => {
       const results = computePeriodBoundaries(
@@ -452,6 +544,58 @@ describe('computePeriodBoundaries', () => {
         const periodEndPlus1 = new Date(results[i].periodEnd.getTime() + 86400000);
         expect(fmt(periodEndPlus1)).toBe(fmt(results[i + 1].periodStart));
       }
+    });
+
+    it('yearly: should skip periods whose periodEnd is entirely before startDate (exercises continue branch)', () => {
+      // intervalStart = 06/15. If startDate is 2026-07-01:
+      //   Period Jun 15 2025 - Jun 14 2026: periodEnd Jun 14 2026 is BEFORE startDate Jul 1 2026
+      //     → should be skipped via the continue branch
+      //   Period Jun 15 2026 - Jun 14 2027: periodStart Jun 15 2026 <= endDate Dec 31 2026 → included
+      const results = computePeriodBoundaries(
+        'yearly',
+        '06/15',
+        utcDate(2026, 7, 1),
+        utcDate(2026, 12, 31),
+      );
+
+      expect(results.length).toBe(1);
+      expect(fmt(results[0].periodStart)).toBe('2026-06-15');
+      expect(fmt(results[0].periodEnd)).toBe('2027-06-14');
+    });
+
+    it('monthly: should skip periods whose periodEnd is before startDate when startDate is late in month (exercises continue branch)', () => {
+      // intervalStart = 1 (each period: 1st to last day of month).
+      // When startDate is the last day of a month, the current month's period is the one to include.
+      // The *prior* period (previous month) gets skipped via the continue branch.
+      const results = computePeriodBoundaries(
+        'monthly',
+        '28',
+        utcDate(2025, 4, 28),  // Apr 28 - period Apr 28 - May 27
+        utcDate(2025, 5, 27),  // May 27
+      );
+
+      expect(results.length).toBe(1);
+      expect(fmt(results[0].periodStart)).toBe('2025-04-28');
+      expect(fmt(results[0].periodEnd)).toBe('2025-05-27');
+    });
+
+    it('monthly: go-back-one-month branch when intervalStart day is after startDate day (exercises year rollback)', () => {
+      // Interval day = 15. startDate = Jan 3 2025.
+      // In January: periodStart = Jan 15 which is AFTER Jan 3, so go back to Dec 15 2024.
+      const results = computePeriodBoundaries(
+        'monthly',
+        '15',
+        utcDate(2025, 1, 3),
+        utcDate(2025, 2, 14),
+      );
+
+      // Dec 15 2024 - Jan 14 2025: periodEnd Jan 14 >= startDate Jan 3 → included
+      // Jan 15 2025 - Feb 14 2025: included
+      expect(results.length).toBe(2);
+      expect(fmt(results[0].periodStart)).toBe('2024-12-15');
+      expect(fmt(results[0].periodEnd)).toBe('2025-01-14');
+      expect(fmt(results[1].periodStart)).toBe('2025-01-15');
+      expect(fmt(results[1].periodEnd)).toBe('2025-02-14');
     });
   });
 });

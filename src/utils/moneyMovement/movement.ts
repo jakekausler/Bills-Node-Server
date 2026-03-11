@@ -17,8 +17,8 @@ export function getMoneyMovement(accountsAndTransfers: AccountsAndTransfers, sta
   }
   accountsAndTransfers.accounts.forEach((account) => {
     account.consolidatedActivity.forEach((activity) => {
-      if (activity.date.getFullYear() in movement) {
-        movement[activity.date.getFullYear()][account.name] +=
+      if (activity.date.getUTCFullYear() in movement) {
+        movement[activity.date.getUTCFullYear()][account.name] +=
           typeof activity.amount === 'number' ? activity.amount : 0;
       }
     });

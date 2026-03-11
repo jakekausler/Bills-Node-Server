@@ -305,9 +305,9 @@ describe('Bill', () => {
 
       const result = billWithAnnualStart.checkAnnualDates(testDate);
 
-      expect(result.getFullYear()).toBe(2023);
-      expect(result.getMonth()).toBe(3); // April (month is 1-indexed in getUTCMonthAndDay, 0-indexed in Date constructor)
-      expect(result.getDate()).toBe(1);
+      expect(result.getUTCFullYear()).toBe(2023);
+      expect(result.getUTCMonth()).toBe(2); // March (0-indexed), from annualStartDate '03/01'
+      expect(result.getUTCDate()).toBe(1);
     });
 
     it('should handle annual end date only', () => {
@@ -320,9 +320,9 @@ describe('Bill', () => {
 
       const result = billWithAnnualEnd.checkAnnualDates(testDate);
 
-      expect(result.getFullYear()).toBe(2024);
-      expect(result.getMonth()).toBe(1); // February (month is 1-indexed in getUTCMonthAndDay, 0-indexed in Date constructor)
-      expect(result.getDate()).toBe(1);
+      expect(result.getUTCFullYear()).toBe(2024);
+      expect(result.getUTCMonth()).toBe(0); // January (0-indexed), first day of next year
+      expect(result.getUTCDate()).toBe(1);
     });
   });
 

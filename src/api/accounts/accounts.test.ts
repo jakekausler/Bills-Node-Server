@@ -41,6 +41,7 @@ vi.mock('../../data/account/account', () => ({
       balance: 0,
     }),
   })),
+  todayBalance: vi.fn(),
 }));
 
 vi.mock('../../utils/date/date', () => ({
@@ -49,7 +50,7 @@ vi.mock('../../utils/date/date', () => ({
 
 import { saveData } from '../../utils/io/accountsAndTransfers';
 import { getData } from '../../utils/net/request';
-import { Account } from '../../data/account/account';
+import { Account, todayBalance } from '../../data/account/account';
 
 describe('Accounts API', () => {
   const mockRequest = {} as Request;
@@ -59,17 +60,18 @@ describe('Accounts API', () => {
   });
 
   describe('getSimpleAccounts', () => {
-    it('should return simplified account data', () => {
+    it('should return simplified account data', async () => {
       const mockAccounts = [
-        { simpleAccount: vi.fn().mockReturnValue({ id: '1', name: 'Account 1', balance: 100 }) },
-        { simpleAccount: vi.fn().mockReturnValue({ id: '2', name: 'Account 2', balance: 200 }) },
+        { simpleAccount: vi.fn().mockReturnValue({ id: '1', name: 'Account 1', balance: 0 }) },
+        { simpleAccount: vi.fn().mockReturnValue({ id: '2', name: 'Account 2', balance: 0 }) },
       ];
 
-      vi.mocked(getData).mockReturnValue({
+      vi.mocked(getData).mockResolvedValue({
         accountsAndTransfers: { accounts: mockAccounts as any, transfers: { bills: [], activity: [] } },
       } as any);
+      vi.mocked(todayBalance).mockReturnValueOnce(100).mockReturnValueOnce(200);
 
-      const result = getSimpleAccounts(mockRequest);
+      const result = await getSimpleAccounts(mockRequest);
 
       expect(result).toEqual([
         { id: '1', name: 'Account 1', balance: 100 },
@@ -81,7 +83,7 @@ describe('Accounts API', () => {
   });
 
   describe('addAccount', () => {
-    it('should add a new account and return its ID', () => {
+    it('should add a new account and return its ID', async () => {
       const mockAccountData: AccountData = {
         id: 'new-account',
         name: 'New Account',
@@ -97,13 +99,13 @@ describe('Accounts API', () => {
         transfers: { bills: [], activity: [] },
       };
 
-      vi.mocked(getData).mockReturnValue({
+      vi.mocked(getData).mockResolvedValue({
         data: mockAccountData,
         simulation: 'Default',
         accountsAndTransfers: mockAccountsAndTransfers,
       });
 
-      const result = addAccount(mockRequest);
+      const result = await addAccount(mockRequest);
 
       expect(Account).toHaveBeenCalledWith(mockAccountData, 'Default');
       expect(mockAccountsAndTransfers.accounts).toHaveLength(1);
@@ -113,7 +115,7 @@ describe('Accounts API', () => {
   });
 
   describe('updateAccounts', () => {
-    it('should update existing accounts with new data', () => {
+    it('should update existing accounts with new data', async () => {
       const existingAccount = {
         id: 'account-1',
         name: 'Old Name',
@@ -157,12 +159,12 @@ describe('Accounts API', () => {
         accounts: [existingAccount],
       };
 
-      vi.mocked(getData).mockReturnValue({
+      vi.mocked(getData).mockResolvedValue({
         data: [newAccountData],
         accountsAndTransfers: mockAccountsAndTransfers,
       });
 
-      const result = updateAccounts(mockRequest);
+      const result = await updateAccounts(mockRequest);
 
       expect(existingAccount.name).toBe('New Name');
       expect(existingAccount.type).toBe('savings');
@@ -176,7 +178,7 @@ describe('Accounts API', () => {
       expect(result).toBe(mockAccountsAndTransfers.accounts);
     });
 
-    it('should handle accounts not found in update data', () => {
+    it('should handle accounts not found in update data', async () => {
       const existingAccount = {
         id: 'account-1',
         name: 'Original Name',
@@ -187,12 +189,12 @@ describe('Accounts API', () => {
         accounts: [existingAccount],
       };
 
-      vi.mocked(getData).mockReturnValue({
+      vi.mocked(getData).mockResolvedValue({
         data: [], // No update data
         accountsAndTransfers: mockAccountsAndTransfers,
       });
 
-      const result = updateAccounts(mockRequest);
+      const result = await updateAccounts(mockRequest);
 
       // Account should remain unchanged
       expect(existingAccount.name).toBe('Original Name');
@@ -201,7 +203,7 @@ describe('Accounts API', () => {
       expect(result).toBe(mockAccountsAndTransfers.accounts);
     });
 
-    it('should handle default values for undefined properties', () => {
+    it('should handle default values for undefined properties', async () => {
       const existingAccount = {
         id: 'account-1',
         name: 'Test Account',
@@ -237,12 +239,12 @@ describe('Accounts API', () => {
         accounts: [existingAccount],
       };
 
-      vi.mocked(getData).mockReturnValue({
+      vi.mocked(getData).mockResolvedValue({
         data: [newAccountData],
         accountsAndTransfers: mockAccountsAndTransfers,
       });
 
-      updateAccounts(mockRequest);
+      await updateAccounts(mockRequest);
 
       expect(existingAccount.pullPriority).toBe(-1);
       expect(existingAccount.interestTaxRate).toBe(0);

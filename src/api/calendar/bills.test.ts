@@ -21,7 +21,7 @@ describe('Calendar Bills API', () => {
   });
 
   describe('getCalendarBills', () => {
-    it('should return calendar bills for accounts within date range', () => {
+    it('should return calendar bills for accounts within date range', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -58,9 +58,9 @@ describe('Calendar Bills API', () => {
         endDate: new Date('2024-01-31'),
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCalendarBills(mockRequest);
+      const result = await getCalendarBills(mockRequest);
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
@@ -74,7 +74,7 @@ describe('Calendar Bills API', () => {
       });
     });
 
-    it('should filter out bills outside date range', () => {
+    it('should filter out bills outside date range', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -125,15 +125,15 @@ describe('Calendar Bills API', () => {
         endDate: new Date('2024-01-31'),
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCalendarBills(mockRequest);
+      const result = await getCalendarBills(mockRequest);
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('Current Bill');
     });
 
-    it('should filter out non-selected accounts when selectedAccounts is specified', () => {
+    it('should filter out non-selected accounts when selectedAccounts is specified', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -183,15 +183,15 @@ describe('Calendar Bills API', () => {
         endDate: new Date('2024-01-31'),
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCalendarBills(mockRequest);
+      const result = await getCalendarBills(mockRequest);
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('Selected Bill');
     });
 
-    it('should filter out hidden accounts when no accounts are selected', () => {
+    it('should filter out hidden accounts when no accounts are selected', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -241,15 +241,15 @@ describe('Calendar Bills API', () => {
         endDate: new Date('2024-01-31'),
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCalendarBills(mockRequest);
+      const result = await getCalendarBills(mockRequest);
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('Visible Bill');
     });
 
-    it('should handle transfer bills correctly', () => {
+    it('should handle transfer bills correctly', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -300,9 +300,9 @@ describe('Calendar Bills API', () => {
         endDate: new Date('2024-01-31'),
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCalendarBills(mockRequest);
+      const result = await getCalendarBills(mockRequest);
 
       // Should only show the negative transfer to avoid double-counting
       expect(result).toHaveLength(1);
@@ -317,7 +317,7 @@ describe('Calendar Bills API', () => {
       });
     });
 
-    it('should skip activities without billId', () => {
+    it('should skip activities without billId', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -354,15 +354,15 @@ describe('Calendar Bills API', () => {
         endDate: new Date('2024-01-31'),
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCalendarBills(mockRequest);
+      const result = await getCalendarBills(mockRequest);
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('Valid Bill');
     });
 
-    it('should return empty array when no bills match criteria', () => {
+    it('should return empty array when no bills match criteria', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -393,14 +393,14 @@ describe('Calendar Bills API', () => {
         endDate: new Date('2024-01-31'),
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCalendarBills(mockRequest);
+      const result = await getCalendarBills(mockRequest);
 
       expect(result).toHaveLength(0);
     });
 
-    it('should handle multiple accounts and bills', () => {
+    it('should handle multiple accounts and bills', async () => {
       const mockData = {
         accountsAndTransfers: {
           accounts: [
@@ -460,9 +460,9 @@ describe('Calendar Bills API', () => {
         endDate: new Date('2024-01-31'),
       };
 
-      mockGetData.mockReturnValue(mockData);
+      mockGetData.mockResolvedValue(mockData);
 
-      const result = getCalendarBills(mockRequest);
+      const result = await getCalendarBills(mockRequest);
 
       expect(result).toHaveLength(3);
       expect(result.map((bill) => bill.name)).toEqual(['Rent', 'Utilities', 'Salary']);

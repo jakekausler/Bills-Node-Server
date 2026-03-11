@@ -330,9 +330,9 @@ function calculateSpending(
  *   - July 1, 2024 → plan year 2024
  */
 function getPlanYear(date: Date, resetMonth: number, resetDay: number): number {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
 
   // Check if date is before reset date in this calendar year
   const beforeReset =

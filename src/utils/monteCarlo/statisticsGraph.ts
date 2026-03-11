@@ -90,7 +90,7 @@ function calculateYearlyMinBalances(
   let activityIndex = 0;
 
   while (currentDate.getTime() <= endDate.getTime()) {
-    const currentYear = currentDate.getFullYear();
+    const currentYear = currentDate.getUTCFullYear();
 
     // Process all activities for this date
     while (activityIndex < allActivities.length && isSame(allActivities[activityIndex].parsedDate, currentDate)) {

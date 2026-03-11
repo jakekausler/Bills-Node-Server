@@ -22,7 +22,7 @@ export function loadVariableValue(value: string): VariableValue {
   // First check if it matches the strict date pattern
   if (datePattern.test(value)) {
     return {
-      value: new Date(value),
+      value: parseDate(value as DateString),
       type: 'date',
     };
   }
@@ -38,13 +38,11 @@ export function loadVariableValue(value: string): VariableValue {
 
   // Try to parse as a date if it's not a number
   try {
-    const parsedDate = new Date(value);
-    if (!isNaN(parsedDate.getTime())) {
-      return {
-        value: parsedDate,
-        type: 'date',
-      };
-    }
+    const parsedDate = parseDate(value as DateString);
+    return {
+      value: parsedDate,
+      type: 'date',
+    };
   } catch (_) {
     // Fall through to error
   }

@@ -12,7 +12,7 @@ describe('loadVariableValue', () => {
     const result = loadVariableValue('2024-01-01');
 
     expect(result.type).toBe('date');
-    expect(result.value).toEqual(new Date('2024-01-01'));
+    expect(result.value).toEqual(new Date('2024-01-01T12:00:00Z'));
   });
 
   it('should parse valid numbers', () => {
@@ -36,12 +36,9 @@ describe('loadVariableValue', () => {
     expect(result.value).toBe(-50.25);
   });
 
-  it('should parse non-standard date formats correctly', () => {
-    const result = loadVariableValue('2024/01/01');
-
-    // Now with the fixed logic, it should correctly parse as a date
-    expect(result.type).toBe('date');
-    expect(result.value).toEqual(new Date('2024/01/01'));
+  it('should reject non-standard date formats', () => {
+    // Slash-delimited dates are not valid DateString format (YYYY-MM-DD)
+    expect(() => loadVariableValue('2024/01/01')).toThrow("Invalid value '2024/01/01'");
   });
 
   it('should throw error for invalid values', () => {
@@ -57,7 +54,7 @@ describe('loadDateOrVariable', () => {
   it('should parse valid date string when not variable', () => {
     const result = loadDateOrVariable('2024-01-01', false, null, 'Default');
 
-    expect(result.date).toEqual(new Date('2024-01-01'));
+    expect(result.date).toEqual(new Date('2024-01-01T12:00:00Z'));
     expect(result.dateIsVariable).toBe(false);
     expect(result.dateVariable).toBeNull();
     expect(loadVariable).not.toHaveBeenCalled();
@@ -90,7 +87,7 @@ describe('loadDateOrVariable', () => {
   it('should return parsed date when dateIsVariable is false and parsing succeeds', () => {
     const result = loadDateOrVariable('2024-12-31', false, 'START_DATE', 'Default');
 
-    expect(result.date).toEqual(new Date('2024-12-31'));
+    expect(result.date).toEqual(new Date('2024-12-31T12:00:00Z'));
     expect(result.dateIsVariable).toBe(false);
     expect(result.dateVariable).toBe('START_DATE');
     expect(loadVariable).not.toHaveBeenCalled();
@@ -140,7 +137,7 @@ describe('loadNumberOrVariable', () => {
     const result = loadNumberOrVariable('{HALF}', false, null, 'Default');
 
     expect(result.amount).toBe('{HALF}');
-    expect(result.amountIsVariable).toBe(false);
+    expect(result.amountIsVariable).toBe(true);
     expect(result.amountVariable).toBeNull();
   });
 
@@ -148,7 +145,7 @@ describe('loadNumberOrVariable', () => {
     const result = loadNumberOrVariable('-{FULL}', false, null, 'Default');
 
     expect(result.amount).toBe('-{FULL}');
-    expect(result.amountIsVariable).toBe(false);
+    expect(result.amountIsVariable).toBe(true);
     expect(result.amountVariable).toBeNull();
   });
 

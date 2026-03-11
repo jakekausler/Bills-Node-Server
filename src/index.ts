@@ -97,8 +97,10 @@ const isTokenValid = (token?: string) => {
 };
 
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  next();
-  return;
+  if (process.env.DISABLE_AUTH === 'true') {
+    next();
+    return;
+  }
   const token = req.headers.authorization;
   const userId = isTokenValid(token);
   if (userId === false) {
@@ -389,31 +391,6 @@ app.post('/api/auth/logout', verifyToken, (_req: Request, res: Response) => {
   res.json({ token: null });
 });
 
-app.post('/api/auth/register', async (_req: Request, res: Response) => {
-  res.status(500).json({ error: 'This function is disabled' });
-  return;
-  // const { username, password } = req.body;
-  // const hashedPassword = await bcrypt.hash(password, 10);
-  // let connection;
-  // try {
-  //   connection = mysql.createConnection({
-  //     host: process.env.MYSQL_HOST,
-  //     user: process.env.MYSQL_USERNAME,
-  //     password: process.env.MYSQL_PASSWORD,
-  //     database: process.env.MYSQL_DATABASE,
-  //   });
-
-  //   connection.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword]);
-  //   res.json({ success: true });
-  // } catch {
-  //   res.status(500).json({ error: 'Failed to create user' });
-  // } finally {
-  //   if (connection) {
-  //     connection.end();
-  //   }
-  // }
-});
-
 app.get('/api/auth/validate', (req: Request, res: Response) => {
   const token = req.headers.authorization;
   const userId = isTokenValid(token);
@@ -428,8 +405,7 @@ app.get('/api/moneyMovement', verifyToken, async (req: Request, res: Response) =
   res.json(await getMoneyMovementChart(req));
 });
 
-app.get('/api/sharedSpending', async (req: Request, res: Response) => {
-  console.log('Request:', req);
+app.get('/api/sharedSpending', verifyToken, async (req: Request, res: Response) => {
   res.send(await getSharedSpending(req));
 });
 

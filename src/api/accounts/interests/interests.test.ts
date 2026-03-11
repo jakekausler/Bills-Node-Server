@@ -40,13 +40,13 @@ const mockRequest = {
 describe('Interests API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetData.mockReturnValue(mockData);
+    mockGetData.mockResolvedValue(mockData);
     mockGetById.mockReturnValue(mockAccount);
   });
 
   describe('getAccountInterests', () => {
-    it('should return serialized interests for an account', () => {
-      const result = getAccountInterests(mockRequest);
+    it('should return serialized interests for an account', async () => {
+      const result = await getAccountInterests(mockRequest);
 
       expect(mockGetData).toHaveBeenCalledWith(mockRequest);
       expect(mockGetById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-123');
@@ -54,11 +54,11 @@ describe('Interests API', () => {
       expect(result).toEqual([{ id: 'interest-123', rate: 0.05 }]);
     });
 
-    it('should return empty array if account has no interests', () => {
+    it('should return empty array if account has no interests', async () => {
       const emptyAccount = { interests: [] };
       mockGetById.mockReturnValue(emptyAccount);
 
-      const result = getAccountInterests(mockRequest);
+      const result = await getAccountInterests(mockRequest);
 
       expect(result).toEqual([]);
     });
@@ -78,10 +78,10 @@ describe('Interests API', () => {
       mockInterestConstructor.mockImplementation(() => ({ id: 'new-interest-123' }) as any);
     });
 
-    it('should add interest to account', () => {
-      mockGetData.mockReturnValue(mockInterestData);
+    it('should add interest to account', async () => {
+      mockGetData.mockResolvedValue(mockInterestData);
 
-      const result = addInterest(mockRequest);
+      const result = await addInterest(mockRequest);
 
       expect(mockGetById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-123');
       expect(mockAccount.interests).toHaveLength(2); // Original + new interest
@@ -109,10 +109,10 @@ describe('Interests API', () => {
       );
     });
 
-    it('should replace all account interests with new ones', () => {
-      mockGetData.mockReturnValue(mockInterestDataArray);
+    it('should replace all account interests with new ones', async () => {
+      mockGetData.mockResolvedValue(mockInterestDataArray);
 
-      const result = updateInterest(mockRequest);
+      const result = await updateInterest(mockRequest);
 
       expect(mockGetById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-123');
       expect(mockAccount.interests).toHaveLength(2);
@@ -120,11 +120,11 @@ describe('Interests API', () => {
       expect(result).toEqual(['interest-0.04', 'interest-0.05']);
     });
 
-    it('should handle empty interest array', () => {
+    it('should handle empty interest array', async () => {
       const emptyData = { ...mockInterestDataArray, data: [] };
-      mockGetData.mockReturnValue(emptyData);
+      mockGetData.mockResolvedValue(emptyData);
 
-      const result = updateInterest(mockRequest);
+      const result = await updateInterest(mockRequest);
 
       expect(mockAccount.interests).toHaveLength(0);
       expect(result).toEqual([]);
@@ -132,8 +132,8 @@ describe('Interests API', () => {
   });
 
   describe('deleteInterest', () => {
-    it('should clear all interests from account', () => {
-      const result = deleteInterest(mockRequest);
+    it('should clear all interests from account', async () => {
+      const result = await deleteInterest(mockRequest);
 
       expect(mockGetById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-123');
       expect(mockAccount.interests).toHaveLength(0);

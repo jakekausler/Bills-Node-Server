@@ -27,6 +27,7 @@ export async function addInterest(request: Request) {
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   const interest = new Interest(data.data);
   account.interests.push(interest);
+  saveData(data.accountsAndTransfers);
   return interest.id;
 }
 

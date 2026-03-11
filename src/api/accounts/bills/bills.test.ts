@@ -44,13 +44,13 @@ const mockRequest = {
 describe('Bills API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetData.mockReturnValue(mockData);
+    mockGetData.mockResolvedValue(mockData);
     mockGetById.mockReturnValue(mockAccount);
   });
 
   describe('getAccountBills', () => {
-    it('should return serialized bills for an account', () => {
-      const result = getAccountBills(mockRequest);
+    it('should return serialized bills for an account', async () => {
+      const result = await getAccountBills(mockRequest);
 
       expect(mockGetData).toHaveBeenCalledWith(mockRequest);
       expect(mockGetById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-123');
@@ -58,11 +58,11 @@ describe('Bills API', () => {
       expect(result).toEqual([{ id: 'bill-123', name: 'Test Bill' }]);
     });
 
-    it('should return empty array if account has no bills', () => {
+    it('should return empty array if account has no bills', async () => {
       const emptyAccount = { bills: [] };
       mockGetById.mockReturnValue(emptyAccount);
 
-      const result = getAccountBills(mockRequest);
+      const result = await getAccountBills(mockRequest);
 
       expect(result).toEqual([]);
     });
@@ -83,10 +83,10 @@ describe('Bills API', () => {
       mockBillConstructor.mockImplementation(() => ({ id: 'new-bill-123' }) as any);
     });
 
-    it('should add bill to account when not a transfer', () => {
-      mockGetData.mockReturnValue(mockBillData);
+    it('should add bill to account when not a transfer', async () => {
+      mockGetData.mockResolvedValue(mockBillData);
 
-      const result = addBill(mockRequest);
+      const result = await addBill(mockRequest);
 
       expect(mockGetById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-123');
       expect(mockAccount.bills).toHaveLength(2); // Original + new bill
@@ -94,14 +94,14 @@ describe('Bills API', () => {
       expect(result).toBe('new-bill-123');
     });
 
-    it('should add bill to transfers when isTransfer is true', () => {
+    it('should add bill to transfers when isTransfer is true', async () => {
       const transferBillData = {
         ...mockBillData,
         data: { ...mockBillData.data, isTransfer: true },
       };
-      mockGetData.mockReturnValue(transferBillData);
+      mockGetData.mockResolvedValue(transferBillData);
 
-      const result = addBill(mockRequest);
+      const result = await addBill(mockRequest);
 
       expect(mockData.accountsAndTransfers.transfers.bills).toHaveLength(1);
       expect(mockSaveData).toHaveBeenCalledWith(mockData.accountsAndTransfers);

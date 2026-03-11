@@ -298,7 +298,7 @@ export class CacheManager {
       if (!entry) {
         return false;
       }
-      if (!this.isExpired(entry)) {
+      if (this.isExpired(entry)) {
         CacheManager.memoryCache.delete(key); // Remove expired entry
         return false;
       }
@@ -650,7 +650,9 @@ export class CacheManager {
     // Check memory cache first
     for (const [key, entry] of CacheManager.memoryCache.entries()) {
       if (key && typeof key === 'string' && key.startsWith(prefix) && !this.isExpired(entry)) {
-        const snapshotTime = parseInt(key.substring(prefix.length));
+        const dateStr = this.balanceSnapshotKeyToDateString(key);
+        if (!dateStr) continue;
+        const snapshotTime = new Date(dateStr + 'T12:00:00Z').getTime();
         if (snapshotTime <= targetTime && (!closestEntry || snapshotTime > closestEntry.time)) {
           closestEntry = { key, snapshot: entry.data, time: snapshotTime };
         }
@@ -664,7 +666,9 @@ export class CacheManager {
         (file) => file && typeof file === 'string' && file.startsWith(prefix) && file.endsWith('.json'),
       );
       for (const file of snapshotFiles) {
-        const snapshotTime = parseInt(file.substring(prefix.length, file.length - 5));
+        const dateStr = this.balanceSnapshotKeyToDateString(file.replace('.json', ''));
+        if (!dateStr) continue;
+        const snapshotTime = new Date(dateStr + 'T12:00:00Z').getTime();
         if (snapshotTime <= targetTime && (!closestEntry || snapshotTime > closestEntry.time)) {
           const snapshot = await this.getDisk<BalanceSnapshot>(
             file.substring(0, file.length - 5),

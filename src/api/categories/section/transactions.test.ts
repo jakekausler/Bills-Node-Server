@@ -11,7 +11,7 @@ describe('getCategorySectionTransactions', () => {
     vi.clearAllMocks();
   });
 
-  it('should return transactions for a specific category section', () => {
+  it('should return transactions for a specific category section', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -74,9 +74,9 @@ describe('getCategorySectionTransactions', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionTransactions(mockRequest);
+    const result = await getCategorySectionTransactions(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(result).toEqual([
@@ -97,7 +97,7 @@ describe('getCategorySectionTransactions', () => {
     ]);
   });
 
-  it('should handle selected accounts filtering', () => {
+  it('should handle selected accounts filtering', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -149,9 +149,9 @@ describe('getCategorySectionTransactions', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionTransactions(mockRequest);
+    const result = await getCategorySectionTransactions(mockRequest);
 
     expect(result).toEqual([
       {
@@ -163,7 +163,7 @@ describe('getCategorySectionTransactions', () => {
     ]);
   });
 
-  it('should handle hidden accounts filtering', () => {
+  it('should handle hidden accounts filtering', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -215,9 +215,9 @@ describe('getCategorySectionTransactions', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionTransactions(mockRequest);
+    const result = await getCategorySectionTransactions(mockRequest);
 
     expect(result).toEqual([
       {
@@ -229,7 +229,7 @@ describe('getCategorySectionTransactions', () => {
     ]);
   });
 
-  it('should deduplicate transactions by ID', () => {
+  it('should deduplicate transactions by ID', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -274,15 +274,15 @@ describe('getCategorySectionTransactions', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionTransactions(mockRequest);
+    const result = await getCategorySectionTransactions(mockRequest);
 
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('activity-1');
   });
 
-  it('should return empty array for non-matching section', () => {
+  it('should return empty array for non-matching section', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [
@@ -315,14 +315,14 @@ describe('getCategorySectionTransactions', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionTransactions(mockRequest);
+    const result = await getCategorySectionTransactions(mockRequest);
 
     expect(result).toEqual([]);
   });
 
-  it('should handle empty accounts', () => {
+  it('should handle empty accounts', async () => {
     const mockData = {
       accountsAndTransfers: {
         accounts: [],
@@ -335,14 +335,14 @@ describe('getCategorySectionTransactions', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionTransactions(mockRequest);
+    const result = await getCategorySectionTransactions(mockRequest);
 
     expect(result).toEqual([]);
   });
 
-  it('should serialize activities before returning', () => {
+  it('should serialize activities before returning', async () => {
     const mockSerializedData = {
       id: 'activity-1',
       category: 'Food.Groceries',
@@ -378,9 +378,9 @@ describe('getCategorySectionTransactions', () => {
       params: { section: 'Food' },
     });
 
-    vi.mocked(getData).mockReturnValue(mockData as any);
+    vi.mocked(getData).mockResolvedValue(mockData as any);
 
-    const result = getCategorySectionTransactions(mockRequest);
+    const result = await getCategorySectionTransactions(mockRequest);
 
     expect(mockActivity.serialize).toHaveBeenCalled();
     expect(result).toEqual([mockSerializedData]);

@@ -44,13 +44,13 @@ const mockRequest = {
 describe('Activity API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetData.mockReturnValue(mockData);
+    mockGetData.mockResolvedValue(mockData);
     mockGetById.mockReturnValue(mockAccount);
   });
 
   describe('getAccountActivity', () => {
-    it('should return serialized activities for an account', () => {
-      const result = getAccountActivity(mockRequest);
+    it('should return serialized activities for an account', async () => {
+      const result = await getAccountActivity(mockRequest);
 
       expect(mockGetData).toHaveBeenCalledWith(mockRequest);
       expect(mockGetById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-123');
@@ -58,11 +58,11 @@ describe('Activity API', () => {
       expect(result).toEqual([{ id: 'activity-123', amount: 100, description: 'Test Activity' }]);
     });
 
-    it('should return empty array if account has no activities', () => {
+    it('should return empty array if account has no activities', async () => {
       const emptyAccount = { activity: [] };
       mockGetById.mockReturnValue(emptyAccount);
 
-      const result = getAccountActivity(mockRequest);
+      const result = await getAccountActivity(mockRequest);
 
       expect(result).toEqual([]);
     });
@@ -84,10 +84,10 @@ describe('Activity API', () => {
       mockActivityConstructor.mockImplementation(() => ({ id: 'new-activity-123' }) as any);
     });
 
-    it('should add activity to account when not a transfer', () => {
-      mockGetData.mockReturnValue(mockActivityData);
+    it('should add activity to account when not a transfer', async () => {
+      mockGetData.mockResolvedValue(mockActivityData);
 
-      const result = addActivity(mockRequest);
+      const result = await addActivity(mockRequest);
 
       expect(mockGetById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-123');
       expect(mockAccount.activity).toHaveLength(2); // Original + new activity
@@ -95,14 +95,14 @@ describe('Activity API', () => {
       expect(result).toBe('new-activity-123');
     });
 
-    it('should add activity to transfers when isTransfer is true', () => {
+    it('should add activity to transfers when isTransfer is true', async () => {
       const transferActivityData = {
         ...mockActivityData,
         data: { ...mockActivityData.data, isTransfer: true },
       };
-      mockGetData.mockReturnValue(transferActivityData);
+      mockGetData.mockResolvedValue(transferActivityData);
 
-      const result = addActivity(mockRequest);
+      const result = await addActivity(mockRequest);
 
       expect(mockData.accountsAndTransfers.transfers.activity).toHaveLength(1);
       expect(mockSaveData).toHaveBeenCalledWith(mockData.accountsAndTransfers);

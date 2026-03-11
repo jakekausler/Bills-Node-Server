@@ -22,8 +22,7 @@ import {
 import { Account } from '../../data/account/account';
 import { Bill } from '../../data/bill/bill';
 import { Interest } from '../../data/interest/interest';
-import { nextDate } from '../calculate/helpers';
-import { formatDate, isAfterOrSame, isBeforeOrSame, isSame } from '../date/date';
+import { formatDate, isAfterOrSame, isBeforeOrSame, isSame, nextDate } from '../date/date';
 import { AccountManager } from './account-manager';
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
@@ -35,7 +34,6 @@ export class Timeline {
   private events: TimelineEvent[];
   private segments: Segment[];
   private eventIndex: Map<string, TimelineEvent>;
-  private dateIndex: Map<string, TimelineEvent[]>;
   private calculationBegin: number;
   private enableLogging: boolean;
   private monteCarloConfig: MonteCarloConfig | null;
@@ -50,7 +48,6 @@ export class Timeline {
     this.events = [];
     this.segments = [];
     this.eventIndex = new Map();
-    this.dateIndex = new Map();
     this.calculationBegin = calculationBegin;
     this.enableLogging = enableLogging;
     this.monteCarloConfig = monteCarloConfig;
@@ -683,7 +680,7 @@ export class Timeline {
 
     // Count the number of years between startDate and endDate that have the increase date
     for (let year = startYear; year <= endYear; year++) {
-      const milestone = new Date(year, increaseDate.month, increaseDate.day);
+      const milestone = new Date(Date.UTC(year, increaseDate.month, increaseDate.day));
       if (isAfterOrSame(milestone, startDate) && isBeforeOrSame(milestone, endDate)) {
         count++;
       }
@@ -752,11 +749,11 @@ export class Timeline {
     // }
     const samples: number[] = [];
     for (let i = 0; i < yearsDiff; i++) {
-      const increaseDate = new Date(
+      const increaseDate = new Date(Date.UTC(
         bill.startDate.getUTCFullYear() + i,
         bill.increaseByDate.month,
         bill.increaseByDate.day,
-      );
+      ));
       const sample = this.monteCarloConfig?.handler?.getSample(bill.monteCarloSampleType, increaseDate);
       if (sample === undefined || sample === null) {
         throw new Error(`No sample found for ${bill.monteCarloSampleType} on ${formatDate(currentDate)}`);
@@ -775,11 +772,6 @@ export class Timeline {
   private addEvent(event: TimelineEvent): void {
     this.events.push(event);
     this.eventIndex.set(event.id, event);
-
-    const dateKey = dayjs.utc(event.date).format('YYYY-MM-DD');
-    if (!this.dateIndex.has(dateKey)) {
-      this.dateIndex.set(dateKey, []);
-    }
   }
 
   private sortEvents(): void {
@@ -797,15 +789,9 @@ export class Timeline {
 
   private rebuildIndices(): void {
     this.eventIndex.clear();
-    this.dateIndex.clear();
 
     for (const event of this.events) {
       this.eventIndex.set(event.id, event);
-
-      const dateKey = dayjs.utc(event.date).format('YYYY-MM-DD');
-      if (!this.dateIndex.has(dateKey)) {
-        this.dateIndex.set(dateKey, []);
-      }
     }
   }
 
