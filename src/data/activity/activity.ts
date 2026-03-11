@@ -82,8 +82,8 @@ export class Activity {
     // Healthcare properties
     this.isHealthcare = data.isHealthcare || false;
     this.healthcarePerson = data.healthcarePerson || null;
-    this.copayAmount = data.copayAmount || null;
-    this.coinsurancePercent = data.coinsurancePercent || null;
+    this.copayAmount = data.copayAmount ?? null;
+    this.coinsurancePercent = data.coinsurancePercent ?? null;
     this.countsTowardDeductible = data.countsTowardDeductible ?? true;
     this.countsTowardOutOfPocket = data.countsTowardOutOfPocket ?? true;
 

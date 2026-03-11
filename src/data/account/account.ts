@@ -89,9 +89,9 @@ export class Account {
     this.usesRMD = data.usesRMD || false;
     this.accountOwnerDOB = data.accountOwnerDOB ? parseDate(data.accountOwnerDOB as any) : null;
     this.rmdAccount = data.rmdAccount || null;
-    this.minimumBalance = data.minimumBalance || null;
-    this.maximumBalance = data.maximumBalance || null;
-    this.minimumPullAmount = data.minimumPullAmount || null;
+    this.minimumBalance = data.minimumBalance ?? null;
+    this.maximumBalance = data.maximumBalance ?? null;
+    this.minimumPullAmount = data.minimumPullAmount ?? null;
     this.performsPulls = data.performsPulls || false;
     this.performsPushes = data.performsPushes || false;
     this.pushStart = data.pushStart ? parseDate(data.pushStart as any) : null;
