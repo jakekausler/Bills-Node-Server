@@ -2,6 +2,7 @@ import { Request } from 'express';
 import { getData } from '../../utils/net/request';
 import { loadHealthcareConfigs } from '../../utils/io/healthcareConfigs';
 import { calculateAllActivity } from '../../utils/calculate-v3/engine';
+import { getPlanYear } from './utils';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { HealthcareConfig } from '../../data/healthcare/types';
@@ -318,26 +319,3 @@ function calculateSpending(
   };
 }
 
-/**
- * Determine which plan year a given date falls into based on reset date.
- *
- * Example: If reset is Jan 1 (resetMonth=0, resetDay=1):
- *   - Dec 15, 2024 → plan year 2024
- *   - Jan 2, 2024 → plan year 2024
- *
- * Example: If reset is July 1 (resetMonth=6, resetDay=1):
- *   - June 30, 2024 → plan year 2023
- *   - July 1, 2024 → plan year 2024
- */
-function getPlanYear(date: Date, resetMonth: number, resetDay: number): number {
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth();
-  const day = date.getUTCDate();
-
-  // Check if date is before reset date in this calendar year
-  const beforeReset =
-    month < resetMonth || (month === resetMonth && day < resetDay);
-
-  // If before reset, we're still in previous plan year
-  return beforeReset ? year - 1 : year;
-}

@@ -451,14 +451,11 @@ export function insertBill(
   isTransfer: boolean,
   simulation: string = 'Default',
 ) {
-  if (data.amountVariable === '{HALF}' || data.amountVariable === '{FULL}') {
-    data.amountIsVariable = false;
-    data.amountVariable = null;
-  }
+  const activityData = { ...data, amountIsVariable: false, amountVariable: null };
   if (isTransfer) {
-    accountsAndTransfers.transfers.activity.push(new Activity(data, simulation));
+    accountsAndTransfers.transfers.activity.push(new Activity(activityData, simulation));
   } else {
-    account.activity.push(new Activity(data, simulation));
+    account.activity.push(new Activity(activityData, simulation));
   }
   bill.advance();
 }

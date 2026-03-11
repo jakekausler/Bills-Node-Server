@@ -1,4 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { AccountData } from './types';
 import { Activity } from '../activity/activity';
 import { Bill } from '../bill/bill';
@@ -6,6 +8,8 @@ import { Interest } from '../interest/interest';
 import { ConsolidatedActivity } from '../activity/consolidatedActivity';
 import { formatDate, parseDate } from '../../utils/date/date';
 import { DateString } from '../../utils/date/types';
+
+dayjs.extend(utc);
 
 /**
  * Represents a financial account with activities, bills, and interests
@@ -191,7 +195,7 @@ export function todayBalance(account: Account) {
   const activities = account.consolidatedActivity;
   let lastBalance = 0;
   for (const activity of activities) {
-    if (activity.date > new Date()) {
+    if (activity.date > dayjs.utc().toDate()) {
       return lastBalance;
     }
     lastBalance = activity.balance;

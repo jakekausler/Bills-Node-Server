@@ -22,9 +22,10 @@ async function getInterestAsActivity(request: Request, data: any) {
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   for (const a of account.consolidatedActivity) {
     if (a.interestId === request.params.interestId) {
-      a.flag = false;
-      a.flagColor = null;
-      return a.serialize();
+      const serialized = a.serialize();
+      serialized.flag = false;
+      serialized.flagColor = null;
+      return serialized;
     }
   }
   return null;

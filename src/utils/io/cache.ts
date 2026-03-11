@@ -6,10 +6,10 @@ import { CacheManager } from '../calculate-v3/cache';
  * This function clears the accounts and transfers cache, resets min/max dates,
  * and clears the RMD table cache. Used primarily for testing and initialization.
  */
-export function resetCache(date?: Date) {
+export function resetCache(simulation: string = 'Default', date?: Date) {
   const cacheManager = new CacheManager(
     { useDiskCache: false, diskCacheDir: 'cache', snapshotInterval: 'monthly' },
-    'Default',
+    simulation,
   );
   if (date) {
     cacheManager.clearCacheFromDate(date);

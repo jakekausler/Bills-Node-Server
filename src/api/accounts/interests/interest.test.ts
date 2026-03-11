@@ -52,10 +52,10 @@ describe('Specific Interest API', () => {
 
         expect(getData).toHaveBeenCalledWith(mockRequest);
         expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-123');
-        expect(mockActivity.flag).toBe(false);
-        expect(mockActivity.flagColor).toBeNull();
+        expect(mockActivity.flag).toBe(true);
+        expect(mockActivity.flagColor).toBe('red');
         expect(mockActivity.serialize).toHaveBeenCalled();
-        expect(result).toEqual({ id: 'activity-1', amount: 50, interestId: 'interest-123' });
+        expect(result).toEqual({ id: 'activity-1', amount: 50, interestId: 'interest-123', flag: false, flagColor: null });
       });
 
       it('should return null when no consolidated activity matches the interestId', async () => {

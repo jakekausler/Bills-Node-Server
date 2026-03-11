@@ -24,7 +24,7 @@ describe('Cache Utility', () => {
 
   describe('resetCache', () => {
     it('should create a CacheManager and call clear when no date is provided', () => {
-      resetCache();
+      resetCache('Default');
 
       expect(CacheManager).toHaveBeenCalledWith(
         { useDiskCache: false, diskCacheDir: 'cache', snapshotInterval: 'monthly' },
@@ -37,7 +37,7 @@ describe('Cache Utility', () => {
     it('should create a CacheManager and call clearCacheFromDate when a date is provided', () => {
       const testDate = new Date('2024-06-15');
 
-      resetCache(testDate);
+      resetCache('Default', testDate);
 
       expect(CacheManager).toHaveBeenCalledWith(
         { useDiskCache: false, diskCacheDir: 'cache', snapshotInterval: 'monthly' },
@@ -49,7 +49,7 @@ describe('Cache Utility', () => {
 
     it('should handle different dates correctly', () => {
       const earlyDate = new Date('2020-01-01');
-      resetCache(earlyDate);
+      resetCache('Default', earlyDate);
       expect(mockClearCacheFromDate).toHaveBeenCalledWith(earlyDate);
 
       vi.clearAllMocks();
@@ -62,7 +62,7 @@ describe('Cache Utility', () => {
       );
 
       const lateDate = new Date('2030-12-31');
-      resetCache(lateDate);
+      resetCache('Default', lateDate);
       expect(mockClearCacheFromDate).toHaveBeenCalledWith(lateDate);
     });
   });

@@ -134,23 +134,19 @@ describe('Categories API', () => {
       expect(result.Housing).toEqual(['Mortgage', 'Rent', 'Utilities']);
     });
 
-    it('should return error for empty path', async () => {
+    it('should throw error for empty path', async () => {
       mockLoadCategories.mockReturnValue({});
       mockGetData.mockResolvedValue({ path: [] });
 
-      const result = await addCategory(mockRequest);
-
-      expect(result).toEqual({ error: 'Invalid path' });
+      await expect(addCategory(mockRequest)).rejects.toThrow('Invalid path');
       expect(mockSaveCategories).not.toHaveBeenCalled();
     });
 
-    it('should return error for path with more than 2 elements', async () => {
+    it('should throw error for path with more than 2 elements', async () => {
       mockLoadCategories.mockReturnValue({});
       mockGetData.mockResolvedValue({ path: ['Housing', 'Rent', 'Monthly'] });
 
-      const result = await addCategory(mockRequest);
-
-      expect(result).toEqual({ error: 'Invalid path' });
+      await expect(addCategory(mockRequest)).rejects.toThrow('Invalid path');
       expect(mockSaveCategories).not.toHaveBeenCalled();
     });
   });
@@ -241,23 +237,19 @@ describe('Categories API', () => {
       expect(mockSaveCategories).toHaveBeenCalledWith(mockCategories);
     });
 
-    it('should return error for empty path', async () => {
+    it('should throw error for empty path', async () => {
       mockLoadCategories.mockReturnValue({});
       mockGetData.mockResolvedValue({ path: [] });
 
-      const result = await deleteCategory(mockRequest);
-
-      expect(result).toEqual({ error: 'Invalid path' });
+      await expect(deleteCategory(mockRequest)).rejects.toThrow('Invalid path');
       expect(mockSaveCategories).not.toHaveBeenCalled();
     });
 
-    it('should return error for path with more than 2 elements', async () => {
+    it('should throw error for path with more than 2 elements', async () => {
       mockLoadCategories.mockReturnValue({});
       mockGetData.mockResolvedValue({ path: ['Housing', 'Rent', 'Monthly'] });
 
-      const result = await deleteCategory(mockRequest);
-
-      expect(result).toEqual({ error: 'Invalid path' });
+      await expect(deleteCategory(mockRequest)).rejects.toThrow('Invalid path');
       expect(mockSaveCategories).not.toHaveBeenCalled();
     });
   });

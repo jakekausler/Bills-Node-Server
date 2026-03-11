@@ -29,7 +29,10 @@ export function loadVariableValue(value: string): VariableValue {
 
   // Try to parse as a number - check if the entire string is a valid number
   const parsedNumber = parseFloat(value);
-  if (!isNaN(parsedNumber) && isFinite(parsedNumber) && value.trim() === parsedNumber.toString()) {
+  const trimmedValue = value.trim();
+  // Strict check: ensure the entire trimmed string converts back to the same string representation
+  // This prevents partial numeric matches like "2024/01/01" -> 2024
+  if (!isNaN(parsedNumber) && isFinite(parsedNumber) && trimmedValue !== '' && trimmedValue === parsedNumber.toString()) {
     return {
       value: parsedNumber,
       type: 'amount',

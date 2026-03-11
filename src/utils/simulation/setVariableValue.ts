@@ -27,6 +27,9 @@ export function setVariableValue(value: VariableValue): VariableValue {
       };
     }
   } else if (value.type === 'date') {
+    if (value.value instanceof Date) {
+      return { value: value.value, type: 'date' };
+    }
     return {
       value: parseDate(value.value as DateString),
       type: 'date',

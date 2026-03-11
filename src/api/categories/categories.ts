@@ -51,11 +51,11 @@ export async function addCategory(request: Request) {
   const path = data.path;
 
   if (!Array.isArray(path)) {
-    return { error: 'Invalid path: must be an array' };
+    throw new Error('Invalid path: must be an array');
   }
 
   if (path.length === 0 || path.length > 2) {
-    return { error: 'Invalid path' };
+    throw new Error('Invalid path');
   }
 
   if (path.length === 1) {
@@ -108,11 +108,11 @@ export async function deleteCategory(request: Request) {
   const path = data.path;
 
   if (!Array.isArray(path)) {
-    return { error: 'Invalid path: must be an array' };
+    throw new Error('Invalid path: must be an array');
   }
 
   if (path.length === 0 || path.length > 2) {
-    return { error: 'Invalid path' };
+    throw new Error('Invalid path');
   }
 
   if (path.length === 1) {

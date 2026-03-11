@@ -44,10 +44,9 @@ export const backup = (fn: string) => {
   if (!existsSync(BACKUP_DIR)) {
     mkdirSync(BACKUP_DIR);
   }
-  const backups = readdirSync(BACKUP_DIR).filter((f) => f.startsWith(fn));
-  if (backups.length >= MAX_BACKUPS) {
-    const oldest = backups.sort((a, b) => a.localeCompare(b))[0];
-    unlinkSync(path.join(BACKUP_DIR, oldest));
+  const backups = readdirSync(BACKUP_DIR).filter((f) => f.startsWith(fn + '.'));
+  while (backups.length >= MAX_BACKUPS) {
+    unlinkSync(path.join(BACKUP_DIR, backups.shift()!));
   }
   copyFileSync(safePath(fn), path.join(BACKUP_DIR, `${fn}.${Date.now()}`));
 };

@@ -1,14 +1,12 @@
-import fs from 'fs/promises';
-import path from 'path';
 import { HealthcareConfig, HealthcareConfigsData } from '../../data/healthcare/types';
+import { load, save, checkExists } from './io';
 
-const HEALTHCARE_CONFIGS_PATH = path.join(__dirname, '../../../data', 'healthcare_configs.json');
+const HEALTHCARE_CONFIGS_FILE = 'healthcare_configs.json';
 
-export async function loadHealthcareConfigs(): Promise<HealthcareConfig[]> {
+export function loadHealthcareConfigs(): HealthcareConfig[] {
   try {
-    const data = await fs.readFile(HEALTHCARE_CONFIGS_PATH, 'utf-8');
-    const parsed: HealthcareConfigsData = JSON.parse(data);
-    return parsed.configs || [];
+    const data = load<HealthcareConfigsData>(HEALTHCARE_CONFIGS_FILE);
+    return data.configs || [];
   } catch (error) {
     // If file doesn't exist, return empty array
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -18,7 +16,7 @@ export async function loadHealthcareConfigs(): Promise<HealthcareConfig[]> {
   }
 }
 
-export async function saveHealthcareConfigs(configs: HealthcareConfig[]): Promise<void> {
+export function saveHealthcareConfigs(configs: HealthcareConfig[]): void {
   const data: HealthcareConfigsData = { configs };
-  await fs.writeFile(HEALTHCARE_CONFIGS_PATH, JSON.stringify(data, null, 2), 'utf-8');
+  save(data, HEALTHCARE_CONFIGS_FILE);
 }

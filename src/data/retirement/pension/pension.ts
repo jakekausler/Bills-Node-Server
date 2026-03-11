@@ -68,19 +68,25 @@ export class Pension {
   constructor(data: PensionData, simulation = 'Default') {
     this.name = data.name;
     this.payToAcccount = data.payToAcccount;
-    this.paycheckNames = data.paycheckNames;
-    this.paycheckAccounts = data.paycheckAccounts;
-    this.paycheckCategories = data.paycheckCategories;
+    this.paycheckNames = [...data.paycheckNames];
+    this.paycheckAccounts = [...data.paycheckAccounts];
+    this.paycheckCategories = [...data.paycheckCategories];
     this.startDateVariable = data.startDateVariable;
-    this.startDate = loadVariable(data.startDateVariable, simulation) as Date;
+    const startDate = loadVariable(data.startDateVariable, simulation);
+    if (!(startDate instanceof Date)) throw new Error(`Invalid date variable: ${data.startDateVariable}`);
+    this.startDate = startDate;
     this.birthDateVariable = data.birthDateVariable;
-    this.birthDate = loadVariable(data.birthDateVariable, simulation) as Date;
+    const birthDate = loadVariable(data.birthDateVariable, simulation);
+    if (!(birthDate instanceof Date)) throw new Error(`Invalid date variable: ${data.birthDateVariable}`);
+    this.birthDate = birthDate;
     this.workStartDateVariable = data.workStartDateVariable;
-    this.workStartDate = loadVariable(data.workStartDateVariable, simulation) as Date;
-    this.priorAnnualNetIncomes = data.priorAnnualNetIncomes;
-    this.priorAnnualNetIncomeYears = data.priorAnnualNetIncomeYears;
-    this.unreducedRequirements = data.unreducedRequirements;
-    this.reducedRequirements = data.reducedRequirements;
+    const workStartDate = loadVariable(data.workStartDateVariable, simulation);
+    if (!(workStartDate instanceof Date)) throw new Error(`Invalid date variable: ${data.workStartDateVariable}`);
+    this.workStartDate = workStartDate;
+    this.priorAnnualNetIncomes = [...data.priorAnnualNetIncomes];
+    this.priorAnnualNetIncomeYears = [...data.priorAnnualNetIncomeYears];
+    this.unreducedRequirements = [...data.unreducedRequirements];
+    this.reducedRequirements = [...data.reducedRequirements];
     this.highestCompensationConsecutiveYearsToAverage = data.highestCompensationConsecutiveYearsToAverage;
     this.accrualFactor = data.accrualFactor;
     this.reducedRateByAgeThenYearsOfService = Object.fromEntries(

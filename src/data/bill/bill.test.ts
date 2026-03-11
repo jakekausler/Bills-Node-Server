@@ -524,7 +524,10 @@ describe('insertBill', () => {
 
     insertBill(mockAccountsAndTransfers, mockAccount, mockBill, mockActivityData, false);
 
-    expect(mockActivityData.amountIsVariable).toBe(false);
-    expect(mockActivityData.amountVariable).toBe(null);
+    // Check that an activity with special amount variables was added
+    expect(mockAccount.activity).toHaveLength(1);
+    // The function processes the activity internally, but the original data should not be mutated
+    expect(mockActivityData.amountIsVariable).toBe(true);
+    expect(mockActivityData.amountVariable).toBe('{HALF}');
   });
 });

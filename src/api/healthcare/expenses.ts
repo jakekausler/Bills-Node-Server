@@ -5,6 +5,7 @@ import { calculateAllActivity } from '../../utils/calculate-v3/engine';
 import { HealthcareConfig } from '../../data/healthcare/types';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { Account } from '../../data/account/account';
+import { getPlanYear } from './utils';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
@@ -28,22 +29,6 @@ export type HealthcareExpense = {
   individualOOPRemaining: number;
   familyOOPRemaining: number;
 };
-
-/**
- * Determine which plan year a given date falls into based on reset date.
- */
-function getPlanYear(date: Date, resetMonth: number, resetDay: number): number {
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth();
-  const day = date.getUTCDate();
-
-  // Check if date is before reset date in this calendar year
-  const beforeReset =
-    month < resetMonth || (month === resetMonth && day < resetDay);
-
-  // If before reset, we're still in previous plan year
-  return beforeReset ? year - 1 : year;
-}
 
 /**
  * Find which config applies to a person at a given date.
@@ -95,16 +80,10 @@ function calculateRemainingAmounts(
   familyOOPRemaining: number;
 } {
   // Calculate plan year boundaries
-  const planYearStart = dayjs.utc()
-    .year(planYear)
-    .month(config.resetMonth)
-    .date(config.resetDay)
+  const planYearStart = dayjs.utc(`${planYear}-${String(config.resetMonth + 1).padStart(2, '0')}-${String(config.resetDay).padStart(2, '0')}`)
     .startOf('day')
     .toDate();
-  const planYearEnd = dayjs.utc()
-    .year(planYear + 1)
-    .month(config.resetMonth)
-    .date(config.resetDay)
+  const planYearEnd = dayjs.utc(`${planYear + 1}-${String(config.resetMonth + 1).padStart(2, '0')}-${String(config.resetDay).padStart(2, '0')}`)
     .startOf('day')
     .toDate();
 
@@ -223,11 +202,13 @@ function calculateRemainingAmounts(
 /**
  * Find HSA reimbursement for a healthcare expense.
  * Matches by date, amount, and transfer destination account.
+ * Tracks matched transfer IDs to prevent multiple expenses from matching the same transfer.
  */
 function findHSAReimbursement(
   expense: { date: string; patientCost: number },
   accountId: string,
-  allAccounts: Account[]
+  allAccounts: Account[],
+  matchedTransferIds: Set<string>
 ): number {
   // Look for HSA accounts
   for (const account of allAccounts) {
@@ -242,6 +223,11 @@ function findHSAReimbursement(
     // Look for transfer on same date with matching amount
     for (const activity of account.consolidatedActivity) {
       if (!activity.isTransfer) {
+        continue;
+      }
+
+      // Skip already-matched transfers
+      if (matchedTransferIds.has(activity.id)) {
         continue;
       }
 
@@ -264,6 +250,7 @@ function findHSAReimbursement(
       // Check if amount matches (HSA shows negative, expense shows negative, so we compare abs values)
       const transferAmount = Math.abs(Number(activity.amount));
       if (Math.abs(transferAmount - expense.patientCost) < 0.01) {
+        matchedTransferIds.add(activity.id);
         return transferAmount;
       }
     }
@@ -353,6 +340,7 @@ export async function getHealthcareExpenses(
 
   // Collect healthcare expenses with remaining amounts
   const expenses: HealthcareExpense[] = [];
+  const matchedTransferIds = new Set<string>();
 
   for (const account of calculatedData.accounts) {
     if (!account.consolidatedActivity) {
@@ -416,7 +404,8 @@ export async function getHealthcareExpenses(
         hsaReimbursed: findHSAReimbursement(
           { date: typeof activity.date === 'string' ? activity.date : dayjs(activity.date).format('YYYY-MM-DD'), patientCost: Math.abs(Number(activity.amount)) },
           account.id,
-          calculatedData.accounts
+          calculatedData.accounts,
+          matchedTransferIds
         ),
         accountName: account.name,
         isBill: activity.billId !== null && activity.billId !== undefined,

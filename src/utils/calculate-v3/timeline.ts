@@ -72,7 +72,7 @@ export class Timeline {
   }
 
   private static cloneEvent(event: TimelineEvent): TimelineEvent {
-    return { ...event };
+    return { ...event, date: new Date(event.date.getTime()) };
   }
 
   applyMonteCarlo() {
@@ -647,7 +647,7 @@ export class Timeline {
     }
 
     // Add tax event for each year in the range
-    const startYear = Math.max(new Date().getUTCFullYear(), startDate.getUTCFullYear());
+    const startYear = startDate.getUTCFullYear();
     const endYear = endDate.getUTCFullYear();
 
     for (let year = startYear; year <= endYear; year++) {

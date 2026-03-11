@@ -1,24 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HealthcareConfig } from '../../data/healthcare/types';
 
-// Mock fs/promises before importing the module under test
-vi.mock('fs/promises', () => ({
-  default: {
-    readFile: vi.fn(),
-    writeFile: vi.fn(),
-  },
+// Mock ./io before importing the module under test
+vi.mock('./io', () => ({
+  load: vi.fn(),
+  save: vi.fn(),
+  checkExists: vi.fn(),
 }));
 
-// Mock path to make the resolved path predictable
-vi.mock('path', async () => {
-  const actual = await vi.importActual<typeof import('path')>('path');
-  return {
-    ...actual,
-    join: vi.fn((...args: string[]) => args.join('/')),
-  };
-});
-
-import fs from 'fs/promises';
+import { load, save } from './io';
 import { loadHealthcareConfigs, saveHealthcareConfigs } from './healthcareConfigs';
 
 const sampleConfig: HealthcareConfig = {
@@ -59,74 +49,81 @@ describe('healthcareConfigs', () => {
   });
 
   describe('loadHealthcareConfigs', () => {
-    it('should return empty array when file does not exist (ENOENT)', async () => {
+    it('should return empty array when file does not exist (ENOENT)', () => {
       const error = Object.assign(new Error('File not found'), { code: 'ENOENT' });
-      vi.mocked(fs.readFile).mockRejectedValue(error);
+      vi.mocked(load).mockImplementationOnce(() => {
+        throw error;
+      });
 
-      const result = await loadHealthcareConfigs();
+      const result = loadHealthcareConfigs();
 
       expect(result).toEqual([]);
     });
 
-    it('should return configs array when file exists and has data', async () => {
+    it('should return configs array when file exists and has data', () => {
       const fileData = { configs: [sampleConfig, anotherConfig] };
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(fileData));
+      vi.mocked(load).mockReturnValueOnce(fileData);
 
-      const result = await loadHealthcareConfigs();
+      const result = loadHealthcareConfigs();
 
       expect(result).toEqual([sampleConfig, anotherConfig]);
     });
 
-    it('should return empty array when configs field is missing', async () => {
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({}));
+    it('should return empty array when configs field is missing', () => {
+      vi.mocked(load).mockReturnValueOnce({});
 
-      const result = await loadHealthcareConfigs();
-
-      expect(result).toEqual([]);
-    });
-
-    it('should return empty array when configs field is empty array', async () => {
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ configs: [] }));
-
-      const result = await loadHealthcareConfigs();
+      const result = loadHealthcareConfigs();
 
       expect(result).toEqual([]);
     });
 
-    it('should return single config correctly', async () => {
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ configs: [sampleConfig] }));
+    it('should return empty array when configs field is empty array', () => {
+      vi.mocked(load).mockReturnValueOnce({ configs: [] });
 
-      const result = await loadHealthcareConfigs();
+      const result = loadHealthcareConfigs();
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return single config correctly', () => {
+      vi.mocked(load).mockReturnValueOnce({ configs: [sampleConfig] });
+
+      const result = loadHealthcareConfigs();
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual(sampleConfig);
     });
 
-    it('should read file with utf-8 encoding', async () => {
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ configs: [] }));
+    it('should call load with correct filename', () => {
+      vi.mocked(load).mockReturnValueOnce({ configs: [] });
 
-      await loadHealthcareConfigs();
+      loadHealthcareConfigs();
 
-      expect(fs.readFile).toHaveBeenCalledWith(expect.any(String), 'utf-8');
+      expect(load).toHaveBeenCalledWith('healthcare_configs.json');
     });
 
-    it('should throw error for non-ENOENT errors', async () => {
+    it('should throw error for non-ENOENT errors', () => {
       const permissionError = Object.assign(new Error('Permission denied'), { code: 'EACCES' });
-      vi.mocked(fs.readFile).mockRejectedValue(permissionError);
+      vi.mocked(load).mockImplementationOnce(() => {
+        throw permissionError;
+      });
 
-      await expect(loadHealthcareConfigs()).rejects.toThrow('Permission denied');
+      expect(() => loadHealthcareConfigs()).toThrow('Permission denied');
     });
 
-    it('should throw error for JSON parse errors', async () => {
-      vi.mocked(fs.readFile).mockResolvedValue('invalid json {{{');
+    it('should throw error for JSON parse errors', () => {
+      const parseError = new Error('JSON parse failed');
+      vi.mocked(load).mockImplementationOnce(() => {
+        throw parseError;
+      });
 
-      await expect(loadHealthcareConfigs()).rejects.toThrow();
+      expect(() => loadHealthcareConfigs()).toThrow('JSON parse failed');
     });
 
-    it('should preserve all config fields when loading', async () => {
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ configs: [sampleConfig] }));
+    it('should preserve all config fields when loading', () => {
+      vi.mocked(load).mockReturnValueOnce({ configs: [sampleConfig] });
 
-      const result = await loadHealthcareConfigs();
+      const result = loadHealthcareConfigs();
 
       expect(result[0].id).toBe('config-1');
       expect(result[0].name).toBe('Family Plan');
@@ -145,84 +142,71 @@ describe('healthcareConfigs', () => {
   });
 
   describe('saveHealthcareConfigs', () => {
-    it('should write configs to file as JSON', async () => {
-      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    it('should call save with configs and filename', () => {
+      vi.mocked(save).mockImplementationOnce(() => {});
 
-      await saveHealthcareConfigs([sampleConfig]);
+      saveHealthcareConfigs([sampleConfig]);
 
-      expect(fs.writeFile).toHaveBeenCalledTimes(1);
-      expect(fs.writeFile).toHaveBeenCalledWith(
-        expect.any(String),
-        JSON.stringify({ configs: [sampleConfig] }, null, 2),
-        'utf-8',
-      );
+      expect(save).toHaveBeenCalledWith({ configs: [sampleConfig] }, 'healthcare_configs.json');
     });
 
-    it('should wrap configs in a HealthcareConfigsData object', async () => {
-      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    it('should wrap configs in a HealthcareConfigsData object', () => {
+      vi.mocked(save).mockImplementationOnce(() => {});
 
-      await saveHealthcareConfigs([sampleConfig, anotherConfig]);
+      saveHealthcareConfigs([sampleConfig, anotherConfig]);
 
-      const writtenContent = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      const parsedContent = JSON.parse(writtenContent);
-
-      expect(parsedContent).toHaveProperty('configs');
-      expect(parsedContent.configs).toHaveLength(2);
+      const callArgs = vi.mocked(save).mock.calls[0][0] as any;
+      expect(callArgs).toHaveProperty('configs');
+      expect(callArgs.configs).toHaveLength(2);
     });
 
-    it('should save empty array correctly', async () => {
-      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    it('should save empty array correctly', () => {
+      vi.mocked(save).mockImplementationOnce(() => {});
 
-      await saveHealthcareConfigs([]);
+      saveHealthcareConfigs([]);
 
-      expect(fs.writeFile).toHaveBeenCalledWith(
-        expect.any(String),
-        JSON.stringify({ configs: [] }, null, 2),
-        'utf-8',
-      );
+      expect(save).toHaveBeenCalledWith({ configs: [] }, 'healthcare_configs.json');
     });
 
-    it('should save multiple configs correctly', async () => {
-      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    it('should save multiple configs correctly', () => {
+      vi.mocked(save).mockImplementationOnce(() => {});
 
-      await saveHealthcareConfigs([sampleConfig, anotherConfig]);
+      saveHealthcareConfigs([sampleConfig, anotherConfig]);
 
-      const writtenContent = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      const parsedContent = JSON.parse(writtenContent);
-
-      expect(parsedContent.configs[0]).toEqual(sampleConfig);
-      expect(parsedContent.configs[1]).toEqual(anotherConfig);
+      const callArgs = vi.mocked(save).mock.calls[0][0] as any;
+      expect(callArgs.configs[0]).toEqual(sampleConfig);
+      expect(callArgs.configs[1]).toEqual(anotherConfig);
     });
 
-    it('should write with utf-8 encoding', async () => {
-      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    it('should use correct filename', () => {
+      vi.mocked(save).mockImplementationOnce(() => {});
 
-      await saveHealthcareConfigs([sampleConfig]);
+      saveHealthcareConfigs([sampleConfig]);
 
-      expect(fs.writeFile).toHaveBeenCalledWith(expect.any(String), expect.any(String), 'utf-8');
+      const [, filename] = vi.mocked(save).mock.calls[0];
+      expect(filename).toBe('healthcare_configs.json');
     });
 
-    it('should write formatted JSON with 2-space indentation', async () => {
-      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    it('should preserve all fields in saved config', () => {
+      vi.mocked(save).mockImplementationOnce(() => {});
 
-      await saveHealthcareConfigs([sampleConfig]);
+      saveHealthcareConfigs([sampleConfig]);
 
-      const writtenContent = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-
-      // Verify it's formatted (contains newlines and spaces)
-      expect(writtenContent).toContain('\n');
-      expect(writtenContent).toContain('  ');
+      const callArgs = vi.mocked(save).mock.calls[0][0] as any;
+      expect(callArgs.configs[0]).toEqual(sampleConfig);
     });
 
-    it('should propagate write errors', async () => {
+    it('should propagate write errors', () => {
       const writeError = new Error('Disk full');
-      vi.mocked(fs.writeFile).mockRejectedValue(writeError);
+      vi.mocked(save).mockImplementationOnce(() => {
+        throw writeError;
+      });
 
-      await expect(saveHealthcareConfigs([sampleConfig])).rejects.toThrow('Disk full');
+      expect(() => saveHealthcareConfigs([sampleConfig])).toThrow('Disk full');
     });
 
-    it('should preserve null hsaAccountId and endDate', async () => {
-      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    it('should preserve null hsaAccountId and endDate', () => {
+      vi.mocked(save).mockImplementationOnce(() => {});
 
       const configWithNulls: HealthcareConfig = {
         ...sampleConfig,
@@ -230,13 +214,11 @@ describe('healthcareConfigs', () => {
         endDate: null,
       };
 
-      await saveHealthcareConfigs([configWithNulls]);
+      saveHealthcareConfigs([configWithNulls]);
 
-      const writtenContent = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      const parsed = JSON.parse(writtenContent);
-
-      expect(parsed.configs[0].hsaAccountId).toBeNull();
-      expect(parsed.configs[0].endDate).toBeNull();
+      const callArgs = vi.mocked(save).mock.calls[0][0] as any;
+      expect(callArgs.configs[0].hsaAccountId).toBeNull();
+      expect(callArgs.configs[0].endDate).toBeNull();
     });
   });
 });
