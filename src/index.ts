@@ -1,6 +1,7 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import path from 'path';
+import fs from 'fs';
 import { getSimpleAccounts, addAccount, updateAccounts } from './api/accounts/accounts';
 import { getAccount, updateAccount, removeAccount } from './api/accounts/account';
 import { getGraphForAccounts } from './api/accounts/graph';
@@ -650,6 +651,24 @@ app.get('/api/spending-tracker/:id/chart-data', verifyToken, asyncHandler(async 
     }
   }
 }));
+
+// Dev-only frontend logging endpoints
+const FRONTEND_LOG_FILE = '/tmp/frontend.log';
+
+if (process.env.DISABLE_AUTH === 'true') {
+  app.post('/api/dev/log', (req: Request, res: Response) => {
+    const { level, args, timestamp } = req.body;
+    const formattedArgs = args.map((arg: any) => JSON.stringify(arg)).join(' ');
+    const logLine = `[${timestamp}] [${level}] ${formattedArgs}\n`;
+    fs.appendFileSync(FRONTEND_LOG_FILE, logLine);
+    res.json({ ok: true });
+  });
+
+  app.post('/api/dev/log/reset', (_req: Request, res: Response) => {
+    fs.writeFileSync(FRONTEND_LOG_FILE, '');
+    res.json({ ok: true });
+  });
+}
 
 // Serve frontend for all non-API routes (SPA fallback)
 app.get('*', (req: Request, res: Response) => {
