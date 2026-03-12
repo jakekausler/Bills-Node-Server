@@ -690,6 +690,10 @@ if (process.env.DISABLE_AUTH === 'true') {
 
 // Serve frontend for all non-API routes (SPA fallback)
 app.get('*', (req: Request, res: Response) => {
+  if (req.path.startsWith('/api/')) {
+    res.status(404).json({ error: 'API endpoint not found' });
+    return;
+  }
   res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
 });
 

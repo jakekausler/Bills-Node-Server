@@ -1,6 +1,6 @@
 import { Request } from 'express';
 import { getData } from '../../../utils/net/request';
-import { getById, getByIdWithIdx } from '../../../utils/array/array';
+import { getById, getByIdWithIdx, getByIdWithIdxOrNull } from '../../../utils/array/array';
 import { Account } from '../../../data/account/account';
 import { Bill, insertBill } from '../../../data/bill/bill';
 import { BillData } from '../../../data/bill/types';
@@ -116,22 +116,21 @@ async function updateBillAsBill(request: Request, data: any) {
   let originalIsTransfer = false;
   if (data.isTransfer) {
     // Try to get the bill from the transfers, but the bill might have been originally a non-transfer bill
-    try {
-      ({ item: bill, idx: billIdx } = getByIdWithIdx<Bill>(
-        data.accountsAndTransfers.transfers.bills,
-        request.params.billId,
-      ));
+    let result = getByIdWithIdxOrNull<Bill>(data.accountsAndTransfers.transfers.bills, request.params.billId);
+    if (result) {
+      ({ item: bill, idx: billIdx } = result);
       originalIsTransfer = true;
-    } catch {
+    } else {
       ({ item: bill, idx: billIdx } = getByIdWithIdx<Bill>(account.bills, request.params.billId));
       originalIsTransfer = false;
     }
   } else {
     // Try to get the bill from the account, but the bill might have been originally a transfer bill
-    try {
-      ({ item: bill, idx: billIdx } = getByIdWithIdx<Bill>(account.bills, request.params.billId));
+    let result = getByIdWithIdxOrNull<Bill>(account.bills, request.params.billId);
+    if (result) {
+      ({ item: bill, idx: billIdx } = result);
       originalIsTransfer = false;
-    } catch {
+    } else {
       ({ item: bill, idx: billIdx } = getByIdWithIdx<Bill>(
         data.accountsAndTransfers.transfers.bills,
         request.params.billId,
@@ -192,20 +191,21 @@ export async function deleteSpecificBill(request: Request) {
   const data = await getData(request);
   let bill: Bill;
   let billIdx: number;
+  let account: Account | undefined;
   if (data.isTransfer) {
     ({ item: bill, idx: billIdx } = getByIdWithIdx<Bill>(
       data.accountsAndTransfers.transfers.bills,
       request.params.billId,
     ));
   } else {
-    const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
+    account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
     ({ item: bill, idx: billIdx } = getByIdWithIdx<Bill>(account.bills, request.params.billId));
   }
 
   if (data.isTransfer) {
     data.accountsAndTransfers.transfers.bills.splice(billIdx, 1);
   } else {
-    getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId).bills.splice(billIdx, 1);
+    account!.bills.splice(billIdx, 1);
   }
 
   saveData(data.accountsAndTransfers);

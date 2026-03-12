@@ -6,7 +6,7 @@ import {
   changeAccountForActivity,
 } from './specificActivity';
 import { getData } from '../../../utils/net/request';
-import { getById, getByIdWithIdx } from '../../../utils/array/array';
+import { getById, getByIdWithIdx, getByIdWithIdxOrNull } from '../../../utils/array/array';
 import { parseDate } from '../../../utils/date/date';
 import { saveData } from '../../../utils/io/accountsAndTransfers';
 import { createMockRequest } from '../../../utils/test/mockData';
@@ -127,13 +127,13 @@ describe('Specific Activity API', () => {
       });
 
       vi.mocked(getData).mockResolvedValue(mockData as any);
-      vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockActivity, idx: 0 } as any);
+      vi.mocked(getByIdWithIdxOrNull).mockReturnValue({ item: mockActivity, idx: 0 } as any);
       vi.mocked(parseDate).mockReturnValue(new Date('2024-01-15'));
 
       const result = await updateSpecificActivity(mockRequest);
 
       expect(getData).toHaveBeenCalledWith(mockRequest);
-      expect(getByIdWithIdx).toHaveBeenCalledWith(mockData.accountsAndTransfers.transfers.activity, 'activity-1');
+      expect(getByIdWithIdxOrNull).toHaveBeenCalledWith(mockData.accountsAndTransfers.transfers.activity, 'activity-1');
       expect(parseDate).toHaveBeenCalledWith('2024-01-15');
       expect(mockActivity.name).toBe('New Name');
       expect(mockActivity.isTransfer).toBe(true);
@@ -179,7 +179,7 @@ describe('Specific Activity API', () => {
 
       vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById).mockReturnValue(mockAccount as any);
-      vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockActivity, idx: 0 } as any);
+      vi.mocked(getByIdWithIdxOrNull).mockReturnValue({ item: mockActivity, idx: 0 } as any);
       vi.mocked(parseDate).mockReturnValue(new Date('2024-01-16'));
 
       const result = await updateSpecificActivity(mockRequest);
@@ -230,7 +230,7 @@ describe('Specific Activity API', () => {
       });
 
       vi.mocked(getData).mockResolvedValue(mockData as any);
-      vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockActivity, idx: 0 } as any);
+      vi.mocked(getByIdWithIdxOrNull).mockReturnValue({ item: mockActivity, idx: 0 } as any);
       vi.mocked(getById).mockReturnValue(mockAccount as any);
       vi.mocked(parseDate).mockReturnValue(new Date('2024-01-17'));
 
@@ -285,7 +285,7 @@ describe('Specific Activity API', () => {
 
       vi.mocked(getData).mockResolvedValue(mockData as any);
       vi.mocked(getById).mockReturnValue(mockAccount as any);
-      vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockActivity, idx: 0 } as any);
+      vi.mocked(getByIdWithIdxOrNull).mockReturnValue({ item: mockActivity, idx: 0 } as any);
       vi.mocked(parseDate).mockReturnValue(new Date('2024-01-18'));
 
       const result = await updateSpecificActivity(mockRequest);

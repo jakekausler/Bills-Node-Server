@@ -234,11 +234,17 @@ function calculateSpending(
     }
   }
 
-  // Sort activities by date to process chronologically
+  // Sort activities by date to process chronologically, with tiebreakers by name and ID for consistency
   activities.sort((a, b) => {
     const dateA = dayjs.utc(a.date).toDate().getTime();
     const dateB = dayjs.utc(b.date).toDate().getTime();
-    return dateA - dateB;
+    if (dateA !== dateB) {
+      return dateA - dateB;
+    }
+    if (a.name !== b.name) {
+      return a.name.localeCompare(b.name);
+    }
+    return a.id.localeCompare(b.id);
   });
 
   // Process activities in chronological order, tracking progress as we go

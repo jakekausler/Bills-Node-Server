@@ -1,7 +1,8 @@
 import fs from 'fs';
+import path from 'path';
 import cliProgress from 'cli-progress';
 
-const LOG_FILE = '/storage/programs/billsV2/log.txt';
+const LOG_FILE = path.join(__dirname, '../../log.txt');
 
 /**
  * Logs a message to a file with optional reset flag

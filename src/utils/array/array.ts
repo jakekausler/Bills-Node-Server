@@ -25,3 +25,19 @@ export function getByIdWithIdx<T extends { id: string }>(array: T[], id: string)
 export function getById<T extends { id: string }>(array: T[], id: string): T {
   return getByIdWithIdx(array, id).item;
 }
+
+/**
+ * Finds an item by ID in an array and returns both the item and its index, or null if not found
+ * @template T - Type extending { id: string }
+ * @param array - Array to search in
+ * @param id - ID to search for
+ * @returns Object containing the found item and its index, or null if not found
+ */
+export function getByIdWithIdxOrNull<T extends { id?: string }>(
+  array: T[],
+  id: string,
+): { item: T; idx: number } | null {
+  const idx = array.findIndex((item) => item.id === id);
+  if (idx === -1) return null;
+  return { item: array[idx], idx };
+}

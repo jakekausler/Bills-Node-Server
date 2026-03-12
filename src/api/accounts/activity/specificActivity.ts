@@ -1,6 +1,6 @@
 import { Request } from 'express';
 import { getData } from '../../../utils/net/request';
-import { getById, getByIdWithIdx } from '../../../utils/array/array';
+import { getById, getByIdWithIdx, getByIdWithIdxOrNull } from '../../../utils/array/array';
 import { Account } from '../../../data/account/account';
 import { Activity } from '../../../data/activity/activity';
 import { ActivityData } from '../../../data/activity/types';
@@ -34,31 +34,32 @@ export async function getSpecificActivity(request: Request) {
  */
 export async function updateSpecificActivity(request: Request) {
   const data = await getData<ActivityData>(request);
+  let account: Account | undefined;
   let activity: Activity;
   let activityIdx: number;
   let originalIsTransfer = false;
   if (data.isTransfer) {
     // Try to get the activity from the transfers, but the activity might have been originally a non-transfer activity
-    try {
-      ({ item: activity, idx: activityIdx } = getByIdWithIdx<Activity>(
-        data.accountsAndTransfers.transfers.activity,
-        request.params.activityId,
-      ));
+    let result = getByIdWithIdxOrNull<Activity>(
+      data.accountsAndTransfers.transfers.activity,
+      request.params.activityId,
+    );
+    if (result) {
+      ({ item: activity, idx: activityIdx } = result);
       originalIsTransfer = true;
-    } catch {
-      const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
+    } else {
+      account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
       ({ item: activity, idx: activityIdx } = getByIdWithIdx<Activity>(account.activity, request.params.activityId));
       originalIsTransfer = false;
     }
   } else {
     // Try to get the activity from the account, but the activity might have been originally a transfer activity
-    try {
-      ({ item: activity, idx: activityIdx } = getByIdWithIdx<Activity>(
-        getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId).activity,
-        request.params.activityId,
-      ));
+    account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
+    let result = getByIdWithIdxOrNull<Activity>(account.activity, request.params.activityId);
+    if (result) {
+      ({ item: activity, idx: activityIdx } = result);
       originalIsTransfer = false;
-    } catch {
+    } else {
       ({ item: activity, idx: activityIdx } = getByIdWithIdx<Activity>(
         data.accountsAndTransfers.transfers.activity,
         request.params.activityId,
@@ -92,11 +93,17 @@ export async function updateSpecificActivity(request: Request) {
 
   if (!activity.isTransfer && originalIsTransfer) {
     // If the new activity is not a transfer but the old activity was, remove the old activity from the transfers and add it to the account
-    getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId).activity.push(activity);
+    if (!account) {
+      account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
+    }
+    account.activity.push(activity);
     data.accountsAndTransfers.transfers.activity.splice(activityIdx, 1);
   } else if (activity.isTransfer && !originalIsTransfer) {
     // If the new activity is a transfer but the old activity was not, remove the old activity from the account and add it to the transfers
-    getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId).activity.splice(activityIdx, 1);
+    if (!account) {
+      account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
+    }
+    account.activity.splice(activityIdx, 1);
     data.accountsAndTransfers.transfers.activity.push(activity);
   }
 
@@ -115,20 +122,21 @@ export async function deleteSpecificActivity(request: Request) {
   const data = await getData(request);
   let activity: Activity;
   let activityIdx: number;
+  let account: Account | undefined;
   if (data.isTransfer) {
     ({ item: activity, idx: activityIdx } = getByIdWithIdx<Activity>(
       data.accountsAndTransfers.transfers.activity,
       request.params.activityId,
     ));
   } else {
-    const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
+    account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
     ({ item: activity, idx: activityIdx } = getByIdWithIdx<Activity>(account.activity, request.params.activityId));
   }
 
   if (data.isTransfer) {
     data.accountsAndTransfers.transfers.activity.splice(activityIdx, 1);
   } else {
-    getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId).activity.splice(activityIdx, 1);
+    account!.activity.splice(activityIdx, 1);
   }
 
   saveData(data.accountsAndTransfers);

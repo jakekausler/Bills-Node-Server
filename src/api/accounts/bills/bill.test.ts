@@ -6,7 +6,7 @@ import {
   changeAccountForBill,
 } from './bill';
 import { getData } from '../../../utils/net/request';
-import { getById, getByIdWithIdx } from '../../../utils/array/array';
+import { getById, getByIdWithIdx, getByIdWithIdxOrNull } from '../../../utils/array/array';
 import { parseDate } from '../../../utils/date/date';
 import { saveData } from '../../../utils/io/accountsAndTransfers';
 import { insertBill } from '../../../data/bill/bill';
@@ -473,14 +473,14 @@ describe('Specific Bill API', () => {
 
         vi.mocked(getData).mockResolvedValue(mockData as any);
         vi.mocked(getById).mockReturnValue(mockAccount as any);
-        vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockBill, idx: 0 } as any);
+        vi.mocked(getByIdWithIdxOrNull).mockReturnValue({ item: mockBill, idx: 0 } as any);
         vi.mocked(parseDate).mockReturnValue(mockStartDate);
 
         const result = await updateSpecificBill(mockRequest);
 
         expect(getData).toHaveBeenCalledWith(mockRequest);
         expect(getById).toHaveBeenCalledWith(mockData.accountsAndTransfers.accounts, 'account-1');
-        expect(getByIdWithIdx).toHaveBeenCalledWith(mockAccount.bills, 'bill-1');
+        expect(getByIdWithIdxOrNull).toHaveBeenCalledWith(mockAccount.bills, 'bill-1');
         expect(parseDate).toHaveBeenCalledWith('2024-01-01');
         expect(mockBill.startDate).toBe(mockStartDate);
         expect(mockBill.name).toBe('Updated Groceries');
@@ -557,12 +557,12 @@ describe('Specific Bill API', () => {
 
         vi.mocked(getData).mockResolvedValue(mockData as any);
         vi.mocked(getById).mockReturnValue(mockAccount as any);
-        vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockBill, idx: 0 } as any);
+        vi.mocked(getByIdWithIdxOrNull).mockReturnValue({ item: mockBill, idx: 0 } as any);
         vi.mocked(parseDate).mockReturnValue(mockStartDate);
 
         const result = await updateSpecificBill(mockRequest);
 
-        expect(getByIdWithIdx).toHaveBeenCalledWith(mockData.accountsAndTransfers.transfers.bills, 'bill-1');
+        expect(getByIdWithIdxOrNull).toHaveBeenCalledWith(mockData.accountsAndTransfers.transfers.bills, 'bill-1');
         expect(mockBill.startDate).toBe(mockStartDate);
         expect(mockBill.name).toBe('Monthly Transfer');
         expect(saveData).toHaveBeenCalledWith(mockData.accountsAndTransfers);
@@ -691,7 +691,7 @@ describe('Specific Bill API', () => {
 
         vi.mocked(getData).mockResolvedValue(mockData as any);
         vi.mocked(getById).mockReturnValue(mockAccount as any);
-        vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockBill, idx: 0 } as any);
+        vi.mocked(getByIdWithIdxOrNull).mockReturnValue({ item: mockBill, idx: 0 } as any);
         vi.mocked(parseDate).mockReturnValue(new Date('2024-01-01'));
 
         const result = await updateSpecificBill(mockRequest);
@@ -838,7 +838,7 @@ describe('Specific Bill API', () => {
 
         vi.mocked(getData).mockResolvedValue(mockData as any);
         vi.mocked(getById).mockReturnValue(mockAccount as any);
-        vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockBill, idx: 0 } as any);
+        vi.mocked(getByIdWithIdxOrNull).mockReturnValue({ item: mockBill, idx: 0 } as any);
         vi.mocked(parseDate).mockReturnValue(new Date('2024-01-01'));
 
         const result = await updateSpecificBill(mockRequest);
@@ -915,7 +915,7 @@ describe('Specific Bill API', () => {
 
         vi.mocked(getData).mockResolvedValue(mockData as any);
         vi.mocked(getById).mockReturnValue(mockAccount as any);
-        vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockBill, idx: 0 } as any);
+        vi.mocked(getByIdWithIdxOrNull).mockReturnValue({ item: mockBill, idx: 0 } as any);
         vi.mocked(parseDate).mockReturnValue(new Date('2024-01-01'));
 
         const result = await updateSpecificBill(mockRequest);
@@ -989,7 +989,7 @@ describe('Specific Bill API', () => {
 
         vi.mocked(getData).mockResolvedValue(mockData as any);
         vi.mocked(getById).mockReturnValue(mockAccount as any);
-        vi.mocked(getByIdWithIdx).mockReturnValue({ item: mockBill, idx: 0 } as any);
+        vi.mocked(getByIdWithIdxOrNull).mockReturnValue({ item: mockBill, idx: 0 } as any);
         vi.mocked(parseDate).mockReturnValue(new Date('2024-01-01'));
         vi.mocked(loadVariable).mockReturnValue(mockEndDate);
 
@@ -1061,18 +1061,17 @@ describe('Specific Bill API', () => {
 
         vi.mocked(getData).mockResolvedValue(mockData as any);
         vi.mocked(getById).mockReturnValue(mockAccount as any);
-        // First call throws (bill not in transfers), second call returns the bill
-        vi.mocked(getByIdWithIdx)
-          .mockImplementationOnce(() => {
-            throw new Error('Bill not found in transfers');
-          })
-          .mockReturnValueOnce({ item: mockBill, idx: 0 } as any);
+        // First call returns null (bill not in transfers), second call returns the bill
+        vi.mocked(getByIdWithIdxOrNull)
+          .mockReturnValueOnce(null)
+          .mockReturnValueOnce(undefined);
+        vi.mocked(getByIdWithIdx).mockReturnValueOnce({ item: mockBill, idx: 0 } as any);
         vi.mocked(parseDate).mockReturnValue(new Date('2024-01-01'));
 
         const result = await updateSpecificBill(mockRequest);
 
-        expect(getByIdWithIdx).toHaveBeenNthCalledWith(1, mockData.accountsAndTransfers.transfers.bills, 'bill-1');
-        expect(getByIdWithIdx).toHaveBeenNthCalledWith(2, mockAccount.bills, 'bill-1');
+        expect(getByIdWithIdxOrNull).toHaveBeenNthCalledWith(1, mockData.accountsAndTransfers.transfers.bills, 'bill-1');
+        expect(getByIdWithIdx).toHaveBeenNthCalledWith(1, mockAccount.bills, 'bill-1');
         expect(saveData).toHaveBeenCalledWith(mockData.accountsAndTransfers);
         expect(result).toBe('bill-1');
       });

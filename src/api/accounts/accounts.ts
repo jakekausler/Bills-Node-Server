@@ -13,7 +13,7 @@ import { DateString } from '../../utils/date/types';
  */
 export async function getSimpleAccounts(request: Request) {
   const data = await getData(request, {
-    defaultStartDate: new Date(2024, 0, 1),
+    defaultStartDate: new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1)),
   });
   return data.accountsAndTransfers.accounts.map((account) => {
     const simpleAccount = account.simpleAccount();
