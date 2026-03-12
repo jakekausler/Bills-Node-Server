@@ -89,7 +89,7 @@ export class Account {
     this.withdrawalTaxRate = data.withdrawalTaxRate === undefined ? 0 : data.withdrawalTaxRate;
     // Support both new and old property names for backwards compatibility with JSON data
     this.earlyWithdrawalPenalty = data.earlyWithdrawalPenalty ?? (data as any).earlyWithdrawlPenalty ?? 0;
-    this.earlyWithdrawalDate = data.earlyWithdrawalDate ?? (data as any).earlyWithdrawlDate ?? null;
+    this.earlyWithdrawalDate = (data.earlyWithdrawalDate || (data as any).earlyWithdrawlDate) ? parseDate((data.earlyWithdrawalDate || (data as any).earlyWithdrawlDate) as DateString) : null;
     this.interestPayAccount = data.interestPayAccount === undefined ? null : data.interestPayAccount;
     this.interestAppliesToPositiveBalance = data.interestAppliesToPositiveBalance ?? true;
     this.usesRMD = data.usesRMD || false;
