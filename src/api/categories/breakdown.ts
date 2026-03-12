@@ -84,5 +84,10 @@ export async function getCategoryBreakdown(request: Request) {
     delete ret[key];
   }
 
+  // Round final values to avoid floating-point accumulation
+  Object.keys(ret).forEach((key) => {
+    ret[key] = Math.round(ret[key] * 100) / 100;
+  });
+
   return ret;
 }

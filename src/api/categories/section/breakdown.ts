@@ -69,5 +69,11 @@ export async function getCategorySectionBreakdown(request: Request) {
   for (const key of toDelete) {
     delete ret[key];
   }
+
+  // Round final values to avoid floating-point accumulation
+  Object.keys(ret).forEach((key) => {
+    ret[key] = Math.round(ret[key] * 100) / 100;
+  });
+
   return ret;
 }
