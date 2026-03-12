@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { AccountsAndTransfers } from '../../data/account/types';
+import { Account } from '../../data/account/account';
 import { formatDate, getMinDate, isSame } from '../date/date';
 import {
   GraphData,
@@ -103,7 +104,7 @@ function combineActivityDatasets(datasets: ActivityDataset[]): ActivityDataset[]
  * @param accounts - Array of account objects
  * @returns Initialized balance maps and year balance tracking
  */
-function initializeYearlyGraphData(accounts: any[]) {
+function initializeYearlyGraphData(accounts: Account[]) {
   const yearBalance: YearBalances = {};
   const balanceMap: Record<string, number> = {};
   const idxMap: Record<string, number> = {};
@@ -124,7 +125,7 @@ function initializeYearlyGraphData(accounts: any[]) {
  * @param idxMap - Index mapping for activity tracking
  * @returns Array of balance values for activities on this date
  */
-function processAccountActivitiesForDate(account: any, currDate: Date, idxMap: Record<string, number>): number[] {
+function processAccountActivitiesForDate(account: Account, currDate: Date, idxMap: Record<string, number>): number[] {
   const activity: number[] = [];
 
   while (
@@ -176,7 +177,7 @@ function initializeNewYear(
   currentYear: number,
   labels: string[],
   yearBalance: YearBalances,
-  accounts: any[],
+  accounts: Account[],
 ): number {
   const newYear = currDate.getUTCFullYear();
   if (newYear !== currentYear) {
@@ -246,7 +247,7 @@ export function loadYearlyGraph(
  * @param accounts - Array of account objects
  * @returns Initialized tracking maps and datasets
  */
-function initializeActivityGraphData(accounts: any[]) {
+function initializeActivityGraphData(accounts: Account[]) {
   const datasets: ActivityDataset[] = accounts.map((acc) => ({
     label: acc.name,
     data: [],
@@ -272,7 +273,7 @@ function initializeActivityGraphData(accounts: any[]) {
  * @returns Activities for this date with name and amount
  */
 function processAccountActivitiesForActivityGraph(
-  account: any,
+  account: Account,
   currDate: Date,
   idxMap: Record<string, number>,
   balanceMap: Record<string, number>,

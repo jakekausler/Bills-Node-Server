@@ -1,5 +1,4 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
-import bodyParser from 'body-parser';
 import path from 'path';
 import fs from 'fs';
 import { appendFile } from 'fs/promises';
@@ -111,7 +110,7 @@ const pool = mysql.createPool({
 
 // Middleware
 app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
