@@ -15,10 +15,6 @@ import {
 import { join } from 'path';
 import { formatDate, parseDate } from '../date/date';
 import { AccountsAndTransfers, AccountsAndTransfersData } from '../../data/account/types';
-import { Activity } from '../../data/activity/activity';
-import { Bill } from '../../data/bill/bill';
-import { Account } from '../../data/account/account';
-// Dynamic import for ConsolidatedActivity to avoid circular dependency
 
 class Serializer {
   serialize(data: any): string {
@@ -49,15 +45,25 @@ class CalculationResultSerializer extends Serializer {
   deserialize(data: string, cacheManager: CacheManager): CacheEntry<AccountsAndTransfers> {
     const rawParsedData = JSON.parse(data) as CacheEntry<AccountsAndTransfersData>;
     const accountsAndTransfers: AccountsAndTransfers = { accounts: [], transfers: { activity: [], bills: [] } };
+
+    // Late imports to avoid circular dependencies
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const AccountModule = require('../../data/account/account');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const ActivityModule = require('../../data/activity/activity');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const BillModule = require('../../data/bill/bill');
+
     for (const account of rawParsedData.data.accounts) {
-      accountsAndTransfers.accounts.push(new Account(account, cacheManager.getSimulation()));
+      accountsAndTransfers.accounts.push(new AccountModule.Account(account, cacheManager.getSimulation()));
     }
     for (const activity of rawParsedData.data.transfers.activity) {
-      accountsAndTransfers.transfers.activity.push(new Activity(activity, cacheManager.getSimulation()));
+      accountsAndTransfers.transfers.activity.push(new ActivityModule.Activity(activity, cacheManager.getSimulation()));
     }
     for (const bill of rawParsedData.data.transfers.bills) {
-      accountsAndTransfers.transfers.bills.push(new Bill(bill, cacheManager.getSimulation()));
+      accountsAndTransfers.transfers.bills.push(new BillModule.Bill(bill, cacheManager.getSimulation()));
     }
+
     return {
       data: accountsAndTransfers,
       timestamp: rawParsedData.timestamp,
@@ -107,20 +113,16 @@ class SegmentResultSerializer extends Serializer {
     const rawParsedData = JSON.parse(data) as CacheEntry<SegmentResultData>;
     const segmentResultData = rawParsedData.data;
 
+    // Late import to avoid circular dependencies
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const factoryModule = require('./consolidated-activity-factory');
+    const createConsolidatedActivity = factoryModule.createConsolidatedActivity;
+
     const balanceChanges = new Map<string, number>(Object.entries(segmentResultData.balanceChanges));
-    // Use require() to avoid circular dependency at module load time
-    const { ConsolidatedActivity } = require('../../data/activity/consolidatedActivity');
     const activitiesAdded = new Map<string, any[]>(
       Object.entries(segmentResultData.activitiesAdded).map(([k, v]) => [
         k,
-        v.map((activityData) => new ConsolidatedActivity(activityData, {
-          billId: activityData.billId,
-          firstBill: activityData.firstBill,
-          interestId: activityData.interestId,
-          firstInterest: activityData.firstInterest,
-          spendingTrackerId: activityData.spendingTrackerId,
-          firstSpendingTracker: activityData.firstSpendingTracker,
-        })),
+        v.map((activityData) => createConsolidatedActivity(activityData)),
       ]),
     );
     const processedEventIds = new Set<string>(segmentResultData.processedEventIds);
@@ -567,14 +569,21 @@ export class CacheManager {
       return isNaN(d.getTime()) ? null : d;
     }
 
+    // Derive offsets from prefix length (10 = "calc_" length, 10 = YYYY-MM-DD length)
+    const prefixLen = prefix.length;
+    const dateLen = 10; // YYYY-MM-DD
+    const startStrStart = prefixLen;
+    const startStrEnd = prefixLen + dateLen;
+    const endStrStart = prefixLen + dateLen + 1; // +1 for underscore separator
+    const endStrEnd = prefixLen + dateLen + 1 + dateLen;
+
     // Check memory cache
     for (const key of CacheManager.memoryCache.keys()) {
       if (typeof key === 'string' && key.startsWith(prefix)) {
-        // Key format: calc_{start}_{end}_{simulation}
-        const parts = key.split('_');
-        if (parts.length >= 4) {
-          const startStr = parts[1];
-          const endStr = parts[2];
+        // Key format: calc_YYYY-MM-DD_YYYY-MM-DD_simulationName
+        const startStr = key.substring(startStrStart, startStrEnd);
+        const endStr = key.substring(endStrStart, endStrEnd);
+        if (startStr && endStr) {
           const startDate = parseDateString(startStr);
           const endDate = parseDateString(endStr);
 
@@ -598,10 +607,10 @@ export class CacheManager {
         if (typeof file === 'string' && file.startsWith(prefix) && file.endsWith('.json')) {
           // Remove .json extension for key
           const key = file.slice(0, -5);
-          const parts = key.split('_');
-          if (parts.length >= 4) {
-            const startStr = parts[1];
-            const endStr = parts[2];
+          // Key format: calc_YYYY-MM-DD_YYYY-MM-DD_simulationName
+          const startStr = key.substring(startStrStart, startStrEnd);
+          const endStr = key.substring(endStrStart, endStrEnd);
+          if (startStr && endStr) {
             const startDate = parseDateString(startStr);
             const endDate = parseDateString(endStr);
 

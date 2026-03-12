@@ -183,6 +183,8 @@ function makeMockHealthcareManager(overrides: Partial<any> = {}) {
   return {
     getActiveConfig: vi.fn().mockReturnValue(null),
     calculatePatientCost: vi.fn(),
+    checkpoint: vi.fn(),
+    restore: vi.fn(),
     ...overrides,
   };
 }

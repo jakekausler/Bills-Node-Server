@@ -1,5 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import path from 'path';
+import lockfile from 'proper-lockfile';
 
 // Point to data directory at repository root (CommonJS)
 export const BASE_DATA_DIR = path.join(__dirname, '../../../data');
@@ -78,7 +79,16 @@ export function save<T>(data: T, fn: string) {
   if (shouldBackup(fn)) {
     backup(fn);
   }
-  writeFileSync(safePath(fn), JSON.stringify(data, null, 2));
+  const filePath = safePath(fn);
+  if (!existsSync(filePath)) {
+    writeFileSync(filePath, '{}');
+  }
+  const release = lockfile.lockSync(filePath, { realpath: false });
+  try {
+    writeFileSync(filePath, JSON.stringify(data, null, 2));
+  } finally {
+    release();
+  }
 }
 
 /**

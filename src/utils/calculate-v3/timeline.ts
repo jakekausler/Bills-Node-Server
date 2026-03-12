@@ -421,7 +421,10 @@ export class Timeline {
       const interest = interests[i];
       let currentDate = interest.applicableDate;
       let eventCount = 0;
-      while (currentDate <= nextApplicableDate) {
+      // For all but the last interest config, use strict less-than to avoid boundary overlap
+      // The last config uses <= since there's no next config to hand off to
+      const isLastConfig = i === account.interests.length - 1;
+      while (isLastConfig ? currentDate <= nextApplicableDate : currentDate < nextApplicableDate) {
         // Calculate the rate of the interest
         const rate = interest.apr;
         const event: InterestEvent = {

@@ -14,7 +14,12 @@ export async function getAccountGraph(request: Request) {
   const data = await getData(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   return loadGraph(
-    { accounts: [account], transfers: { activity: [], bills: [] } },
+    {
+      accounts: [account],
+      // Empty transfers are passed intentionally because transfer activities are already included
+      // in each account's consolidatedActivity array
+      transfers: { activity: [], bills: [] },
+    },
     data.startDate,
     data.endDate,
     data.combineGraphAccounts,
@@ -43,7 +48,12 @@ export async function getGraphForAccounts(request: Request) {
         : data.accountsAndTransfers.accounts.filter((account: Account) => !account.hidden);
 
     simulationGraphs[simulation] = loadGraph(
-      { accounts, transfers: { activity: [], bills: [] } },
+      {
+        accounts,
+        // Empty transfers are passed intentionally because transfer activities are already included
+        // in each account's consolidatedActivity array
+        transfers: { activity: [], bills: [] },
+      },
       data.startDate,
       data.endDate,
       data.combineGraphAccounts,

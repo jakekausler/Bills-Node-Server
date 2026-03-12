@@ -114,8 +114,9 @@ export class SegmentProcessor {
       }
     }
 
-    // Save spending tracker state BEFORE processing any events in this segment
+    // Save spending tracker and healthcare manager state BEFORE processing any events in this segment
     this.spendingTrackerManager.checkpoint();
+    this.healthcareManager.checkpoint();
 
     // Process events in the segment
     let segmentResult = this.processSegmentEvents(segment, options);
@@ -126,6 +127,7 @@ export class SegmentProcessor {
     // If a push or pull was added, reprocess the segment events
     if (pushPullEventsAdded) {
       this.spendingTrackerManager.restore();
+      this.healthcareManager.restore();
       segmentResult = this.processSegmentEvents(segment, options);
     }
 

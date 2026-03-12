@@ -10,6 +10,12 @@ type YearTracker = {
   individualOOP: Map<string, number>;
   familyDeductible: number;
   familyOOP: number;
+  checkpointPlanYear?: number;
+  checkpointLastResetCheck?: Date;
+  checkpointIndividualDeductible?: Map<string, number>;
+  checkpointIndividualOOP?: Map<string, number>;
+  checkpointFamilyDeductible?: number;
+  checkpointFamilyOOP?: number;
 };
 
 export class HealthcareManager {
@@ -17,6 +23,7 @@ export class HealthcareManager {
   private trackers: Map<string, YearTracker> = new Map();
   // Cache for idempotent processing - stores expense ID + date -> calculated patientCost
   private processedExpenses: Map<string, number> = new Map();
+  private checkpointProcessedExpenses: Map<string, number> = new Map();
 
   constructor(healthcareConfigs: HealthcareConfig[]) {
     this.configs = healthcareConfigs;
@@ -360,5 +367,53 @@ export class HealthcareManager {
     this.processedExpenses.set(expenseKey, patientCost);
 
     return patientCost;
+  }
+
+  /**
+   * Save a checkpoint of all tracker state and processed expenses cache.
+   * Used for push/pull reprocessing to restore state if segment needs to be recomputed.
+   */
+  checkpoint(): void {
+    // Checkpoint each tracker's state
+    for (const [trackerId, tracker] of this.trackers) {
+      tracker.checkpointPlanYear = tracker.planYear;
+      tracker.checkpointLastResetCheck = new Date(tracker.lastResetCheck.getTime());
+      tracker.checkpointIndividualDeductible = new Map(tracker.individualDeductible);
+      tracker.checkpointIndividualOOP = new Map(tracker.individualOOP);
+      tracker.checkpointFamilyDeductible = tracker.familyDeductible;
+      tracker.checkpointFamilyOOP = tracker.familyOOP;
+    }
+    // Checkpoint the processed expenses cache
+    this.checkpointProcessedExpenses = new Map(this.processedExpenses);
+  }
+
+  /**
+   * Restore all tracker state and processed expenses cache from the last checkpoint.
+   * Used when segment is reprocessed after push/pull handling.
+   */
+  restore(): void {
+    // Restore each tracker's state
+    for (const [trackerId, tracker] of this.trackers) {
+      if (tracker.checkpointPlanYear !== undefined) {
+        tracker.planYear = tracker.checkpointPlanYear;
+      }
+      if (tracker.checkpointLastResetCheck !== undefined) {
+        tracker.lastResetCheck = new Date(tracker.checkpointLastResetCheck.getTime());
+      }
+      if (tracker.checkpointIndividualDeductible !== undefined) {
+        tracker.individualDeductible = new Map(tracker.checkpointIndividualDeductible);
+      }
+      if (tracker.checkpointIndividualOOP !== undefined) {
+        tracker.individualOOP = new Map(tracker.checkpointIndividualOOP);
+      }
+      if (tracker.checkpointFamilyDeductible !== undefined) {
+        tracker.familyDeductible = tracker.checkpointFamilyDeductible;
+      }
+      if (tracker.checkpointFamilyOOP !== undefined) {
+        tracker.familyOOP = tracker.checkpointFamilyOOP;
+      }
+    }
+    // Restore the processed expenses cache
+    this.processedExpenses = new Map(this.checkpointProcessedExpenses);
   }
 }
