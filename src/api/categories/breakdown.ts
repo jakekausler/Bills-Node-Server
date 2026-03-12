@@ -44,7 +44,7 @@ export async function getCategoryBreakdown(request: Request) {
         continue;
       }
       const section = activity.category.split('.')[0];
-      if (section == 'Ignore' || section == 'Income') {
+      if (section === 'Ignore' || section === 'Income') {
         continue;
       }
       if (!(section in ret)) {

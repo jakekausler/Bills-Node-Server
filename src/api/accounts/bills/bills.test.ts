@@ -23,8 +23,10 @@ const mockBillInstance = {
   serialize: vi.fn(() => ({ id: 'bill-123', name: 'Test Bill' })),
 };
 
+const originalBills = [mockBillInstance];
+
 const mockAccount = {
-  bills: [mockBillInstance],
+  bills: [...originalBills],
 };
 
 const mockData = {
@@ -44,6 +46,7 @@ const mockRequest = {
 describe('Bills API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAccount.bills = [...originalBills];
     mockGetData.mockResolvedValue(mockData);
     mockGetById.mockReturnValue(mockAccount);
   });

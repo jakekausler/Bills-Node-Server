@@ -47,7 +47,6 @@ describe('ConsolidatedActivity', () => {
     amount: 250,
     date: new Date('2023-06-15T12:00:00Z'),
     category: 'Testing',
-    description: 'Test consolidated activity description',
     isTransfer: false,
   };
 
@@ -148,7 +147,7 @@ describe('ConsolidatedActivity', () => {
         amount: 250,
         date: expect.any(Date),
         category: 'Testing',
-        description: 'Test consolidated activity description',
+        description: 'Test Description',
         isTransfer: false,
         spendingCategory: null,
         balance: 1000,

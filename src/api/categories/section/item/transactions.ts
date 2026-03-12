@@ -33,7 +33,7 @@ export async function getCategorySectionItemTransactions(request: Request) {
       continue;
     }
     for (const activity of account.consolidatedActivity) {
-      if (activity.category == section + '.' + item && !foundIds.has(activity.id)) {
+      if (activity.category === section + '.' + item && !foundIds.has(activity.id)) {
         ret.push(activity);
         foundIds.add(activity.id);
       }

@@ -23,8 +23,10 @@ const mockActivityInstance = {
   serialize: vi.fn(() => ({ id: 'activity-123', amount: 100, description: 'Test Activity' })),
 };
 
+const originalActivity = [mockActivityInstance];
+
 const mockAccount = {
-  activity: [mockActivityInstance],
+  activity: [...originalActivity],
 };
 
 const mockData = {
@@ -44,6 +46,7 @@ const mockRequest = {
 describe('Activity API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAccount.activity = [...originalActivity];
     mockGetData.mockResolvedValue(mockData);
     mockGetById.mockReturnValue(mockAccount);
   });

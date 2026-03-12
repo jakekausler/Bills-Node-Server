@@ -23,8 +23,10 @@ const mockInterestInstance = {
   serialize: vi.fn(() => ({ id: 'interest-123', rate: 0.05 })),
 };
 
+const originalInterests = [mockInterestInstance];
+
 const mockAccount = {
-  interests: [mockInterestInstance],
+  interests: [...originalInterests],
 };
 
 const mockData = {
@@ -40,6 +42,7 @@ const mockRequest = {
 describe('Interests API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAccount.interests = [...originalInterests];
     mockGetData.mockResolvedValue(mockData);
     mockGetById.mockReturnValue(mockAccount);
   });
