@@ -58,6 +58,12 @@ export async function addCategory(request: Request) {
     throw new Error('Invalid path');
   }
 
+  for (const item of path) {
+    if (typeof item !== 'string') {
+      throw new Error('Invalid path: all items must be strings');
+    }
+  }
+
   if (path.length === 1) {
     const section = path[0];
     if (!(section in categories)) {
@@ -113,6 +119,12 @@ export async function deleteCategory(request: Request) {
 
   if (path.length === 0 || path.length > 2) {
     throw new Error('Invalid path');
+  }
+
+  for (const item of path) {
+    if (typeof item !== 'string') {
+      throw new Error('Invalid path: all items must be strings');
+    }
   }
 
   if (path.length === 1) {

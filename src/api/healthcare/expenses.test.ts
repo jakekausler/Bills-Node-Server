@@ -1202,6 +1202,7 @@ describe('Healthcare Expenses API', () => {
         isBill: true,
         billId: 'bill-123',
       });
+      expect(result[0].hsaReimbursed).toBe(0);
       expect(result[0].individualDeductibleRemaining).toBeDefined();
       expect(result[0].familyDeductibleRemaining).toBeDefined();
       expect(result[0].individualOOPRemaining).toBeDefined();

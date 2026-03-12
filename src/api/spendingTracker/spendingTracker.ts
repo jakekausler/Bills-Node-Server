@@ -79,6 +79,19 @@ function validateCategory(
     }
   }
 
+  if (category.interval === 'weekly' && category.intervalStart !== undefined) {
+    const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    if (!validDays.includes(category.intervalStart)) {
+      errors.push('Weekly interval start must be a day name (Monday-Sunday)');
+    }
+  }
+
+  if (category.interval === 'yearly' && category.intervalStart) {
+    if (!/^\d{1,2}\/\d{1,2}$/.test(category.intervalStart)) {
+      errors.push('Yearly interval start must be in MM/DD format');
+    }
+  }
+
   // Validate thresholdChanges sorted and no duplicate dates
   if (category.thresholdChanges && category.thresholdChanges.length > 0) {
     for (let i = 1; i < category.thresholdChanges.length; i++) {

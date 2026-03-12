@@ -1,4 +1,5 @@
 import { AccountsAndTransfers } from '../../data/account/types';
+import { findExtremeDate } from './findExtremeDate';
 
 /**
  * Finds the maximum date across all financial data (activities, bills, interests, and transfers)
@@ -14,44 +15,14 @@ import { AccountsAndTransfers } from '../../data/account/types';
  * @returns The maximum date found across all financial data, or current date if no data exists
  */
 export function maxDate(accountsAndTransfers: AccountsAndTransfers) {
-  let maxDate = new Date(0); // Start with Unix epoch (earliest possible date)
-  const { accounts, transfers } = accountsAndTransfers;
-  for (const account of accounts) {
-    for (const activity of account.activity) {
-      if (maxDate < activity.date) {
-        maxDate = activity.date;
-      }
-    }
-    for (const bill of account.bills) {
-      if (maxDate < bill.startDate) {
-        maxDate = bill.startDate;
-      }
-      if (bill.endDate && maxDate < bill.endDate) {
-        maxDate = bill.endDate;
-      }
-    }
-    for (const interest of account.interests) {
-      if (maxDate < interest.applicableDate) {
-        maxDate = interest.applicableDate;
-      }
-    }
-  }
-  for (const transfer of transfers.activity) {
-    if (maxDate < transfer.date) {
-      maxDate = transfer.date;
-    }
-  }
-  for (const transfer of transfers.bills) {
-    if (maxDate < transfer.startDate) {
-      maxDate = transfer.startDate;
-    }
-    if (transfer.endDate && maxDate < transfer.endDate) {
-      maxDate = transfer.endDate;
-    }
-  }
+  // Start with Unix epoch (earliest possible date)
+  const defaultDate = new Date(0);
+  let result = findExtremeDate(accountsAndTransfers, (a, b) => a > b, defaultDate);
+
   // If no data was found, return current date
-  if (maxDate.getTime() === 0) {
-    maxDate = new Date();
+  if (result.getTime() === 0) {
+    result = new Date();
   }
-  return maxDate;
+
+  return result;
 }
