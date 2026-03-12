@@ -67,7 +67,7 @@ export class Pension {
    */
   constructor(data: PensionData, simulation = 'Default') {
     this.name = data.name;
-    this.payToAccount = data.payToAccount;
+    this.payToAccount = data.payToAccount ?? (data as any).payToAcccount;
     this.paycheckNames = [...data.paycheckNames];
     this.paycheckAccounts = [...data.paycheckAccounts];
     this.paycheckCategories = [...data.paycheckCategories];
