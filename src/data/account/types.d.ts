@@ -32,8 +32,8 @@ export type AccountData = {
   pullPriority?: number;
   interestTaxRate?: number;
   withdrawalTaxRate?: number;
-  earlyWithdrawlPenalty?: number;
-  earlyWithdrawlDate?: Date | null;
+  earlyWithdrawalPenalty?: number;
+  earlyWithdrawalDate?: Date | null;
   interestPayAccount?: string | null;
   usesRMD?: boolean;
   accountOwnerDOB?: string | null;

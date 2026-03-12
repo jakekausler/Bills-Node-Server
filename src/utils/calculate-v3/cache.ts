@@ -9,7 +9,7 @@ import {
   BalanceSnapshot,
   BalanceSnapshotData,
   SegmentResultData,
-  TaxableOccurence,
+  TaxableOccurrence,
   SpendingTrackerUpdateData,
 } from './types';
 import { join } from 'path';
@@ -82,8 +82,8 @@ class SegmentResultSerializer extends Serializer {
       processedEventIds: Array.from(data.data.processedEventIds),
       balanceMinimums: Object.fromEntries(data.data.balanceMinimums),
       balanceMaximums: Object.fromEntries(data.data.balanceMaximums),
-      taxableOccurences: Object.fromEntries(
-        Array.from(data.data.taxableOccurences.entries()).map(([k, v]) => [
+      taxableOccurrences: Object.fromEntries(
+        Array.from(data.data.taxableOccurrences.entries()).map(([k, v]) => [
           k,
           v.map((occ) => ({
             date: formatDate(occ.date),
@@ -128,8 +128,8 @@ class SegmentResultSerializer extends Serializer {
     const processedEventIds = new Set<string>(segmentResultData.processedEventIds);
     const balanceMinimums = new Map<string, number>(Object.entries(segmentResultData.balanceMinimums));
     const balanceMaximums = new Map<string, number>(Object.entries(segmentResultData.balanceMaximums));
-    const taxableOccurences = new Map<string, TaxableOccurence[]>(
-      Object.entries(segmentResultData.taxableOccurences).map(([k, v]) => [
+    const taxableOccurrences = new Map<string, TaxableOccurrence[]>(
+      Object.entries(segmentResultData.taxableOccurrences).map(([k, v]) => [
         k,
         v.map((occ) => ({
           date: parseDate(occ.date),
@@ -156,7 +156,7 @@ class SegmentResultSerializer extends Serializer {
       processedEventIds,
       balanceMinimums,
       balanceMaximums,
-      taxableOccurences,
+      taxableOccurrences,
       spendingTrackerUpdates,
     };
 

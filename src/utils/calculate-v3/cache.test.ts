@@ -666,7 +666,7 @@ describe('CacheManager', () => {
           processedEventIds: [],
           balanceMinimums: {},
           balanceMaximums: {},
-          taxableOccurences: {},
+          taxableOccurrences: {},
           spendingTrackerUpdates: [],
         },
         timestamp: new Date(),
@@ -980,7 +980,7 @@ describe('CacheManager', () => {
         processedEventIds: new Set<string>(),
         balanceMinimums: new Map<string, number>(),
         balanceMaximums: new Map<string, number>(),
-        taxableOccurences: new Map<string, any[]>(),
+        taxableOccurrences: new Map<string, any[]>(),
         spendingTrackerUpdates: [],
       };
 

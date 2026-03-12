@@ -83,7 +83,7 @@ function makeSegmentResult(): SegmentResult {
     processedEventIds: new Set<string>(),
     balanceMinimums: new Map<string, number>(),
     balanceMaximums: new Map<string, number>(),
-    taxableOccurences: new Map<string, any[]>(),
+    taxableOccurrences: new Map<string, any[]>(),
     spendingTrackerUpdates: [],
   };
 }
@@ -94,8 +94,8 @@ function makeAccount(overrides: Partial<{
   type: string;
   interestTaxRate: number;
   withdrawalTaxRate: number;
-  earlyWithdrawlPenalty: number;
-  earlyWithdrawlDate: Date | null;
+  earlyWithdrawalPenalty: number;
+  earlyWithdrawalDate: Date | null;
   interestPayAccount: string | null;
   interestAppliesToPositiveBalance: boolean;
   usesRMD: boolean;
@@ -110,8 +110,8 @@ function makeAccount(overrides: Partial<{
     type: overrides.type ?? 'Checking',
     interestTaxRate: overrides.interestTaxRate ?? 0,
     withdrawalTaxRate: overrides.withdrawalTaxRate ?? 0,
-    earlyWithdrawlPenalty: overrides.earlyWithdrawlPenalty ?? 0,
-    earlyWithdrawlDate: overrides.earlyWithdrawlDate ?? null,
+    earlyWithdrawalPenalty: overrides.earlyWithdrawalPenalty ?? 0,
+    earlyWithdrawalDate: overrides.earlyWithdrawalDate ?? null,
     interestPayAccount: overrides.interestPayAccount ?? null,
     interestAppliesToPositiveBalance: overrides.interestAppliesToPositiveBalance !== undefined
       ? overrides.interestAppliesToPositiveBalance
@@ -271,7 +271,7 @@ function makeTaxManager(overrides: Partial<{
 }> = {}) {
   return {
     calculateTotalTaxOwed: overrides.calculateTotalTaxOwed ?? vi.fn(() => 0),
-    addTaxableOccurences: vi.fn(),
+    addTaxableOccurrences: vi.fn(),
   };
 }
 
@@ -889,7 +889,7 @@ describe('Calculator', () => {
 
       calculator.processInterestEvent(event, segmentResult);
 
-      const taxable = segmentResult.taxableOccurences.get('Checking');
+      const taxable = segmentResult.taxableOccurrences.get('Checking');
       expect(taxable).toBeDefined();
       expect(taxable!).toHaveLength(1);
       expect(taxable![0].taxRate).toBe(0.25);
@@ -924,7 +924,7 @@ describe('Calculator', () => {
 
       calculator.processInterestEvent(event, segmentResult);
 
-      expect(segmentResult.taxableOccurences.size).toBe(0);
+      expect(segmentResult.taxableOccurrences.size).toBe(0);
     });
   });
 
@@ -1233,7 +1233,7 @@ describe('Calculator', () => {
 
       calculator.processBillTransferEvent(event, segmentResult);
 
-      const taxable = segmentResult.taxableOccurences.get('Checking');
+      const taxable = segmentResult.taxableOccurrences.get('Checking');
       expect(taxable).toBeDefined();
       expect(taxable![0].taxRate).toBe(0.22);
     });

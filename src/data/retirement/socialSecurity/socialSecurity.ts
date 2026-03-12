@@ -12,7 +12,7 @@ export class SocialSecurity {
   /** Name of the social security plan */
   name: string;
   /** Account ID where payments will be deposited */
-  payToAcccount: string;
+  payToAccount: string;
   /** Names for paycheck entries */
   paycheckNames: string[];
   /** Account IDs for each paycheck */
@@ -49,7 +49,7 @@ export class SocialSecurity {
    */
   constructor(data: SocialSecurityData, simulation = 'Default') {
     this.name = data.name;
-    this.payToAcccount = data.payToAcccount;
+    this.payToAccount = data.payToAccount;
     this.paycheckNames = [...data.paycheckNames];
     this.paycheckAccounts = [...data.paycheckAccounts];
     this.paycheckCategories = [...data.paycheckCategories];
@@ -73,7 +73,7 @@ export class SocialSecurity {
   serialize(): SocialSecurityData {
     return {
       name: this.name,
-      payToAcccount: this.payToAcccount,
+      payToAccount: this.payToAccount,
       paycheckNames: this.paycheckNames,
       paycheckAccounts: this.paycheckAccounts,
       paycheckCategories: this.paycheckCategories,

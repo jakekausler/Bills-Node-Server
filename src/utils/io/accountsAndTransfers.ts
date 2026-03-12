@@ -7,7 +7,6 @@ import { resetCache } from './cache';
 import { DATA_CACHE, MAX_CACHE_SIZE, clearDataCache } from './dataCache';
 import { calculateAllActivity } from '../calculate-v3/engine';
 import { CalculationConfig } from '../calculate-v3/types';
-import { formatDate } from '../date/date';
 
 export const FILE_NAME = 'data';
 

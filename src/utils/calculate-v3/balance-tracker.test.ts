@@ -51,7 +51,7 @@ function makeSegmentResult(overrides: Partial<SegmentResult> = {}): SegmentResul
     processedEventIds: new Set(),
     balanceMinimums: new Map(),
     balanceMaximums: new Map(),
-    taxableOccurences: new Map(),
+    taxableOccurrences: new Map(),
     spendingTrackerUpdates: [],
     ...overrides,
   };

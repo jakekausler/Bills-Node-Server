@@ -24,7 +24,7 @@ export type CalculationOptions = {
   config: Partial<CalculationConfig>;
 };
 
-export type TaxableOccurence = {
+export type TaxableOccurrence = {
   /** Date of the taxable event */
   date: Date;
   /** Year of the taxable event */
@@ -35,7 +35,7 @@ export type TaxableOccurence = {
   taxRate: number;
 };
 
-export type TaxableOccurenceData = {
+export type TaxableOccurrenceData = {
   date: DateString;
   year: number;
   amount: number;
@@ -75,8 +75,8 @@ export interface SegmentResult {
   balanceMinimums: Map<string, number>;
   /** Maximum day end balance for each account */
   balanceMaximums: Map<string, number>;
-  /** Taxable occurences indexed by account name */
-  taxableOccurences: Map<string, TaxableOccurence[]>;
+  /** Taxable occurrences indexed by account name */
+  taxableOccurrences: Map<string, TaxableOccurrence[]>;
   /** Spending tracker period completions for cache replay */
   spendingTrackerUpdates: SpendingTrackerUpdate[];
   /** Accounts and Transfers */
@@ -89,7 +89,7 @@ export type SegmentResultData = {
   processedEventIds: string[];
   balanceMinimums: Record<string, number>;
   balanceMaximums: Record<string, number>;
-  taxableOccurences: Record<string, TaxableOccurenceData[]>;
+  taxableOccurrences: Record<string, TaxableOccurrenceData[]>;
   spendingTrackerUpdates: SpendingTrackerUpdateData[];
 };
 

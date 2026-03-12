@@ -21,8 +21,8 @@ vi.mock('../../data/account/account', () => ({
     pullPriority: data.pullPriority || -1,
     interestTaxRate: data.interestTaxRate || 0,
     withdrawalTaxRate: data.withdrawalTaxRate || 0,
-    earlyWithdrawlPenalty: data.earlyWithdrawlPenalty || 0,
-    earlyWithdrawlDate: data.earlyWithdrawlDate || null,
+    earlyWithdrawalPenalty: data.earlyWithdrawalPenalty || 0,
+    earlyWithdrawalDate: data.earlyWithdrawalDate || null,
     interestPayAccount: data.interestPayAccount || null,
     usesRMD: data.usesRMD || false,
     accountOwnerDOB: data.accountOwnerDOB || null,
@@ -124,8 +124,8 @@ describe('Accounts API', () => {
         pullPriority: 1,
         interestTaxRate: 0.1,
         withdrawalTaxRate: 0.2,
-        earlyWithdrawlPenalty: 0.05,
-        earlyWithdrawlDate: null,
+        earlyWithdrawalPenalty: 0.05,
+        earlyWithdrawalDate: null,
         interestPayAccount: null,
         usesRMD: false,
         accountOwnerDOB: null,
@@ -148,7 +148,7 @@ describe('Accounts API', () => {
         pullPriority: 2,
         interestTaxRate: 0.15,
         withdrawalTaxRate: 0.25,
-        earlyWithdrawlPenalty: 0.1,
+        earlyWithdrawalPenalty: 0.1,
         interestAppliesToPositiveBalance: false,
         interests: [],
         activity: [],
@@ -172,7 +172,7 @@ describe('Accounts API', () => {
       expect(existingAccount.pullPriority).toBe(2);
       expect(existingAccount.interestTaxRate).toBe(0.15);
       expect(existingAccount.withdrawalTaxRate).toBe(0.25);
-      expect(existingAccount.earlyWithdrawlPenalty).toBe(0.1);
+      expect(existingAccount.earlyWithdrawalPenalty).toBe(0.1);
       expect(existingAccount.interestAppliesToPositiveBalance).toBe(false);
       expect(saveData).toHaveBeenCalledWith(mockAccountsAndTransfers);
       expect(result).toBe(mockAccountsAndTransfers.accounts);
@@ -211,7 +211,7 @@ describe('Accounts API', () => {
         pullPriority: 5,
         interestTaxRate: 0.3,
         withdrawalTaxRate: 0.4,
-        earlyWithdrawlPenalty: 0.2,
+        earlyWithdrawalPenalty: 0.2,
         usesRMD: true,
         performsPulls: true,
         performsPushes: true,
@@ -229,7 +229,7 @@ describe('Accounts API', () => {
         pullPriority: undefined,
         interestTaxRate: undefined,
         withdrawalTaxRate: undefined,
-        earlyWithdrawlPenalty: undefined,
+        earlyWithdrawalPenalty: undefined,
         usesRMD: undefined,
         performsPulls: undefined,
         performsPushes: undefined,
@@ -249,7 +249,7 @@ describe('Accounts API', () => {
       expect(existingAccount.pullPriority).toBe(-1);
       expect(existingAccount.interestTaxRate).toBe(0);
       expect(existingAccount.withdrawalTaxRate).toBe(0);
-      expect(existingAccount.earlyWithdrawlPenalty).toBe(0);
+      expect(existingAccount.earlyWithdrawalPenalty).toBe(0);
       expect(existingAccount.usesRMD).toBe(false);
       expect(existingAccount.performsPulls).toBe(false);
       expect(existingAccount.performsPushes).toBe(false);

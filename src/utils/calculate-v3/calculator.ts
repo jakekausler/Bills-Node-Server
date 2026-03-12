@@ -21,7 +21,7 @@ import {
   SegmentResult,
   SocialSecurityEvent,
   SpendingTrackerEvent,
-  TaxableOccurence,
+  TaxableOccurrence,
   TaxEvent,
 } from './types';
 
@@ -336,18 +336,18 @@ export class Calculator {
     }
     segmentResult.activitiesAdded.get(accountId)?.push(interestActivity);
 
-    // Add taxable occurence to segment result
+    // Add taxable occurrence to segment result
     if (account.interestPayAccount && account.interestTaxRate !== 0) {
-      const taxableOccurence: TaxableOccurence = {
+      const taxableOccurrence: TaxableOccurrence = {
         date: event.date,
         year: event.date.getUTCFullYear(),
         amount: interestAmount,
         taxRate: account.interestTaxRate,
       };
-      if (!segmentResult.taxableOccurences.has(account.interestPayAccount)) {
-        segmentResult.taxableOccurences.set(account.interestPayAccount, []);
+      if (!segmentResult.taxableOccurrences.has(account.interestPayAccount)) {
+        segmentResult.taxableOccurrences.set(account.interestPayAccount, []);
       }
-      segmentResult.taxableOccurences.get(account.interestPayAccount)?.push(taxableOccurence);
+      segmentResult.taxableOccurrences.get(account.interestPayAccount)?.push(taxableOccurrence);
     }
 
     // Update balance in segment result
@@ -516,12 +516,12 @@ export class Calculator {
     segmentResult.activitiesAdded.get(fromAccountId)?.push(fromActivity);
     segmentResult.activitiesAdded.get(toAccountId)?.push(toActivity);
 
-    // If the activity is an AUTO-PULL or RMD, add a taxable occurence to the segment result
+    // If the activity is an AUTO-PULL or RMD, add a taxable occurrence to the segment result
     if (original.id.startsWith('AUTO-PULL') || original.id.startsWith('RMD')) {
       // Handle Withdrawal Tax
       const taxRate = fromAccount?.withdrawalTaxRate ?? 0;
       if (taxRate !== 0) {
-        const taxableOccurence: TaxableOccurence = {
+        const taxableOccurrence: TaxableOccurrence = {
           date: fromActivity.date,
           year: fromActivity.date.getUTCFullYear(),
           amount: internalAmount,
@@ -531,30 +531,30 @@ export class Calculator {
         if (!taxPayAccount) {
           throw new Error(`Account ${toAccountId} has no name`);
         }
-        if (!segmentResult.taxableOccurences.has(taxPayAccount)) {
-          segmentResult.taxableOccurences.set(taxPayAccount, []);
+        if (!segmentResult.taxableOccurrences.has(taxPayAccount)) {
+          segmentResult.taxableOccurrences.set(taxPayAccount, []);
         }
-        segmentResult.taxableOccurences.get(taxPayAccount)?.push(taxableOccurence);
+        segmentResult.taxableOccurrences.get(taxPayAccount)?.push(taxableOccurrence);
       }
 
-      // Handle Early Withdrawl Penalty
-      const earlyWithdrawlPenalty = fromAccount?.earlyWithdrawlPenalty ?? 0;
-      const earlyWithdrawlDate = fromAccount?.earlyWithdrawlDate;
-      if (earlyWithdrawlPenalty !== 0 && earlyWithdrawlDate && isBefore(fromActivity.date, earlyWithdrawlDate)) {
-        const taxableOccurence: TaxableOccurence = {
+      // Handle Early Withdrawal Penalty
+      const earlyWithdrawalPenalty = fromAccount?.earlyWithdrawalPenalty ?? 0;
+      const earlyWithdrawalDate = fromAccount?.earlyWithdrawalDate;
+      if (earlyWithdrawalPenalty !== 0 && earlyWithdrawalDate && isBefore(fromActivity.date, earlyWithdrawalDate)) {
+        const taxableOccurrence: TaxableOccurrence = {
           date: fromActivity.date,
           year: fromActivity.date.getUTCFullYear(),
           amount: internalAmount,
-          taxRate: earlyWithdrawlPenalty,
+          taxRate: earlyWithdrawalPenalty,
         };
         const taxPayAccount = toAccount?.name;
         if (!taxPayAccount) {
           throw new Error(`Account ${toAccountId} has no name`);
         }
-        if (!segmentResult.taxableOccurences.has(taxPayAccount)) {
-          segmentResult.taxableOccurences.set(taxPayAccount, []);
+        if (!segmentResult.taxableOccurrences.has(taxPayAccount)) {
+          segmentResult.taxableOccurrences.set(taxPayAccount, []);
         }
-        segmentResult.taxableOccurences.get(taxPayAccount)?.push(taxableOccurence);
+        segmentResult.taxableOccurrences.get(taxPayAccount)?.push(taxableOccurrence);
       }
     }
 

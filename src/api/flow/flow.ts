@@ -1,5 +1,4 @@
 import { Request } from 'express';
-import { getData } from '../../utils/net/request';
 
 /**
  * Retrieves cash flow data for financial analysis
@@ -12,7 +11,6 @@ import { getData } from '../../utils/net/request';
  * @returns Empty object (placeholder implementation)
  */
 export async function getFlow(request: Request) {
-  const data = await getData(request);
   return {};
   // return loadFlow(data.accountsAndTransfers, data.selectedAccounts, data.startDate, data.endDate);
 }

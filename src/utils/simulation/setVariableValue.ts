@@ -35,6 +35,6 @@ export function setVariableValue(value: VariableValue): VariableValue {
       type: 'date',
     };
   } else {
-    throw new Error(`Invalid value type: ${value}`);
+    throw new Error(`Invalid value type: ${JSON.stringify(value)}`);
   }
 }

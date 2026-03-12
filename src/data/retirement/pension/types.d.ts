@@ -1,6 +1,6 @@
 export type PensionData = {
   name: string;
-  payToAcccount: string;
+  payToAccount: string;
   paycheckNames: string[];
   paycheckAccounts: string[];
   paycheckCategories: string[];

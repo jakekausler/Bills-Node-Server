@@ -11,7 +11,7 @@ const mockLoadVariable = vi.mocked(loadVariable);
 describe('SocialSecurity', () => {
   const mockSocialSecurityData: SocialSecurityData = {
     name: 'Test Social Security',
-    payToAcccount: 'account-123',
+    payToAccount: 'account-123',
     paycheckNames: ['Social Security Payment'],
     paycheckAccounts: ['account-123'],
     paycheckCategories: ['Income'],
@@ -34,7 +34,7 @@ describe('SocialSecurity', () => {
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
 
       expect(socialSecurity.name).toBe('Test Social Security');
-      expect(socialSecurity.payToAcccount).toBe('account-123');
+      expect(socialSecurity.payToAccount).toBe('account-123');
       expect(socialSecurity.paycheckNames).toEqual(['Social Security Payment']);
       expect(socialSecurity.paycheckAccounts).toEqual(['account-123']);
       expect(socialSecurity.paycheckCategories).toEqual(['Income']);
@@ -182,7 +182,7 @@ describe('SocialSecurity', () => {
 
       expect(serialized).toEqual({
         name: 'Test Social Security',
-        payToAcccount: 'account-123',
+        payToAccount: 'account-123',
         paycheckNames: ['Social Security Payment'],
         paycheckAccounts: ['account-123'],
         paycheckCategories: ['Income'],

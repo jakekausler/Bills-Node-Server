@@ -14,7 +14,7 @@ import {
   RMDEvent,
   SpendingTrackerEvent,
   TimelineEvent,
-  TaxableOccurence,
+  TaxableOccurrence,
 } from './types';
 import { CacheManager } from './cache';
 import { BalanceTracker } from './balance-tracker';
@@ -151,10 +151,10 @@ export class SegmentProcessor {
     }
 
     // Add taxable occurences to tax manager
-    for (const [accountName, taxableOccurences] of segmentResult.taxableOccurences) {
+    for (const [accountName, taxableOccurrences] of segmentResult.taxableOccurrences) {
       const account = this.accountManager.getAccountByName(accountName);
       if (account) {
-        this.taxManager.addTaxableOccurences(account.id, taxableOccurences);
+        this.taxManager.addTaxableOccurrences(account.id, taxableOccurrences);
       } else {
         console.warn(`[SegmentProcessor] Account ${accountName} not found for adding taxable occurences`);
       }
@@ -168,7 +168,7 @@ export class SegmentProcessor {
       processedEventIds: new Set<string>(),
       balanceMinimums: new Map<string, number>(),
       balanceMaximums: new Map<string, number>(),
-      taxableOccurences: new Map<string, TaxableOccurence[]>(),
+      taxableOccurrences: new Map<string, TaxableOccurrence[]>(),
       spendingTrackerUpdates: [],
     };
 
@@ -323,6 +323,10 @@ export class SegmentProcessor {
         return 'RMD';
       case EventType.spendingTracker:
         return (event as SpendingTrackerEvent).categoryName;
+      case EventType.activityTransfer:
+        return (event as any).originalActivity?.name || '';
+      case EventType.billTransfer:
+        return (event as any).originalBill?.name || '';
       default:
         return ''; // Unknown events sort to the beginning
     }

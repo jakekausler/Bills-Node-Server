@@ -66,11 +66,11 @@ function updateAccountTaxSettings(account: Account, newAccount: AccountData): vo
   if (newAccount.withdrawalTaxRate !== account.withdrawalTaxRate) {
     account.withdrawalTaxRate = newAccount.withdrawalTaxRate ?? 0;
   }
-  if (newAccount.earlyWithdrawlPenalty !== account.earlyWithdrawlPenalty) {
-    account.earlyWithdrawlPenalty = newAccount.earlyWithdrawlPenalty ?? 0;
+  if (newAccount.earlyWithdrawalPenalty !== account.earlyWithdrawalPenalty) {
+    account.earlyWithdrawalPenalty = newAccount.earlyWithdrawalPenalty ?? 0;
   }
-  if (newAccount.earlyWithdrawlDate !== account.earlyWithdrawlDate) {
-    account.earlyWithdrawlDate = newAccount.earlyWithdrawlDate || null;
+  if (newAccount.earlyWithdrawalDate !== account.earlyWithdrawalDate) {
+    account.earlyWithdrawalDate = newAccount.earlyWithdrawalDate || null;
   }
   if (newAccount.interestAppliesToPositiveBalance !== account.interestAppliesToPositiveBalance) {
     account.interestAppliesToPositiveBalance = newAccount.interestAppliesToPositiveBalance ?? account.interestAppliesToPositiveBalance;

@@ -61,7 +61,7 @@ function makeSegmentResult(activities: Record<string, any[]>): SegmentResult {
     processedEventIds: new Set(),
     balanceMinimums: new Map(),
     balanceMaximums: new Map(),
-    taxableOccurences: new Map(),
+    taxableOccurrences: new Map(),
     spendingTrackerUpdates: [],
   };
 }

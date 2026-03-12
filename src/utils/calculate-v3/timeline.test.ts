@@ -1723,7 +1723,7 @@ describe('Timeline - core methods', () => {
     function makeSocialSecurity(payToAccount: any, overrides: Record<string, any> = {}): any {
       return {
         name: 'SS-Alice',
-        payToAcccount: 'Checking',
+        payToAccount: 'Checking',
         startDate: utcDate(2025, 1, 1),
         birthDate: utcDate(1955, 1, 1),
         ...overrides,
@@ -1811,7 +1811,7 @@ describe('Timeline - core methods', () => {
     function makePension(overrides: Record<string, any> = {}): any {
       return {
         name: 'Pension-Bob',
-        payToAcccount: 'Checking',
+        payToAccount: 'Checking',
         startDate: utcDate(2025, 1, 1),
         birthDate: utcDate(1960, 6, 15),
         ...overrides,

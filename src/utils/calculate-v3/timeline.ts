@@ -525,9 +525,9 @@ export class Timeline {
     }
 
     // Find the account to pay to
-    const payToAccount = this.accountManager.getAccountByName(socialSecurity.payToAcccount);
+    const payToAccount = this.accountManager.getAccountByName(socialSecurity.payToAccount);
     if (!payToAccount) {
-      console.warn(`Social Security pay to account ${socialSecurity.payToAcccount} not found`);
+      console.warn(`Social Security pay to account ${socialSecurity.payToAccount} not found`);
       return;
     }
 
@@ -569,9 +569,9 @@ export class Timeline {
     }
 
     // Find the account to pay to
-    const payToAccount = this.accountManager.getAccountByName(pension.payToAcccount);
+    const payToAccount = this.accountManager.getAccountByName(pension.payToAccount);
     if (!payToAccount) {
-      console.warn(`Pension pay to account ${pension.payToAcccount} not found`);
+      console.warn(`Pension pay to account ${pension.payToAccount} not found`);
       return;
     }
 
@@ -602,7 +602,7 @@ export class Timeline {
 
       // Safety check to prevent infinite loops
       if (eventCount > 10000) {
-        throw new Error(`Too many Social Security events generated for ${pension.name}`);
+        throw new Error(`Too many Pension events generated for ${pension.name}`);
       }
     }
   }
@@ -747,9 +747,6 @@ export class Timeline {
     // Apply inflation by increasing the amount by the monte carlo sample every year
     // We don't handle ceilingMultiple with monte carlo, so we'll just return the amount
     const yearsDiff = this.yearIncreases(bill.startDate, currentDate, bill.increaseByDate);
-    // if (bill.name === 'Google Fiber') {
-    //   console.log(`Calculating bill amount for ${bill.name} on ${currentDate} for ${yearsDiff} years`);
-    // }
     const samples: number[] = [];
     for (let i = 0; i < yearsDiff; i++) {
       const increaseDate = new Date(Date.UTC(
@@ -764,10 +761,6 @@ export class Timeline {
       samples.push(sample);
       amount *= 1 + sample;
     }
-    // if (bill.name === 'Google Fiber') {
-    //   console.log(`  Samples: ${samples.join(', ')}`);
-    //   console.log(`  Amount: ${amount}`);
-    // }
 
     return amount;
   }

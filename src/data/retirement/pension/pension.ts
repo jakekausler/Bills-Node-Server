@@ -12,7 +12,7 @@ export class Pension {
   /** Name of the pension plan */
   name: string;
   /** Account ID where pension payments will be deposited */
-  payToAcccount: string;
+  payToAccount: string;
   /** Names for paycheck entries */
   paycheckNames: string[];
   /** Account IDs for each paycheck */
@@ -67,7 +67,7 @@ export class Pension {
    */
   constructor(data: PensionData, simulation = 'Default') {
     this.name = data.name;
-    this.payToAcccount = data.payToAcccount;
+    this.payToAccount = data.payToAccount;
     this.paycheckNames = [...data.paycheckNames];
     this.paycheckAccounts = [...data.paycheckAccounts];
     this.paycheckCategories = [...data.paycheckCategories];
@@ -166,7 +166,7 @@ export class Pension {
   serialize(): PensionData {
     return {
       name: this.name,
-      payToAcccount: this.payToAcccount,
+      payToAccount: this.payToAccount,
       paycheckNames: this.paycheckNames,
       paycheckAccounts: this.paycheckAccounts,
       paycheckCategories: this.paycheckCategories,

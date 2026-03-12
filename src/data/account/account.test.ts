@@ -14,8 +14,8 @@ describe('Account', () => {
     pullPriority: 1,
     interestTaxRate: 0.25,
     withdrawalTaxRate: 0.2,
-    earlyWithdrawlPenalty: 0.1,
-    earlyWithdrawlDate: null,
+    earlyWithdrawalPenalty: 0.1,
+    earlyWithdrawalDate: null,
     interestPayAccount: null,
     usesRMD: false,
     accountOwnerDOB: null,
@@ -42,7 +42,7 @@ describe('Account', () => {
       expect(account.pullPriority).toBe(1);
       expect(account.interestTaxRate).toBe(0.25);
       expect(account.withdrawalTaxRate).toBe(0.2);
-      expect(account.earlyWithdrawlPenalty).toBe(0.1);
+      expect(account.earlyWithdrawalPenalty).toBe(0.1);
       expect(account.usesRMD).toBe(false);
       expect(account.minimumBalance).toBe(100);
       expect(account.minimumPullAmount).toBe(50);
@@ -76,8 +76,8 @@ describe('Account', () => {
       expect(account.pullPriority).toBe(-1);
       expect(account.interestTaxRate).toBe(0);
       expect(account.withdrawalTaxRate).toBe(0);
-      expect(account.earlyWithdrawlPenalty).toBe(0);
-      expect(account.earlyWithdrawlDate).toBe(null);
+      expect(account.earlyWithdrawalPenalty).toBe(0);
+      expect(account.earlyWithdrawalDate).toBe(null);
       expect(account.interestPayAccount).toBe(null);
       expect(account.usesRMD).toBe(false);
       expect(account.accountOwnerDOB).toBe(null);
@@ -131,7 +131,7 @@ describe('Account', () => {
       expect(serialized.pullPriority).toBe(mockAccountData.pullPriority);
       expect(serialized.interestTaxRate).toBe(mockAccountData.interestTaxRate);
       expect(serialized.withdrawalTaxRate).toBe(mockAccountData.withdrawalTaxRate);
-      expect(serialized.earlyWithdrawlPenalty).toBe(mockAccountData.earlyWithdrawlPenalty);
+      expect(serialized.earlyWithdrawalPenalty).toBe(mockAccountData.earlyWithdrawalPenalty);
       expect(serialized.usesRMD).toBe(mockAccountData.usesRMD);
       expect(serialized.minimumBalance).toBe(mockAccountData.minimumBalance);
       expect(serialized.minimumPullAmount).toBe(mockAccountData.minimumPullAmount);
@@ -172,8 +172,8 @@ describe('Account', () => {
         pullPriority: 1,
         interestTaxRate: 0.25,
         withdrawalTaxRate: 0.2,
-        earlyWithdrawlPenalty: 0.1,
-        earlyWithdrawlDate: null,
+        earlyWithdrawalPenalty: 0.1,
+        earlyWithdrawalDate: null,
         interestPayAccount: null,
         usesRMD: false,
         accountOwnerDOB: null,

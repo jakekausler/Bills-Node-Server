@@ -18,7 +18,7 @@ describe('Pension', () => {
 
   const mockPensionData: PensionData = {
     name: 'Test Pension Plan',
-    payToAcccount: 'retirement-account',
+    payToAccount: 'retirement-account',
     paycheckNames: ['Pension Payment'],
     paycheckAccounts: ['retirement-account'],
     paycheckCategories: ['Retirement Income'],
@@ -51,7 +51,7 @@ describe('Pension', () => {
       const pension = new Pension(mockPensionData);
 
       expect(pension.name).toBe('Test Pension Plan');
-      expect(pension.payToAcccount).toBe('retirement-account');
+      expect(pension.payToAccount).toBe('retirement-account');
       expect(pension.paycheckNames).toEqual(['Pension Payment']);
       expect(pension.paycheckAccounts).toEqual(['retirement-account']);
       expect(pension.paycheckCategories).toEqual(['Retirement Income']);
@@ -291,7 +291,7 @@ describe('Pension', () => {
 
       expect(serialized).toEqual({
         name: 'Test Pension Plan',
-        payToAcccount: 'retirement-account',
+        payToAccount: 'retirement-account',
         paycheckNames: ['Pension Payment'],
         paycheckAccounts: ['retirement-account'],
         paycheckCategories: ['Retirement Income'],

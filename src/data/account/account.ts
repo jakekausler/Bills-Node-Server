@@ -28,8 +28,8 @@ export class Account {
   pullPriority: number;
   interestTaxRate: number;
   withdrawalTaxRate: number;
-  earlyWithdrawlPenalty: number;
-  earlyWithdrawlDate: Date | null;
+  earlyWithdrawalPenalty: number;
+  earlyWithdrawalDate: Date | null;
   interestPayAccount: string | null;
   interestAppliesToPositiveBalance: boolean;
   usesRMD: boolean;
@@ -87,8 +87,9 @@ export class Account {
     this.pullPriority = data.pullPriority === undefined ? -1 : data.pullPriority;
     this.interestTaxRate = data.interestTaxRate === undefined ? 0 : data.interestTaxRate;
     this.withdrawalTaxRate = data.withdrawalTaxRate === undefined ? 0 : data.withdrawalTaxRate;
-    this.earlyWithdrawlPenalty = data.earlyWithdrawlPenalty === undefined ? 0 : data.earlyWithdrawlPenalty;
-    this.earlyWithdrawlDate = data.earlyWithdrawlDate || null;
+    // Support both new and old property names for backwards compatibility with JSON data
+    this.earlyWithdrawalPenalty = data.earlyWithdrawalPenalty ?? (data as any).earlyWithdrawlPenalty ?? 0;
+    this.earlyWithdrawalDate = data.earlyWithdrawalDate ?? (data as any).earlyWithdrawlDate ?? null;
     this.interestPayAccount = data.interestPayAccount === undefined ? null : data.interestPayAccount;
     this.interestAppliesToPositiveBalance = data.interestAppliesToPositiveBalance ?? true;
     this.usesRMD = data.usesRMD || false;
@@ -124,8 +125,8 @@ export class Account {
       pullPriority: this.pullPriority,
       interestTaxRate: this.interestTaxRate,
       withdrawalTaxRate: this.withdrawalTaxRate,
-      earlyWithdrawlPenalty: this.earlyWithdrawlPenalty,
-      earlyWithdrawlDate: this.earlyWithdrawlDate ? formatDate(this.earlyWithdrawlDate) : null,
+      earlyWithdrawalPenalty: this.earlyWithdrawalPenalty,
+      earlyWithdrawalDate: this.earlyWithdrawalDate ? formatDate(this.earlyWithdrawalDate) : null,
       interestPayAccount: this.interestPayAccount,
       interestAppliesToPositiveBalance: this.interestAppliesToPositiveBalance,
       usesRMD: this.usesRMD,
@@ -158,8 +159,8 @@ export class Account {
       pullPriority: this.pullPriority,
       interestTaxRate: this.interestTaxRate,
       withdrawalTaxRate: this.withdrawalTaxRate,
-      earlyWithdrawlPenalty: this.earlyWithdrawlPenalty,
-      earlyWithdrawlDate: this.earlyWithdrawlDate ? formatDate(this.earlyWithdrawlDate) : null,
+      earlyWithdrawalPenalty: this.earlyWithdrawalPenalty,
+      earlyWithdrawalDate: this.earlyWithdrawalDate ? formatDate(this.earlyWithdrawalDate) : null,
       interestPayAccount: this.interestPayAccount,
       interestAppliesToPositiveBalance: this.interestAppliesToPositiveBalance,
       usesRMD: this.usesRMD,

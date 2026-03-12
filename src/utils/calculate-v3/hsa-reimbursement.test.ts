@@ -148,7 +148,7 @@ describe('HSA Reimbursement', () => {
     const segmentResult: SegmentResult = {
       activitiesAdded: new Map(),
       balanceChanges: new Map(),
-      taxableOccurences: new Map(),
+      taxableOccurrences: new Map(),
       processedEventIds: new Set(),
       balanceMinimums: new Map(),
       balanceMaximums: new Map(),

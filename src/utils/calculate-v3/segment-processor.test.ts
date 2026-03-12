@@ -109,7 +109,7 @@ function makeSegmentResult(overrides: Partial<SegmentResult> = {}): SegmentResul
     processedEventIds: new Set(),
     balanceMinimums: new Map(),
     balanceMaximums: new Map(),
-    taxableOccurences: new Map(),
+    taxableOccurrences: new Map(),
     spendingTrackerUpdates: [],
     ...overrides,
   };
@@ -167,7 +167,7 @@ function makeMockRetirementManager(overrides: Partial<any> = {}) {
 
 function makeMockTaxManager(overrides: Partial<any> = {}) {
   return {
-    addTaxableOccurences: vi.fn(),
+    addTaxableOccurrences: vi.fn(),
     ...overrides,
   };
 }
@@ -464,7 +464,7 @@ describe('SegmentProcessor', () => {
       const mockTaxableOccurrence = { date: new Date(), year: 2025, amount: 1000, taxRate: 0.22 };
       const calculator = makeMockCalculator({
         processTaxEvent: vi.fn().mockImplementation((_event, segmentResult) => {
-          segmentResult.taxableOccurences.set('Checking', [mockTaxableOccurrence]);
+          segmentResult.taxableOccurrences.set('Checking', [mockTaxableOccurrence]);
           return new Map([['acct-1', -220]]);
         }),
       });
@@ -475,7 +475,7 @@ describe('SegmentProcessor', () => {
 
       await processor.processSegment(segment, options);
 
-      expect(taxManager.addTaxableOccurences).toHaveBeenCalledWith('acct-1', [mockTaxableOccurrence]);
+      expect(taxManager.addTaxableOccurrences).toHaveBeenCalledWith('acct-1', [mockTaxableOccurrence]);
     });
 
     it('warns when taxable occurrence account not found', async () => {
@@ -484,7 +484,7 @@ describe('SegmentProcessor', () => {
       const mockTaxableOccurrence = { date: new Date(), year: 2025, amount: 1000, taxRate: 0.22 };
       const calculator = makeMockCalculator({
         processTaxEvent: vi.fn().mockImplementation((_event, segmentResult) => {
-          segmentResult.taxableOccurences.set('UnknownAccount', [mockTaxableOccurrence]);
+          segmentResult.taxableOccurrences.set('UnknownAccount', [mockTaxableOccurrence]);
           return new Map();
         }),
       });
