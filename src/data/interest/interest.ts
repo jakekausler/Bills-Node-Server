@@ -138,14 +138,14 @@ export function insertInterest(
 }
 
 /**
- * Calculates compound interest for a given balance and rate
+ * Calculates periodic interest for a given balance and rate
  * @param balance - Account balance to calculate interest on
  * @param apr - Annual percentage rate
  * @param compounded - Compounding frequency
  * @returns Interest amount for the compounding period
  * @throws Error if compounding frequency is invalid
  */
-export function compoundInterest(balance: number, apr: number, compounded: 'day' | 'week' | 'month' | 'year') {
+export function periodicInterest(balance: number, apr: number, compounded: 'day' | 'week' | 'month' | 'year') {
   if (compounded === 'day') {
     return (apr / 365) * balance;
   } else if (compounded === 'week') {

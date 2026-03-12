@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Interest, insertInterest, compoundInterest } from './interest';
+import { Interest, insertInterest, periodicInterest } from './interest';
 import { InterestData } from './types';
 import { Account } from '../account/account';
 
@@ -323,35 +323,35 @@ describe('insertInterest', () => {
   });
 });
 
-describe('compoundInterest', () => {
-  it('should calculate daily compound interest correctly', () => {
+describe('periodicInterest', () => {
+  it('should calculate daily periodic interest correctly', () => {
     const balance = 10000;
     const apr = 0.05; // 5% annual rate
-    const result = compoundInterest(balance, apr, 'day');
+    const result = periodicInterest(balance, apr, 'day');
 
     expect(result).toBeCloseTo((0.05 / 365) * 10000, 2);
   });
 
-  it('should calculate weekly compound interest correctly', () => {
+  it('should calculate weekly periodic interest correctly', () => {
     const balance = 10000;
     const apr = 0.05; // 5% annual rate
-    const result = compoundInterest(balance, apr, 'week');
+    const result = periodicInterest(balance, apr, 'week');
 
     expect(result).toBeCloseTo((0.05 / 52) * 10000, 2);
   });
 
-  it('should calculate monthly compound interest correctly', () => {
+  it('should calculate monthly periodic interest correctly', () => {
     const balance = 10000;
     const apr = 0.05; // 5% annual rate
-    const result = compoundInterest(balance, apr, 'month');
+    const result = periodicInterest(balance, apr, 'month');
 
     expect(result).toBeCloseTo((0.05 / 12) * 10000, 2);
   });
 
-  it('should calculate yearly compound interest correctly', () => {
+  it('should calculate yearly periodic interest correctly', () => {
     const balance = 10000;
     const apr = 0.05; // 5% annual rate
-    const result = compoundInterest(balance, apr, 'year');
+    const result = periodicInterest(balance, apr, 'year');
 
     expect(result).toBe(0.05 * 10000);
   });
@@ -361,17 +361,17 @@ describe('compoundInterest', () => {
     const apr = 0.05;
 
     expect(() => {
-      compoundInterest(balance, apr, 'invalid' as any);
+      periodicInterest(balance, apr, 'invalid' as any);
     }).toThrow('Invalid compounded interest: invalid');
   });
 
   it('should handle zero balance', () => {
-    const result = compoundInterest(0, 0.05, 'month');
+    const result = periodicInterest(0, 0.05, 'month');
     expect(result).toBe(0);
   });
 
   it('should handle zero interest rate', () => {
-    const result = compoundInterest(10000, 0, 'month');
+    const result = periodicInterest(10000, 0, 'month');
     expect(result).toBe(0);
   });
 });
