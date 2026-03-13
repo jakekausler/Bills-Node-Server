@@ -10,6 +10,7 @@ import {
   EventType,
   InterestEvent,
   MonteCarloConfig,
+  MonteCarloSampleType,
   PensionEvent,
   RMDEvent,
   Segment,
@@ -76,27 +77,33 @@ export class Timeline {
   }
 
   applyMonteCarlo() {
+    const mappings = this.monteCarloConfig?.variableMappings || {};
+
     for (const event of this.events) {
       if (event.type === EventType.bill) {
         const billEvent = event as BillEvent;
-        if (billEvent.originalBill.monteCarloSampleType) {
-          billEvent.amount = this.calculateBillAmountMonteCarlo(billEvent.originalBill, billEvent.date);
+        const varName = billEvent.originalBill.increaseByVariable;
+        if (varName && mappings[varName]) {
+          billEvent.amount = this.calculateBillAmountMonteCarlo(billEvent.originalBill, billEvent.date, mappings[varName]);
         }
       } else if (event.type === EventType.billTransfer) {
         const billTransferEvent = event as BillTransferEvent;
-        if (billTransferEvent.originalBill.monteCarloSampleType) {
+        const varName = billTransferEvent.originalBill.increaseByVariable;
+        if (varName && mappings[varName]) {
           billTransferEvent.amount = this.calculateBillAmountMonteCarlo(
             billTransferEvent.originalBill,
             billTransferEvent.date,
+            mappings[varName],
           );
         }
       } else if (event.type === EventType.interest) {
         const interestEvent = event as InterestEvent;
-        if (interestEvent.originalInterest.monteCarloSampleType) {
+        const varName = interestEvent.originalInterest.aprVariable;
+        if (varName && mappings[varName]) {
           interestEvent.rate = this.monteCarloConfig?.handler?.getSample(
-            interestEvent.originalInterest.monteCarloSampleType,
+            mappings[varName] as MonteCarloSampleType,
             interestEvent.date,
-          );
+          ) ?? interestEvent.rate;
         }
       }
     }
@@ -727,6 +734,7 @@ export class Timeline {
   private calculateBillAmountMonteCarlo(
     bill: Bill,
     currentDate: Date,
+    sampleType: string,
   ): number | '{HALF}' | '{FULL}' | '-{HALF}' | '-{FULL}' {
     if (!this.monteCarloConfig?.enabled || !this.monteCarloConfig?.handler) {
       throw new Error('Monte Carlo configuration not enabled');
@@ -754,9 +762,9 @@ export class Timeline {
         bill.increaseByDate.month,
         bill.increaseByDate.day,
       ));
-      const sample = this.monteCarloConfig?.handler?.getSample(bill.monteCarloSampleType, increaseDate);
+      const sample = this.monteCarloConfig?.handler?.getSample(sampleType, increaseDate);
       if (sample === undefined || sample === null) {
-        throw new Error(`No sample found for ${bill.monteCarloSampleType} on ${formatDate(currentDate)}`);
+        throw new Error(`No sample found for ${sampleType} on ${formatDate(currentDate)}`);
       }
       samples.push(sample);
       amount *= 1 + sample;
