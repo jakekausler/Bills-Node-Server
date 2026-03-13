@@ -1,64 +1,102 @@
 import { AccountsAndTransfers } from '../../data/account/types';
+import { formatDate } from '../date/date';
 
 /**
- * Mapping of names to category counts for statistical analysis
+ * Metadata about a transaction name from its most recent usage
  */
-type NamesWithCounts = Record<string, CategoriesWithCounts>;
+export interface NameMetadata {
+  category: string;
+  isHealthcare: boolean;
+  healthcarePerson: string | null;
+  coinsurancePercent: number | null;
+  isTransfer: boolean;
+  from: string | null;
+  to: string | null;
+  spendingCategory: string | null;
+}
 
 /**
- * Mapping of categories to their usage counts
+ * Track each name with its most recent usage metadata and date
  */
-type CategoriesWithCounts = Record<string, number>;
-
-/**
- * Mapping of names to their most frequently used category
- */
-type NamesWithCategories = Record<string, string | string[]>;
-
-/**
- * Adds a name-category pair to the names tracking object, incrementing the count
- * @param names - The names tracking object to update
- * @param name - The name to add or update
- * @param category - The category to associate with the name
- */
-const addToNames = (names: NamesWithCounts, name: string, category: string) => {
-  if (!names[name]) {
-    names[name] = {};
-  }
-  const nameWithCount = names[name];
-  if (!nameWithCount[category]) {
-    nameWithCount[category] = 0;
-  }
-  nameWithCount[category]++;
+type NameWithDateAndMetadata = {
+  date: string;
+  metadata: NameMetadata;
 };
 
 /**
- * Analyzes all activities and bills to determine the most frequently used category for each name
- * @param accountsAndTransfers - The complete financial data structure
- * @returns A mapping of names to their most frequently used category
+ * Helper to extract metadata from an activity
  */
-export function loadNameCategories(accountsAndTransfers: AccountsAndTransfers): NamesWithCategories {
-  const names: NamesWithCounts = {};
+const getActivityMetadata = (activity: any): NameMetadata => ({
+  category: activity.category,
+  isHealthcare: activity.isHealthcare ?? false,
+  healthcarePerson: activity.healthcarePerson ?? null,
+  coinsurancePercent: activity.coinsurancePercent ?? null,
+  isTransfer: activity.isTransfer,
+  from: activity.from ?? null,
+  to: activity.to ?? null,
+  spendingCategory: activity.spendingCategory ?? null,
+});
+
+/**
+ * Helper to extract metadata from a bill
+ */
+const getBillMetadata = (bill: any): NameMetadata => ({
+  category: bill.category,
+  isHealthcare: bill.isHealthcare ?? false,
+  healthcarePerson: bill.healthcarePerson ?? null,
+  coinsurancePercent: bill.coinsurancePercent ?? null,
+  isTransfer: bill.isTransfer,
+  from: bill.from ?? null,
+  to: bill.to ?? null,
+  spendingCategory: bill.spendingCategory ?? null,
+});
+
+/**
+ * Adds or updates a name with the metadata from an activity or bill if it's more recent
+ * @param names - The names tracking object to update
+ * @param name - The name to add or update
+ * @param date - The date of the activity/bill (activity.date or bill.startDate)
+ * @param metadata - The metadata to associate with the name
+ */
+const addToNames = (names: Record<string, NameWithDateAndMetadata>, name: string, date: string, metadata: NameMetadata) => {
+  if (!names[name] || date > names[name].date) {
+    names[name] = { date, metadata };
+  }
+};
+
+/**
+ * Analyzes all activities and bills to determine the metadata from the most recent usage of each name
+ * @param accountsAndTransfers - The complete financial data structure
+ * @returns A mapping of names to their metadata from the most recent usage
+ */
+export function loadNameCategories(accountsAndTransfers: AccountsAndTransfers): Record<string, NameMetadata> {
+  const names: Record<string, NameWithDateAndMetadata> = {};
+
   accountsAndTransfers.accounts.forEach((account) => {
     account.activity.forEach((activity) => {
-      addToNames(names, activity.name, activity.category);
+      const dateStr = formatDate(activity.date);
+      addToNames(names, activity.name, dateStr, getActivityMetadata(activity));
     });
     account.bills.forEach((bill) => {
-      addToNames(names, bill.name, bill.category);
+      const dateStr = formatDate(bill.startDate);
+      addToNames(names, bill.name, dateStr, getBillMetadata(bill));
     });
   });
+
   accountsAndTransfers.transfers.activity.forEach((activity) => {
-    addToNames(names, activity.name, activity.category);
+    const dateStr = formatDate(activity.date);
+    addToNames(names, activity.name, dateStr, getActivityMetadata(activity));
   });
+
   accountsAndTransfers.transfers.bills.forEach((bill) => {
-    addToNames(names, bill.name, bill.category);
+    const dateStr = formatDate(bill.startDate);
+    addToNames(names, bill.name, dateStr, getBillMetadata(bill));
   });
-  const result: NamesWithCategories = {};
-  Object.entries(names).forEach(([name, categories]) => {
-    result[name] = Object.entries(categories)
-      .sort(([_cat1, count1], [_cat2, count2]) => count2 - count1)
-      // TODO: Remove the "[0]" when category array is implemented on the frontend
-      .map(([category]) => category)[0];
+
+  const result: Record<string, NameMetadata> = {};
+  Object.entries(names).forEach(([name, { metadata }]) => {
+    result[name] = metadata;
   });
+
   return result;
 }
