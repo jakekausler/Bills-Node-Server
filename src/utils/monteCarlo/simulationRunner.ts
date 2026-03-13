@@ -274,10 +274,9 @@ export class MonteCarloSimulationRunner {
   public isComplete(id: string): boolean {
     const job = this.jobs.get(id);
     if (!job) {
-      // This is an existing simulation that is not in the jobs map
-      return true;
+      return false;
     }
-    return job?.status === 'completed' || false;
+    return job.status === 'completed';
   }
 
   public getResultFilePath(id: string): string | null {
