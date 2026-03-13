@@ -952,6 +952,7 @@ describe('Timeline - core methods', () => {
         handler: { getSample },
         simulationNumber: 1,
         totalSimulations: 10,
+        variableMappings: { 'INFLATION': 'Inflation' },
       };
       const mockAccountManager = {} as AccountManager;
       const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
@@ -966,7 +967,7 @@ describe('Timeline - core methods', () => {
         originalBill: {
           id: 'bill-1',
           amount: 100,
-          monteCarloSampleType: 'Inflation',
+          increaseByVariable: 'INFLATION',
           startDate: utcDate(2024, 1, 1),
           increaseByDate: { month: 0, day: 1 },
           increaseBy: 0,
@@ -991,6 +992,7 @@ describe('Timeline - core methods', () => {
         handler: { getSample },
         simulationNumber: 1,
         totalSimulations: 10,
+        variableMappings: { 'HIGH_YIELD_SAVINGS_RATE': 'HYSA' },
       };
       const mockAccountManager = {} as AccountManager;
       const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
@@ -1004,7 +1006,7 @@ describe('Timeline - core methods', () => {
         originalInterest: {
           id: 'interest-1',
           apr: 0.04,
-          monteCarloSampleType: 'HYSA',
+          aprVariable: 'HIGH_YIELD_SAVINGS_RATE',
         },
         rate: 0.04,
         firstInterest: false,
@@ -2070,7 +2072,7 @@ describe('Timeline - core methods', () => {
 
       const bill = {
         amount: '{HALF}' as const,
-        monteCarloSampleType: 'Inflation',
+        increaseByVariable: 'INFLATION',
         startDate: utcDate(2024, 1, 1),
         increaseByDate: { month: 0, day: 1 },
       } as any;
@@ -2087,7 +2089,7 @@ describe('Timeline - core methods', () => {
 
       const bill = {
         amount: 100,
-        monteCarloSampleType: 'Inflation',
+        increaseByVariable: 'INFLATION',
         startDate: utcDate(2024, 1, 1),
         increaseByDate: { month: 0, day: 1 },
       } as any;
@@ -2104,13 +2106,14 @@ describe('Timeline - core methods', () => {
         handler: { getSample },
         simulationNumber: 1,
         totalSimulations: 10,
+        variableMappings: { 'INFLATION': 'Inflation' },
       };
       const mockAccountManager = {} as AccountManager;
       const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
 
       const bill = {
         amount: 100,
-        monteCarloSampleType: 'Inflation',
+        increaseByVariable: 'INFLATION',
         startDate: utcDate(2023, 1, 1),
         increaseByDate: { month: 0, day: 1 }, // Jan 1
       } as any;
@@ -2131,13 +2134,14 @@ describe('Timeline - core methods', () => {
         handler: { getSample },
         simulationNumber: 1,
         totalSimulations: 10,
+        variableMappings: { 'INFLATION': 'Inflation' },
       };
       const mockAccountManager = {} as AccountManager;
       const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
 
       const bill = {
         amount: 100,
-        monteCarloSampleType: 'Inflation',
+        increaseByVariable: 'INFLATION',
         startDate: utcDate(2023, 1, 1),
         increaseByDate: { month: 0, day: 1 },
       } as any;
@@ -2158,6 +2162,7 @@ describe('Timeline - core methods', () => {
         handler: { getSample },
         simulationNumber: 1,
         totalSimulations: 10,
+        variableMappings: { 'INFLATION': 'Inflation' },
       };
       const mockAccountManager = {} as AccountManager;
       const timeline = new Timeline(mockAccountManager, Date.now(), false, monteCarloConfig);
@@ -2173,7 +2178,7 @@ describe('Timeline - core methods', () => {
         originalBill: {
           id: 'bill-1',
           amount: 100,
-          monteCarloSampleType: 'Inflation',
+          increaseByVariable: 'INFLATION',
           startDate: utcDate(2024, 1, 1),
           increaseByDate: { month: 0, day: 1 },
           increaseBy: 0,
