@@ -53,3 +53,20 @@ export interface SimulationResult {
   simulationNumber: number;
   accounts: FilteredAccount[];
 }
+
+export type WorkerMessage =
+  | { type: 'progress'; completedSimulations: number; total: number }
+  | { type: 'complete' }
+  | { type: 'error'; message: string };
+
+export interface WorkerData {
+  totalSimulations: number;
+  batchSize: number;
+  startDate: string; // ISO string
+  endDate: string; // ISO string
+  simulationId: string;
+  simulation: string; // simulation name for data loading
+  tempDir: string;
+  resultsDir: string;
+  graphsDir: string;
+}

@@ -1,0 +1,288 @@
+import { parentPort, workerData } from 'worker_threads';
+import { writeFileSync, mkdirSync, existsSync, readFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
+import { getAccountsAndTransfers } from '../io/accountsAndTransfers';
+import { WorkerData, WorkerMessage, SimulationResult, FilteredActivity, FilteredAccount } from './types';
+import { Timeline } from '../calculate-v3/timeline';
+import { minDate } from '../io/minDate';
+import { calculateAllActivity } from '../calculate-v3/engine';
+import { generateMonteCarloStatisticsGraph } from './statisticsGraph';
+
+const data = workerData as WorkerData;
+
+/**
+ * Main worker execution function.
+ * Runs Monte Carlo simulations in parallel within worker threads.
+ */
+async function runWorkerSimulations(): Promise<void> {
+  try {
+    // Ensure directories exist
+    if (!existsSync(data.tempDir)) {
+      mkdirSync(data.tempDir, { recursive: true });
+    }
+    if (!existsSync(data.resultsDir)) {
+      mkdirSync(data.resultsDir, { recursive: true });
+    }
+    if (!existsSync(data.graphsDir)) {
+      mkdirSync(data.graphsDir, { recursive: true });
+    }
+
+    const startDate = new Date(data.startDate);
+    const endDate = new Date(data.endDate);
+    const totalSimulations = data.totalSimulations;
+    const batchSize = data.batchSize;
+
+    console.log(
+      `🚀 [Worker] Starting Monte Carlo simulations: ${totalSimulations} total, batch size: ${batchSize}`,
+    );
+
+    // Load accounts and transfers from disk (can't serialize class instances through worker_threads)
+    const accountsAndTransfers = getAccountsAndTransfers(data.simulation);
+    const actualStartDate = minDate(accountsAndTransfers);
+
+    // Create shared timeline (same as runner does)
+    const timeline = await Timeline.fromAccountsAndTransfers(
+      accountsAndTransfers,
+      actualStartDate,
+      endDate,
+      Date.now(),
+      false,
+      null,
+      {
+        startDate,
+        endDate,
+        simulation: data.simulation,
+        monteCarlo: true,
+        simulationNumber: 0,
+        totalSimulations: 0,
+        forceRecalculation: false,
+        enableLogging: false,
+        config: {},
+      },
+    );
+
+    // Run simulations in batches
+    const batches = Math.ceil(totalSimulations / batchSize);
+    const tempFiles: string[] = [];
+
+    for (let batchIndex = 0; batchIndex < batches; batchIndex++) {
+      const batchStart = batchIndex * batchSize + 1;
+      const batchEnd = Math.min((batchIndex + 1) * batchSize, totalSimulations);
+
+      // Run all simulations in batch in parallel
+      const batchPromises: Promise<void>[] = [];
+      for (let simNum = batchStart; simNum <= batchEnd; simNum++) {
+        batchPromises.push(
+          runSingleSimulation(
+            simNum,
+            totalSimulations,
+            startDate,
+            endDate,
+            accountsAndTransfers,
+            timeline,
+            tempFiles,
+          ),
+        );
+      }
+
+      await Promise.all(batchPromises);
+
+      // Send progress update after each batch
+      if (parentPort) {
+        const message: WorkerMessage = {
+          type: 'progress',
+          completedSimulations: batchEnd,
+          total: totalSimulations,
+        };
+        parentPort.postMessage(message);
+      }
+
+      console.log(`⭐ [Worker] Batch ${batchIndex + 1}/${batches} completed. Progress: ${batchEnd}/${totalSimulations}`);
+    }
+
+    // Combine temp files into final result
+    await combineTempFiles(tempFiles, startDate, endDate);
+
+    // Generate and save graph
+    await generateAndSaveGraph();
+
+    // Send complete message
+    if (parentPort) {
+      const message: WorkerMessage = { type: 'complete' };
+      parentPort.postMessage(message);
+    }
+
+    console.log(`🎉 [Worker] All simulations completed successfully`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`❌ [Worker] Fatal error:`, error);
+
+    if (parentPort) {
+      const message: WorkerMessage = {
+        type: 'error',
+        message: errorMessage,
+      };
+      parentPort.postMessage(message);
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Run a single Monte Carlo simulation
+ */
+async function runSingleSimulation(
+  simulationNumber: number,
+  totalSimulations: number,
+  startDate: Date,
+  endDate: Date,
+  accountsAndTransfers: any,
+  timeline: Timeline,
+  tempFiles: string[],
+): Promise<void> {
+  try {
+    const results = await calculateAllActivity(
+      accountsAndTransfers,
+      startDate,
+      endDate,
+      data.simulation,
+      true, // monteCarlo: true
+      simulationNumber,
+      totalSimulations,
+      false,
+      false,
+      {},
+      timeline,
+    );
+
+    // Filter and format results
+    const filteredResults: SimulationResult = {
+      simulationNumber,
+      accounts: results.accounts.map(
+        (account): FilteredAccount => ({
+          name: account.name,
+          id: account.id,
+          consolidatedActivity: account.consolidatedActivity.map((activity): FilteredActivity => {
+            const serialized = activity.serialize();
+            return {
+              name: serialized.name,
+              id: serialized.id,
+              amount: typeof serialized.amount === 'number' ? serialized.amount : 0,
+              balance: serialized.balance,
+              from: serialized.from || '',
+              to: serialized.to || '',
+              date: serialized.date,
+            };
+          }),
+        }),
+      ),
+    };
+
+    // Write to temporary file
+    const tempFileName = `${data.simulationId}_sim_${simulationNumber}.json`;
+    const tempFilePath = join(data.tempDir, tempFileName);
+
+    writeFileSync(tempFilePath, JSON.stringify(filteredResults));
+    tempFiles.push(tempFilePath);
+  } catch (error) {
+    console.error(`❌ [Worker] Simulation ${simulationNumber} failed:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Combine all temporary simulation files into the final result
+ */
+async function combineTempFiles(
+  tempFiles: string[],
+  startDate: Date,
+  endDate: Date,
+): Promise<void> {
+  try {
+    const allResults: SimulationResult[] = [];
+
+    // Read all temp files
+    for (const tempFile of tempFiles) {
+      if (existsSync(tempFile)) {
+        const content = readFileSync(tempFile, 'utf-8');
+        const result: SimulationResult = JSON.parse(content);
+        allResults.push(result);
+      }
+    }
+
+    // Sort by simulation number
+    allResults.sort((a, b) => a.simulationNumber - b.simulationNumber);
+
+    // Create the final result with metadata
+    const finalResult = {
+      metadata: {
+        id: data.simulationId,
+        startDate,
+        endDate,
+        totalSimulations: data.totalSimulations,
+        createdAt: new Date().toISOString(),
+        startedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+        duration: 0,
+      },
+      results: allResults,
+    };
+
+    // Write combined result
+    const finalFilePath = join(data.resultsDir, `${data.simulationId}.json`);
+    writeFileSync(finalFilePath, JSON.stringify(finalResult, null, 2));
+
+    // Clean up temp files
+    for (const tempFile of tempFiles) {
+      try {
+        if (existsSync(tempFile)) {
+          unlinkSync(tempFile);
+        }
+      } catch (error) {
+        console.warn(`⚠️ [Worker] Failed to delete temp file ${tempFile}:`, error);
+      }
+    }
+
+    console.log(
+      `💾 [Worker] Combined ${allResults.length} simulation results into ${finalFilePath}`,
+    );
+  } catch (error) {
+    console.error('❌ [Worker] Error combining temp files:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate and save graph for the simulation
+ */
+async function generateAndSaveGraph(): Promise<void> {
+  try {
+    console.log(`📈 [Worker] Generating graph for simulation ${data.simulationId}...`);
+
+    const graphData = await generateMonteCarloStatisticsGraph(data.simulationId, {
+      percentiles: [0, 5, 25, 50, 75, 95, 100],
+      includeDeterministic: true,
+      combineAccounts: true,
+    });
+
+    const graphFilePath = join(data.graphsDir, `${data.simulationId}.json`);
+    writeFileSync(graphFilePath, JSON.stringify(graphData, null, 2));
+
+    console.log(
+      `✅ [Worker] Graph saved for simulation ${data.simulationId} at ${graphFilePath}`,
+    );
+  } catch (error) {
+    console.error(
+      `❌ [Worker] Failed to generate graph for simulation ${data.simulationId}:`,
+      error,
+    );
+    // Don't throw - graph generation failure shouldn't fail the entire simulation
+  }
+}
+
+// Start the worker
+runWorkerSimulations().catch((error) => {
+  console.error('❌ [Worker] Unhandled error:', error);
+  process.exit(1);
+});
