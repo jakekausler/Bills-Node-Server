@@ -23,6 +23,15 @@ interface MonteCarloRequestData {
  * Start a new Monte Carlo simulation
  */
 export async function startSimulation(req: Request): Promise<{ id: string }> {
+  // Validate required historical data files exist
+  const dataDir = join(process.cwd(), 'data');
+  if (!existsSync(join(dataDir, 'historicRates.json'))) {
+    throw new Error('Missing historicRates.json - required for Monte Carlo simulation');
+  }
+  if (!existsSync(join(dataDir, 'portfolioMakeupOverTime.json'))) {
+    throw new Error('Missing portfolioMakeupOverTime.json - required for Monte Carlo simulation');
+  }
+
   const { accountsAndTransfers, data, startDate, endDate } = await getData<MonteCarloRequestData>(req);
 
   const totalSimulations = data?.totalSimulations || 1000;
