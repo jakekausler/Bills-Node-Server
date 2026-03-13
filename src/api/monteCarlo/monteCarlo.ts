@@ -37,7 +37,7 @@ export async function startSimulation(req: Request): Promise<{ id: string }> {
   const totalSimulations = data?.totalSimulations || 1000;
   const batchSize = data?.batchSize || 5;
 
-  const id = startMonteCarloSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate);
+  const id = await startMonteCarloSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate);
 
   return { id };
 }
@@ -45,7 +45,7 @@ export async function startSimulation(req: Request): Promise<{ id: string }> {
 /**
  * Get the status of a specific Monte Carlo simulation
  */
-export function getSimulationStatus(req: Request): SimulationProgress {
+export async function getSimulationStatus(req: Request): Promise<SimulationProgress> {
   const { id } = req.params;
 
   if (!id) {
@@ -56,7 +56,7 @@ export function getSimulationStatus(req: Request): SimulationProgress {
     throw new Error('Invalid simulation ID format');
   }
 
-  const progress = getSimulationProgress(id);
+  const progress = await getSimulationProgress(id);
 
   if (!progress) {
     throw new Error(`Simulation with ID ${id} not found`);
@@ -68,15 +68,15 @@ export function getSimulationStatus(req: Request): SimulationProgress {
 /**
  * Get all Monte Carlo simulation statuses
  */
-export function getAllSimulations(_req: Request): SimulationProgress[] {
-  const runner = MonteCarloSimulationRunner.getInstance();
+export async function getAllSimulations(_req: Request): Promise<SimulationProgress[]> {
+  const runner = await MonteCarloSimulationRunner.getInstance();
   return runner.getAllSimulations();
 }
 
 /**
  * Get the graph data for a completed Monte Carlo simulation
  */
-export function getSimulationGraph(req: Request): PercentileGraphData {
+export async function getSimulationGraph(req: Request): Promise<PercentileGraphData> {
   const { id } = req.params;
 
   if (!id) {
@@ -87,13 +87,13 @@ export function getSimulationGraph(req: Request): PercentileGraphData {
     throw new Error('Invalid simulation ID format');
   }
 
-  if (!isSimulationComplete(id)) {
+  if (!(await isSimulationComplete(id))) {
     throw new Error(`Simulation with ID ${id} is not yet completed`);
   }
 
   // Load graph data from saved file
   const graphFilePath = join(MC_GRAPHS_DIR, `${id}.json`);
-  
+
   if (!existsSync(graphFilePath)) {
     throw new Error(`Graph file not found for simulation ${id}. Graph may not have been generated yet.`);
   }

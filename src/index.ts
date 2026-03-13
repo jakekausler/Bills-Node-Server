@@ -347,26 +347,22 @@ app.post('/api/monte_carlo/simulations', verifyToken, asyncHandler(async (req: R
   }
 }));
 
-app.get('/api/monte_carlo/simulations', verifyToken, (req: Request, res: Response) => {
-  try {
-    res.json(getAllSimulations(req));
-  } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
-  }
-});
+app.get('/api/monte_carlo/simulations', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  res.json(await getAllSimulations(req));
+}));
 
-app.get('/api/monte_carlo/simulations/:id/status', verifyToken, (req: Request, res: Response) => {
+app.get('/api/monte_carlo/simulations/:id/status', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
-    res.json(getSimulationStatus(req));
+    res.json(await getSimulationStatus(req));
   } catch (error) {
     const statusCode = error instanceof Error && error.message.includes('not found') ? 404 : 400;
     res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
-});
+}));
 
-app.get('/api/monte_carlo/simulations/:id/graph', verifyToken, (req: Request, res: Response) => {
+app.get('/api/monte_carlo/simulations/:id/graph', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
-    res.json(getSimulationGraph(req));
+    res.json(await getSimulationGraph(req));
   } catch (error) {
     const statusCode =
       error instanceof Error && (error.message.includes('not found') || error.message.includes('not yet completed'))
@@ -374,7 +370,7 @@ app.get('/api/monte_carlo/simulations/:id/graph', verifyToken, (req: Request, re
         : 400;
     res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
-});
+}));
 
 interface User {
   id: number;

@@ -28,11 +28,120 @@ export class MonteCarloSimulationRunner {
     }
   }
 
-  public static getInstance(): MonteCarloSimulationRunner {
+  public static async getInstance(): Promise<MonteCarloSimulationRunner> {
     if (!MonteCarloSimulationRunner.instance) {
       MonteCarloSimulationRunner.instance = new MonteCarloSimulationRunner();
+      await MonteCarloSimulationRunner.instance.reconcileOnStartup();
     }
     return MonteCarloSimulationRunner.instance;
+  }
+
+  private async reconcileOnStartup(): Promise<void> {
+    try {
+      // Ensure all directories exist
+      if (!existsSync(MC_TEMP_DIR)) {
+        mkdirSync(MC_TEMP_DIR, { recursive: true });
+      }
+      if (!existsSync(MC_RESULTS_DIR)) {
+        mkdirSync(MC_RESULTS_DIR, { recursive: true });
+      }
+      if (!existsSync(MC_GRAPHS_DIR)) {
+        mkdirSync(MC_GRAPHS_DIR, { recursive: true });
+      }
+
+      // Clean all temp files
+      if (existsSync(MC_TEMP_DIR)) {
+        const tempFiles = readdirSync(MC_TEMP_DIR);
+        for (const file of tempFiles) {
+          try {
+            unlinkSync(join(MC_TEMP_DIR, file));
+          } catch (error) {
+            console.warn(`⚠️ Failed to delete temp file ${file}:`, error);
+          }
+        }
+      }
+
+      // Scan results directory for completed simulations
+      if (existsSync(MC_RESULTS_DIR)) {
+        const resultFiles = readdirSync(MC_RESULTS_DIR).filter((file) => file.endsWith('.json'));
+
+        for (const file of resultFiles) {
+          const id = file.replace('.json', '');
+          const resultFilePath = join(MC_RESULTS_DIR, file);
+
+          try {
+            // Parse the result file and check metadata
+            const resultData = JSON.parse(readFileSync(resultFilePath, 'utf8'));
+            if (!resultData.metadata) {
+              console.warn(`⚠️ Result file ${id} missing metadata, skipping`);
+              continue;
+            }
+
+            const completedAt = new Date(resultData.metadata.completedAt);
+            const now = new Date();
+            const ageInDays = (now.getTime() - completedAt.getTime()) / (1000 * 60 * 60 * 24);
+
+            // Delete if older than 7 days
+            if (ageInDays > 7) {
+              console.log(`🗑️ Deleting expired simulation ${id} (${Math.floor(ageInDays)} days old)`);
+              unlinkSync(resultFilePath);
+              const graphFilePath = join(MC_GRAPHS_DIR, `${id}.json`);
+              if (existsSync(graphFilePath)) {
+                unlinkSync(graphFilePath);
+              }
+              continue;
+            }
+
+            // Check if graph file exists
+            const graphFilePath = join(MC_GRAPHS_DIR, `${id}.json`);
+            if (!existsSync(graphFilePath)) {
+              console.log(`📈 Regenerating missing graph for simulation ${id}...`);
+              try {
+                const graphData = await generateMonteCarloStatisticsGraph(id, {
+                  percentiles: [0, 5, 25, 50, 75, 95, 100],
+                  includeDeterministic: true,
+                  combineAccounts: true,
+                });
+                writeFileSync(graphFilePath, JSON.stringify(graphData, null, 2));
+                console.log(`✅ Graph regenerated for simulation ${id}`);
+              } catch (error) {
+                console.error(`❌ Failed to regenerate graph for simulation ${id}:`, error);
+                // Delete result if graph generation fails
+                unlinkSync(resultFilePath);
+                continue;
+              }
+            }
+
+            // Both files exist and not expired - add to in-memory map
+            const job: SimulationJob = {
+              id,
+              accountsAndTransfers: {} as AccountsAndTransfers,
+              totalSimulations: resultData.metadata.totalSimulations,
+              batchSize: 0,
+              status: 'completed',
+              progress: 100,
+              completedSimulations: resultData.metadata.totalSimulations,
+              createdAt: new Date(resultData.metadata.createdAt),
+              tempFiles: [],
+              startDate: new Date(resultData.metadata.startDate),
+              endDate: new Date(resultData.metadata.endDate),
+              startedAt: resultData.metadata.startedAt ? new Date(resultData.metadata.startedAt) : undefined,
+              completedAt: new Date(resultData.metadata.completedAt),
+              duration: resultData.metadata.duration,
+            };
+            this.jobs.set(id, job);
+            console.log(`✅ Loaded completed simulation ${id} from disk`);
+          } catch (error) {
+            console.warn(`⚠️ Failed to reconcile simulation ${id}:`, error);
+          }
+        }
+      }
+
+      console.log(`🔄 Monte Carlo reconciliation complete. Loaded ${this.jobs.size} completed simulations.`);
+    } catch (error) {
+      console.error('❌ Fatal error during Monte Carlo reconciliation:', error);
+      // Don't throw - allow server to start even if reconciliation fails
+    }
   }
 
   public startSimulation(
@@ -113,7 +222,8 @@ export class MonteCarloSimulationRunner {
   }
 
   public getAllSimulations(): SimulationProgress[] {
-    const activeSimulations = Array.from(this.jobs.values()).map((job) => ({
+    // After reconciliation, all simulations are already in the jobs Map
+    const allSimulations = Array.from(this.jobs.values()).map((job) => ({
       id: job.id,
       status: job.status,
       progress: job.progress,
@@ -128,61 +238,8 @@ export class MonteCarloSimulationRunner {
       error: job.error,
     }));
 
-    // Get historical simulations from results directory
-    const historicalSimulations: SimulationProgress[] = [];
-    if (existsSync(MC_RESULTS_DIR)) {
-      const resultFiles = readdirSync(MC_RESULTS_DIR).filter((file) => file.endsWith('.json'));
-
-      for (const file of resultFiles) {
-        const id = file.replace('.json', '');
-
-        // Skip if this simulation is already in active jobs
-        if (this.jobs.has(id)) {
-          continue;
-        }
-
-        try {
-          const filePath = join(MC_RESULTS_DIR, file);
-          const stats = statSync(filePath);
-          const resultData = JSON.parse(readFileSync(filePath, 'utf8'));
-
-          // Check if the file has the new format with metadata
-          if (resultData.metadata) {
-            historicalSimulations.push({
-              id,
-              status: 'completed' as const,
-              progress: 100,
-              completedSimulations: resultData.metadata.totalSimulations,
-              totalSimulations: resultData.metadata.totalSimulations,
-              createdAt: new Date(resultData.metadata.createdAt),
-              startedAt: resultData.metadata.startedAt ? new Date(resultData.metadata.startedAt) : undefined,
-              completedAt: resultData.metadata.completedAt ? new Date(resultData.metadata.completedAt) : undefined,
-              startDate: formatDate(new Date(resultData.metadata.startDate)),
-              endDate: formatDate(new Date(resultData.metadata.endDate)),
-              duration: resultData.metadata.duration,
-              error: undefined,
-            });
-          } else {
-            // Legacy format - extract what we can
-            const totalSimulations = Array.isArray(resultData) ? resultData.length : 0;
-
-            historicalSimulations.push({
-              id,
-              status: 'completed' as const,
-              progress: 100,
-              completedSimulations: totalSimulations,
-              totalSimulations,
-              createdAt: stats.birthtime || stats.mtime,
-              completedAt: stats.mtime,
-            });
-          }
-        } catch (error) {
-          console.warn(`⚠️ Could not read historical simulation ${id}:`, error);
-        }
-      }
-    }
-
-    return [...activeSimulations, ...historicalSimulations].sort(
+    // Sort by creation date, most recent first
+    return allSimulations.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
@@ -446,28 +503,28 @@ export class MonteCarloSimulationRunner {
 }
 
 // Export convenience functions
-export function startMonteCarloSimulation(
+export async function startMonteCarloSimulation(
   accountsAndTransfers: AccountsAndTransfers,
   totalSimulations: number,
   batchSize: number = 5,
   startDate: Date,
   endDate: Date,
-): string {
-  const runner = MonteCarloSimulationRunner.getInstance();
+): Promise<string> {
+  const runner = await MonteCarloSimulationRunner.getInstance();
   return runner.startSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate);
 }
 
-export function getSimulationProgress(id: string): SimulationProgress | null {
-  const runner = MonteCarloSimulationRunner.getInstance();
+export async function getSimulationProgress(id: string): Promise<SimulationProgress | null> {
+  const runner = await MonteCarloSimulationRunner.getInstance();
   return runner.getProgress(id);
 }
 
-export function isSimulationComplete(id: string): boolean {
-  const runner = MonteCarloSimulationRunner.getInstance();
+export async function isSimulationComplete(id: string): Promise<boolean> {
+  const runner = await MonteCarloSimulationRunner.getInstance();
   return runner.isComplete(id);
 }
 
-export function getSimulationResultPath(id: string): string | null {
-  const runner = MonteCarloSimulationRunner.getInstance();
+export async function getSimulationResultPath(id: string): Promise<string | null> {
+  const runner = await MonteCarloSimulationRunner.getInstance();
   return runner.getResultFilePath(id);
 }
