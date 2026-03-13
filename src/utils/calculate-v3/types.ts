@@ -301,4 +301,5 @@ export interface MonteCarloConfig {
   handler: any; // Using any to avoid circular dependency
   simulationNumber: number;
   totalSimulations: number;
+  variableMappings: Record<string, string>;
 }

@@ -1,3 +1,5 @@
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { CalculationConfig, CalculationOptions, MonteCarloConfig } from './types';
 import { CacheManager, initializeCache } from './cache';
@@ -124,11 +126,17 @@ export class Engine {
     if (options.monteCarlo) {
       const handler = await MonteCarloHandler.getInstance(actualStartDate, options.endDate);
 
+      const mappingsPath = join(process.cwd(), 'data', 'monteCarloMappings.json');
+      const variableMappings = existsSync(mappingsPath)
+        ? JSON.parse(readFileSync(mappingsPath, 'utf-8'))
+        : {};
+
       this.monteCarloConfig = {
         enabled: options.monteCarlo,
         handler,
         simulationNumber: options.simulationNumber,
         totalSimulations: options.totalSimulations,
+        variableMappings,
       };
     }
 
