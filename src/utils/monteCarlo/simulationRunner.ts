@@ -9,28 +9,22 @@ import { generateMonteCarloStatisticsGraph } from './statisticsGraph';
 import { Timeline } from '../calculate-v3/timeline';
 import { minDate } from '../io/minDate';
 import { calculateAllActivity } from '../calculate-v3/engine';
+import { MC_TEMP_DIR, MC_RESULTS_DIR, MC_GRAPHS_DIR } from './paths';
 
 export class MonteCarloSimulationRunner {
   private static instance: MonteCarloSimulationRunner;
   private jobs: Map<string, SimulationJob> = new Map();
-  private tempDir: string;
-  private outputDir: string;
-  private graphsDir: string;
 
   private constructor() {
-    this.tempDir = join(__dirname, 'temp');
-    this.outputDir = join(__dirname, 'results');
-    this.graphsDir = join(__dirname, 'graphs');
-
     // Ensure directories exist
-    if (!existsSync(this.tempDir)) {
-      mkdirSync(this.tempDir, { recursive: true });
+    if (!existsSync(MC_TEMP_DIR)) {
+      mkdirSync(MC_TEMP_DIR, { recursive: true });
     }
-    if (!existsSync(this.outputDir)) {
-      mkdirSync(this.outputDir, { recursive: true });
+    if (!existsSync(MC_RESULTS_DIR)) {
+      mkdirSync(MC_RESULTS_DIR, { recursive: true });
     }
-    if (!existsSync(this.graphsDir)) {
-      mkdirSync(this.graphsDir, { recursive: true });
+    if (!existsSync(MC_GRAPHS_DIR)) {
+      mkdirSync(MC_GRAPHS_DIR, { recursive: true });
     }
   }
 
@@ -115,7 +109,7 @@ export class MonteCarloSimulationRunner {
     if (!job || job.status !== 'completed') {
       return null;
     }
-    return join(this.outputDir, `${id}.json`);
+    return join(MC_RESULTS_DIR, `${id}.json`);
   }
 
   public getAllSimulations(): SimulationProgress[] {
@@ -136,8 +130,8 @@ export class MonteCarloSimulationRunner {
 
     // Get historical simulations from results directory
     const historicalSimulations: SimulationProgress[] = [];
-    if (existsSync(this.outputDir)) {
-      const resultFiles = readdirSync(this.outputDir).filter((file) => file.endsWith('.json'));
+    if (existsSync(MC_RESULTS_DIR)) {
+      const resultFiles = readdirSync(MC_RESULTS_DIR).filter((file) => file.endsWith('.json'));
 
       for (const file of resultFiles) {
         const id = file.replace('.json', '');
@@ -148,7 +142,7 @@ export class MonteCarloSimulationRunner {
         }
 
         try {
-          const filePath = join(this.outputDir, file);
+          const filePath = join(MC_RESULTS_DIR, file);
           const stats = statSync(filePath);
           const resultData = JSON.parse(readFileSync(filePath, 'utf8'));
 
@@ -358,7 +352,7 @@ export class MonteCarloSimulationRunner {
 
       // Write to temporary file
       const tempFileName = `${job.id}_sim_${simulationNumber}.json`;
-      const tempFilePath = join(this.tempDir, tempFileName);
+      const tempFilePath = join(MC_TEMP_DIR, tempFileName);
 
       writeFileSync(tempFilePath, JSON.stringify(filteredResults));
       job.tempFiles.push(tempFilePath);
@@ -400,7 +394,7 @@ export class MonteCarloSimulationRunner {
       };
 
       // Write combined result
-      const finalFilePath = join(this.outputDir, `${job.id}.json`);
+      const finalFilePath = join(MC_RESULTS_DIR, `${job.id}.json`);
       writeFileSync(finalFilePath, JSON.stringify(finalResult, null, 2));
 
       // Clean up temp files
@@ -427,7 +421,7 @@ export class MonteCarloSimulationRunner {
       });
 
       // Save graph data to file
-      const graphFilePath = join(this.graphsDir, `${job.id}.json`);
+      const graphFilePath = join(MC_GRAPHS_DIR, `${job.id}.json`);
       writeFileSync(graphFilePath, JSON.stringify(graphData, null, 2));
 
       console.log(`✅ [${new Date().toISOString()}] Graph saved for simulation ${job.id} at ${graphFilePath}`);

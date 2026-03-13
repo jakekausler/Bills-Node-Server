@@ -19,7 +19,7 @@ data/backup/
 .vscode
 **/testing/**/*.json
 logs
-src/utils/monteCarlo/graphs
-src/utils/monteCarlo/results
-src/utils/monteCarlo/temp
+data/monteCarlo/temp/
+data/monteCarlo/results/
+data/monteCarlo/graphs/
 coverage/

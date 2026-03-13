@@ -5,6 +5,7 @@ import { join } from 'path';
 import { SimulationResult, FilteredAccount, FilteredActivity } from './types';
 import { isSame } from '../date/date';
 import { loadData } from '../io/accountsAndTransfers';
+import { MC_RESULTS_DIR } from './paths';
 
 dayjs.extend(utc);
 
@@ -160,7 +161,7 @@ function calculatePercentile(sortedValues: number[], percentile: number): number
  * Processes all simulations to calculate yearly minimum balances
  */
 function processAllSimulations(simulationId: string, separateAccounts: boolean = false): SimulationYearlyData[] {
-  const resultsPath = join(__dirname, 'results', `${simulationId}.json`);
+  const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
 
   try {
     const resultsData = readFileSync(resultsPath, 'utf8');
@@ -189,7 +190,7 @@ async function runDeterministicCalculation(
   simulationId: string,
   separateAccounts: boolean = false,
 ): Promise<{ combined: YearlyMinBalances; perAccount?: YearlyAccountBalances } | null> {
-  const resultsPath = join(__dirname, 'results', `${simulationId}.json`);
+  const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
 
   try {
     const resultsData = readFileSync(resultsPath, 'utf8');
@@ -328,7 +329,7 @@ export async function generateMonteCarloStatisticsGraph(
 
     // Get account names from the original simulation results file
     try {
-      const resultsPath = join(__dirname, 'results', `${simulationId}.json`);
+      const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
       const resultsData = readFileSync(resultsPath, 'utf8');
       const fileData = JSON.parse(resultsData);
       const simulations: SimulationResult[] = fileData.metadata ? fileData.results : fileData;
@@ -405,7 +406,7 @@ export async function generateMonteCarloStatisticsGraph(
 
         // Get account names from the original simulation results file
         try {
-          const resultsPath = join(__dirname, 'results', `${simulationId}.json`);
+          const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
           const resultsData = readFileSync(resultsPath, 'utf8');
           const fileData = JSON.parse(resultsData);
           const simulations: SimulationResult[] = fileData.metadata ? fileData.results : fileData;

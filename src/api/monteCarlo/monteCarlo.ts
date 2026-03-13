@@ -10,6 +10,7 @@ import {
 } from '../../utils/monteCarlo';
 import { SimulationProgress } from '../../utils/monteCarlo/types';
 import { PercentileGraphData } from '../../utils/monteCarlo/statisticsGraph';
+import { MC_GRAPHS_DIR } from '../../utils/monteCarlo/paths';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -82,7 +83,7 @@ export function getSimulationGraph(req: Request): PercentileGraphData {
   }
 
   // Load graph data from saved file
-  const graphFilePath = join(__dirname, '../../utils/monteCarlo/graphs', `${id}.json`);
+  const graphFilePath = join(MC_GRAPHS_DIR, `${id}.json`);
   
   if (!existsSync(graphFilePath)) {
     throw new Error(`Graph file not found for simulation ${id}. Graph may not have been generated yet.`);

@@ -10,6 +10,13 @@ export {
   generateMonteCarloStatisticsGraph
 } from './statisticsGraph';
 
+export {
+  MC_BASE_DIR,
+  MC_TEMP_DIR,
+  MC_RESULTS_DIR,
+  MC_GRAPHS_DIR
+} from './paths';
+
 export type {
   SimulationJob,
   SimulationProgress,
