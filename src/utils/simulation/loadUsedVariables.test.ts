@@ -1,11 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { loadUsedVariables } from './loadUsedVariables';
 
+// Mock fs module to prevent loading monteCarloMappings.json from disk
+vi.mock('fs', () => ({
+  existsSync: vi.fn(() => false),
+  readFileSync: vi.fn(),
+}));
+
 // Project test conventions:
 // - Framework: Vitest
-// - Mocking: No mocks needed here (pure function with no external deps after data is passed)
+// - Mocking: fs module mocked to exclude monteCarloMappings.json from tests
 // - Assertions: expect().toEqual() / expect().toHaveLength()
 
 // Minimal empty data for the first 3 params so spending tracker tests are isolated
