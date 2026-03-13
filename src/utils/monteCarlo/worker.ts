@@ -7,6 +7,7 @@ import { Timeline } from '../calculate-v3/timeline';
 import { minDate } from '../io/minDate';
 import { calculateAllActivity } from '../calculate-v3/engine';
 import { generateMonteCarloStatisticsGraph } from './statisticsGraph';
+import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 
 const data = workerData as WorkerData;
 
@@ -40,6 +41,9 @@ async function runWorkerSimulations(): Promise<void> {
     const accountsAndTransfers = getAccountsAndTransfers(data.simulation);
     const actualStartDate = minDate(accountsAndTransfers);
 
+    // Load spending tracker categories
+    const spendingTrackerCategories = loadSpendingTrackerCategories();
+
     // Create shared timeline (same as runner does)
     const timeline = await Timeline.fromAccountsAndTransfers(
       accountsAndTransfers,
@@ -59,6 +63,7 @@ async function runWorkerSimulations(): Promise<void> {
         enableLogging: false,
         config: {},
       },
+      spendingTrackerCategories,
     );
 
     // Run simulations in batches
