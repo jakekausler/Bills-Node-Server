@@ -71,7 +71,7 @@ export class MonteCarloSimulationRunner {
     setImmediate(() => {
       this.runSimulationInBackground(id).catch((error) => {
         console.error(`❌ Failed to run simulation ${id} in background:`, error);
-        job.status = 'failed';
+        job.status = 'error';
         job.error = error instanceof Error ? error.message : 'Unknown error';
       });
     });
@@ -284,7 +284,7 @@ export class MonteCarloSimulationRunner {
 
       console.log(`🎉 [${new Date().toISOString()}] Monte Carlo simulation ${id} completed successfully`);
     } catch (error) {
-      job.status = 'failed';
+      job.status = 'error';
       job.error = error instanceof Error ? error.message : 'Unknown error';
       job.completedAt = new Date();
 

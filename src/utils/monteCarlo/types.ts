@@ -5,7 +5,7 @@ export interface SimulationJob {
   accountsAndTransfers: AccountsAndTransfers;
   totalSimulations: number;
   batchSize: number;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'completed' | 'error';
   progress: number;
   completedSimulations: number;
   createdAt: Date;
@@ -20,7 +20,7 @@ export interface SimulationJob {
 
 export interface SimulationProgress {
   id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'completed' | 'error';
   progress: number;
   completedSimulations: number;
   totalSimulations: number;
