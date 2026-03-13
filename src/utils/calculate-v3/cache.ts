@@ -658,6 +658,9 @@ export class CacheManager {
   }
 
   async findClosestSnapshot(date: Date): Promise<{ snapshot: BalanceSnapshot; key: string } | null> {
+    if (this.monteCarlo) {
+      return null;
+    }
     const prefix = 'balance_snapshot_';
     const targetTime = date.getTime();
     let closestEntry: { key: string; snapshot: BalanceSnapshot; time: number } | null = null;
