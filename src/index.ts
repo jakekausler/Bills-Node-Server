@@ -338,12 +338,7 @@ app.get('/api/flow', verifyToken, asyncHandler(async (req: Request, res: Respons
   res.json(await getFlow(req));
 }));
 
-// Monte Carlo route
-app.get('/api/monte_carlo/start_simulation', verifyToken, asyncHandler(async (req: Request, res: Response) => {
-  res.json(await startSimulation(req));
-}));
-
-// New Monte Carlo simulation routes
+// Monte Carlo simulation routes
 app.post('/api/monte_carlo/simulations', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     res.json(await startSimulation(req));
