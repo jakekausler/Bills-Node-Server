@@ -4,7 +4,7 @@ import { AccountsAndTransfers } from '../../data/account/types';
 
 describe('Names Utility', () => {
   describe('loadNameCategories', () => {
-    it('should return empty object for empty accounts and transfers', () => {
+    it('should return empty array for empty accounts and transfers', () => {
       const emptyData: AccountsAndTransfers = {
         accounts: [],
         transfers: {
@@ -14,10 +14,10 @@ describe('Names Utility', () => {
       };
 
       const result = loadNameCategories(emptyData);
-      expect(result).toEqual({});
+      expect(result).toEqual([]);
     });
 
-    it('should track metadata from most recent usage for each name', () => {
+    it('should track metadata from most recent usage for each distinct name+category combination', () => {
       const mockData: AccountsAndTransfers = {
         accounts: [
           {
@@ -129,12 +129,32 @@ describe('Names Utility', () => {
 
       const result = loadNameCategories(mockData);
 
-      // Should return metadata from most recent usage
-      expect(result['Grocery Store'].category).toBe('Household'); // Most recent (2026-03-01)
-      expect(result['Gas Station'].category).toBe('Transportation');
-      expect(result['Electric Bill'].category).toBe('Utilities'); // Most recent (2026-02-01)
-      expect(result['Bank Transfer'].category).toBe('Transfer');
-      expect(result['Rent'].category).toBe('Housing');
+      // Should return all distinct name+category combinations
+      const findEntry = (name: string, category: string) =>
+        result.find(e => e.name === name && e.category === category);
+
+      // Most recent for Grocery Store + Food: 2026-02-01
+      expect(findEntry('Grocery Store', 'Food')).toBeDefined();
+      expect(findEntry('Grocery Store', 'Food')?.category).toBe('Food');
+
+      // Grocery Store + Household: 2026-03-01
+      expect(findEntry('Grocery Store', 'Household')).toBeDefined();
+      expect(findEntry('Grocery Store', 'Household')?.category).toBe('Household');
+
+      expect(findEntry('Gas Station', 'Transportation')).toBeDefined();
+      expect(findEntry('Gas Station', 'Transportation')?.category).toBe('Transportation');
+
+      expect(findEntry('Electric Bill', 'Utilities')).toBeDefined();
+      expect(findEntry('Electric Bill', 'Utilities')?.category).toBe('Utilities');
+
+      expect(findEntry('Bank Transfer', 'Transfer')).toBeDefined();
+      expect(findEntry('Bank Transfer', 'Transfer')?.category).toBe('Transfer');
+
+      expect(findEntry('Rent', 'Housing')).toBeDefined();
+      expect(findEntry('Rent', 'Housing')?.category).toBe('Housing');
+
+      // Should have exactly 6 entries (one for each distinct name+category combination)
+      expect(result.length).toBe(6);
     });
 
     it('should handle multiple accounts', () => {
@@ -179,11 +199,13 @@ describe('Names Utility', () => {
 
       const result = loadNameCategories(mockData);
 
-      // Should pick most recent (Entertainment on 2026-03-01)
-      expect(result['Coffee Shop'].category).toBe('Entertainment');
+      // Should have both combinations
+      expect(result.length).toBe(2);
+      expect(result.find(e => e.name === 'Coffee Shop' && e.category === 'Food')).toBeDefined();
+      expect(result.find(e => e.name === 'Coffee Shop' && e.category === 'Entertainment')).toBeDefined();
     });
 
-    it('should pick most recent when multiple categories for same name', () => {
+    it('should pick most recent metadata for same name+category combination', () => {
       const mockData: AccountsAndTransfers = {
         accounts: [
           {
@@ -198,12 +220,72 @@ describe('Names Utility', () => {
                 isTransfer: false,
                 from: null,
                 to: null,
-                spendingCategory: null,
+                spendingCategory: 'OldSpending',
               },
               {
                 name: 'Restaurant',
-                category: 'Entertainment',
+                category: 'Food',
                 date: new Date('2026-02-01'),
+                isHealthcare: false,
+                healthcarePerson: null,
+                coinsurancePercent: null,
+                isTransfer: false,
+                from: null,
+                to: null,
+                spendingCategory: 'NewSpending',
+              },
+            ],
+            bills: [],
+          } as any,
+        ],
+        transfers: {
+          activity: [],
+          bills: [],
+        },
+      };
+
+      const result = loadNameCategories(mockData);
+
+      // Should have one entry with most recent metadata
+      expect(result.length).toBe(1);
+      expect(result[0].name).toBe('Restaurant');
+      expect(result[0].category).toBe('Food');
+      expect(result[0].spendingCategory).toBe('NewSpending');
+    });
+
+    it('should return sorted results by name then category', () => {
+      const mockData: AccountsAndTransfers = {
+        accounts: [
+          {
+            activity: [
+              {
+                name: 'Zebra Store',
+                category: 'Food',
+                date: new Date('2026-01-01'),
+                isHealthcare: false,
+                healthcarePerson: null,
+                coinsurancePercent: null,
+                isTransfer: false,
+                from: null,
+                to: null,
+                spendingCategory: null,
+              },
+              {
+                name: 'Apple Store',
+                category: 'Shopping',
+                date: new Date('2026-01-01'),
+                isHealthcare: false,
+                healthcarePerson: null,
+                coinsurancePercent: null,
+                isTransfer: false,
+                from: null,
+                to: null,
+                spendingCategory: null,
+              },
+              {
+                name: 'Apple Store',
+                category: 'Entertainment',
+                date: new Date('2026-01-01'),
                 isHealthcare: false,
                 healthcarePerson: null,
                 coinsurancePercent: null,
@@ -224,8 +306,12 @@ describe('Names Utility', () => {
 
       const result = loadNameCategories(mockData);
 
-      // Should pick most recent (Entertainment on 2026-02-01)
-      expect(result['Restaurant'].category).toBe('Entertainment');
+      // Should be sorted by name, then category
+      expect(result[0].name).toBe('Apple Store');
+      expect(result[0].category).toBe('Entertainment');
+      expect(result[1].name).toBe('Apple Store');
+      expect(result[1].category).toBe('Shopping');
+      expect(result[2].name).toBe('Zebra Store');
     });
   });
 });

@@ -37,12 +37,12 @@ describe('getNameCategories', () => {
       endDate: new Date('2024-12-31'),
     };
 
-    const mockNameCategories = {
-      'Grocery Store': 'Food',
-      'Gas Station': 'Transportation',
-      'Electric Bill': 'Utilities',
-      'Bank Transfer': 'Transfer',
-    };
+    const mockNameCategories = [
+      { name: 'Bank Transfer', category: 'Transfer', isHealthcare: false, healthcarePerson: null, coinsurancePercent: null, isTransfer: false, from: null, to: null, spendingCategory: null },
+      { name: 'Electric Bill', category: 'Utilities', isHealthcare: false, healthcarePerson: null, coinsurancePercent: null, isTransfer: false, from: null, to: null, spendingCategory: null },
+      { name: 'Gas Station', category: 'Transportation', isHealthcare: false, healthcarePerson: null, coinsurancePercent: null, isTransfer: false, from: null, to: null, spendingCategory: null },
+      { name: 'Grocery Store', category: 'Food', isHealthcare: false, healthcarePerson: null, coinsurancePercent: null, isTransfer: false, from: null, to: null, spendingCategory: null },
+    ];
 
     const mockRequest = createMockRequest({
       query: {
@@ -79,13 +79,13 @@ describe('getNameCategories', () => {
     const mockRequest = createMockRequest();
 
     vi.mocked(getData).mockResolvedValue(mockData as any);
-    vi.mocked(loadNameCategories).mockReturnValue({});
+    vi.mocked(loadNameCategories).mockReturnValue([]);
 
     const result = await getNameCategories(mockRequest);
 
     expect(getData).toHaveBeenCalledWith(mockRequest);
     expect(loadNameCategories).toHaveBeenCalledWith(mockAccountsAndTransfers);
-    expect(result).toEqual({});
+    expect(result).toEqual([]);
   });
 
   it('should pass through query parameters to getData', async () => {
@@ -107,7 +107,7 @@ describe('getNameCategories', () => {
     });
 
     vi.mocked(getData).mockResolvedValue(mockData as any);
-    vi.mocked(loadNameCategories).mockReturnValue({});
+    vi.mocked(loadNameCategories).mockReturnValue([]);
 
     await getNameCategories(mockRequest);
 
@@ -137,9 +137,9 @@ describe('getNameCategories', () => {
       accountsAndTransfers: mockAccountsAndTransfers,
     };
 
-    const mockNameCategories = {
-      'Grocery Store': 'Food', // Most frequent category
-    };
+    const mockNameCategories = [
+      { name: 'Grocery Store', category: 'Food', isHealthcare: false, healthcarePerson: null, coinsurancePercent: null, isTransfer: false, from: null, to: null, spendingCategory: null },
+    ];
 
     const mockRequest = createMockRequest();
 
@@ -180,14 +180,14 @@ describe('getNameCategories', () => {
       accountsAndTransfers: mockAccountsAndTransfers,
     };
 
-    const mockNameCategories = {
-      Restaurant: 'Food',
-      'Movie Theater': 'Entertainment',
-      'Monthly Subscription': 'Subscriptions',
-      'Interest Payment': 'Income',
-      'Transfer to Savings': 'Transfer',
-      'Auto Transfer': 'Transfer',
-    };
+    const mockNameCategories = [
+      { name: 'Auto Transfer', category: 'Transfer', isHealthcare: false, healthcarePerson: null, coinsurancePercent: null, isTransfer: false, from: null, to: null, spendingCategory: null },
+      { name: 'Interest Payment', category: 'Income', isHealthcare: false, healthcarePerson: null, coinsurancePercent: null, isTransfer: false, from: null, to: null, spendingCategory: null },
+      { name: 'Monthly Subscription', category: 'Subscriptions', isHealthcare: false, healthcarePerson: null, coinsurancePercent: null, isTransfer: false, from: null, to: null, spendingCategory: null },
+      { name: 'Movie Theater', category: 'Entertainment', isHealthcare: false, healthcarePerson: null, coinsurancePercent: null, isTransfer: false, from: null, to: null, spendingCategory: null },
+      { name: 'Restaurant', category: 'Food', isHealthcare: false, healthcarePerson: null, coinsurancePercent: null, isTransfer: false, from: null, to: null, spendingCategory: null },
+      { name: 'Transfer to Savings', category: 'Transfer', isHealthcare: false, healthcarePerson: null, coinsurancePercent: null, isTransfer: false, from: null, to: null, spendingCategory: null },
+    ];
 
     const mockRequest = createMockRequest();
 
