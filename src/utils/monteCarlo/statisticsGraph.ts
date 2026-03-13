@@ -213,6 +213,7 @@ async function runDeterministicCalculation(
       {},
       {
         monteCarlo: false,
+        forceRecalculation: true,  // Force fresh calculation to match MC results
       },
     );
 
