@@ -1,7 +1,7 @@
 import { DateString } from '../date/types';
 
 type UsedVariable = {
-  type: 'activity' | 'bill' | 'transfer' | 'interest' | 'socialSecurity' | 'pension' | 'spendingTracker';
+  type: 'activity' | 'bill' | 'transfer' | 'interest' | 'socialSecurity' | 'pension' | 'spendingTracker' | 'monteCarlo';
   name: string;
   account?: string;
   from?: string;

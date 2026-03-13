@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
@@ -284,5 +286,21 @@ export function loadUsedVariables(
       }
     }
   }
+
+  // Load Monte Carlo mappings and register them as used variables
+  const mcMappingsPath = join(process.cwd(), 'data', 'monteCarloMappings.json');
+  if (existsSync(mcMappingsPath)) {
+    const mcMappings = JSON.parse(readFileSync(mcMappingsPath, 'utf-8'));
+    for (const variableName of Object.keys(mcMappings)) {
+      if (!usedVariables[variableName]) {
+        usedVariables[variableName] = [];
+      }
+      usedVariables[variableName].push({
+        type: 'monteCarlo',
+        name: `Monte Carlo: ${mcMappings[variableName]}`,
+      });
+    }
+  }
+
   return usedVariables;
 }
