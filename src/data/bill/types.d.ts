@@ -23,7 +23,6 @@ export type BillData = {
   increaseByVariable: string | null;
   increaseByDate: string;
   ceilingMultiple: number;
-  monteCarloSampleType: string | null;
   isTransfer: boolean;
   from: string | null;
   to: string | null;

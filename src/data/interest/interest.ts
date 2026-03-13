@@ -20,7 +20,6 @@ export class Interest {
   apr: number;
   aprIsVariable: boolean;
   aprVariable: string | null;
-  monteCarloSampleType: string | null;
   compounded: 'day' | 'week' | 'month' | 'year';
   applicableDate: Date;
   applicableDateIsVariable: boolean;
@@ -41,7 +40,6 @@ export class Interest {
     this.apr = apr as number;
     this.aprIsVariable = aprIsVariable;
     this.aprVariable = aprVariable;
-    this.monteCarloSampleType = data.monteCarloSampleType || null;
     this.compounded = data.compounded;
     const {
       date: applicableDate,
@@ -63,7 +61,6 @@ export class Interest {
       apr: this.apr,
       aprIsVariable: this.aprIsVariable,
       aprVariable: this.aprVariable,
-      monteCarloSampleType: this.monteCarloSampleType,
       compounded: this.compounded,
       applicableDate: formatDate(this.applicableDate),
       applicableDateIsVariable: this.applicableDateIsVariable,
