@@ -310,6 +310,40 @@ export class MonteCarloSimulationRunner {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }
+
+  async cancelOrDelete(id: string): Promise<boolean> {
+    const job = this.jobs.get(id);
+    if (!job) return false;
+
+    // If running AND this is the active job, terminate the worker
+    if (job.status === 'running' && this.activeWorker && this.activeJobId === id) {
+      await this.activeWorker.terminate();
+      this.activeWorker = null;
+      this.activeJobId = null;
+    }
+
+    // If pending, remove from queue
+    this.pendingQueue = this.pendingQueue.filter(j => j.id !== id);
+
+    // Clean up files
+    const resultPath = join(MC_RESULTS_DIR, `${id}.json`);
+    const graphPath = join(MC_GRAPHS_DIR, `${id}.json`);
+    if (existsSync(resultPath)) unlinkSync(resultPath);
+    if (existsSync(graphPath)) unlinkSync(graphPath);
+
+    // Clean temp files
+    for (const tempFile of (job.tempFiles || [])) {
+      if (existsSync(tempFile)) unlinkSync(tempFile);
+    }
+
+    // Remove from memory
+    this.jobs.delete(id);
+
+    // Process queue in case a pending job can now run
+    this.processQueue();
+
+    return true;
+  }
 }
 
 // Export convenience functions

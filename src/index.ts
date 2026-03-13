@@ -40,6 +40,7 @@ import {
   getSimulationStatus,
   getAllSimulations,
   getSimulationGraph,
+  deleteSimulation,
 } from './api/monteCarlo/monteCarlo';
 import { getHealthcareProgress } from './api/healthcare/progress';
 import { getHealthcareExpenses } from './api/healthcare/expenses';
@@ -368,6 +369,15 @@ app.get('/api/monte_carlo/simulations/:id/graph', verifyToken, asyncHandler(asyn
       error instanceof Error && (error.message.includes('not found') || error.message.includes('not yet completed'))
         ? 404
         : 400;
+    res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}));
+
+app.delete('/api/monte_carlo/simulations/:id', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    res.json(await deleteSimulation(req));
+  } catch (error) {
+    const statusCode = error instanceof Error && error.message.includes('not found') ? 404 : 400;
     res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }));

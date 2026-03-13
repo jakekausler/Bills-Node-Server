@@ -105,3 +105,21 @@ export async function getSimulationGraph(req: Request): Promise<PercentileGraphD
     throw new Error(`Failed to load graph data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
+
+/**
+ * Delete or cancel a Monte Carlo simulation
+ */
+export async function deleteSimulation(req: Request): Promise<{ success: boolean }> {
+  const id = req.params.id;
+  if (!id || !UUID_REGEX.test(id)) {
+    throw new Error('Invalid simulation ID');
+  }
+
+  const runner = await MonteCarloSimulationRunner.getInstance();
+  const deleted = await runner.cancelOrDelete(id);
+  if (!deleted) {
+    throw new Error('Simulation not found');
+  }
+
+  return { success: true };
+}
