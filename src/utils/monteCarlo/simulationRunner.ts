@@ -194,7 +194,7 @@ export class MonteCarloSimulationRunner {
     const workerPath = join(__dirname, 'worker.ts');
     const worker = new Worker(workerPath, {
       workerData: wd,
-      execArgv: ['--import', 'tsx'],
+      execArgv: ['--require', 'tsx/cjs'],
     });
 
     this.activeWorker = worker;
