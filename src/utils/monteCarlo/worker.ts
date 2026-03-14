@@ -1,5 +1,5 @@
 import { parentPort, workerData } from 'worker_threads';
-import { writeFileSync, mkdirSync, existsSync, readFileSync, unlinkSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync, unlinkSync, createWriteStream } from 'fs';
 import { join } from 'path';
 import { getAccountsAndTransfers } from '../io/accountsAndTransfers';
 import { WorkerData, WorkerMessage, SimulationResult, FilteredActivity, FilteredAccount } from './types';
@@ -197,7 +197,8 @@ async function runSingleSimulation(
 }
 
 /**
- * Combine all temporary simulation files into the final result
+ * Combine all temporary simulation files into the final result using streaming
+ * to avoid V8 string length limits with large result sets
  */
 async function combineTempFiles(
   tempFiles: string[],
@@ -205,41 +206,65 @@ async function combineTempFiles(
   endDate: Date,
 ): Promise<void> {
   try {
-    const allResults: SimulationResult[] = [];
+    // First pass: collect temp files and their data for sorting
+    const tempDataWithFiles: Array<{ file: string; data: SimulationResult }> = [];
 
-    // Read all temp files
     for (const tempFile of tempFiles) {
       if (existsSync(tempFile)) {
         const content = readFileSync(tempFile, 'utf-8');
         const result: SimulationResult = JSON.parse(content);
-        allResults.push(result);
+        tempDataWithFiles.push({ file: tempFile, data: result });
       }
     }
 
     // Sort by simulation number
-    allResults.sort((a, b) => a.simulationNumber - b.simulationNumber);
+    tempDataWithFiles.sort((a, b) => a.data.simulationNumber - b.data.simulationNumber);
 
-    // Create the final result with metadata
-    const finalResult = {
-      metadata: {
-        id: data.simulationId,
-        startDate,
-        endDate,
-        totalSimulations: data.totalSimulations,
-        createdAt: new Date().toISOString(),
-        startedAt: new Date().toISOString(),
-        completedAt: new Date().toISOString(),
-        duration: 0,
-      },
-      results: allResults,
-    };
-
-    // Write combined result
+    // Write combined result using streaming to avoid string length limits
     const finalFilePath = join(data.resultsDir, `${data.simulationId}.json`);
-    writeFileSync(finalFilePath, JSON.stringify(finalResult, null, 2));
+    const ws = createWriteStream(finalFilePath, { encoding: 'utf-8' });
+
+    // Write opening object and metadata
+    ws.write('{\n');
+    ws.write('  "metadata": ');
+
+    const metadata = {
+      id: data.simulationId,
+      startDate,
+      endDate,
+      totalSimulations: data.totalSimulations,
+      createdAt: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      duration: 0,
+    };
+    ws.write(JSON.stringify(metadata, null, 2));
+
+    ws.write(',\n  "results": [\n');
+
+    // Stream each simulation result
+    for (let i = 0; i < tempDataWithFiles.length; i++) {
+      const simResult = tempDataWithFiles[i].data;
+
+      // Add comma separator (not for first item)
+      if (i > 0) {
+        ws.write(',\n');
+      }
+
+      // Write the result object with proper indentation
+      ws.write('    ' + JSON.stringify(simResult));
+    }
+
+    ws.write('\n  ]\n}\n');
+
+    // Wait for stream to finish
+    await new Promise<void>((resolve, reject) => {
+      ws.on('finish', resolve);
+      ws.on('error', reject);
+    });
 
     // Clean up temp files
-    for (const tempFile of tempFiles) {
+    for (const { file: tempFile } of tempDataWithFiles) {
       try {
         if (existsSync(tempFile)) {
           unlinkSync(tempFile);
@@ -250,7 +275,7 @@ async function combineTempFiles(
     }
 
     console.log(
-      `💾 [Worker] Combined ${allResults.length} simulation results into ${finalFilePath}`,
+      `💾 [Worker] Combined ${tempDataWithFiles.length} simulation results into ${finalFilePath}`,
     );
   } catch (error) {
     console.error('❌ [Worker] Error combining temp files:', error);
