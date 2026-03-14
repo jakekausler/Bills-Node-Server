@@ -2,14 +2,15 @@ import { parentPort, workerData } from 'worker_threads';
 import { writeFileSync, mkdirSync, existsSync, readFileSync, unlinkSync, createWriteStream } from 'fs';
 import { join } from 'path';
 import { getAccountsAndTransfers } from '../io/accountsAndTransfers';
-import { WorkerData, WorkerMessage, SimulationResult, FilteredActivity, FilteredAccount } from './types';
+import { WorkerData, WorkerMessage, SimulationResult, FilteredActivity, FilteredAccount, AggregatedSimulationResult } from './types';
 import { Timeline } from '../calculate-v3/timeline';
 import { minDate } from '../io/minDate';
 import { calculateAllActivity } from '../calculate-v3/engine';
-import { generateMonteCarloStatisticsGraph } from './statisticsGraph';
+import { generateMonteCarloStatisticsGraph, calculateYearlyMinBalances } from './statisticsGraph';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 
 const data = workerData as WorkerData;
+let accountNames: Array<{ id: string; name: string }> = [];
 
 /**
  * Main worker execution function.
@@ -106,7 +107,7 @@ async function runWorkerSimulations(): Promise<void> {
     }
 
     // Combine temp files into final result
-    await combineTempFiles(tempFiles, startDate, endDate);
+    await combineTempFiles(tempFiles, startDate, endDate, accountNames);
 
     // Generate and save graph
     await generateAndSaveGraph();
@@ -161,34 +162,46 @@ async function runSingleSimulation(
       timeline,
     );
 
-    // Filter and format results
-    const filteredResults: SimulationResult = {
-      simulationNumber,
-      accounts: results.accounts.map(
-        (account): FilteredAccount => ({
-          name: account.name,
-          id: account.id,
-          consolidatedActivity: account.consolidatedActivity.map((activity): FilteredActivity => {
-            const serialized = activity.serialize();
-            return {
-              name: serialized.name,
-              id: serialized.id,
-              amount: typeof serialized.amount === 'number' ? serialized.amount : 0,
-              balance: serialized.balance,
-              from: serialized.from || '',
-              to: serialized.to || '',
-              date: serialized.date,
-            };
-          }),
+    // Filter and format results for balance calculation
+    const filteredAccounts: FilteredAccount[] = results.accounts.map(
+      (account): FilteredAccount => ({
+        name: account.name,
+        id: account.id,
+        consolidatedActivity: account.consolidatedActivity.map((activity): FilteredActivity => {
+          const serialized = activity.serialize();
+          return {
+            name: serialized.name,
+            id: serialized.id,
+            amount: typeof serialized.amount === 'number' ? serialized.amount : 0,
+            balance: serialized.balance,
+            from: serialized.from || '',
+            to: serialized.to || '',
+            date: serialized.date,
+          };
         }),
-      ),
+      }),
+    );
+
+    // Capture account names on first simulation
+    if (simulationNumber === 1 && accountNames.length === 0) {
+      accountNames = results.accounts.map(acc => ({ id: acc.id, name: acc.name }));
+    }
+
+    // Calculate yearly minimum balances
+    const balanceData = calculateYearlyMinBalances(filteredAccounts, true);
+
+    // Create aggregated result with only yearly data
+    const aggregatedResult: AggregatedSimulationResult = {
+      simulationNumber,
+      yearlyMinBalances: balanceData.combined,
+      yearlyAccountBalances: balanceData.perAccount,
     };
 
-    // Write to temporary file
+    // Write to temporary file - store aggregated data only
     const tempFileName = `${data.simulationId}_sim_${simulationNumber}.json`;
     const tempFilePath = join(data.tempDir, tempFileName);
 
-    writeFileSync(tempFilePath, JSON.stringify(filteredResults));
+    writeFileSync(tempFilePath, JSON.stringify(aggregatedResult));
     tempFiles.push(tempFilePath);
   } catch (error) {
     console.error(`❌ [Worker] Simulation ${simulationNumber} failed:`, error);
@@ -204,15 +217,16 @@ async function combineTempFiles(
   tempFiles: string[],
   startDate: Date,
   endDate: Date,
+  accountNames: Array<{ id: string; name: string }>,
 ): Promise<void> {
   try {
     // First pass: collect temp files and their data for sorting
-    const tempDataWithFiles: Array<{ file: string; data: SimulationResult }> = [];
+    const tempDataWithFiles: Array<{ file: string; data: AggregatedSimulationResult }> = [];
 
     for (const tempFile of tempFiles) {
       if (existsSync(tempFile)) {
         const content = readFileSync(tempFile, 'utf-8');
-        const result: SimulationResult = JSON.parse(content);
+        const result: AggregatedSimulationResult = JSON.parse(content);
         tempDataWithFiles.push({ file: tempFile, data: result });
       }
     }
@@ -237,6 +251,7 @@ async function combineTempFiles(
       startedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
       duration: 0,
+      accountNames,
     };
     ws.write(JSON.stringify(metadata, null, 2));
 

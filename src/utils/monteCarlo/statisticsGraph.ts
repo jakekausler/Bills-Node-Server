@@ -49,7 +49,7 @@ interface SimulationYearlyData {
  * @param accounts - Array of filtered accounts
  * @param separateAccounts - If true, also return per-account yearly minimums
  */
-function calculateYearlyMinBalances(
+export function calculateYearlyMinBalances(
   accounts: FilteredAccount[],
   separateAccounts: boolean = false,
 ): {
@@ -158,7 +158,8 @@ function calculatePercentile(sortedValues: number[], percentile: number): number
 }
 
 /**
- * Processes all simulations to calculate yearly minimum balances
+ * Processes all simulations to return pre-computed yearly minimum balances
+ * Results file now contains aggregated simulation data (yearly min balances only)
  */
 function processAllSimulations(simulationId: string, separateAccounts: boolean = false): SimulationYearlyData[] {
   const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
@@ -167,17 +168,14 @@ function processAllSimulations(simulationId: string, separateAccounts: boolean =
     const resultsData = readFileSync(resultsPath, 'utf8');
     const fileData = JSON.parse(resultsData);
 
-    // Check if this is the new format with metadata
-    const simulations: SimulationResult[] = fileData.metadata ? fileData.results : fileData;
+    // Results file structure: { metadata: {...}, results: [...aggregated data...] }
+    const results: SimulationYearlyData[] = fileData.results || [];
 
-    return simulations.map((simulation) => {
-      const balanceData = calculateYearlyMinBalances(simulation.accounts, separateAccounts);
-      return {
-        simulationNumber: simulation.simulationNumber,
-        yearlyMinBalances: balanceData.combined,
-        yearlyAccountBalances: balanceData.perAccount,
-      };
-    });
+    return results.map((result) => ({
+      simulationNumber: result.simulationNumber,
+      yearlyMinBalances: result.yearlyMinBalances,
+      yearlyAccountBalances: separateAccounts ? result.yearlyAccountBalances : undefined,
+    }));
   } catch (error) {
     throw new Error(`Failed to load simulation results: ${error}`);
   }
@@ -328,15 +326,14 @@ export async function generateMonteCarloStatisticsGraph(
     // First, get all unique account IDs and names from the simulation data
     const accountMap: Map<string, string> = new Map(); // id -> name
 
-    // Get account names from the original simulation results file
+    // Get account names from metadata
     try {
       const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
       const resultsData = readFileSync(resultsPath, 'utf8');
       const fileData = JSON.parse(resultsData);
-      const simulations: SimulationResult[] = fileData.metadata ? fileData.results : fileData;
 
-      if (simulations.length > 0) {
-        simulations[0].accounts.forEach((account) => {
+      if (fileData.metadata && fileData.metadata.accountNames) {
+        fileData.metadata.accountNames.forEach((account: { id: string; name: string }) => {
           accountMap.set(account.id, account.name);
         });
       }
@@ -405,15 +402,14 @@ export async function generateMonteCarloStatisticsGraph(
       if (deterministicData.perAccount) {
         const accountMap: Map<string, string> = new Map();
 
-        // Get account names from the original simulation results file
+        // Get account names from metadata
         try {
           const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
           const resultsData = readFileSync(resultsPath, 'utf8');
           const fileData = JSON.parse(resultsData);
-          const simulations: SimulationResult[] = fileData.metadata ? fileData.results : fileData;
 
-          if (simulations.length > 0) {
-            simulations[0].accounts.forEach((account) => {
+          if (fileData.metadata && fileData.metadata.accountNames) {
+            fileData.metadata.accountNames.forEach((account: { id: string; name: string }) => {
               accountMap.set(account.id, account.name);
             });
           }

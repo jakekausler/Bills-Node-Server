@@ -54,6 +54,20 @@ export interface SimulationResult {
   accounts: FilteredAccount[];
 }
 
+export interface YearlyMinBalances {
+  [year: number]: number; // Minimum balance for that year across all accounts
+}
+
+export interface YearlyAccountBalances {
+  [year: number]: { [accountId: string]: number }; // Minimum balance for each account by year
+}
+
+export interface AggregatedSimulationResult {
+  simulationNumber: number;
+  yearlyMinBalances: YearlyMinBalances;
+  yearlyAccountBalances?: YearlyAccountBalances;
+}
+
 export type WorkerMessage =
   | { type: 'progress'; completedSimulations: number; total: number }
   | { type: 'complete' }
