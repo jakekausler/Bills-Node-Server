@@ -272,6 +272,9 @@ async function combineTempFiles(
 
     ws.write('\n  ]\n}\n');
 
+    // End the write stream to emit 'finish' event
+    ws.end();
+
     // Wait for stream to finish
     await new Promise<void>((resolve, reject) => {
       ws.on('finish', resolve);
