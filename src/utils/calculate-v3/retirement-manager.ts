@@ -140,7 +140,8 @@ export class RetirementManager {
   public calculateSocialSecurityMonthlyPay(socialSecurity: SocialSecurity): void {
     const aime = this.calculateAIME(socialSecurity);
     const pia = this.computePIA(socialSecurity.yearTurn60 + 2, aime);
-    const factorForCollectionAge = this.factorForCollectionAge(socialSecurity.collectionAge);
+    const birthYear = socialSecurity.birthDate.getUTCFullYear();
+    const factorForCollectionAge = this.factorForCollectionAge(socialSecurity.collectionAge, birthYear);
     const monthlyPay = pia * factorForCollectionAge;
     this.socialSecurityMonthlyPay.set(socialSecurity.name, monthlyPay);
   }
@@ -282,35 +283,66 @@ export class RetirementManager {
     return firstAmount * 0.9 + secondAmount * 0.32 + aime * 0.15;
   }
 
-  private factorForCollectionAge(collectionAge: number) {
+  /**
+   * Get the Full Retirement Age (FRA) based on birth year
+   * FRA varies from 65 to 67 depending on when the person was born
+   */
+  private getFullRetirementAge(birthYear: number): number {
+    if (birthYear <= 1937) return 65;
+    if (birthYear <= 1942) {
+      // Gradual increase from 65+2mo to 65+10mo
+      return 65 + ((birthYear - 1937) * 2) / 12;
+    }
+    if (birthYear <= 1954) return 66;
+    if (birthYear === 1955) return 66 + 2 / 12;
+    if (birthYear === 1956) return 66 + 4 / 12;
+    if (birthYear === 1957) return 66 + 6 / 12;
+    if (birthYear === 1958) return 66 + 8 / 12;
+    if (birthYear === 1959) return 66 + 10 / 12;
+    return 67; // 1960 and later
+  }
+
+  /**
+   * Calculate the reduction/credit factor based on collection age and birth year
+   * - Before FRA: reduced by 5/9 of 1% per month for first 36 months, then 5/12 of 1% per month beyond
+   * - After FRA: credit of 8% per year (2/3 of 1% per month) for delayed retirement credits (up to age 70)
+   * - At FRA: 100%
+   */
+  private factorForCollectionAge(collectionAge: number, birthYear: number) {
     if (collectionAge < 62) {
       return 0;
     }
-    if (collectionAge === 62) {
-      return 0.7;
+
+    const fra = this.getFullRetirementAge(birthYear);
+    const monthsFromFRA = Math.round((collectionAge - fra) * 12);
+
+    if (monthsFromFRA === 0) {
+      // Claiming at exactly FRA
+      return 1.0;
+    } else if (monthsFromFRA < 0) {
+      // Early claiming (before FRA)
+      const monthsEarly = Math.abs(monthsFromFRA);
+      let reduction = 0;
+
+      if (monthsEarly <= 36) {
+        // First 36 months: 5/9 of 1% per month
+        reduction = monthsEarly * (5 / 9 / 100);
+      } else {
+        // First 36 months at 5/9 of 1% per month
+        reduction = 36 * (5 / 9 / 100);
+        // Additional months at 5/12 of 1% per month
+        const additionalMonths = monthsEarly - 36;
+        reduction += additionalMonths * (5 / 12 / 100);
+      }
+
+      return 1.0 - reduction;
+    } else {
+      // Delayed claiming (after FRA)
+      const monthsDelayed = Math.min(monthsFromFRA, (70 - fra) * 12); // Cap at age 70
+      // Delayed retirement credit: 2/3 of 1% per month (8% per year)
+      const credit = monthsDelayed * (2 / 3 / 100);
+      return 1.0 + credit;
     }
-    if (collectionAge === 63) {
-      return 0.75;
-    }
-    if (collectionAge === 64) {
-      return 0.8;
-    }
-    if (collectionAge === 65) {
-      return 0.8666666667;
-    }
-    if (collectionAge === 66) {
-      return 0.9333333333;
-    }
-    if (collectionAge === 67) {
-      return 1;
-    }
-    if (collectionAge === 68) {
-      return 1.08;
-    }
-    if (collectionAge === 69) {
-      return 1.16;
-    }
-    return 1.24;
   }
 
   /**************

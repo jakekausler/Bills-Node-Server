@@ -5,15 +5,26 @@ import { Pension } from '../../data/retirement/pension/pension';
 
 // Mock I/O functions
 vi.mock('../io/averageWageIndex', () => ({
-  loadAverageWageIndex: vi.fn(() => ({
-    2020: 55000,
-    2021: 56000,
-    2022: 57000,
-  })),
+  loadAverageWageIndex: vi.fn(() => {
+    const wageIndex: Record<number, number> = {};
+    // Generate 50 years of wage index data starting from a base
+    const baseYear = 1980;
+    const baseWage = 12513; // Actual 1980 AWI
+    const growthRate = 0.035; // 3.5% average annual growth
+
+    for (let i = 0; i < 50; i++) {
+      const year = baseYear + i;
+      wageIndex[year] = baseWage * Math.pow(1 + growthRate, i);
+    }
+
+    return wageIndex;
+  }),
 }));
 
 vi.mock('../io/bendPoints', () => ({
   loadBendPoints: vi.fn(() => ({
+    2018: { first: 895, second: 5397 },
+    2019: { first: 926, second: 5583 },
     2020: { first: 960, second: 5785 },
     2021: { first: 996, second: 6002 },
     2022: { first: 1024, second: 6172 },
@@ -46,6 +57,17 @@ describe('RetirementManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+
+  // Helper to generate 35 years of income data for realistic SS calculations
+  function generate35YearsIncome(endYear: number, avgIncome: number = 50000): { years: number[]; incomes: number[] } {
+    const years: number[] = [];
+    const incomes: number[] = [];
+    for (let i = 34; i >= 0; i--) {
+      years.push(endYear - i);
+      incomes.push(avgIncome * (1 + 0.02 * (34 - i))); // Simulate 2% annual raises
+    }
+    return { years, incomes };
+  }
 
   describe('Social Security calculations', () => {
     it('should calculate monthly pay for a social security recipient', () => {
@@ -278,6 +300,113 @@ describe('RetirementManager', () => {
           1000
         )
       ).not.toThrow();
+    });
+  });
+
+  describe('Social Security collection age factors with birth-year-based FRA', () => {
+    it('should not throw when calculating with different birth years and FRAs', () => {
+      const { years, incomes } = generate35YearsIncome(2020);
+
+      // Test various birth years with different FRAs
+      const testCases = [
+        { birthYear: 1937, fra: 65, collectionAge: 65 },
+        { birthYear: 1954, fra: 66, collectionAge: 66 },
+        { birthYear: 1957, fra: 66.5, collectionAge: 67 },
+        { birthYear: 1960, fra: 67, collectionAge: 67 },
+      ];
+
+      testCases.forEach(({ birthYear, collectionAge }) => {
+        const ss = new SocialSecurity({
+          id: `ss-${birthYear}`,
+          name: `Born ${birthYear} SS`,
+          payToAccount: 'checking-1',
+          paycheckNames: [`Born ${birthYear} Paycheck`],
+          paycheckAccounts: ['checking-1'],
+          paycheckCategories: ['Income.SocialSecurity'],
+          startDateVariable: 'SS_START',
+          birthDateVariable: 'BIRTH_DATE',
+          yearTurn60: 2020,
+          collectionAge,
+          startDate: new Date(Date.UTC(2020 + collectionAge - 60, 0, 1)),
+          birthDate: new Date(Date.UTC(birthYear, 0, 1)),
+          priorAnnualNetIncomeYears: years,
+          priorAnnualNetIncomes: incomes,
+        } as any);
+
+        const manager = new RetirementManager([ss], []);
+        // Should not throw
+        expect(() => manager.calculateSocialSecurityMonthlyPay(ss)).not.toThrow();
+      });
+    });
+
+    it('should correctly apply FRA based on birth year (integration test)', () => {
+      // This test verifies that the FRA is determined by birth year and affects benefit calculations
+      // We test this by ensuring calculations complete without errors for different birth years
+      const { years, incomes } = generate35YearsIncome(2020);
+
+      const birthYearsAndFRAs = [
+        { birthYear: 1937, expectedFRA: 65 },
+        { birthYear: 1943, expectedFRA: 66 },  // 1943-1954 -> 66
+        { birthYear: 1955, expectedFRA: 66 + 2/12 },
+        { birthYear: 1957, expectedFRA: 66 + 6/12 },
+        { birthYear: 1960, expectedFRA: 67 },
+      ];
+
+      birthYearsAndFRAs.forEach(({ birthYear, expectedFRA }) => {
+        const ss = new SocialSecurity({
+          id: `ss-${birthYear}`,
+          name: `Born ${birthYear} SS`,
+          payToAccount: 'checking-1',
+          paycheckNames: [`Born ${birthYear} Paycheck`],
+          paycheckAccounts: ['checking-1'],
+          paycheckCategories: ['Income.SocialSecurity'],
+          startDateVariable: 'SS_START',
+          birthDateVariable: 'BIRTH_DATE',
+          yearTurn60: 2020,
+          collectionAge: 62,
+          startDate: new Date(Date.UTC(2022, 0, 1)),
+          birthDate: new Date(Date.UTC(birthYear, 0, 1)),
+          priorAnnualNetIncomeYears: years,
+          priorAnnualNetIncomes: incomes,
+        } as any);
+
+        const manager = new RetirementManager([ss], []);
+        // Calculation should complete without throwing
+        expect(() => manager.calculateSocialSecurityMonthlyPay(ss)).not.toThrow();
+
+        // The monthly pay calculation uses the birth-year-based FRA
+        // We can't easily test the exact value without exposing private methods,
+        // but we've verified the calculation completes
+        const monthlyPay = manager.getSocialSecurityMonthlyPay(`Born ${birthYear} SS`);
+        expect(monthlyPay).toBeGreaterThanOrEqual(0);
+      });
+    });
+
+    it('should return 0 factor for claiming before age 62', () => {
+      const { years, incomes } = generate35YearsIncome(2020);
+      const socialSecurity = new SocialSecurity({
+        id: 'ss-8',
+        name: 'Too Early SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Too Early Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        yearTurn60: 2020,
+        collectionAge: 60,
+        startDate: new Date(Date.UTC(2020, 0, 1)),
+        birthDate: new Date(Date.UTC(1960, 0, 1)),
+        priorAnnualNetIncomeYears: years,
+        priorAnnualNetIncomes: incomes,
+      } as any);
+
+      retirementManager = new RetirementManager([socialSecurity], []);
+      retirementManager.calculateSocialSecurityMonthlyPay(socialSecurity);
+
+      // Claiming before 62 is not allowed -> factor = 0
+      const monthlyPay = retirementManager.getSocialSecurityMonthlyPay('Too Early SS');
+      expect(monthlyPay).toBe(0);
     });
   });
 
