@@ -175,6 +175,8 @@ describe('Account', () => {
         earlyWithdrawalPenalty: 0.1,
         earlyWithdrawalDate: null,
         interestPayAccount: null,
+        interestAppliesToPositiveBalance: true,
+        expenseRatio: 0,
         usesRMD: false,
         accountOwnerDOB: null,
         rmdAccount: null,
@@ -186,7 +188,6 @@ describe('Account', () => {
         pushStart: null,
         pushEnd: null,
         pushAccount: null,
-        interestAppliesToPositiveBalance: true,
         defaultShowInGraph: false,
       });
     });

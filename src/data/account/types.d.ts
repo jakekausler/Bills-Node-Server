@@ -47,6 +47,7 @@ export type AccountData = {
   pushEnd?: string | null;
   pushAccount?: string | null;
   interestAppliesToPositiveBalance?: boolean;
+  expenseRatio?: number;
   defaultShowInGraph: boolean;
   balance?: number;
 };

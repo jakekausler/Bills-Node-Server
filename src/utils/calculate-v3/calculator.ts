@@ -314,6 +314,12 @@ export class Calculator {
     // Determine the APR to use (Monte Carlo sample or regular rate)
     let apr = event.rate;
 
+    // Apply expense ratio (fund fees reduce the effective return)
+    // Only apply to positive balances (investment gains), not to debt
+    if (currentBalance > 0) {
+      apr = apr - (account.expenseRatio ?? 0);
+    }
+
     // Calculate the interest amount
     const interestAmount = this.calculateInterestAmount(currentBalance, apr, interest.compounded);
 

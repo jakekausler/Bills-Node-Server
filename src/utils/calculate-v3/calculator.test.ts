@@ -98,6 +98,7 @@ function makeAccount(overrides: Partial<{
   earlyWithdrawalDate: Date | null;
   interestPayAccount: string | null;
   interestAppliesToPositiveBalance: boolean;
+  expenseRatio: number;
   usesRMD: boolean;
   rmdAccount: string | null;
   pullPriority: number;
@@ -116,6 +117,7 @@ function makeAccount(overrides: Partial<{
     interestAppliesToPositiveBalance: overrides.interestAppliesToPositiveBalance !== undefined
       ? overrides.interestAppliesToPositiveBalance
       : true,
+    expenseRatio: overrides.expenseRatio ?? 0,
     usesRMD: overrides.usesRMD ?? false,
     rmdAccount: overrides.rmdAccount ?? null,
     pullPriority: overrides.pullPriority ?? -1,
@@ -927,6 +929,100 @@ describe('Calculator', () => {
       calculator.processInterestEvent(event, segmentResult);
 
       expect(segmentResult.taxableOccurrences.size).toBe(0);
+    });
+
+    it('applies expense ratio to reduce interest on positive balance', () => {
+      const account = makeAccount({
+        id: 'account-1',
+        expenseRatio: 0.003, // 0.30% expense ratio
+      });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn(() => 10000),
+        findAccountById: vi.fn(() => account),
+      });
+      const calculator = makeCalculator({ balanceTracker });
+      const segmentResult = makeSegmentResult();
+      const interest = makeInterest({ rate: 0.06, compounded: 'monthly' }); // 6% APR
+
+      const event: InterestEvent = {
+        id: 'evt-int-expense',
+        type: EventType.interest,
+        date: new Date('2024-01-15'),
+        accountId: 'account-1',
+        priority: 2,
+        originalInterest: interest,
+        rate: 0.06,
+        firstInterest: false,
+      };
+
+      const result = calculator.processInterestEvent(event, segmentResult);
+
+      // Effective APR = 6% - 0.3% = 5.7%
+      const effectiveApr = 0.06 - 0.003;
+      const expectedInterest = 10000 * (Math.pow(1 + effectiveApr, 1 / 12) - 1);
+      expect(result.get('account-1')).toBeCloseTo(expectedInterest, 2);
+    });
+
+    it('does not apply expense ratio to negative balance (debt)', () => {
+      const account = makeAccount({
+        id: 'account-1',
+        expenseRatio: 0.003, // 0.30% expense ratio
+      });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn(() => -5000), // negative balance (debt)
+        findAccountById: vi.fn(() => account),
+      });
+      const calculator = makeCalculator({ balanceTracker });
+      const segmentResult = makeSegmentResult();
+      const interest = makeInterest({ rate: 0.12, compounded: 'monthly' }); // 12% APR
+
+      const event: InterestEvent = {
+        id: 'evt-int-debt',
+        type: EventType.interest,
+        date: new Date('2024-01-15'),
+        accountId: 'account-1',
+        priority: 2,
+        originalInterest: interest,
+        rate: 0.12,
+        firstInterest: false,
+      };
+
+      const result = calculator.processInterestEvent(event, segmentResult);
+
+      // Expense ratio should NOT apply to debt, so full 12% rate is used
+      const expectedInterest = -5000 * (Math.pow(1 + 0.12, 1 / 12) - 1);
+      expect(result.get('account-1')).toBeCloseTo(expectedInterest, 2);
+    });
+
+    it('zero expense ratio has no effect on interest', () => {
+      const account = makeAccount({
+        id: 'account-1',
+        expenseRatio: 0, // no expense ratio
+      });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn(() => 10000),
+        findAccountById: vi.fn(() => account),
+      });
+      const calculator = makeCalculator({ balanceTracker });
+      const segmentResult = makeSegmentResult();
+      const interest = makeInterest({ rate: 0.06, compounded: 'monthly' });
+
+      const event: InterestEvent = {
+        id: 'evt-int-zero-ratio',
+        type: EventType.interest,
+        date: new Date('2024-01-15'),
+        accountId: 'account-1',
+        priority: 2,
+        originalInterest: interest,
+        rate: 0.06,
+        firstInterest: false,
+      };
+
+      const result = calculator.processInterestEvent(event, segmentResult);
+
+      // With zero expense ratio, should get full 6% interest
+      const expectedInterest = 10000 * (Math.pow(1 + 0.06, 1 / 12) - 1);
+      expect(result.get('account-1')).toBeCloseTo(expectedInterest, 2);
     });
   });
 

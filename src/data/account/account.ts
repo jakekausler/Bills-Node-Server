@@ -32,6 +32,7 @@ export class Account {
   earlyWithdrawalDate: Date | null;
   interestPayAccount: string | null;
   interestAppliesToPositiveBalance: boolean;
+  expenseRatio: number;
   usesRMD: boolean;
   accountOwnerDOB: Date | null;
   rmdAccount: string | null;
@@ -92,6 +93,7 @@ export class Account {
     this.earlyWithdrawalDate = (data.earlyWithdrawalDate || (data as any).earlyWithdrawlDate) ? parseDate((data.earlyWithdrawalDate || (data as any).earlyWithdrawlDate) as DateString) : null;
     this.interestPayAccount = data.interestPayAccount === undefined ? null : data.interestPayAccount;
     this.interestAppliesToPositiveBalance = data.interestAppliesToPositiveBalance ?? true;
+    this.expenseRatio = data.expenseRatio ?? 0;
     this.usesRMD = data.usesRMD || false;
     this.accountOwnerDOB = data.accountOwnerDOB ? parseDate(data.accountOwnerDOB as DateString) : null;
     this.rmdAccount = data.rmdAccount || null;
@@ -129,6 +131,7 @@ export class Account {
       earlyWithdrawalDate: this.earlyWithdrawalDate ? formatDate(this.earlyWithdrawalDate) : null,
       interestPayAccount: this.interestPayAccount,
       interestAppliesToPositiveBalance: this.interestAppliesToPositiveBalance,
+      expenseRatio: this.expenseRatio,
       usesRMD: this.usesRMD,
       accountOwnerDOB: this.accountOwnerDOB ? formatDate(this.accountOwnerDOB) : null,
       rmdAccount: this.rmdAccount,
@@ -163,6 +166,7 @@ export class Account {
       earlyWithdrawalDate: this.earlyWithdrawalDate ? formatDate(this.earlyWithdrawalDate) : null,
       interestPayAccount: this.interestPayAccount,
       interestAppliesToPositiveBalance: this.interestAppliesToPositiveBalance,
+      expenseRatio: this.expenseRatio,
       usesRMD: this.usesRMD,
       accountOwnerDOB: this.accountOwnerDOB ? formatDate(this.accountOwnerDOB) : null,
       rmdAccount: this.rmdAccount,
