@@ -104,6 +104,11 @@ export class MonteCarloHandler {
         ? yearData.limitIncrease401k / 100
         : this.drawRandomSample(this.historicRates?.limitIncrease401k) / 100;
 
+      // SS COLA - correlated draw from same historical year
+      yearSamples[MonteCarloSampleType.SS_COLA] = yearData.ssCola !== undefined
+        ? yearData.ssCola / 100
+        : this.drawRandomSample(this.historicRates?.ssCola) / 100;
+
       // Portfolio - use the SAME drawn year for stock/bond/cash
       const composition = this.getPortfolioComposition(new Date(year, 6, 1)); // mid-year
       const stockReturn = yearData.stock !== undefined

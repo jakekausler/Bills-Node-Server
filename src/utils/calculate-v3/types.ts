@@ -260,6 +260,7 @@ export enum MonteCarloSampleType {
   INFLATION = 'Inflation',
   RAISE = 'Raise',
   LIMIT_INCREASE_401K = '401k_limit_increase_rate',
+  SS_COLA = 'SS_COLA',
 }
 
 export interface HistoricRates {
@@ -278,6 +279,7 @@ export interface HistoricRates {
   inflation: number[];
   raise: number[];
   limitIncrease401k: number[];
+  ssCola?: number[];
   yearKeyed?: Record<string, Partial<{
     stock: number;
     bond: number;
@@ -287,6 +289,7 @@ export interface HistoricRates {
     inflation: number;
     raise: number;
     limitIncrease401k: number;
+    ssCola: number;
   }>>;
 }
 

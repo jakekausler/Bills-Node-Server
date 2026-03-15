@@ -8,6 +8,7 @@ import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
 import { HealthcareManager } from './healthcare-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
+import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import {
@@ -636,8 +637,22 @@ export class Calculator {
     const accountId = event.accountId;
     if (event.firstPayment) {
       this.retirementManager.calculateSocialSecurityMonthlyPay(socialSecurity);
+      this.retirementManager.setSocialSecurityFirstPaymentYear(socialSecurity.name, event.date.getUTCFullYear());
     }
-    const amount = this.retirementManager.getSocialSecurityMonthlyPay(socialSecurity.name);
+    let amount = this.retirementManager.getSocialSecurityMonthlyPay(socialSecurity.name);
+
+    // Apply COLA if configured
+    const firstPaymentYear = this.retirementManager.getSocialSecurityFirstPaymentYear(socialSecurity.name);
+    if (firstPaymentYear !== null && socialSecurity.colaVariable) {
+      const currentYear = event.date.getUTCFullYear();
+      const yearsCollecting = currentYear - firstPaymentYear;
+
+      if (yearsCollecting > 0) {
+        const colaRate = (loadVariable(socialSecurity.colaVariable, this.simulation) as number) || 0;
+        const colaMultiplier = Math.pow(1 + colaRate, yearsCollecting);
+        amount = amount * colaMultiplier;
+      }
+    }
 
     // Create consolidated activity for the bill
     const socialSecurityActivity = new ConsolidatedActivity({

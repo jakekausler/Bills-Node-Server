@@ -41,6 +41,10 @@ export class SocialSecurity {
   yearTurn60: number;
   /** Age at which benefits are collected */
   collectionAge: number;
+  /** Year when benefits start (first payment) */
+  firstPaymentYear: number | null;
+  /** Variable name for COLA adjustment (optional) */
+  colaVariable: string | null;
 
   /**
    * Creates a new Social Security benefit configuration
@@ -68,10 +72,12 @@ export class SocialSecurity {
     this.monthlyPay = null;
     this.yearTurn60 = dayjs.utc(this.birthDate).add(60, 'year').year();
     this.collectionAge = dayjs.utc(this.startDate).diff(this.birthDate, 'year', false);
+    this.firstPaymentYear = null;
+    this.colaVariable = data.colaVariable ?? null;
   }
 
   serialize(): SocialSecurityData {
-    return {
+    const data: SocialSecurityData = {
       name: this.name,
       payToAccount: this.payToAccount,
       paycheckNames: this.paycheckNames,
@@ -82,5 +88,9 @@ export class SocialSecurity {
       priorAnnualNetIncomes: this.priorAnnualNetIncomes,
       priorAnnualNetIncomeYears: this.priorAnnualNetIncomeYears,
     };
+    if (this.colaVariable) {
+      data.colaVariable = this.colaVariable;
+    }
+    return data;
   }
 }

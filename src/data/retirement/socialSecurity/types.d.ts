@@ -8,4 +8,5 @@ export type SocialSecurityData = {
   birthDateVariable: string;
   priorAnnualNetIncomes: number[];
   priorAnnualNetIncomeYears: number[];
+  colaVariable?: string;
 };

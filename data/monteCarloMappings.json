@@ -4,5 +4,6 @@
   "HIGH_YIELD_SAVINGS_RATE": "HYSA",
   "LOW_YIELD_SAVINGS_RATE": "LYSA",
   "INVESTMENT_RATE": "Portfolio",
-  "401K_LIMIT_INCREASE_RATE": "401k_limit_increase_rate"
+  "401K_LIMIT_INCREASE_RATE": "401k_limit_increase_rate",
+  "SS_COLA_RATE": "SS_COLA"
 }

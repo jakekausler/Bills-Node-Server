@@ -29,6 +29,8 @@ export class RetirementManager {
   private pensionMonthlyPay: Map<string, number> = new Map();
   // the first payment year for each pension indexed by pension name
   private pensionFirstPaymentYear: Map<string, number> = new Map();
+  // the first payment year for each social security indexed by social security name
+  private socialSecurityFirstPaymentYear: Map<string, number> = new Map();
   // RMD table
   private rmdTable: RMDTableType;
 
@@ -145,6 +147,14 @@ export class RetirementManager {
 
   public getPensionFirstPaymentYear(name: string): number | null {
     return this.pensionFirstPaymentYear.get(name) || null;
+  }
+
+  public getSocialSecurityFirstPaymentYear(name: string): number | null {
+    return this.socialSecurityFirstPaymentYear.get(name) || null;
+  }
+
+  public setSocialSecurityFirstPaymentYear(name: string, year: number): void {
+    this.socialSecurityFirstPaymentYear.set(name, year);
   }
 
   /********************

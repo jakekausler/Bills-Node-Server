@@ -27,6 +27,10 @@ vi.mock('../simulation/loadVariableValue', () => ({
   ),
 }));
 
+vi.mock('../simulation/variable', () => ({
+  loadVariable: vi.fn(() => 0.025), // default 2.5% COLA
+}));
+
 vi.mock('../io/io', () => ({
   load: vi.fn(() => ({ accounts: [], transfers: [] })),
   save: vi.fn(),
@@ -71,6 +75,7 @@ import { Activity } from '../../data/activity/activity';
 import { Bill } from '../../data/bill/bill';
 import { Account } from '../../data/account/account';
 import { Interest } from '../../data/interest/interest';
+import { loadVariable } from '../simulation/variable';
 
 // ---------------------------------------------------------------------------
 // Test data factories
@@ -283,6 +288,8 @@ function makeRetirementManager(overrides: Partial<{
   getPensionFirstPaymentYear: (name: string) => number | null;
   calculateSocialSecurityMonthlyPay: (ss: any) => void;
   getSocialSecurityMonthlyPay: (name: string) => number;
+  getSocialSecurityFirstPaymentYear: (name: string) => number | null;
+  setSocialSecurityFirstPaymentYear: (name: string, year: number) => void;
   rmd: (balance: number, age: number) => number;
 }> = {}) {
   return {
@@ -291,6 +298,8 @@ function makeRetirementManager(overrides: Partial<{
     getPensionFirstPaymentYear: overrides.getPensionFirstPaymentYear ?? vi.fn(() => null),
     calculateSocialSecurityMonthlyPay: overrides.calculateSocialSecurityMonthlyPay ?? vi.fn(),
     getSocialSecurityMonthlyPay: overrides.getSocialSecurityMonthlyPay ?? vi.fn(() => 2000),
+    getSocialSecurityFirstPaymentYear: overrides.getSocialSecurityFirstPaymentYear ?? vi.fn(() => null),
+    setSocialSecurityFirstPaymentYear: overrides.setSocialSecurityFirstPaymentYear ?? vi.fn(),
     rmd: overrides.rmd ?? vi.fn(() => 5000),
     tryAddToAnnualIncomes: vi.fn(),
   };
@@ -1571,6 +1580,11 @@ describe('Calculator', () => {
   // ─── processSocialSecurityEvent ───────────────────────────────────────────
 
   describe('processSocialSecurityEvent', () => {
+    beforeEach(() => {
+      vi.mocked(loadVariable).mockReset();
+      vi.mocked(loadVariable).mockReturnValue(0.025); // default 2.5% COLA
+    });
+
     it('calls calculateSocialSecurityMonthlyPay on first payment', () => {
       const retirementManager = makeRetirementManager({
         getSocialSecurityMonthlyPay: vi.fn(() => 1800),
@@ -1647,6 +1661,174 @@ describe('Calculator', () => {
       const serialized = activities![0].serialize();
       expect(serialized.category).toBe('Income.Retirement');
       expect(serialized.amount).toBe(2200);
+    });
+
+    it('applies no COLA adjustment when colaVariable is not set', () => {
+      const retirementManager = makeRetirementManager({
+        getSocialSecurityMonthlyPay: vi.fn(() => 2000),
+        getSocialSecurityFirstPaymentYear: vi.fn(() => 2024),
+      });
+      const calculator = makeCalculator({ retirementManager });
+      const segmentResult = makeSegmentResult();
+
+      const ss = { name: 'Test SS', colaVariable: null } as any;
+      const event: SocialSecurityEvent = {
+        id: 'evt-ss-no-cola',
+        type: EventType.socialSecurity,
+        date: new Date('2027-03-15'),
+        accountId: 'account-1',
+        priority: 3,
+        socialSecurity: ss,
+        ownerAge: 70,
+        firstPayment: false,
+      };
+
+      calculator.processSocialSecurityEvent(event, segmentResult);
+
+      // No COLA adjustment, should remain at base amount
+      expect(segmentResult.balanceChanges.get('account-1')).toBe(2000);
+    });
+
+    it('applies fixed COLA adjustment correctly', () => {
+      const retirementManager = makeRetirementManager({
+        getSocialSecurityMonthlyPay: vi.fn(() => 2000),
+        getSocialSecurityFirstPaymentYear: vi.fn(() => 2024),
+        setSocialSecurityFirstPaymentYear: vi.fn(),
+      });
+      const calculator = makeCalculator({ retirementManager });
+      vi.mocked(loadVariable).mockReturnValue(0.025); // 2.5% COLA
+      const segmentResult = makeSegmentResult();
+
+      const ss = { name: 'Test SS COLA', colaVariable: 'SS_COLA_RATE' } as any;
+      const event: SocialSecurityEvent = {
+        id: 'evt-ss-cola',
+        type: EventType.socialSecurity,
+        date: new Date('2029-03-15'),
+        accountId: 'account-1',
+        priority: 3,
+        socialSecurity: ss,
+        ownerAge: 72,
+        firstPayment: false,
+      };
+
+      calculator.processSocialSecurityEvent(event, segmentResult);
+
+      // After 5 years at 2.5% COLA: 2000 * (1.025)^5 = 2262.82
+      const expectedAmount = 2000 * Math.pow(1.025, 5);
+      expect(segmentResult.balanceChanges.get('account-1')).toBeCloseTo(expectedAmount, 2);
+    });
+
+    it('handles COLA in first payment year (no adjustment yet)', () => {
+      const retirementManager = makeRetirementManager({
+        getSocialSecurityMonthlyPay: vi.fn(() => 2000),
+        getSocialSecurityFirstPaymentYear: vi.fn(() => null),
+        setSocialSecurityFirstPaymentYear: vi.fn(),
+      });
+      const calculator = makeCalculator({ retirementManager });
+      vi.mocked(loadVariable).mockReturnValue(0.03); // 3% COLA
+      const segmentResult = makeSegmentResult();
+
+      const ss = { name: 'Test SS First Year', colaVariable: 'SS_COLA_RATE' } as any;
+      const event: SocialSecurityEvent = {
+        id: 'evt-ss-first',
+        type: EventType.socialSecurity,
+        date: new Date('2024-03-15'),
+        accountId: 'account-1',
+        priority: 3,
+        socialSecurity: ss,
+        ownerAge: 67,
+        firstPayment: true,
+      };
+
+      calculator.processSocialSecurityEvent(event, segmentResult);
+
+      // First payment should set year to 2024, then apply COLA for 0 years (no adjustment)
+      expect(retirementManager.setSocialSecurityFirstPaymentYear).toHaveBeenCalledWith('Test SS First Year', 2024);
+      // 0 years collecting, so no COLA adjustment
+      expect(segmentResult.balanceChanges.get('account-1')).toBe(2000);
+    });
+
+    it('applies COLA with higher rate over longer period', () => {
+      const retirementManager = makeRetirementManager({
+        getSocialSecurityMonthlyPay: vi.fn(() => 2500),
+        getSocialSecurityFirstPaymentYear: vi.fn(() => 2020),
+        setSocialSecurityFirstPaymentYear: vi.fn(),
+      });
+      const calculator = makeCalculator({ retirementManager });
+      vi.mocked(loadVariable).mockReturnValue(0.05); // 5% COLA
+      const segmentResult = makeSegmentResult();
+
+      const ss = { name: 'Test SS High COLA', colaVariable: 'SS_COLA_RATE' } as any;
+      const event: SocialSecurityEvent = {
+        id: 'evt-ss-high-cola',
+        type: EventType.socialSecurity,
+        date: new Date('2030-03-15'),
+        accountId: 'account-1',
+        priority: 3,
+        socialSecurity: ss,
+        ownerAge: 75,
+        firstPayment: false,
+      };
+
+      calculator.processSocialSecurityEvent(event, segmentResult);
+
+      // After 10 years at 5% COLA: 2500 * (1.05)^10 = 4072.23
+      const expectedAmount = 2500 * Math.pow(1.05, 10);
+      expect(segmentResult.balanceChanges.get('account-1')).toBeCloseTo(expectedAmount, 2);
+    });
+
+    it('does not apply COLA when firstPaymentYear is null and not first payment', () => {
+      const retirementManager = makeRetirementManager({
+        getSocialSecurityMonthlyPay: vi.fn(() => 1800),
+        getSocialSecurityFirstPaymentYear: vi.fn(() => null),
+      });
+      const calculator = makeCalculator({ retirementManager });
+      vi.mocked(loadVariable).mockReturnValueOnce(0.025);
+      const segmentResult = makeSegmentResult();
+
+      const ss = { name: 'Test SS Unknown Year', colaVariable: 'SS_COLA_RATE' } as any;
+      const event: SocialSecurityEvent = {
+        id: 'evt-ss-unknown',
+        type: EventType.socialSecurity,
+        date: new Date('2025-03-15'),
+        accountId: 'account-1',
+        priority: 3,
+        socialSecurity: ss,
+        ownerAge: 68,
+        firstPayment: false,
+      };
+
+      calculator.processSocialSecurityEvent(event, segmentResult);
+
+      // No COLA adjustment because first payment year is unknown
+      expect(segmentResult.balanceChanges.get('account-1')).toBe(1800);
+    });
+
+    it('applies zero COLA rate means no increase', () => {
+      const retirementManager = makeRetirementManager({
+        getSocialSecurityMonthlyPay: vi.fn(() => 2000),
+        getSocialSecurityFirstPaymentYear: vi.fn(() => 2024),
+      });
+      const calculator = makeCalculator({ retirementManager });
+      vi.mocked(loadVariable).mockReturnValue(0.0); // 0% COLA
+      const segmentResult = makeSegmentResult();
+
+      const ss = { name: 'Test SS Zero COLA', colaVariable: 'SS_COLA_RATE' } as any;
+      const event: SocialSecurityEvent = {
+        id: 'evt-ss-zero-cola',
+        type: EventType.socialSecurity,
+        date: new Date('2027-03-15'),
+        accountId: 'account-1',
+        priority: 3,
+        socialSecurity: ss,
+        ownerAge: 70,
+        firstPayment: false,
+      };
+
+      calculator.processSocialSecurityEvent(event, segmentResult);
+
+      // After 3 years at 0% COLA: 2000 * (1.0)^3 = 2000
+      expect(segmentResult.balanceChanges.get('account-1')).toBe(2000);
     });
   });
 

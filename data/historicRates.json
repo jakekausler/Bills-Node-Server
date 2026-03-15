@@ -930,84 +930,96 @@
       "bond": 3.61,
       "inflation": 9.1,
       "raise": 1.8,
-      "highYield": 5.79
+      "highYield": 5.79,
+      "ssCola": 8.0
     },
     "1976": {
       "stock": 19.15,
       "bond": 15.98,
       "inflation": 5.8,
       "raise": 1.9,
-      "highYield": 4.98
+      "highYield": 4.98,
+      "ssCola": 6.4
     },
     "1977": {
       "stock": -11.5,
       "bond": 1.29,
       "inflation": 6.5,
       "raise": 1.9,
-      "highYield": 5.26
+      "highYield": 5.26,
+      "ssCola": 5.9
     },
     "1978": {
       "stock": 1.06,
       "bond": -0.78,
       "inflation": 7.6,
       "raise": 1.8,
-      "highYield": 7.18
+      "highYield": 7.18,
+      "ssCola": 6.5
     },
     "1979": {
       "stock": 12.31,
       "bond": 0.67,
       "inflation": 11.3,
       "raise": 1.7,
-      "highYield": 10.05
+      "highYield": 10.05,
+      "ssCola": 9.9
     },
     "1980": {
       "stock": 25.77,
       "bond": -2.99,
       "inflation": 13.5,
       "raise": 1.9,
-      "highYield": 11.39
+      "highYield": 11.39,
+      "ssCola": 14.3
     },
     "1981": {
       "stock": -9.73,
       "bond": 8.2,
       "inflation": 10.3,
       "raise": 1.9,
-      "highYield": 14.04
+      "highYield": 14.04,
+      "ssCola": 11.2
     },
     "1982": {
       "stock": 14.76,
       "bond": 32.81,
       "inflation": 6.2,
       "raise": 2.0,
-      "highYield": 10.6
+      "highYield": 10.6,
+      "ssCola": 7.4
     },
     "1983": {
       "stock": 17.27,
       "bond": 3.2,
       "inflation": 3.2,
       "raise": 2.1,
-      "highYield": 8.62
+      "highYield": 8.62,
+      "ssCola": 3.5
     },
     "1984": {
       "stock": 1.4,
       "bond": 13.73,
       "inflation": 4.3,
       "raise": 2.0,
-      "highYield": 9.54
+      "highYield": 9.54,
+      "ssCola": 3.5
     },
     "1985": {
       "stock": 26.33,
       "bond": 25.71,
       "inflation": 3.6,
       "raise": 2.1,
-      "highYield": 7.47
+      "highYield": 7.47,
+      "ssCola": 3.1
     },
     "1986": {
       "stock": 14.62,
       "bond": 24.28,
       "inflation": 1.9,
       "raise": 2.2,
-      "highYield": 5.97
+      "highYield": 5.97,
+      "ssCola": 1.3
     },
     "1987": {
       "stock": 2.03,
@@ -1015,7 +1027,8 @@
       "inflation": 3.6,
       "raise": 2.3,
       "highYield": 5.78,
-      "limitIncrease401k": 2.1276596
+      "limitIncrease401k": 2.1276596,
+      "ssCola": 4.2
     },
     "1988": {
       "stock": 12.4,
@@ -1023,7 +1036,8 @@
       "inflation": 4.1,
       "raise": 2.5,
       "highYield": 6.67,
-      "limitIncrease401k": 2.173913
+      "limitIncrease401k": 2.173913,
+      "ssCola": 4.0
     },
     "1989": {
       "stock": 27.25,
@@ -1031,7 +1045,8 @@
       "inflation": 4.8,
       "raise": 2.4,
       "highYield": 8.11,
-      "limitIncrease401k": 8.8888889
+      "limitIncrease401k": 8.8888889,
+      "ssCola": 4.7
     },
     "1990": {
       "stock": -6.56,
@@ -1039,7 +1054,8 @@
       "inflation": 5.4,
       "raise": 2.3,
       "highYield": 7.5,
-      "limitIncrease401k": 4.8780488
+      "limitIncrease401k": 4.8780488,
+      "ssCola": 5.4
     },
     "1991": {
       "stock": 26.31,
@@ -1047,7 +1063,8 @@
       "inflation": 4.2,
       "raise": 2.6,
       "highYield": 5.38,
-      "limitIncrease401k": 0
+      "limitIncrease401k": 0,
+      "ssCola": 3.7
     },
     "1992": {
       "stock": 4.46,
@@ -1055,7 +1072,8 @@
       "inflation": 3,
       "raise": 2.4,
       "highYield": 3.43,
-      "limitIncrease401k": 2.5641026
+      "limitIncrease401k": 2.5641026,
+      "ssCola": 3.0
     },
     "1993": {
       "stock": 7.06,
@@ -1063,7 +1081,8 @@
       "inflation": 3,
       "raise": 2.6,
       "highYield": 3,
-      "limitIncrease401k": 2.6315789
+      "limitIncrease401k": 2.6315789,
+      "ssCola": 2.6
     },
     "1994": {
       "stock": -1.54,
@@ -1071,7 +1090,8 @@
       "inflation": 2.6,
       "raise": 2.6,
       "highYield": 4.25,
-      "limitIncrease401k": 2.7027027
+      "limitIncrease401k": 2.7027027,
+      "ssCola": 2.8
     },
     "1995": {
       "stock": 34.11,
@@ -1079,7 +1099,8 @@
       "inflation": 2.8,
       "raise": 2.4,
       "highYield": 5.49,
-      "limitIncrease401k": 0
+      "limitIncrease401k": 0,
+      "ssCola": 2.6
     },
     "1996": {
       "stock": 20.26,
@@ -1087,7 +1108,8 @@
       "inflation": 3,
       "raise": 2.5,
       "highYield": 5.01,
-      "limitIncrease401k": 0
+      "limitIncrease401k": 0,
+      "ssCola": 2.9
     },
     "1997": {
       "stock": 31.01,
@@ -1095,7 +1117,8 @@
       "inflation": 2.3,
       "raise": 2.2,
       "highYield": 5.06,
-      "limitIncrease401k": 2.7777778
+      "limitIncrease401k": 2.7777778,
+      "ssCola": 2.1
     },
     "1998": {
       "stock": 26.67,
@@ -1103,7 +1126,8 @@
       "inflation": 1.6,
       "raise": 2.3,
       "highYield": 4.78,
-      "limitIncrease401k": 0
+      "limitIncrease401k": 0,
+      "ssCola": 1.3
     },
     "1999": {
       "stock": 19.53,
@@ -1111,7 +1135,8 @@
       "inflation": 2.2,
       "raise": 2.5,
       "highYield": 4.64,
-      "limitIncrease401k": 2.8571429
+      "limitIncrease401k": 2.8571429,
+      "ssCola": 2.5
     },
     "2000": {
       "stock": -10.14,
@@ -1119,7 +1144,8 @@
       "inflation": 3.4,
       "raise": 2.6,
       "highYield": 5.82,
-      "limitIncrease401k": 2.9411765
+      "limitIncrease401k": 2.9411765,
+      "ssCola": 3.5
     },
     "2001": {
       "stock": -13.04,
@@ -1127,7 +1153,8 @@
       "inflation": 2.8,
       "raise": 3.0,
       "highYield": 3.4,
-      "limitIncrease401k": 0
+      "limitIncrease401k": 0,
+      "ssCola": 2.6
     },
     "2002": {
       "stock": -23.37,
@@ -1135,7 +1162,8 @@
       "inflation": 1.6,
       "raise": 3.0,
       "highYield": 1.61,
-      "limitIncrease401k": 0
+      "limitIncrease401k": 0,
+      "ssCola": 1.4
     },
     "2003": {
       "stock": 26.38,
@@ -1143,7 +1171,8 @@
       "inflation": 2.3,
       "raise": 3.1,
       "highYield": 1.01,
-      "limitIncrease401k": 6.0606061
+      "limitIncrease401k": 6.0606061,
+      "ssCola": 2.1
     },
     "2004": {
       "stock": 8.99,
@@ -1151,7 +1180,8 @@
       "inflation": 2.7,
       "raise": 2.9,
       "highYield": 1.37,
-      "limitIncrease401k": 0
+      "limitIncrease401k": 0,
+      "ssCola": 2.7
     },
     "2005": {
       "stock": 3,
@@ -1159,7 +1189,8 @@
       "inflation": 3.4,
       "raise": 2.8,
       "highYield": 3.15,
-      "limitIncrease401k": 3.2258065
+      "limitIncrease401k": 3.2258065,
+      "ssCola": 4.1
     },
     "2006": {
       "stock": 13.62,
@@ -1167,7 +1198,8 @@
       "inflation": 3.2,
       "raise": 2.7,
       "highYield": 4.73,
-      "limitIncrease401k": 6.6666667
+      "limitIncrease401k": 6.6666667,
+      "ssCola": 3.3
     },
     "2007": {
       "stock": 3.53,
@@ -1175,7 +1207,8 @@
       "inflation": 2.8,
       "raise": 2.3,
       "highYield": 4.36,
-      "limitIncrease401k": 7.1428571
+      "limitIncrease401k": 7.1428571,
+      "ssCola": 2.3
     },
     "2008": {
       "stock": -38.49,
@@ -1183,7 +1216,8 @@
       "inflation": 3.8,
       "raise": 2.3,
       "highYield": 1.37,
-      "limitIncrease401k": 7.6923077
+      "limitIncrease401k": 7.6923077,
+      "ssCola": 5.8
     },
     "2009": {
       "stock": 23.45,
@@ -1191,7 +1225,8 @@
       "inflation": -0.4,
       "raise": 2.0,
       "highYield": 0.15,
-      "limitIncrease401k": 8.3333333
+      "limitIncrease401k": 8.3333333,
+      "ssCola": 0.0
     },
     "2010": {
       "stock": 12.78,
@@ -1199,7 +1234,8 @@
       "inflation": 1.6,
       "raise": 2.0,
       "highYield": 0.14,
-      "limitIncrease401k": 4.5454545
+      "limitIncrease401k": 4.5454545,
+      "ssCola": 0.0
     },
     "2011": {
       "stock": 0,
@@ -1207,7 +1243,8 @@
       "inflation": 3.2,
       "raise": 2.3,
       "highYield": 0.05,
-      "limitIncrease401k": 0
+      "limitIncrease401k": 0,
+      "ssCola": 3.6
     },
     "2012": {
       "stock": 13.41,
@@ -1215,7 +1252,8 @@
       "inflation": 2.1,
       "raise": 2.6,
       "highYield": 0.09,
-      "limitIncrease401k": 4.7619048
+      "limitIncrease401k": 4.7619048,
+      "ssCola": 1.7
     },
     "2013": {
       "stock": 29.6,
@@ -1223,7 +1261,8 @@
       "inflation": 1.5,
       "raise": 3.2,
       "highYield": 0.06,
-      "limitIncrease401k": 0
+      "limitIncrease401k": 0,
+      "ssCola": 1.5
     },
     "2014": {
       "stock": 11.39,
@@ -1231,7 +1270,8 @@
       "inflation": 1.6,
       "raise": 3.4,
       "highYield": 0.03,
-      "limitIncrease401k": 5
+      "limitIncrease401k": 5,
+      "ssCola": 1.7
     },
     "2015": {
       "stock": -0.73,
@@ -1239,7 +1279,8 @@
       "inflation": 0.1,
       "raise": 4.6,
       "highYield": 0.05,
-      "limitIncrease401k": 0
+      "limitIncrease401k": 0,
+      "ssCola": 0.0
     },
     "2016": {
       "stock": 9.54,
@@ -1247,7 +1288,8 @@
       "inflation": 1.3,
       "raise": 4.8,
       "highYield": 0.32,
-      "limitIncrease401k": 2.7368421
+      "limitIncrease401k": 2.7368421,
+      "ssCola": 0.3
     },
     "2017": {
       "stock": 19.42,
@@ -1255,7 +1297,8 @@
       "inflation": 2.1,
       "raise": 4.9,
       "highYield": 0.93,
-      "limitIncrease401k": 0
+      "limitIncrease401k": 0,
+      "ssCola": 2.0
     },
     "2018": {
       "stock": -6.24,
@@ -1263,7 +1306,8 @@
       "inflation": 2.4,
       "raise": 4.9,
       "highYield": 1.94,
-      "limitIncrease401k": 2.6623377
+      "limitIncrease401k": 2.6623377,
+      "ssCola": 2.8
     },
     "2019": {
       "stock": 28.88,
@@ -1271,7 +1315,8 @@
       "inflation": 1.8,
       "raise": 4.8,
       "highYield": 2.06,
-      "limitIncrease401k": 2.9575272
+      "limitIncrease401k": 2.9575272,
+      "ssCola": 1.6
     },
     "2020": {
       "stock": 16.26,
@@ -1279,7 +1324,8 @@
       "inflation": 1.2,
       "raise": 4.6,
       "highYield": 0.35,
-      "limitIncrease401k": 2.8987168
+      "limitIncrease401k": 2.8987168,
+      "ssCola": 1.3
     },
     "2021": {
       "stock": 26.89,
@@ -1287,7 +1333,8 @@
       "inflation": 4.7,
       "raise": 4.8,
       "highYield": 0.05,
-      "limitIncrease401k": 5.8525074
+      "limitIncrease401k": 5.8525074,
+      "ssCola": 5.9
     },
     "2022": {
       "stock": -19.44,
@@ -1295,7 +1342,8 @@
       "inflation": 8,
       "raise": 4.9,
       "highYield": 2.02,
-      "limitIncrease401k": 4.4115804
+      "limitIncrease401k": 4.4115804,
+      "ssCola": 8.7
     },
     "2023": {
       "stock": 24.23,
@@ -1303,7 +1351,8 @@
       "inflation": 4.1,
       "raise": 4.7,
       "highYield": 5.07,
-      "limitIncrease401k": 4.1169529
+      "limitIncrease401k": 4.1169529,
+      "ssCola": 3.2
     },
     "2024": {
       "stock": 23.31,
@@ -1311,10 +1360,63 @@
       "inflation": 2.9,
       "raise": 4.7,
       "highYield": 4.97,
-      "limitIncrease401k": 4.2800492
+      "limitIncrease401k": 4.2800492,
+      "ssCola": 2.5
     },
     "2025": {
       "stock": 2.7
     }
-  }
+  },
+  "ssCola": [
+    8.0,
+    6.4,
+    5.9,
+    6.5,
+    9.9,
+    14.3,
+    11.2,
+    7.4,
+    3.5,
+    3.5,
+    3.1,
+    1.3,
+    4.2,
+    4.0,
+    4.7,
+    5.4,
+    3.7,
+    3.0,
+    2.6,
+    2.8,
+    2.6,
+    2.9,
+    2.1,
+    1.3,
+    2.5,
+    3.5,
+    2.6,
+    1.4,
+    2.1,
+    2.7,
+    4.1,
+    3.3,
+    2.3,
+    5.8,
+    0.0,
+    0.0,
+    3.6,
+    1.7,
+    1.5,
+    1.7,
+    0.0,
+    0.3,
+    2.0,
+    2.8,
+    1.6,
+    1.3,
+    5.9,
+    8.7,
+    3.2,
+    2.5
+  ]
 }
