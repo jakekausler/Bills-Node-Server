@@ -277,6 +277,16 @@ export interface HistoricRates {
   inflation: number[];
   raise: number[];
   limitIncrease401k: number[];
+  yearKeyed?: Record<string, Partial<{
+    stock: number;
+    bond: number;
+    cash: number;
+    highYield: number;
+    lowYield: number;
+    inflation: number;
+    raise: number;
+    limitIncrease401k: number;
+  }>>;
 }
 
 export interface ProxyDefinition {

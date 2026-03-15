@@ -13,6 +13,8 @@ export class MonteCarloHandler {
   private historicRates: HistoricRates | null = null;
   private portfolioMakeup: PortfolioMakeupOverTime | null = null;
   private segmentSamples: Record<string, Record<MonteCarloSampleType, number>>;
+  private yearKeyedData: Record<string, Record<string, number>> = {};
+  private availableYears: number[] = [];
 
   public static async getInstance(startDate: Date, endDate: Date): Promise<MonteCarloHandler> {
     const handler = new MonteCarloHandler();
@@ -29,6 +31,12 @@ export class MonteCarloHandler {
       const historicRatesContent = await fs.readFile(historicRatesPath, 'utf-8');
       this.historicRates = JSON.parse(historicRatesContent);
 
+      // Extract yearKeyed data for correlated sampling
+      this.yearKeyedData = this.historicRates.yearKeyed || {};
+      this.availableYears = Object.keys(this.yearKeyedData)
+        .map(Number)
+        .sort((a, b) => a - b);
+
       const portfolioMakeupPath = path.join(dataDir, 'portfolioMakeupOverTime.json');
       const portfolioMakeupContent = await fs.readFile(portfolioMakeupPath, 'utf-8');
       this.portfolioMakeup = JSON.parse(portfolioMakeupContent);
@@ -44,24 +52,67 @@ export class MonteCarloHandler {
     const samples: Record<string, Record<MonteCarloSampleType, number>> = {};
     const startYear = startDate.getUTCFullYear();
     const endYear = endDate.getUTCFullYear();
+
     for (let year = startYear; year <= endYear; year++) {
+      // Draw one random historical year for correlated sampling across all types
+      const randomYear = this.availableYears[Math.floor(Math.random() * this.availableYears.length)];
+      const yearData = this.yearKeyedData[String(randomYear)] || {};
+
+      // Build samples for this year from the drawn historical year
+      const yearSamples: Record<MonteCarloSampleType, number> = {};
+
+      // HYSA - correlated draw from same historical year
+      yearSamples[MonteCarloSampleType.HYSA] = yearData.highYield !== undefined
+        ? yearData.highYield / 100
+        : this.drawRandomSample(this.historicRates?.savings?.highYield) / 100;
+
+      // LYSA - correlated draw from same historical year
+      yearSamples[MonteCarloSampleType.LYSA] = yearData.lowYield !== undefined
+        ? yearData.lowYield / 100
+        : this.drawRandomSample(this.historicRates?.savings?.lowYield) / 100;
+
+      // Inflation - correlated draw from same historical year
+      yearSamples[MonteCarloSampleType.INFLATION] = yearData.inflation !== undefined
+        ? yearData.inflation / 100
+        : this.drawRandomSample(this.historicRates?.inflation) / 100;
+
+      // Raise - correlated draw from same historical year
+      yearSamples[MonteCarloSampleType.RAISE] = yearData.raise !== undefined
+        ? yearData.raise / 100
+        : this.drawRandomSample(this.historicRates?.raise) / 100;
+
+      // 401k Limit Increase - correlated draw from same historical year
+      yearSamples[MonteCarloSampleType.LIMIT_INCREASE_401K] = yearData.limitIncrease401k !== undefined
+        ? yearData.limitIncrease401k / 100
+        : this.drawRandomSample(this.historicRates?.limitIncrease401k) / 100;
+
+      // Portfolio - use the SAME drawn year for stock/bond/cash
+      const composition = this.getPortfolioComposition(new Date(year, 6, 1)); // mid-year
+      const stockReturn = yearData.stock !== undefined
+        ? yearData.stock / 100
+        : this.drawRandomSample(this.historicRates?.investment?.stock) / 100;
+      const bondReturn = yearData.bond !== undefined
+        ? yearData.bond / 100
+        : this.drawRandomSample(this.historicRates?.investment?.bond) / 100;
+      const cashReturn = yearData.highYield !== undefined
+        ? yearData.highYield / 100
+        : this.drawRandomSample(this.historicRates?.savings?.highYield) / 100;
+
+      yearSamples[MonteCarloSampleType.PORTFOLIO] =
+        stockReturn * (composition.stock || 0) +
+        bondReturn * (composition.bond || 0) +
+        cashReturn * (composition.cash || 0) +
+        this.calculateProxyReturn(this.historicRates?.investment?.preferred, stockReturn, bondReturn) * (composition.preferred || 0) +
+        this.calculateProxyReturn(this.historicRates?.investment?.convertible, stockReturn, bondReturn) * (composition.convertible || 0) +
+        this.calculateProxyReturn(this.historicRates?.investment?.other, stockReturn, bondReturn) * (composition.other || 0);
+
+      // Reuse same samples for ALL 12 months of this year
       for (let month = 0; month < 12; month++) {
         const segmentKey = `${year}-${month + 1}`;
-        // console.log(`Generating segment samples for ${segmentKey} ${year}-${month + 1}`);
-        const segmentSamples: Record<MonteCarloSampleType, number> = {
-          [MonteCarloSampleType.HYSA]: this.drawSample(MonteCarloSampleType.HYSA, new Date(Date.UTC(year, month, 1))),
-          [MonteCarloSampleType.LYSA]: this.drawSample(MonteCarloSampleType.LYSA, new Date(Date.UTC(year, month, 1))),
-          [MonteCarloSampleType.PORTFOLIO]: this.drawSample(MonteCarloSampleType.PORTFOLIO, new Date(Date.UTC(year, month, 1))),
-          [MonteCarloSampleType.INFLATION]: this.drawSample(MonteCarloSampleType.INFLATION, new Date(Date.UTC(year, month, 1))),
-          [MonteCarloSampleType.RAISE]: this.drawSample(MonteCarloSampleType.RAISE, new Date(Date.UTC(year, month, 1))),
-          [MonteCarloSampleType.LIMIT_INCREASE_401K]: this.drawSample(
-            MonteCarloSampleType.LIMIT_INCREASE_401K,
-            new Date(Date.UTC(year, month, 1)),
-          ),
-        };
-        samples[segmentKey] = segmentSamples;
+        samples[segmentKey] = { ...yearSamples } as Record<MonteCarloSampleType, number>;
       }
     }
+
     this.segmentSamples = samples;
     // this.saveSegmentSamples(startDate, endDate);
   }
@@ -84,41 +135,27 @@ export class MonteCarloHandler {
     return segmentSamples[type];
   }
 
-  private drawSample(type: MonteCarloSampleType, date: Date): number {
-    if (!this.historicRates || !this.portfolioMakeup) {
-      throw new Error('MonteCarloHandler not initialized');
+  private calculateProxyReturn(proxyDef: ProxyDefinition | undefined, stockReturn: number, bondReturn: number): number {
+    if (!proxyDef) {
+      return 0;
     }
 
-    let sample: number;
-
-    switch (type) {
-      case MonteCarloSampleType.HYSA:
-        sample = this.drawRandomSample(this.historicRates.savings.highYield);
-        break;
-      case MonteCarloSampleType.LYSA:
-        sample = this.drawRandomSample(this.historicRates.savings.lowYield);
-        break;
-      case MonteCarloSampleType.PORTFOLIO:
-        const composition = this.getPortfolioComposition(date);
-        sample = this.calculatePortfolioSample(composition);
-        break;
-      case MonteCarloSampleType.INFLATION:
-        sample = this.drawRandomSample(this.historicRates.inflation);
-        break;
-      case MonteCarloSampleType.RAISE:
-        sample = this.drawRandomSample(this.historicRates.raise);
-        break;
-      case MonteCarloSampleType.LIMIT_INCREASE_401K:
-        sample = this.drawRandomSample(this.historicRates.limitIncrease401k);
-        break;
-      default:
-        throw new Error(`Unknown Monte Carlo sample type: ${type}`);
+    let proxyReturn = 0;
+    for (const [assetType, weight] of Object.entries(proxyDef.proxy)) {
+      switch (assetType) {
+        case 'stock':
+          proxyReturn += stockReturn * weight;
+          break;
+        case 'bond':
+          proxyReturn += bondReturn * weight;
+          break;
+        case 'cash':
+          const cashReturn = this.drawRandomSample(this.historicRates?.savings?.highYield) / 100;
+          proxyReturn += cashReturn * weight;
+          break;
+      }
     }
-
-    // Convert from percentage to decimal (e.g., 5.5 -> 0.055)
-    const decimalSample = sample / 100;
-
-    return decimalSample;
+    return proxyReturn;
   }
 
   private getPortfolioComposition(date: Date): PortfolioComposition {
@@ -156,107 +193,6 @@ export class MonteCarloHandler {
     return this.portfolioMakeup[prevYear.toString()];
   }
 
-  private calculatePortfolioSample(composition: PortfolioComposition): number {
-    if (!this.historicRates) {
-      throw new Error('Historic rates not loaded');
-    }
-
-    let totalReturn = 0;
-    const assetReturns: Record<string, { return: number; weight: number; contribution: number }> = {};
-
-    if (composition.cash > 0 && this.historicRates.investment.cash) {
-      const cashReturn = this.drawRandomSample(this.historicRates.investment.cash);
-      const contribution = cashReturn * composition.cash;
-      totalReturn += contribution;
-      assetReturns.cash = { return: cashReturn, weight: composition.cash, contribution };
-    }
-
-    if (composition.stock > 0 && this.historicRates.investment.stock) {
-      const stockReturn = this.drawRandomSample(this.historicRates.investment.stock);
-      const contribution = stockReturn * composition.stock;
-      totalReturn += contribution;
-      assetReturns.stock = { return: stockReturn, weight: composition.stock, contribution };
-    }
-
-    if (composition.bond > 0 && this.historicRates.investment.bond) {
-      const bondReturn = this.drawRandomSample(this.historicRates.investment.bond);
-      const contribution = bondReturn * composition.bond;
-      totalReturn += contribution;
-      assetReturns.bond = { return: bondReturn, weight: composition.bond, contribution };
-    }
-
-    if (composition.preferred > 0 && this.historicRates.investment.preferred) {
-      const preferredReturn = this.resolveProxyAsset(this.historicRates.investment.preferred);
-      const contribution = preferredReturn * composition.preferred;
-      totalReturn += contribution;
-      assetReturns.preferred = { return: preferredReturn, weight: composition.preferred, contribution };
-    }
-
-    if (composition.convertible > 0 && this.historicRates.investment.convertible) {
-      const convertibleReturn = this.resolveProxyAsset(this.historicRates.investment.convertible);
-      const contribution = convertibleReturn * composition.convertible;
-      totalReturn += contribution;
-      assetReturns.convertible = { return: convertibleReturn, weight: composition.convertible, contribution };
-    }
-
-    if (composition.other > 0 && this.historicRates.investment.other) {
-      const otherReturn = this.resolveProxyAsset(this.historicRates.investment.other);
-      const contribution = otherReturn * composition.other;
-      totalReturn += contribution;
-      assetReturns.other = { return: otherReturn, weight: composition.other, contribution };
-    }
-
-    return totalReturn;
-  }
-
-  private resolveProxyAsset(proxyDef: ProxyDefinition): number {
-    if (!this.historicRates) {
-      throw new Error('Historic rates not loaded');
-    }
-
-    let proxyReturn = 0;
-
-    for (const [assetType, weight] of Object.entries(proxyDef.proxy)) {
-      let assetReturn = 0;
-
-      switch (assetType) {
-        case 'stock':
-          if (this.historicRates.investment.stock) {
-            assetReturn = this.drawRandomSample(this.historicRates.investment.stock);
-          }
-          break;
-        case 'bond':
-          if (this.historicRates.investment.bond) {
-            assetReturn = this.drawRandomSample(this.historicRates.investment.bond);
-          }
-          break;
-        case 'cash':
-          if (this.historicRates.investment.cash) {
-            assetReturn = this.drawRandomSample(this.historicRates.investment.cash);
-          }
-          break;
-        case 'preferred':
-          if (this.historicRates.investment.preferred) {
-            assetReturn = this.resolveProxyAsset(this.historicRates.investment.preferred);
-          }
-          break;
-        case 'convertible':
-          if (this.historicRates.investment.convertible) {
-            assetReturn = this.resolveProxyAsset(this.historicRates.investment.convertible);
-          }
-          break;
-        case 'other':
-          if (this.historicRates.investment.other) {
-            assetReturn = this.resolveProxyAsset(this.historicRates.investment.other);
-          }
-          break;
-      }
-
-      proxyReturn += assetReturn * weight;
-    }
-
-    return proxyReturn;
-  }
 
   private drawRandomSample(data: number[] | undefined): number {
     if (!data || data.length === 0) {
