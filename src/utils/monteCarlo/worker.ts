@@ -78,8 +78,9 @@ async function runWorkerSimulations(): Promise<void> {
       // Run all simulations in batch in parallel
       const batchPromises: Promise<void>[] = [];
       for (let simNum = batchStart; simNum <= batchEnd; simNum++) {
-        // Derive per-simulation seed from base seed
-        const simSeed = data.seed + simNum;
+        // Derive per-simulation seed from base seed with better mixing
+        // Multiply by large prime to ensure seeds are far apart in seed space
+        const simSeed = data.seed + simNum * 2654435761;
         batchPromises.push(
           runSingleSimulation(
             simNum,
