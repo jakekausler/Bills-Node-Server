@@ -1544,6 +1544,33 @@ describe('Timeline - core methods', () => {
       expect(events[1].amount).toBe(350);
     });
 
+    it('applies negative increaseBy (deflation/decreasing costs)', async () => {
+      // Test that negative increaseBy works for decreasing bill amounts
+      // With increaseBy = -0.05 (5% annual decrease):
+      // First event (Jan 2024): 100 * (1 - 0.05)^1 = 100 * 0.95 = 95
+      // Second event (Jan 2025): 100 * (1 - 0.05)^2 = 100 * 0.9025 = 90.25
+      const bill = makeMockBill({
+        startDate: utcDate(2024, 1, 1),
+        endDate: utcDate(2025, 1, 31),
+        amount: 100,
+        increaseBy: -0.05,
+        increaseByDate: { month: 0, day: 1 }, // Jan 1 each year
+        periods: 'year',
+        everyN: 1,
+      });
+      const account = { id: 'acct-1', bills: [bill], activity: [], interests: [] };
+      const accountsAndTransfers = { accounts: [account], transfers: { activity: [], bills: [] } };
+      const timeline = createTimeline();
+      await (timeline as any).addBillEvents(accountsAndTransfers, utcDate(2025, 12, 31));
+
+      const events = (timeline as any).events;
+      expect(events.length).toBe(2);
+      // First event: 1 decrease => 100 * 0.95 = 95
+      expect(events[0].amount).toBeCloseTo(95, 2);
+      // Second event: 2 decreases => 100 * 0.95^2 = 90.25
+      expect(events[1].amount).toBeCloseTo(90.25, 2);
+    });
+
     it('throws when too many bill events are generated (> 10000)', async () => {
       // Daily bill with no endDate over many years would exceed 10000
       // Simulate by using a bill where checkAnnualDates returns same date (infinite loop protection)

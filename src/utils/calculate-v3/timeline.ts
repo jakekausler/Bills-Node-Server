@@ -726,7 +726,7 @@ export class Timeline {
     }
 
     // Apply inflation if configured
-    if (bill.increaseBy && bill.increaseBy > 0) {
+    if (bill.increaseBy) {
       const yearsDiff = this.yearIncreases(bill.startDate, currentDate, bill.increaseByDate);
       for (let i = 0; i < yearsDiff; i++) {
         amount *= 1 + bill.increaseBy;
