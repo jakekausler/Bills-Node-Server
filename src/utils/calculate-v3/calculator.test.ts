@@ -1323,6 +1323,153 @@ describe('Calculator', () => {
       expect(serialized.name).toBe('State Pension');
       expect(serialized.amount).toBe(3000);
     });
+
+    it('applies no COLA adjustment when type is none', () => {
+      const retirementManager = makeRetirementManager({
+        getPensionMonthlyPay: vi.fn(() => 2000),
+        getPensionFirstPaymentYear: vi.fn(() => 2020),
+      });
+      const calculator = makeCalculator({ retirementManager });
+      const segmentResult = makeSegmentResult();
+
+      const pension = {
+        name: 'Basic Pension',
+        cola: { type: 'none' },
+      } as any;
+      const event: PensionEvent = {
+        id: 'evt-pen-nocola',
+        type: EventType.pension,
+        date: new Date('2025-06-15'), // 5 years after first payment
+        accountId: 'account-1',
+        priority: 3,
+        pension,
+        ownerAge: 70,
+        firstPayment: false,
+      };
+
+      const result = calculator.processPensionEvent(event, segmentResult);
+
+      // Should remain at base amount (no COLA adjustment)
+      expect(result.get('account-1')).toBe(2000);
+    });
+
+    it('applies fixed COLA adjustment correctly', () => {
+      const retirementManager = makeRetirementManager({
+        getPensionMonthlyPay: vi.fn(() => 2000),
+        getPensionFirstPaymentYear: vi.fn(() => 2020),
+      });
+      const calculator = makeCalculator({ retirementManager });
+      const segmentResult = makeSegmentResult();
+
+      const pension = {
+        name: 'COLA Pension',
+        cola: { type: 'fixed', fixedRate: 0.02 },
+      } as any;
+      const event: PensionEvent = {
+        id: 'evt-pen-cola',
+        type: EventType.pension,
+        date: new Date('2025-06-15'), // 5 years after first payment
+        accountId: 'account-1',
+        priority: 3,
+        pension,
+        ownerAge: 70,
+        firstPayment: false,
+      };
+
+      const result = calculator.processPensionEvent(event, segmentResult);
+
+      // After 5 years at 2% COLA: 2000 * (1.02)^5 = 2208.16
+      const expectedAmount = 2000 * Math.pow(1.02, 5);
+      expect(result.get('account-1')).toBeCloseTo(expectedAmount, 2);
+    });
+
+    it('handles COLA in first payment year (no adjustment yet)', () => {
+      const retirementManager = makeRetirementManager({
+        getPensionMonthlyPay: vi.fn(() => 2500),
+        getPensionFirstPaymentYear: vi.fn(() => 2024),
+      });
+      const calculator = makeCalculator({ retirementManager });
+      const segmentResult = makeSegmentResult();
+
+      const pension = {
+        name: 'New Pension',
+        cola: { type: 'fixed', fixedRate: 0.03 },
+      } as any;
+      const event: PensionEvent = {
+        id: 'evt-pen-first',
+        type: EventType.pension,
+        date: new Date('2024-01-15'), // Same year as first payment
+        accountId: 'account-1',
+        priority: 3,
+        pension,
+        ownerAge: 65,
+        firstPayment: false,
+      };
+
+      const result = calculator.processPensionEvent(event, segmentResult);
+
+      // 0 years collecting, so no COLA adjustment
+      expect(result.get('account-1')).toBe(2500);
+    });
+
+    it('applies COLA with higher rate over longer period', () => {
+      const retirementManager = makeRetirementManager({
+        getPensionMonthlyPay: vi.fn(() => 3000),
+        getPensionFirstPaymentYear: vi.fn(() => 2015),
+      });
+      const calculator = makeCalculator({ retirementManager });
+      const segmentResult = makeSegmentResult();
+
+      const pension = {
+        name: 'High COLA Pension',
+        cola: { type: 'fixed', fixedRate: 0.05 },
+      } as any;
+      const event: PensionEvent = {
+        id: 'evt-pen-highcola',
+        type: EventType.pension,
+        date: new Date('2025-03-15'), // 10 years after first payment
+        accountId: 'account-1',
+        priority: 3,
+        pension,
+        ownerAge: 75,
+        firstPayment: false,
+      };
+
+      const result = calculator.processPensionEvent(event, segmentResult);
+
+      // After 10 years at 5% COLA: 3000 * (1.05)^10 = 4886.68
+      const expectedAmount = 3000 * Math.pow(1.05, 10);
+      expect(result.get('account-1')).toBeCloseTo(expectedAmount, 2);
+    });
+
+    it('does not apply COLA when firstPaymentYear is null', () => {
+      const retirementManager = makeRetirementManager({
+        getPensionMonthlyPay: vi.fn(() => 1800),
+        getPensionFirstPaymentYear: vi.fn(() => null),
+      });
+      const calculator = makeCalculator({ retirementManager });
+      const segmentResult = makeSegmentResult();
+
+      const pension = {
+        name: 'Unknown Start Pension',
+        cola: { type: 'fixed', fixedRate: 0.02 },
+      } as any;
+      const event: PensionEvent = {
+        id: 'evt-pen-nullyear',
+        type: EventType.pension,
+        date: new Date('2025-06-15'),
+        accountId: 'account-1',
+        priority: 3,
+        pension,
+        ownerAge: 70,
+        firstPayment: false,
+      };
+
+      const result = calculator.processPensionEvent(event, segmentResult);
+
+      // No COLA adjustment because first payment year is unknown
+      expect(result.get('account-1')).toBe(1800);
+    });
   });
 
   // ─── processSocialSecurityEvent ───────────────────────────────────────────

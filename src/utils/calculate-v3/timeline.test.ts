@@ -1874,6 +1874,50 @@ describe('Timeline - core methods', () => {
 
       expect((timeline as any).events.length).toBe(0);
     });
+
+    it('skips pension when not vested (yearsWorked below minimum)', async () => {
+      // Pension with only 3 years worked, but minimum requirement is 5 years
+      const notVestedPension = makePension({
+        yearsWorked: 3,
+        unreducedRequirements: [{ age: 65, yearsWorked: 5 }],
+        reducedRequirements: [{ age: 60, yearsWorked: 5 }],
+      });
+
+      const mockAccountManager = {
+        getSocialSecurities: vi.fn().mockReturnValue([]),
+        getPensions: vi.fn().mockReturnValue([notVestedPension]),
+        getAccountByName: vi.fn().mockReturnValue({ id: 'pension-acct', name: 'Checking' }),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addPensionEvents(utcDate(2025, 12, 31));
+
+      // Should not generate any pension events because not vested
+      expect((timeline as any).events.length).toBe(0);
+    });
+
+    it('generates events when exactly meeting minimum vesting requirement', async () => {
+      // Pension with exactly 5 years worked (minimum requirement)
+      const justVestedPension = makePension({
+        yearsWorked: 5,
+        unreducedRequirements: [{ age: 65, yearsWorked: 30 }],
+        reducedRequirements: [{ age: 60, yearsWorked: 5 }],
+      });
+
+      const mockAccountManager = {
+        getSocialSecurities: vi.fn().mockReturnValue([]),
+        getPensions: vi.fn().mockReturnValue([justVestedPension]),
+        getAccountByName: vi.fn().mockReturnValue({ id: 'pension-acct', name: 'Checking' }),
+        getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
+      } as unknown as AccountManager;
+
+      const timeline = new Timeline(mockAccountManager, Date.now(), false);
+      await (timeline as any).addPensionEvents(utcDate(2025, 3, 31));
+
+      // Should generate pension events (Jan, Feb, Mar)
+      expect((timeline as any).events.length).toBe(3);
+    });
   });
 
   // ─── addRmdEvents / generateRmdEvents (private) ───────────────────────────

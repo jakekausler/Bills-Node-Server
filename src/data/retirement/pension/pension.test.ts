@@ -311,4 +311,251 @@ describe('Pension', () => {
       });
     });
   });
+
+  describe('workEndDate calculations', () => {
+    it('should cap yearsWorked when workEndDate is before pensionStartDate', () => {
+      // Work from 2022 to 2025 (3 years), but pension starts in 2060 (would be 38 years without cap)
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2060-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('2022-01-01T00:00:00Z')) // workStartDate
+        .mockReturnValueOnce(new Date('2025-01-01T00:00:00Z')); // workEndDate
+
+      const dataWithWorkEndDate = {
+        ...mockPensionData,
+        workEndDateVariable: 'workEndDate',
+      };
+
+      const pension = new Pension(dataWithWorkEndDate);
+
+      expect(pension.yearsWorked).toBeCloseTo(3, 0); // Should be ~3 years, not 38
+      expect(pension.startAge).toBe(100); // Born 1960, pension starts 2060
+    });
+
+    it('should use pensionStartDate when no workEndDate is provided', () => {
+      // Work from 1990 to pension start in 2024 (34 years)
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
+
+      const pension = new Pension(mockPensionData);
+
+      expect(pension.yearsWorked).toBe(34);
+    });
+
+    it('should ignore workEndDate when it is after pensionStartDate', () => {
+      // Work starts 1990, pension starts 2024, workEndDate 2070 (future)
+      // Should use pension start date (2024) as the effective end
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')) // workStartDate
+        .mockReturnValueOnce(new Date('2070-01-01T00:00:00Z')); // workEndDate (future)
+
+      const dataWithWorkEndDate = {
+        ...mockPensionData,
+        workEndDateVariable: 'workEndDate',
+      };
+
+      const pension = new Pension(dataWithWorkEndDate);
+
+      expect(pension.yearsWorked).toBe(34); // Should be based on pensionStartDate
+    });
+
+    it('should handle workEndDate exactly equal to pensionStartDate', () => {
+      // Both dates are the same
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')) // workStartDate
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // workEndDate (same as start)
+
+      const dataWithWorkEndDate = {
+        ...mockPensionData,
+        workEndDateVariable: 'workEndDate',
+      };
+
+      const pension = new Pension(dataWithWorkEndDate);
+
+      expect(pension.yearsWorked).toBe(34);
+    });
+  });
+
+  describe('vesting checks', () => {
+    it('should return reductionFactor of 0 when not vested (below minimum requirement)', () => {
+      // Setup for someone with 20 years worked, but minimum is 25
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2010-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
+
+      const pension = new Pension(mockPensionData);
+
+      expect(pension.yearsWorked).toBe(20);
+      expect(pension.reductionFactor).toBe(0); // Not vested
+    });
+
+    it('should be vested when exactly meeting minimum requirement', () => {
+      // Setup for exactly 25 years (minimum reduced requirement)
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2015-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
+
+      const pension = new Pension(mockPensionData);
+
+      expect(pension.yearsWorked).toBe(25);
+      expect(pension.reductionFactor).toBeGreaterThan(0); // Should be vested with reduced benefits
+    });
+
+    it('should be vested when exceeding all requirements', () => {
+      // Setup for 35 years, meeting unreduced requirements
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2025-01-01T00:00:00Z')) // pensionStartDate (age 65)
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
+
+      const pension = new Pension(mockPensionData);
+
+      expect(pension.yearsWorked).toBe(35);
+      expect(pension.startAge).toBe(65);
+      expect(pension.reductionFactor).toBe(1); // Full benefits
+    });
+  });
+
+  describe('configurable average years', () => {
+    it('should use configured number of years for compensation average', () => {
+      // Test with 3 years instead of default 5
+      const dataWith3Years = {
+        ...mockPensionData,
+        highestCompensationConsecutiveYearsToAverage: 3,
+        priorAnnualNetIncomes: [60000, 65000, 70000],
+        priorAnnualNetIncomeYears: [2021, 2022, 2023],
+      };
+
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
+
+      const pension = new Pension(dataWith3Years);
+
+      expect(pension.highestCompensationConsecutiveYearsToAverage).toBe(3);
+    });
+
+    it('should use configured number of years with 4-year average', () => {
+      // Test with 4 years (common for some pension plans)
+      const dataWith4Years = {
+        ...mockPensionData,
+        highestCompensationConsecutiveYearsToAverage: 4,
+        priorAnnualNetIncomes: [60000, 65000, 70000, 75000],
+        priorAnnualNetIncomeYears: [2020, 2021, 2022, 2023],
+      };
+
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
+
+      const pension = new Pension(dataWith4Years);
+
+      expect(pension.highestCompensationConsecutiveYearsToAverage).toBe(4);
+    });
+  });
+
+  describe('COLA configuration', () => {
+    it('should default to COLA type none when not specified', () => {
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
+
+      const pension = new Pension(mockPensionData);
+
+      expect(pension.cola.type).toBe('none');
+    });
+
+    it('should store fixed COLA configuration', () => {
+      const dataWithFixedCOLA = {
+        ...mockPensionData,
+        cola: { type: 'fixed' as const, fixedRate: 0.02 },
+      };
+
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
+
+      const pension = new Pension(dataWithFixedCOLA);
+
+      expect(pension.cola.type).toBe('fixed');
+      expect(pension.cola.fixedRate).toBe(0.02);
+    });
+
+    it('should store CPI-linked COLA configuration', () => {
+      const dataWithCPICOLA = {
+        ...mockPensionData,
+        cola: { type: 'cpiLinked' as const, cpiCap: 0.03 },
+      };
+
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
+
+      const pension = new Pension(dataWithCPICOLA);
+
+      expect(pension.cola.type).toBe('cpiLinked');
+      expect(pension.cola.cpiCap).toBe(0.03);
+    });
+
+    it('should serialize COLA configuration when present', () => {
+      const dataWithCOLA = {
+        ...mockPensionData,
+        cola: { type: 'fixed' as const, fixedRate: 0.025 },
+      };
+
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
+
+      const pension = new Pension(dataWithCOLA);
+      const serialized = pension.serialize();
+
+      expect(serialized.cola).toEqual({ type: 'fixed', fixedRate: 0.025 });
+    });
+
+    it('should not serialize COLA when type is none', () => {
+      const dataWithNoCOLA = {
+        ...mockPensionData,
+        cola: { type: 'none' as const },
+      };
+
+      vi.clearAllMocks();
+      mockLoadVariable
+        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // pensionStartDate
+        .mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')) // birthDate
+        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
+
+      const pension = new Pension(dataWithNoCOLA);
+      const serialized = pension.serialize();
+
+      expect(serialized.cola).toBeUndefined();
+    });
+  });
 });
