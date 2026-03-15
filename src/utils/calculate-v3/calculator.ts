@@ -575,9 +575,26 @@ export class Calculator {
     const pension = event.pension;
     const accountId = event.accountId;
     if (event.firstPayment) {
-      this.retirementManager.calculatePensionMonthlyPay(pension);
+      const firstPaymentYear = event.date.getUTCFullYear();
+      this.retirementManager.calculatePensionMonthlyPay(pension, firstPaymentYear);
     }
-    const amount = this.retirementManager.getPensionMonthlyPay(pension.name);
+    let amount = this.retirementManager.getPensionMonthlyPay(pension.name);
+
+    // Apply COLA if configured
+    const firstPaymentYear = this.retirementManager.getPensionFirstPaymentYear(pension.name);
+    if (firstPaymentYear !== null && pension.cola.type !== 'none') {
+      const currentYear = event.date.getUTCFullYear();
+      const yearsCollecting = currentYear - firstPaymentYear;
+
+      if (pension.cola.type === 'fixed' && pension.cola.fixedRate !== undefined) {
+        const colaMultiplier = Math.pow(1 + pension.cola.fixedRate, yearsCollecting);
+        amount = amount * colaMultiplier;
+      } else if (pension.cola.type === 'cpiLinked') {
+        // TODO: Implement CPI-linked COLA
+        // This requires access to the sampled inflation rate in MC mode or the inflation variable
+        // For now, skip COLA application for cpiLinked type
+      }
+    }
 
     // Create consolidated activity for the bill
     const pensionActivity = new ConsolidatedActivity({

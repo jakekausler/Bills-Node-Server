@@ -7,6 +7,7 @@ export type PensionData = {
   startDateVariable: string;
   birthDateVariable: string;
   workStartDateVariable: string;
+  workEndDateVariable?: string;
   priorAnnualNetIncomes: number[];
   priorAnnualNetIncomeYears: number[];
   unreducedRequirements: BenefitRequirement[];
@@ -17,6 +18,11 @@ export type PensionData = {
     [age: number]: {
       [yearsWorked: number]: number;
     };
+  };
+  cola?: {
+    type: 'none' | 'fixed' | 'cpiLinked';
+    fixedRate?: number;
+    cpiCap?: number;
   };
 };
 

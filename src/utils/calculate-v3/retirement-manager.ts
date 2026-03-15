@@ -27,6 +27,8 @@ export class RetirementManager {
   private socialSecurityMonthlyPay: Map<string, number> = new Map();
   // the monthly pay for each pension indexed by pension name
   private pensionMonthlyPay: Map<string, number> = new Map();
+  // the first payment year for each pension indexed by pension name
+  private pensionFirstPaymentYear: Map<string, number> = new Map();
   // RMD table
   private rmdTable: RMDTableType;
 
@@ -123,11 +125,14 @@ export class RetirementManager {
     this.socialSecurityMonthlyPay.set(socialSecurity.name, monthlyPay);
   }
 
-  public calculatePensionMonthlyPay(pension: Pension): void {
+  public calculatePensionMonthlyPay(pension: Pension, startYear?: number): void {
     const highestCompensationAverage = this.getHighestCompensationAverage(pension);
     const monthlyPay =
       (highestCompensationAverage * pension.accrualFactor * pension.yearsWorked * pension.reductionFactor) / 12;
     this.pensionMonthlyPay.set(pension.name, monthlyPay);
+    if (startYear !== undefined) {
+      this.pensionFirstPaymentYear.set(pension.name, startYear);
+    }
   }
 
   public getSocialSecurityMonthlyPay(name: string): number {
@@ -136,6 +141,10 @@ export class RetirementManager {
 
   public getPensionMonthlyPay(name: string): number {
     return this.pensionMonthlyPay.get(name) || 0;
+  }
+
+  public getPensionFirstPaymentYear(name: string): number | null {
+    return this.pensionFirstPaymentYear.get(name) || null;
   }
 
   /********************
@@ -286,16 +295,20 @@ export class RetirementManager {
       const annualIncomes = this.pensionAnnualIncomes.get(pension.name);
       if (annualIncomes) {
         annualIncomes.forEach((amount, year) => {
-          yearlyAmounts.push({ year, amount });
+          // Only include income from years the person actually worked (before workEndDate if set)
+          if (!pension.workEndDate || year < pension.workEndDate.getUTCFullYear()) {
+            yearlyAmounts.push({ year, amount });
+          }
         });
       }
     }
 
-    // Calculate 4-year averages
+    // Use the configurable years to average
+    const yearsToAverage = pension.highestCompensationConsecutiveYearsToAverage;
     const averageConsecutiveYearPays: number[] = [];
-    for (let i = 0; i <= yearlyAmounts.length - 4; i++) {
-      const fourYearSum = yearlyAmounts.slice(i, i + 4).reduce((sum, curr) => sum + curr.amount, 0);
-      averageConsecutiveYearPays.push(fourYearSum / 4);
+    for (let i = 0; i <= yearlyAmounts.length - yearsToAverage; i++) {
+      const consecutiveYearSum = yearlyAmounts.slice(i, i + yearsToAverage).reduce((sum, curr) => sum + curr.amount, 0);
+      averageConsecutiveYearPays.push(consecutiveYearSum / yearsToAverage);
     }
 
     // Return highest average, or 0 if no valid averages

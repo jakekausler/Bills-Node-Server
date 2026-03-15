@@ -1816,6 +1816,9 @@ describe('Timeline - core methods', () => {
         payToAccount: 'Checking',
         startDate: utcDate(2025, 1, 1),
         birthDate: utcDate(1960, 6, 15),
+        yearsWorked: 30,
+        unreducedRequirements: [{ age: 65, yearsWorked: 5 }],
+        reducedRequirements: [{ age: 60, yearsWorked: 5 }],
         ...overrides,
       };
     }

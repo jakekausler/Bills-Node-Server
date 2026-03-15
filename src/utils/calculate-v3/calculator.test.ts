@@ -278,6 +278,7 @@ function makeTaxManager(overrides: Partial<{
 function makeRetirementManager(overrides: Partial<{
   calculatePensionMonthlyPay: (pension: any) => void;
   getPensionMonthlyPay: (name: string) => number;
+  getPensionFirstPaymentYear: (name: string) => number | null;
   calculateSocialSecurityMonthlyPay: (ss: any) => void;
   getSocialSecurityMonthlyPay: (name: string) => number;
   rmd: (balance: number, age: number) => number;
@@ -285,6 +286,7 @@ function makeRetirementManager(overrides: Partial<{
   return {
     calculatePensionMonthlyPay: overrides.calculatePensionMonthlyPay ?? vi.fn(),
     getPensionMonthlyPay: overrides.getPensionMonthlyPay ?? vi.fn(() => 1500),
+    getPensionFirstPaymentYear: overrides.getPensionFirstPaymentYear ?? vi.fn(() => null),
     calculateSocialSecurityMonthlyPay: overrides.calculateSocialSecurityMonthlyPay ?? vi.fn(),
     getSocialSecurityMonthlyPay: overrides.getSocialSecurityMonthlyPay ?? vi.fn(() => 2000),
     rmd: overrides.rmd ?? vi.fn(() => 5000),
@@ -1263,7 +1265,7 @@ describe('Calculator', () => {
 
       calculator.processPensionEvent(event, segmentResult);
 
-      expect(retirementManager.calculatePensionMonthlyPay).toHaveBeenCalledWith(pension);
+      expect(retirementManager.calculatePensionMonthlyPay).toHaveBeenCalledWith(pension, 2024);
     });
 
     it('does not call calculatePensionMonthlyPay on subsequent payments', () => {

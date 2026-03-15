@@ -31,6 +31,10 @@ export class Pension {
   workStartDateVariable: string;
   /** Date when employment began for service calculations */
   workStartDate: Date;
+  /** Variable name for the work end date (optional quit date) */
+  workEndDateVariable?: string;
+  /** Date when employment ended (optional) */
+  workEndDate: Date | null;
   /** Historical annual net incomes for benefit calculations */
   priorAnnualNetIncomes: number[];
   /** Years corresponding to the income data */
@@ -59,6 +63,8 @@ export class Pension {
   highestCompensationAverage: number | null;
   /** Calculated monthly pension payment */
   monthlyPay: number | null;
+  /** Cost of living adjustment configuration */
+  cola: { type: 'none' | 'fixed' | 'cpiLinked'; fixedRate?: number; cpiCap?: number };
 
   /**
    * Creates a new pension plan configuration
@@ -83,6 +89,14 @@ export class Pension {
     const workStartDate = loadVariable(data.workStartDateVariable, simulation);
     if (!(workStartDate instanceof Date)) throw new Error(`Invalid date variable: ${data.workStartDateVariable}`);
     this.workStartDate = workStartDate;
+    this.workEndDateVariable = data.workEndDateVariable;
+    if (data.workEndDateVariable) {
+      const workEndDate = loadVariable(data.workEndDateVariable, simulation);
+      if (!(workEndDate instanceof Date)) throw new Error(`Invalid date variable: ${data.workEndDateVariable}`);
+      this.workEndDate = workEndDate;
+    } else {
+      this.workEndDate = null;
+    }
     this.priorAnnualNetIncomes = [...data.priorAnnualNetIncomes];
     this.priorAnnualNetIncomeYears = [...data.priorAnnualNetIncomeYears];
     this.unreducedRequirements = [...data.unreducedRequirements];
@@ -96,8 +110,12 @@ export class Pension {
       ]),
     );
     this.startAge = dayjs.utc(this.startDate).diff(this.birthDate, 'year', true);
-    this.yearsWorked = dayjs.utc(this.startDate).diff(this.workStartDate, 'year', true);
+    const effectiveEndDate = this.workEndDate && this.workEndDate < this.startDate
+      ? this.workEndDate
+      : this.startDate;
+    this.yearsWorked = dayjs.utc(effectiveEndDate).diff(this.workStartDate, 'year', true);
     this.highestCompensationAverage = null;
+    this.cola = data.cola || { type: 'none' };
     this.reductionFactor = this.calculateReductionFactor();
     this.monthlyPay = null;
   }
@@ -164,7 +182,7 @@ export class Pension {
    * @returns Serialized pension data for storage or transmission
    */
   serialize(): PensionData {
-    return {
+    const data: PensionData = {
       name: this.name,
       payToAccount: this.payToAccount,
       paycheckNames: this.paycheckNames,
@@ -181,5 +199,12 @@ export class Pension {
       accrualFactor: this.accrualFactor,
       reducedRateByAgeThenYearsOfService: this.reducedRateByAgeThenYearsOfService,
     };
+    if (this.workEndDateVariable) {
+      data.workEndDateVariable = this.workEndDateVariable;
+    }
+    if (this.cola && this.cola.type !== 'none') {
+      data.cola = this.cola;
+    }
+    return data;
   }
 }
