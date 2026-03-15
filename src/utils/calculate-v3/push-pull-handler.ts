@@ -17,7 +17,7 @@ export class PushPullHandler {
   /**
    * Handles account push/pull events
    */
-  handleAccountPushPulls(segmentResult: SegmentResult, segment: Segment): boolean {
+  handleAccountPushPulls(segmentResult: SegmentResult, segment: Segment, referenceDate: Date): boolean {
     let pushPullEventAdded = false;
     for (const accountId of segment.affectedAccountIds) {
       const account = this.accountManager.getAccountById(accountId);
@@ -27,8 +27,8 @@ export class PushPullHandler {
       }
 
       // Skip accounts that do not perform pushes or pulls
-      const performsPushes = this.accountPerformsPushes(account, segment.startDate);
-      const performsPulls = this.accountPerformsPulls(account, segment.startDate);
+      const performsPushes = this.accountPerformsPushes(account, segment.startDate, referenceDate);
+      const performsPulls = this.accountPerformsPulls(account, segment.startDate, referenceDate);
       if (!performsPushes && !performsPulls) {
         continue;
       }
@@ -223,12 +223,10 @@ export class PushPullHandler {
   /**
    * Checks if the account performs pushes based on its configuration
    */
-  private accountPerformsPushes(account: Account, segmentStartDate: Date): boolean {
-    // TODO (#29): Replace new Date() with a deterministic reference date passed through the calculation engine
-    // This ensures Monte Carlo simulations and other deterministic calculations aren't affected by wall clock time
+  private accountPerformsPushes(account: Account, segmentStartDate: Date, referenceDate: Date): boolean {
     return (
       account.performsPushes &&
-      isAfterOrSame(segmentStartDate, new Date()) &&
+      isAfterOrSame(segmentStartDate, referenceDate) &&
       (!account.pushStart || isBeforeOrSame(account.pushStart, segmentStartDate))
     );
   }
@@ -236,12 +234,10 @@ export class PushPullHandler {
   /**
    * Checks if the account performs pulls based on its configuration
    */
-  private accountPerformsPulls(account: Account, segmentStartDate: Date): boolean {
-    // TODO (#29): Replace new Date() with a deterministic reference date passed through the calculation engine
-    // This ensures Monte Carlo simulations and other deterministic calculations aren't affected by wall clock time
+  private accountPerformsPulls(account: Account, segmentStartDate: Date, referenceDate: Date): boolean {
     return (
       account.performsPulls &&
-      isAfterOrSame(segmentStartDate, new Date()) &&
+      isAfterOrSame(segmentStartDate, referenceDate) &&
       (!account.pushStart || isBeforeOrSame(account.pushStart, segmentStartDate))
     );
   }

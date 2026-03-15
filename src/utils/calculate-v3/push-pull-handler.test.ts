@@ -77,8 +77,9 @@ describe('PushPullHandler', () => {
 
       const segment = makeSegment();
       const segmentResult = makeSegmentResult();
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
 
-      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment);
+      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
 
       expect(result).toBe(false);
       expect(segment.events).toHaveLength(0);
@@ -89,14 +90,16 @@ describe('PushPullHandler', () => {
 
       const segment = makeSegment();
       const segmentResult = makeSegmentResult();
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
 
-      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment);
+      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
 
       expect(result).toBe(false);
     });
 
     it('should add push event when balance exceeds maximum', () => {
       const futureDate = new Date(Date.UTC(2030, 0, 1));
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
       const pushAccount = makeAccount({ id: 'push-account', name: 'Savings' });
       const account = makeAccount({
         id: 'account-1',
@@ -116,7 +119,7 @@ describe('PushPullHandler', () => {
         balanceMinimums: new Map([['account-1', 7000]]), // Exceeds max of 5000
       });
 
-      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment);
+      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
 
       expect(result).toBe(true);
       expect(segment.events).toHaveLength(1);
@@ -125,6 +128,7 @@ describe('PushPullHandler', () => {
 
     it('should add pull event when balance falls below minimum', () => {
       const futureDate = new Date(Date.UTC(2030, 0, 1));
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
       const pullableAccount = makeAccount({ id: 'pullable', name: 'Savings', minimumBalance: 1000 });
       const account = makeAccount({
         id: 'account-1',
@@ -144,7 +148,7 @@ describe('PushPullHandler', () => {
         balanceMinimums: new Map([['account-1', 1500]]), // Below min of 2000
       });
 
-      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment);
+      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
 
       expect(result).toBe(true);
       expect(segment.events.length).toBeGreaterThan(0);
@@ -152,6 +156,7 @@ describe('PushPullHandler', () => {
 
     it('should not push when segment is in the past', () => {
       const pastDate = new Date(Date.UTC(2020, 0, 1));
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
       const account = makeAccount({
         id: 'account-1',
         performsPushes: true,
@@ -169,7 +174,7 @@ describe('PushPullHandler', () => {
         balanceMinimums: new Map([['account-1', 7000]]),
       });
 
-      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment);
+      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
 
       expect(result).toBe(false);
       expect(segment.events).toHaveLength(0);
@@ -177,7 +182,7 @@ describe('PushPullHandler', () => {
 
     it('should respect pushStart date when configured', () => {
       const futureDate = new Date(Date.UTC(2030, 6, 1)); // July 2030
-      const pushStartDate = new Date(Date.UTC(2031, 0, 1)); // Jan 2031
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
 
       // Create account data with pushStart as string to avoid date parsing issues
       const accountData = {
@@ -207,10 +212,43 @@ describe('PushPullHandler', () => {
         balanceMinimums: new Map([['account-1', 7000]]),
       });
 
-      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment);
+      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
 
       expect(result).toBe(false);
       expect(segment.events).toHaveLength(0);
+    });
+
+    it('should be deterministic using provided reference date (fix for #29)', () => {
+      // This test ensures that push/pull behavior is deterministic and doesn't depend on wall clock time
+      // Even if this test runs far in the future, it should use the provided reference date
+      const futureSegmentDate = new Date(Date.UTC(2035, 0, 1));
+      const simulationReferenceDate = new Date(Date.UTC(2025, 0, 1)); // Reference date in the past
+
+      const pushAccount = makeAccount({ id: 'push-account', name: 'Savings' });
+      const account = makeAccount({
+        id: 'account-1',
+        performsPushes: true,
+        pushAccount: 'Savings',
+        maximumBalance: 5000,
+      });
+
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(account);
+      vi.mocked(mockAccountManager.getAccountByName).mockReturnValue(pushAccount);
+
+      const segment = makeSegment({
+        startDate: futureSegmentDate,
+        affectedAccountIds: ['account-1'],
+      });
+      const segmentResult = makeSegmentResult({
+        balanceMinimums: new Map([['account-1', 7000]]),
+      });
+
+      // With reference date before segment date, push should activate
+      const result = pushPullHandler.handleAccountPushPulls(segmentResult, segment, simulationReferenceDate);
+
+      expect(result).toBe(true);
+      expect(segment.events).toHaveLength(1);
+      expect(segment.events[0].type).toBe('activityTransfer');
     });
   });
 });

@@ -122,7 +122,9 @@ export class SegmentProcessor {
     let segmentResult = this.processSegmentEvents(segment, options);
 
     // Deal with pushes and pulls
-    const pushPullEventsAdded = this.pushPullHandler.handleAccountPushPulls(segmentResult, segment);
+    // Use the calculation options start date (or today if null) as the reference date for deterministic behavior
+    const referenceDate = options.startDate ?? new Date();
+    const pushPullEventsAdded = this.pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
 
     // If a push or pull was added, reprocess the segment events
     if (pushPullEventsAdded) {
