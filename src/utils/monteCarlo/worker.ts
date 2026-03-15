@@ -78,6 +78,8 @@ async function runWorkerSimulations(): Promise<void> {
       // Run all simulations in batch in parallel
       const batchPromises: Promise<void>[] = [];
       for (let simNum = batchStart; simNum <= batchEnd; simNum++) {
+        // Derive per-simulation seed from base seed
+        const simSeed = data.seed + simNum;
         batchPromises.push(
           runSingleSimulation(
             simNum,
@@ -87,6 +89,7 @@ async function runWorkerSimulations(): Promise<void> {
             accountsAndTransfers,
             timeline,
             tempFiles,
+            simSeed,
           ),
         );
       }
@@ -146,6 +149,7 @@ async function runSingleSimulation(
   accountsAndTransfers: any,
   timeline: Timeline,
   tempFiles: string[],
+  seed: number,
 ): Promise<void> {
   try {
     const results = await calculateAllActivity(
@@ -158,8 +162,9 @@ async function runSingleSimulation(
       totalSimulations,
       false,
       false,
-      {},
-      timeline,
+      {}, // config
+      timeline, // timeline
+      seed, // seed for seeded PRNG
     );
 
     // Filter and format results for balance calculation
@@ -252,6 +257,7 @@ async function combineTempFiles(
       completedAt: new Date().toISOString(),
       duration: 0,
       accountNames,
+      seed: data.seed,
     };
     ws.write(JSON.stringify(metadata, null, 2));
 

@@ -9,15 +9,33 @@ import {
 } from './types';
 import { formatDate } from '../date/date';
 
+/**
+ * Mulberry32 seeded PRNG — fast and deterministic
+ * Returns a function that produces values in [0, 1)
+ */
+function createSeededRandom(seed: number): () => number {
+  return function() {
+    seed |= 0;
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export class MonteCarloHandler {
   private historicRates: HistoricRates | null = null;
   private portfolioMakeup: PortfolioMakeupOverTime | null = null;
   private segmentSamples: Record<string, Record<MonteCarloSampleType, number>>;
   private yearKeyedData: Record<string, Record<string, number>> = {};
   private availableYears: number[] = [];
+  private random: () => number = Math.random;
 
-  public static async getInstance(startDate: Date, endDate: Date): Promise<MonteCarloHandler> {
+  public static async getInstance(startDate: Date, endDate: Date, seed?: number): Promise<MonteCarloHandler> {
     const handler = new MonteCarloHandler();
+    if (seed !== undefined) {
+      handler.random = createSeededRandom(seed);
+    }
     await handler.initialize();
     handler.generateSegmentSamples(startDate, endDate);
     return handler;
@@ -55,7 +73,7 @@ export class MonteCarloHandler {
 
     for (let year = startYear; year <= endYear; year++) {
       // Draw one random historical year for correlated sampling across all types
-      const randomYear = this.availableYears[Math.floor(Math.random() * this.availableYears.length)];
+      const randomYear = this.availableYears[Math.floor(this.random() * this.availableYears.length)];
       const yearData = this.yearKeyedData[String(randomYear)] || {};
 
       // Build samples for this year from the drawn historical year
@@ -199,7 +217,7 @@ export class MonteCarloHandler {
       return 0;
     }
 
-    const randomIndex = Math.floor(Math.random() * data.length);
+    const randomIndex = Math.floor(this.random() * data.length);
     return data[randomIndex];
   }
 }

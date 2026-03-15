@@ -1,6 +1,7 @@
 import { writeFileSync, readFileSync, unlinkSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { Worker } from 'worker_threads';
+import { randomInt } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { SimulationJob, SimulationProgress, WorkerData, WorkerMessage } from './types';
@@ -128,6 +129,7 @@ export class MonteCarloSimulationRunner {
               startedAt: resultData.metadata.startedAt ? new Date(resultData.metadata.startedAt) : undefined,
               completedAt: new Date(resultData.metadata.completedAt),
               duration: resultData.metadata.duration,
+              seed: resultData.metadata.seed ?? 0,
             };
             this.jobs.set(id, job);
             console.log(`✅ Loaded completed simulation ${id} from disk`);
@@ -150,8 +152,11 @@ export class MonteCarloSimulationRunner {
     batchSize: number = 5,
     startDate: Date,
     endDate: Date,
+    seed?: number,
   ): string {
     const id = uuidv4();
+    // Generate a random seed if not provided
+    const jobSeed = seed !== undefined ? seed : randomInt(0, 2 ** 32);
 
     const job: SimulationJob = {
       id,
@@ -165,6 +170,7 @@ export class MonteCarloSimulationRunner {
       tempFiles: [],
       startDate,
       endDate,
+      seed: jobSeed,
     };
 
     this.jobs.set(id, job);
@@ -189,6 +195,7 @@ export class MonteCarloSimulationRunner {
       tempDir: MC_TEMP_DIR,
       resultsDir: MC_RESULTS_DIR,
       graphsDir: MC_GRAPHS_DIR,
+      seed: job.seed,
     };
 
     const workerPath = join(__dirname, 'worker.ts');
@@ -352,9 +359,10 @@ export async function startMonteCarloSimulation(
   batchSize: number = 5,
   startDate: Date,
   endDate: Date,
+  seed?: number,
 ): Promise<string> {
   const runner = await MonteCarloSimulationRunner.getInstance();
-  return runner.startSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate);
+  return runner.startSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate, seed);
 }
 
 export async function getSimulationProgress(id: string): Promise<SimulationProgress | null> {

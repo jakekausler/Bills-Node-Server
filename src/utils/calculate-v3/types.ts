@@ -22,6 +22,7 @@ export type CalculationOptions = {
   forceRecalculation: boolean;
   enableLogging: boolean;
   config: Partial<CalculationConfig>;
+  seed?: number; // Optional seed for reproducible Monte Carlo
 };
 
 export type TaxableOccurrence = {

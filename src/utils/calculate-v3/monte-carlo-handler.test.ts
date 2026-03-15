@@ -71,8 +71,9 @@ import { MonteCarloHandler } from './monte-carlo-handler';
 async function createHandler(
   startDate: Date = new Date(2024, 0, 1),
   endDate: Date = new Date(2026, 11, 31),
+  seed?: number,
 ): Promise<MonteCarloHandler> {
-  return MonteCarloHandler.getInstance(startDate, endDate);
+  return MonteCarloHandler.getInstance(startDate, endDate, seed);
 }
 
 // ---------------------------------------------------------------------------
@@ -282,6 +283,90 @@ describe('MonteCarloHandler', () => {
       const h = await MonteCarloHandler.getInstance(start, end);
       const date = new Date(Date.UTC(2024, 5, 15));
       expect(() => h.getSample(MonteCarloSampleType.HYSA, date)).not.toThrow();
+    });
+  });
+
+  describe('seeded PRNG', () => {
+    it('produces identical samples with the same seed', async () => {
+      const startDate = new Date(2024, 0, 1);
+      const endDate = new Date(2024, 11, 31);
+      const testSeed = 12345;
+
+      // Create two handlers with the same seed
+      const handler1 = await createHandler(startDate, endDate, testSeed);
+      const handler2 = await createHandler(startDate, endDate, testSeed);
+
+      // Sample various types and months
+      const testCases = [
+        { type: MonteCarloSampleType.HYSA, date: new Date(Date.UTC(2024, 0, 1)) },
+        { type: MonteCarloSampleType.INFLATION, date: new Date(Date.UTC(2024, 5, 1)) },
+        { type: MonteCarloSampleType.PORTFOLIO, date: new Date(Date.UTC(2024, 11, 1)) },
+        { type: MonteCarloSampleType.RAISE, date: new Date(Date.UTC(2024, 3, 1)) },
+      ];
+
+      for (const testCase of testCases) {
+        const sample1 = handler1.getSample(testCase.type, testCase.date);
+        const sample2 = handler2.getSample(testCase.type, testCase.date);
+        expect(sample1).toBe(sample2);
+      }
+    });
+
+    it('produces different samples with different seeds', async () => {
+      const startDate = new Date(2024, 0, 1);
+      const endDate = new Date(2026, 11, 31);
+      const seed1 = 12345;
+      const seed2 = 54321;
+
+      // Create two handlers with different seeds
+      const handler1 = await createHandler(startDate, endDate, seed1);
+      const handler2 = await createHandler(startDate, endDate, seed2);
+
+      // Sample a few months and verify at least some are different
+      const testDate = new Date(Date.UTC(2024, 5, 1));
+      let differentCount = 0;
+
+      for (const type of Object.values(MonteCarloSampleType)) {
+        try {
+          const sample1 = handler1.getSample(type, testDate);
+          const sample2 = handler2.getSample(type, testDate);
+          if (sample1 !== sample2) {
+            differentCount++;
+          }
+        } catch {
+          // Some types might not exist, skip
+        }
+      }
+
+      // Expect at least some samples to be different with different seeds
+      expect(differentCount).toBeGreaterThan(0);
+    });
+
+    it('produces random samples when no seed is provided', async () => {
+      const startDate = new Date(2024, 0, 1);
+      const endDate = new Date(2024, 11, 31);
+
+      // Create two handlers without seeds (unseeded random)
+      const handler1 = await createHandler(startDate, endDate);
+      const handler2 = await createHandler(startDate, endDate);
+
+      const testDate = new Date(Date.UTC(2024, 5, 1));
+      const samples1 = [];
+      const samples2 = [];
+
+      // Collect samples - they should eventually differ
+      for (const type of Object.values(MonteCarloSampleType)) {
+        try {
+          samples1.push(handler1.getSample(type, testDate));
+          samples2.push(handler2.getSample(type, testDate));
+        } catch {
+          // Some types might not exist, skip
+        }
+      }
+
+      // With unseeded random, we expect at least some to be different
+      // (extremely unlikely all are the same)
+      const allSame = samples1.every((s, i) => s === samples2[i]);
+      expect(allSame).toBe(false);
     });
   });
 });

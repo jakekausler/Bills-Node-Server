@@ -124,7 +124,7 @@ export class Engine {
       console.log('Initializing Monte Carlo handler...', Date.now() - this.calculationBegin, 'ms');
     }
     if (options.monteCarlo) {
-      const handler = await MonteCarloHandler.getInstance(actualStartDate, options.endDate);
+      const handler = await MonteCarloHandler.getInstance(actualStartDate, options.endDate, options.seed);
 
       const mappingsPath = join(process.cwd(), 'data', 'monteCarloMappings.json');
       const variableMappings = existsSync(mappingsPath)
@@ -321,6 +321,7 @@ export async function calculateAllActivity(
   enableLogging: boolean = false,
   config: Partial<CalculationConfig> = {},
   timeline?: Timeline,
+  seed?: number,
 ): Promise<AccountsAndTransfers> {
   const engine = new Engine(simulation, config, monteCarlo);
 
@@ -334,6 +335,7 @@ export async function calculateAllActivity(
     forceRecalculation,
     enableLogging,
     config,
+    seed,
   };
 
   const result = await engine.calculate(accountsAndTransfers, options, timeline);

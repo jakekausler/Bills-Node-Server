@@ -17,6 +17,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 interface MonteCarloRequestData {
   totalSimulations?: number;
   batchSize?: number;
+  seed?: number; // Optional seed for reproducibility
 }
 
 /**
@@ -36,8 +37,9 @@ export async function startSimulation(req: Request): Promise<{ id: string }> {
 
   const totalSimulations = data?.totalSimulations || 1000;
   const batchSize = data?.batchSize || 5;
+  const seed = data?.seed; // Optional seed for reproducibility
 
-  const id = await startMonteCarloSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate);
+  const id = await startMonteCarloSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate, seed);
 
   return { id };
 }

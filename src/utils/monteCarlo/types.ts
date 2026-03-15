@@ -16,6 +16,7 @@ export interface SimulationJob {
   startDate: Date;
   endDate: Date;
   duration?: number; // Duration in milliseconds
+  seed: number; // Base seed for reproducible MC
 }
 
 export interface SimulationProgress {
@@ -83,4 +84,5 @@ export interface WorkerData {
   tempDir: string;
   resultsDir: string;
   graphsDir: string;
+  seed: number; // Base seed for this MC run
 }
