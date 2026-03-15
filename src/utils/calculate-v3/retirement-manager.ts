@@ -32,8 +32,14 @@ function getHistoricRates(): HistoricRates {
  * Calculate the Social Security taxable wage base cap for a given year.
  * Uses historical data when available, then inflates at 3.5% annually for future years.
  */
-function getWageBaseCap(year: number): number {
+function getWageBaseCap(year: number, mcChangeRatio?: number): number {
   const historicRates = getHistoricRates();
+
+  // If MC ratio is provided and year > 2025, use it to compound from previous year
+  if (mcChangeRatio !== undefined && year > 2025) {
+    const prevCap = getWageBaseCap(year - 1);
+    return Math.round(prevCap * mcChangeRatio);
+  }
 
   // Use historical data if available
   if (historicRates.ssWageBase) {
@@ -415,5 +421,13 @@ export class RetirementManager {
       return balance / this.rmdTable[age];
     }
     return 0;
+  }
+
+  /**
+   * Get Social Security wage base cap for a given year
+   * Optionally with MC change ratio for future year projections
+   */
+  public getWageBaseCapForYear(year: number, mcChangeRatio?: number): number {
+    return getWageBaseCap(year, mcChangeRatio);
   }
 }

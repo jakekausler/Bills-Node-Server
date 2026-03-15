@@ -236,4 +236,43 @@ describe('ContributionLimitManager', () => {
       expect(remaining2025).toBeGreaterThan(23500);
     });
   });
+
+  describe('MC change ratios', () => {
+    it('should use historical limits for historical years', () => {
+      const dob = new Date('1980-06-15');
+      // 2024 should use historical limit (23500)
+      const limit2024 = manager.getRemainingLimit(dob, 2024, '401k');
+      expect(limit2024).toBe(23500);
+    });
+
+    it('should use MC ratio to compound from previous year', () => {
+      const dob = new Date('1980-06-15');
+      // Simulate MC ratio: 1.146341 (from 2024 historical data)
+      const mcRatio = 1.146341;
+      const limit2026 = manager.getRemainingLimit(dob, 2026, '401k', mcRatio);
+
+      // Should start from previous year and compound
+      // This requires the recursion to work properly
+      expect(limit2026).toBeGreaterThan(0);
+    });
+
+    it('should use fixed inflation without MC ratio', () => {
+      const dob = new Date('1980-06-15');
+      // Without MC ratio, should use fixed 2.5% inflation
+      const limit2025 = manager.getRemainingLimit(dob, 2025, '401k');
+      expect(limit2025).toBe(Math.round(23500 * 1.025));
+    });
+
+    it('should handle MC ratio for future years', () => {
+      const dob = new Date('1980-06-15');
+      const ratio1 = 1.05; // 5% increase
+      const ratio2 = 1.03; // 3% increase
+
+      const limit2026 = manager.getAnnualLimit(dob, 2026, '401k', ratio1);
+      const limit2027 = manager.getAnnualLimit(dob, 2027, '401k', ratio2);
+
+      expect(limit2026).toBeGreaterThan(0);
+      expect(limit2027).toBeGreaterThan(0);
+    });
+  });
 });

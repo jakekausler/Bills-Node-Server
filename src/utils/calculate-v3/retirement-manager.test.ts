@@ -32,12 +32,38 @@ vi.mock('../io/bendPoints', () => ({
 }));
 
 vi.mock('../io/io', () => ({
-  load: vi.fn(() => ({
-    72: 27.4,
-    73: 26.5,
-    74: 25.5,
-    75: 24.6,
-  })),
+  load: vi.fn((filename: string) => {
+    // Return historical rates when loading historicRates.json
+    if (filename === 'historicRates.json') {
+      return {
+        investment: { stock: [10, 15, 20] },
+        savings: { highYield: [3, 4, 5], lowYield: [0.5, 1, 1.5] },
+        inflation: [2, 3, 2.5],
+        raise: [3, 4, 3.5],
+        limitIncrease401k: [5, 6, 7],
+        ssWageBase: {
+          '2020': 137700,
+          '2021': 142800,
+          '2022': 147000,
+          '2023': 160200,
+          '2024': 168600,
+          '2025': 176100,
+        },
+        contributionLimits: {
+          '401k': { '2020': 19500, '2021': 19500, '2022': 20500, '2023': 22500, '2024': 23500 },
+          'ira': { '2020': 6000, '2021': 6000, '2022': 6500, '2023': 6500, '2024': 7000 },
+          'hsa': { '2020': 3550, '2021': 3600, '2022': 3850, '2023': 3850, '2024': 4150 },
+        },
+      };
+    }
+    // Return RMD table for other loads
+    return {
+      72: 27.4,
+      73: 26.5,
+      74: 25.5,
+      75: 24.6,
+    };
+  }),
 }));
 
 vi.mock('../simulation/variable', () => ({
@@ -585,6 +611,45 @@ describe('RetirementManager', () => {
       const monthlyPay = retirementManager.getSocialSecurityMonthlyPay('Future Earner SS');
       expect(typeof monthlyPay).toBe('number');
       expect(monthlyPay).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('getWageBaseCapForYear with MC ratios', () => {
+    it('should return historical wage base cap for known years', () => {
+      retirementManager = new RetirementManager([], []);
+      // 2024 is in the historical data
+      const cap2024 = retirementManager.getWageBaseCapForYear(2024);
+      expect(cap2024).toBe(168600);
+    });
+
+    it('should use fixed inflation without MC ratio for future years', () => {
+      retirementManager = new RetirementManager([], []);
+      // Without MC ratio, should use fixed 3.5% NAWI growth
+      const cap2026 = retirementManager.getWageBaseCapForYear(2026);
+      // Should be around 176100 * 1.035 = 182263.5
+      expect(cap2026).toBeCloseTo(176100 * Math.pow(1.035, 1), 0);
+    });
+
+    it('should use MC ratio to compound from previous year', () => {
+      retirementManager = new RetirementManager([], []);
+      // MC ratio: 1.089796 (from 2023 historical data)
+      const mcRatio = 1.089796;
+      const cap2026 = retirementManager.getWageBaseCapForYear(2026, mcRatio);
+
+      // Should compound from previous year's cap
+      expect(cap2026).toBeGreaterThan(0);
+    });
+
+    it('should handle multiple MC ratios in sequence', () => {
+      retirementManager = new RetirementManager([], []);
+      const ratio1 = 1.05; // 5% increase
+      const ratio2 = 1.03; // 3% increase
+
+      const cap2026 = retirementManager.getWageBaseCapForYear(2026, ratio1);
+      const cap2027 = retirementManager.getWageBaseCapForYear(2027, ratio2);
+
+      expect(cap2026).toBeGreaterThan(0);
+      expect(cap2027).toBeGreaterThan(cap2026); // Should keep increasing
     });
   });
 });

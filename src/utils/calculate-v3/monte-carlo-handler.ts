@@ -109,6 +109,13 @@ export class MonteCarloHandler {
         ? yearData.ssCola / 100
         : this.drawRandomSample(this.historicRates?.ssCola) / 100;
 
+      // Change ratios — these are multipliers (e.g., 1.098 for 9.8% increase), NOT percentages
+      // So do NOT divide by 100
+      yearSamples[MonteCarloSampleType.SS_WAGE_BASE_CHANGE] = yearData.ssWageBaseRatio ?? 1.0;
+      yearSamples[MonteCarloSampleType.K401_LIMIT_CHANGE] = yearData.k401Ratio ?? 1.0;
+      yearSamples[MonteCarloSampleType.IRA_LIMIT_CHANGE] = yearData.iraRatio ?? 1.0;
+      yearSamples[MonteCarloSampleType.HSA_LIMIT_CHANGE] = yearData.hsaRatio ?? 1.0;
+
       // Portfolio - use the SAME drawn year for stock/bond/cash
       const composition = this.getPortfolioComposition(new Date(year, 6, 1)); // mid-year
       const stockReturn = yearData.stock !== undefined

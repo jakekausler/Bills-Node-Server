@@ -43,6 +43,8 @@ export type ContributionLimitType = '401k' | 'ira' | 'hsa';
 export class ContributionLimitManager {
   // Map of personKey -> year -> limitType -> amount contributed
   private contributionsByPerson: Map<string, Map<number, Map<string, number>>> = new Map();
+  // Cache of computed base limits (without catch-up) for MC ratio compounding
+  private cachedBaseLimits: Map<string, number> = new Map();
 
   /**
    * Creates a person key from DOB for tracking contributions per person
@@ -102,8 +104,35 @@ export class ContributionLimitManager {
 
   /**
    * Get the base contribution limit for a given limit type, year, and age
+   * Optionally use a MC change ratio to compound from previous year
    */
-  private getBaseLimit(limitType: ContributionLimitType, year: number, ageAtYear: number): number {
+  private getBaseLimit(limitType: ContributionLimitType, year: number, ageAtYear: number, mcChangeRatio?: number): number {
+    // If MC ratio is provided, use it to compound from previous year
+    if (mcChangeRatio !== undefined && year > 2024) {
+      const cacheKey = `${limitType}_${year - 1}_base`;
+      let prevBaseLimit = this.cachedBaseLimits.get(cacheKey);
+
+      if (prevBaseLimit === undefined) {
+        // Recursively compute previous year's base limit
+        prevBaseLimit = this.getBaseLimit(limitType, year - 1, this.getAgeAtYearStatic(year - 1), undefined);
+        this.cachedBaseLimits.set(cacheKey, prevBaseLimit);
+      }
+
+      const compoundedBase = Math.round(prevBaseLimit * mcChangeRatio);
+
+      // Add catch-up for current year
+      let totalLimit = compoundedBase;
+      if (limitType === '401k' && ageAtYear >= 50) {
+        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['401k'], year);
+      } else if (limitType === 'ira' && ageAtYear >= 50) {
+        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['ira'], year);
+      } else if (limitType === 'hsa' && ageAtYear >= 55) {
+        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['hsa'], year);
+      }
+
+      return totalLimit;
+    }
+
     // Try to get historical limit first
     const historicalLimit = this.getHistoricalLimit(limitType, year);
     if (historicalLimit !== null) {
@@ -143,12 +172,23 @@ export class ContributionLimitManager {
   }
 
   /**
+   * Static helper to compute age at a given year (no DOB context)
+   */
+  private getAgeAtYearStatic(year: number): number {
+    // Return a representative age (50) for determining catch-up eligibility
+    // This is used only in MC ratio compounding fallback
+    return 50;
+  }
+
+  /**
    * Get the remaining contribution limit for a person in a given year
+   * Optionally with MC change ratio for future year projections
    */
   getRemainingLimit(
     personDOB: Date | null,
     year: number,
     limitType: ContributionLimitType,
+    mcChangeRatio?: number,
   ): number {
     const personKey = this.createPersonKey(personDOB);
 
@@ -158,7 +198,7 @@ export class ContributionLimitManager {
     }
 
     const ageAtYear = this.getAgeAtYear(personDOB, year);
-    const totalLimit = this.getBaseLimit(limitType, year, ageAtYear);
+    const totalLimit = this.getBaseLimit(limitType, year, ageAtYear, mcChangeRatio);
 
     const yearMap = this.contributionsByPerson.get(personKey);
     if (!yearMap || !yearMap.has(year)) {
@@ -172,6 +212,25 @@ export class ContributionLimitManager {
 
     const alreadyContributed = yearContributions.get(limitType) || 0;
     return Math.max(0, totalLimit - alreadyContributed);
+  }
+
+  /**
+   * Get the annual limit for a person in a given year (before any contributions)
+   * Used by retirement and other managers to get the total limit
+   * Optionally with MC change ratio for future year projections
+   */
+  getAnnualLimit(
+    personDOB: Date | null,
+    year: number,
+    limitType: ContributionLimitType,
+    mcChangeRatio?: number,
+  ): number {
+    if (!personDOB) {
+      return Infinity;
+    }
+
+    const ageAtYear = this.getAgeAtYear(personDOB, year);
+    return this.getBaseLimit(limitType, year, ageAtYear, mcChangeRatio);
   }
 
   /**

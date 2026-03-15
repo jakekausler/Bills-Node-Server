@@ -369,4 +369,103 @@ describe('MonteCarloHandler', () => {
       expect(allSame).toBe(false);
     });
   });
+
+  describe('change ratio sampling', () => {
+    let handler: MonteCarloHandler;
+
+    beforeEach(async () => {
+      // Add change ratio data to mock
+      const mockRates = JSON.parse(JSON.stringify(mockHistoricRates));
+      mockRates.changeRatios = {
+        ssWageBase: { '2024': 1.052434, '2025': 1.089796 },
+        '401k': { '2024': 1.146341, '2025': 1.128205 },
+        'ira': { '2024': 1.142857, '2025': 1.111111 },
+        'hsa': { '2024': 1.153846, '2025': 1.108108 },
+      };
+      mockRates.yearKeyed = {
+        '2024': {
+          ssWageBaseRatio: 1.052434,
+          k401Ratio: 1.146341,
+          iraRatio: 1.142857,
+          hsaRatio: 1.153846,
+        },
+        '2025': {
+          ssWageBaseRatio: 1.089796,
+          k401Ratio: 1.128205,
+          iraRatio: 1.111111,
+          hsaRatio: 1.108108,
+        },
+      };
+
+      vi.mocked(vi.dynamicImportSettled('fs/promises')).readFile = vi.fn((filePath: string) => {
+        if (filePath.endsWith('historicRates.json')) {
+          return Promise.resolve(JSON.stringify(mockRates));
+        }
+        if (filePath.endsWith('portfolioMakeupOverTime.json')) {
+          return Promise.resolve(JSON.stringify(mockPortfolioMakeup));
+        }
+        return Promise.reject(new Error(`Unexpected file: ${filePath}`));
+      });
+
+      handler = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 42);
+    });
+
+    it('should sample SS_WAGE_BASE_CHANGE ratio', async () => {
+      const testDate = new Date(Date.UTC(2024, 0, 1));
+      const sample = handler.getSample(MonteCarloSampleType.SS_WAGE_BASE_CHANGE, testDate);
+      expect(sample).toBeDefined();
+      expect(typeof sample).toBe('number');
+      // Ratios should be around 1.0 (representing multipliers)
+      expect(sample).toBeGreaterThan(0.9);
+      expect(sample).toBeLessThan(1.2);
+    });
+
+    it('should sample K401_LIMIT_CHANGE ratio', async () => {
+      const testDate = new Date(Date.UTC(2024, 0, 1));
+      const sample = handler.getSample(MonteCarloSampleType.K401_LIMIT_CHANGE, testDate);
+      expect(sample).toBeDefined();
+      expect(typeof sample).toBe('number');
+      expect(sample).toBeGreaterThan(0.9);
+      expect(sample).toBeLessThan(1.2);
+    });
+
+    it('should sample IRA_LIMIT_CHANGE ratio', async () => {
+      const testDate = new Date(Date.UTC(2024, 0, 1));
+      const sample = handler.getSample(MonteCarloSampleType.IRA_LIMIT_CHANGE, testDate);
+      expect(sample).toBeDefined();
+      expect(typeof sample).toBe('number');
+      expect(sample).toBeGreaterThan(0.9);
+      expect(sample).toBeLessThan(1.2);
+    });
+
+    it('should sample HSA_LIMIT_CHANGE ratio', async () => {
+      const testDate = new Date(Date.UTC(2024, 0, 1));
+      const sample = handler.getSample(MonteCarloSampleType.HSA_LIMIT_CHANGE, testDate);
+      expect(sample).toBeDefined();
+      expect(typeof sample).toBe('number');
+      expect(sample).toBeGreaterThan(0.9);
+      expect(sample).toBeLessThan(1.2);
+    });
+
+    it('change ratios should default to 1.0 when not in yearKeyed', async () => {
+      // Create a new handler with minimal yearKeyed (no change ratios for future years)
+      const mockRates = JSON.parse(JSON.stringify(mockHistoricRates));
+      mockRates.yearKeyed = { '2024': {} }; // No ratio data
+
+      vi.mocked(vi.dynamicImportSettled('fs/promises')).readFile = vi.fn((filePath: string) => {
+        if (filePath.endsWith('historicRates.json')) {
+          return Promise.resolve(JSON.stringify(mockRates));
+        }
+        if (filePath.endsWith('portfolioMakeupOverTime.json')) {
+          return Promise.resolve(JSON.stringify(mockPortfolioMakeup));
+        }
+        return Promise.reject(new Error(`Unexpected file: ${filePath}`));
+      });
+
+      const handlerNoRatio = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 43);
+      const testDate = new Date(Date.UTC(2025, 0, 1));
+      const sample = handlerNoRatio.getSample(MonteCarloSampleType.SS_WAGE_BASE_CHANGE, testDate);
+      expect(sample).toBe(1.0);
+    });
+  });
 });

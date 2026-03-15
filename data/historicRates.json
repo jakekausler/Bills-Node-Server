@@ -698,102 +698,118 @@
       "stock": 25.21,
       "bond": 4.21,
       "inflation": -2.1,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1939": {
       "stock": -5.45,
       "bond": 4.41,
       "inflation": -1.4,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1940": {
       "stock": -15.29,
       "bond": 5.4,
       "inflation": 0.7,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1941": {
       "stock": -17.86,
       "bond": -2.02,
       "inflation": 5,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1942": {
       "stock": 12.43,
       "bond": 2.29,
       "inflation": 10.9,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1943": {
       "stock": 19.45,
       "bond": 2.49,
       "inflation": 6.1,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1944": {
       "stock": 13.8,
       "bond": 2.58,
       "inflation": 1.7,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1945": {
       "stock": 30.72,
       "bond": 3.8,
       "inflation": 2.3,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1946": {
       "stock": -11.87,
       "bond": 3.13,
       "inflation": 8.3,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1947": {
       "stock": 0,
       "bond": 0.92,
       "inflation": 14.4,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1948": {
       "stock": -0.65,
       "bond": 1.95,
       "inflation": 8.1,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1949": {
       "stock": 10.26,
       "bond": 4.66,
       "inflation": -1.2,
       "raise": 3.7,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1950": {
       "stock": 21.78,
       "bond": 0.43,
       "inflation": 1.3,
       "raise": 3.8,
-      "ssWageBase": 3000
+      "ssWageBase": 3000,
+      "ssWageBaseRatio": 1.0
     },
     "1951": {
       "stock": 16.46,
       "bond": -0.3,
       "inflation": 7.9,
       "raise": 4.1,
-      "ssWageBase": 3600
+      "ssWageBase": 3600,
+      "ssWageBaseRatio": 1.2
     },
     "1952": {
       "stock": 11.78,
       "bond": 2.27,
       "inflation": 1.9,
       "raise": 4.1,
-      "ssWageBase": 3600
+      "ssWageBase": 3600,
+      "ssWageBaseRatio": 1.0
     },
     "1953": {
       "stock": -6.62,
       "bond": 4.14,
       "inflation": 0.8,
       "raise": 4.6,
-      "ssWageBase": 3600
+      "ssWageBase": 3600,
+      "ssWageBaseRatio": 1.0
     },
     "1954": {
       "stock": 45.02,
@@ -801,7 +817,8 @@
       "inflation": 0.7,
       "raise": 4.8,
       "highYield": 0.94,
-      "ssWageBase": 3600
+      "ssWageBase": 3600,
+      "ssWageBaseRatio": 1.0
     },
     "1955": {
       "stock": 26.4,
@@ -809,7 +826,8 @@
       "inflation": -0.4,
       "raise": 4.3,
       "highYield": 1.72,
-      "ssWageBase": 4200
+      "ssWageBase": 4200,
+      "ssWageBaseRatio": 1.166667
     },
     "1956": {
       "stock": 2.62,
@@ -817,7 +835,8 @@
       "inflation": 1.5,
       "raise": 4.1,
       "highYield": 2.62,
-      "ssWageBase": 4200
+      "ssWageBase": 4200,
+      "ssWageBaseRatio": 1.0
     },
     "1957": {
       "stock": -14.31,
@@ -825,7 +844,8 @@
       "inflation": 3.3,
       "raise": 3.6,
       "highYield": 3.22,
-      "ssWageBase": 4200
+      "ssWageBase": 4200,
+      "ssWageBaseRatio": 1.0
     },
     "1958": {
       "stock": 38.06,
@@ -833,7 +853,8 @@
       "inflation": 2.8,
       "raise": 3.5,
       "highYield": 1.77,
-      "ssWageBase": 4200
+      "ssWageBase": 4200,
+      "ssWageBaseRatio": 1.0
     },
     "1959": {
       "stock": 8.48,
@@ -841,7 +862,8 @@
       "inflation": 0.7,
       "raise": 3.4,
       "highYield": 3.39,
-      "ssWageBase": 4800
+      "ssWageBase": 4800,
+      "ssWageBaseRatio": 1.142857
     },
     "1960": {
       "stock": -2.97,
@@ -849,7 +871,8 @@
       "inflation": 1.7,
       "raise": 3.0,
       "highYield": 2.87,
-      "ssWageBase": 4800
+      "ssWageBase": 4800,
+      "ssWageBaseRatio": 1.0
     },
     "1961": {
       "stock": 23.13,
@@ -857,7 +880,8 @@
       "inflation": 1,
       "raise": 3.1,
       "highYield": 2.35,
-      "ssWageBase": 4800
+      "ssWageBase": 4800,
+      "ssWageBaseRatio": 1.0
     },
     "1962": {
       "stock": -11.81,
@@ -865,7 +889,8 @@
       "inflation": 1,
       "raise": 3.1,
       "highYield": 2.77,
-      "ssWageBase": 4800
+      "ssWageBase": 4800,
+      "ssWageBaseRatio": 1.0
     },
     "1963": {
       "stock": 18.89,
@@ -873,7 +898,8 @@
       "inflation": 1.3,
       "raise": 2.3,
       "highYield": 3.16,
-      "ssWageBase": 4800
+      "ssWageBase": 4800,
+      "ssWageBaseRatio": 1.0
     },
     "1964": {
       "stock": 12.97,
@@ -881,7 +907,8 @@
       "inflation": 1.3,
       "raise": 2.3,
       "highYield": 3.55,
-      "ssWageBase": 4800
+      "ssWageBase": 4800,
+      "ssWageBaseRatio": 1.0
     },
     "1965": {
       "stock": 9.06,
@@ -889,7 +916,8 @@
       "inflation": 1.6,
       "raise": 2.0,
       "highYield": 3.95,
-      "ssWageBase": 4800
+      "ssWageBase": 4800,
+      "ssWageBaseRatio": 1.0
     },
     "1966": {
       "stock": -13.09,
@@ -897,7 +925,8 @@
       "inflation": 2.9,
       "raise": 1.7,
       "highYield": 4.86,
-      "ssWageBase": 6600
+      "ssWageBase": 6600,
+      "ssWageBaseRatio": 1.375
     },
     "1967": {
       "stock": 20.09,
@@ -905,7 +934,8 @@
       "inflation": 3.1,
       "raise": 1.8,
       "highYield": 4.29,
-      "ssWageBase": 6600
+      "ssWageBase": 6600,
+      "ssWageBaseRatio": 1.0
     },
     "1968": {
       "stock": 7.66,
@@ -913,7 +943,8 @@
       "inflation": 4.2,
       "raise": 1.8,
       "highYield": 5.34,
-      "ssWageBase": 7800
+      "ssWageBase": 7800,
+      "ssWageBaseRatio": 1.181818
     },
     "1969": {
       "stock": -11.36,
@@ -921,7 +952,8 @@
       "inflation": 5.5,
       "raise": 1.8,
       "highYield": 6.67,
-      "ssWageBase": 7800
+      "ssWageBase": 7800,
+      "ssWageBaseRatio": 1.0
     },
     "1970": {
       "stock": 0.1,
@@ -929,7 +961,8 @@
       "inflation": 5.7,
       "raise": 1.7,
       "highYield": 6.39,
-      "ssWageBase": 7800
+      "ssWageBase": 7800,
+      "ssWageBaseRatio": 1.0
     },
     "1971": {
       "stock": 10.79,
@@ -937,7 +970,8 @@
       "inflation": 4.4,
       "raise": 1.5,
       "highYield": 4.33,
-      "ssWageBase": 7800
+      "ssWageBase": 7800,
+      "ssWageBaseRatio": 1.0
     },
     "1972": {
       "stock": 15.63,
@@ -945,7 +979,8 @@
       "inflation": 3.2,
       "raise": 1.3,
       "highYield": 4.06,
-      "ssWageBase": 9000
+      "ssWageBase": 9000,
+      "ssWageBaseRatio": 1.153846
     },
     "1973": {
       "stock": -17.37,
@@ -953,7 +988,8 @@
       "inflation": 6.2,
       "raise": 1.5,
       "highYield": 7.04,
-      "ssWageBase": 10800
+      "ssWageBase": 10800,
+      "ssWageBaseRatio": 1.2
     },
     "1974": {
       "stock": -29.72,
@@ -961,7 +997,8 @@
       "inflation": 11,
       "raise": 1.6,
       "highYield": 7.85,
-      "ssWageBase": 13200
+      "ssWageBase": 13200,
+      "ssWageBaseRatio": 1.222222
     },
     "1975": {
       "stock": 31.55,
@@ -970,7 +1007,8 @@
       "raise": 1.8,
       "highYield": 5.79,
       "ssCola": 8.0,
-      "ssWageBase": 14100
+      "ssWageBase": 14100,
+      "ssWageBaseRatio": 1.068182
     },
     "1976": {
       "stock": 19.15,
@@ -979,7 +1017,9 @@
       "raise": 1.9,
       "highYield": 4.98,
       "ssCola": 6.4,
-      "ssWageBase": 15300
+      "ssWageBase": 15300,
+      "ssWageBaseRatio": 1.085106,
+      "iraRatio": 1.0
     },
     "1977": {
       "stock": -11.5,
@@ -988,7 +1028,9 @@
       "raise": 1.9,
       "highYield": 5.26,
       "ssCola": 5.9,
-      "ssWageBase": 16500
+      "ssWageBase": 16500,
+      "ssWageBaseRatio": 1.078431,
+      "iraRatio": 1.0
     },
     "1978": {
       "stock": 1.06,
@@ -997,7 +1039,9 @@
       "raise": 1.8,
       "highYield": 7.18,
       "ssCola": 6.5,
-      "ssWageBase": 17700
+      "ssWageBase": 17700,
+      "ssWageBaseRatio": 1.072727,
+      "iraRatio": 1.0
     },
     "1979": {
       "stock": 12.31,
@@ -1006,7 +1050,9 @@
       "raise": 1.7,
       "highYield": 10.05,
       "ssCola": 9.9,
-      "ssWageBase": 22900
+      "ssWageBase": 22900,
+      "ssWageBaseRatio": 1.293785,
+      "iraRatio": 1.0
     },
     "1980": {
       "stock": 25.77,
@@ -1015,7 +1061,9 @@
       "raise": 1.9,
       "highYield": 11.39,
       "ssCola": 14.3,
-      "ssWageBase": 25900
+      "ssWageBase": 25900,
+      "ssWageBaseRatio": 1.131004,
+      "iraRatio": 1.0
     },
     "1981": {
       "stock": -9.73,
@@ -1024,7 +1072,9 @@
       "raise": 1.9,
       "highYield": 14.04,
       "ssCola": 11.2,
-      "ssWageBase": 29700
+      "ssWageBase": 29700,
+      "ssWageBaseRatio": 1.146718,
+      "iraRatio": 1.333333
     },
     "1982": {
       "stock": 14.76,
@@ -1033,7 +1083,9 @@
       "raise": 2.0,
       "highYield": 10.6,
       "ssCola": 7.4,
-      "ssWageBase": 32400
+      "ssWageBase": 32400,
+      "ssWageBaseRatio": 1.090909,
+      "iraRatio": 1.0
     },
     "1983": {
       "stock": 17.27,
@@ -1042,7 +1094,9 @@
       "raise": 2.1,
       "highYield": 8.62,
       "ssCola": 3.5,
-      "ssWageBase": 35700
+      "ssWageBase": 35700,
+      "ssWageBaseRatio": 1.101852,
+      "iraRatio": 1.0
     },
     "1984": {
       "stock": 1.4,
@@ -1051,7 +1105,9 @@
       "raise": 2.0,
       "highYield": 9.54,
       "ssCola": 3.5,
-      "ssWageBase": 37800
+      "ssWageBase": 37800,
+      "ssWageBaseRatio": 1.058824,
+      "iraRatio": 1.0
     },
     "1985": {
       "stock": 26.33,
@@ -1060,7 +1116,9 @@
       "raise": 2.1,
       "highYield": 7.47,
       "ssCola": 3.1,
-      "ssWageBase": 39600
+      "ssWageBase": 39600,
+      "ssWageBaseRatio": 1.047619,
+      "iraRatio": 1.0
     },
     "1986": {
       "stock": 14.62,
@@ -1069,7 +1127,9 @@
       "raise": 2.2,
       "highYield": 5.97,
       "ssCola": 1.3,
-      "ssWageBase": 42000
+      "ssWageBase": 42000,
+      "ssWageBaseRatio": 1.060606,
+      "iraRatio": 1.0
     },
     "1987": {
       "stock": 2.03,
@@ -1079,7 +1139,10 @@
       "highYield": 5.78,
       "limitIncrease401k": 2.1276596,
       "ssCola": 4.2,
-      "ssWageBase": 43800
+      "ssWageBase": 43800,
+      "ssWageBaseRatio": 1.042857,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.0
     },
     "1988": {
       "stock": 12.4,
@@ -1089,7 +1152,10 @@
       "highYield": 6.67,
       "limitIncrease401k": 2.173913,
       "ssCola": 4.0,
-      "ssWageBase": 45000
+      "ssWageBase": 45000,
+      "ssWageBaseRatio": 1.027397,
+      "k401Ratio": 1.044714,
+      "iraRatio": 1.0
     },
     "1989": {
       "stock": 27.25,
@@ -1099,7 +1165,10 @@
       "highYield": 8.11,
       "limitIncrease401k": 8.8888889,
       "ssCola": 4.7,
-      "ssWageBase": 48000
+      "ssWageBase": 48000,
+      "ssWageBaseRatio": 1.066667,
+      "k401Ratio": 1.042937,
+      "iraRatio": 1.0
     },
     "1990": {
       "stock": -6.56,
@@ -1109,7 +1178,10 @@
       "highYield": 7.5,
       "limitIncrease401k": 4.8780488,
       "ssCola": 5.4,
-      "ssWageBase": 51300
+      "ssWageBase": 51300,
+      "ssWageBaseRatio": 1.06875,
+      "k401Ratio": 1.046152,
+      "iraRatio": 1.0
     },
     "1991": {
       "stock": 26.31,
@@ -1119,7 +1191,10 @@
       "highYield": 5.38,
       "limitIncrease401k": 0,
       "ssCola": 3.7,
-      "ssWageBase": 53400
+      "ssWageBase": 53400,
+      "ssWageBaseRatio": 1.040936,
+      "k401Ratio": 1.062163,
+      "iraRatio": 1.0
     },
     "1992": {
       "stock": 4.46,
@@ -1129,7 +1204,10 @@
       "highYield": 3.43,
       "limitIncrease401k": 2.5641026,
       "ssCola": 3.0,
-      "ssWageBase": 55500
+      "ssWageBase": 55500,
+      "ssWageBaseRatio": 1.039326,
+      "k401Ratio": 1.029853,
+      "iraRatio": 1.0
     },
     "1993": {
       "stock": 7.06,
@@ -1139,7 +1217,10 @@
       "highYield": 3,
       "limitIncrease401k": 2.6315789,
       "ssCola": 2.6,
-      "ssWageBase": 57600
+      "ssWageBase": 57600,
+      "ssWageBaseRatio": 1.037838,
+      "k401Ratio": 1.030477,
+      "iraRatio": 1.0
     },
     "1994": {
       "stock": -1.54,
@@ -1149,7 +1230,10 @@
       "highYield": 4.25,
       "limitIncrease401k": 2.7027027,
       "ssCola": 2.8,
-      "ssWageBase": 60600
+      "ssWageBase": 60600,
+      "ssWageBaseRatio": 1.052083,
+      "k401Ratio": 1.027352,
+      "iraRatio": 1.0
     },
     "1995": {
       "stock": 34.11,
@@ -1159,7 +1243,10 @@
       "highYield": 5.49,
       "limitIncrease401k": 0,
       "ssCola": 2.6,
-      "ssWageBase": 61200
+      "ssWageBase": 61200,
+      "ssWageBaseRatio": 1.009901,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.0
     },
     "1996": {
       "stock": 20.26,
@@ -1169,7 +1256,10 @@
       "highYield": 5.01,
       "limitIncrease401k": 0,
       "ssCola": 2.9,
-      "ssWageBase": 62700
+      "ssWageBase": 62700,
+      "ssWageBaseRatio": 1.02451,
+      "k401Ratio": 1.028139,
+      "iraRatio": 1.0
     },
     "1997": {
       "stock": 31.01,
@@ -1179,7 +1269,10 @@
       "highYield": 5.06,
       "limitIncrease401k": 2.7777778,
       "ssCola": 2.1,
-      "ssWageBase": 65400
+      "ssWageBase": 65400,
+      "ssWageBaseRatio": 1.043062,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.0
     },
     "1998": {
       "stock": 26.67,
@@ -1189,7 +1282,10 @@
       "highYield": 4.78,
       "limitIncrease401k": 0,
       "ssCola": 1.3,
-      "ssWageBase": 68400
+      "ssWageBase": 68400,
+      "ssWageBaseRatio": 1.045872,
+      "k401Ratio": 1.052632,
+      "iraRatio": 1.0
     },
     "1999": {
       "stock": 19.53,
@@ -1199,7 +1295,10 @@
       "highYield": 4.64,
       "limitIncrease401k": 2.8571429,
       "ssCola": 2.5,
-      "ssWageBase": 72600
+      "ssWageBase": 72600,
+      "ssWageBaseRatio": 1.061404,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.0
     },
     "2000": {
       "stock": -10.14,
@@ -1209,7 +1308,10 @@
       "highYield": 5.82,
       "limitIncrease401k": 2.9411765,
       "ssCola": 3.5,
-      "ssWageBase": 76200
+      "ssWageBase": 76200,
+      "ssWageBaseRatio": 1.049587,
+      "k401Ratio": 1.05,
+      "iraRatio": 1.0
     },
     "2001": {
       "stock": -13.04,
@@ -1219,7 +1321,10 @@
       "highYield": 3.4,
       "limitIncrease401k": 0,
       "ssCola": 2.6,
-      "ssWageBase": 80400
+      "ssWageBase": 80400,
+      "ssWageBaseRatio": 1.055118,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.0
     },
     "2002": {
       "stock": -23.37,
@@ -1229,7 +1334,10 @@
       "highYield": 1.61,
       "limitIncrease401k": 0,
       "ssCola": 1.4,
-      "ssWageBase": 84900
+      "ssWageBase": 84900,
+      "ssWageBaseRatio": 1.05597,
+      "k401Ratio": 1.047619,
+      "iraRatio": 1.5
     },
     "2003": {
       "stock": 26.38,
@@ -1239,7 +1347,10 @@
       "highYield": 1.01,
       "limitIncrease401k": 6.0606061,
       "ssCola": 2.1,
-      "ssWageBase": 87000
+      "ssWageBase": 87000,
+      "ssWageBaseRatio": 1.024735,
+      "k401Ratio": 1.090909,
+      "iraRatio": 1.0
     },
     "2004": {
       "stock": 8.99,
@@ -1249,7 +1360,10 @@
       "highYield": 1.37,
       "limitIncrease401k": 0,
       "ssCola": 2.7,
-      "ssWageBase": 87900
+      "ssWageBase": 87900,
+      "ssWageBaseRatio": 1.010345,
+      "k401Ratio": 1.083333,
+      "iraRatio": 1.0
     },
     "2005": {
       "stock": 3,
@@ -1259,7 +1373,11 @@
       "highYield": 3.15,
       "limitIncrease401k": 3.2258065,
       "ssCola": 4.1,
-      "ssWageBase": 90000
+      "ssWageBase": 90000,
+      "ssWageBaseRatio": 1.023891,
+      "k401Ratio": 1.076923,
+      "iraRatio": 1.333333,
+      "hsaRatio": 1.019231
     },
     "2006": {
       "stock": 13.62,
@@ -1269,7 +1387,11 @@
       "highYield": 4.73,
       "limitIncrease401k": 6.6666667,
       "ssCola": 3.3,
-      "ssWageBase": 94200
+      "ssWageBase": 94200,
+      "ssWageBaseRatio": 1.046667,
+      "k401Ratio": 1.071429,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.018868
     },
     "2007": {
       "stock": 3.53,
@@ -1279,7 +1401,11 @@
       "highYield": 4.36,
       "limitIncrease401k": 7.1428571,
       "ssCola": 2.3,
-      "ssWageBase": 97500
+      "ssWageBase": 97500,
+      "ssWageBaseRatio": 1.035032,
+      "k401Ratio": 1.033333,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.055556
     },
     "2008": {
       "stock": -38.49,
@@ -1289,7 +1415,11 @@
       "highYield": 1.37,
       "limitIncrease401k": 7.6923077,
       "ssCola": 5.8,
-      "ssWageBase": 102000
+      "ssWageBase": 102000,
+      "ssWageBaseRatio": 1.046154,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.25,
+      "hsaRatio": 1.017544
     },
     "2009": {
       "stock": 23.45,
@@ -1299,7 +1429,11 @@
       "highYield": 0.15,
       "limitIncrease401k": 8.3333333,
       "ssCola": 0.0,
-      "ssWageBase": 106800
+      "ssWageBase": 106800,
+      "ssWageBaseRatio": 1.047059,
+      "k401Ratio": 1.064516,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.034483
     },
     "2010": {
       "stock": 12.78,
@@ -1309,7 +1443,11 @@
       "highYield": 0.14,
       "limitIncrease401k": 4.5454545,
       "ssCola": 0.0,
-      "ssWageBase": 106800
+      "ssWageBase": 106800,
+      "ssWageBaseRatio": 1.0,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.016667
     },
     "2011": {
       "stock": 0,
@@ -1319,7 +1457,11 @@
       "highYield": 0.05,
       "limitIncrease401k": 0,
       "ssCola": 3.6,
-      "ssWageBase": 106800
+      "ssWageBase": 106800,
+      "ssWageBaseRatio": 1.0,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.0
     },
     "2012": {
       "stock": 13.41,
@@ -1329,7 +1471,11 @@
       "highYield": 0.09,
       "limitIncrease401k": 4.7619048,
       "ssCola": 1.7,
-      "ssWageBase": 110100
+      "ssWageBase": 110100,
+      "ssWageBaseRatio": 1.030899,
+      "k401Ratio": 1.030303,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.016393
     },
     "2013": {
       "stock": 29.6,
@@ -1339,7 +1485,11 @@
       "highYield": 0.06,
       "limitIncrease401k": 0,
       "ssCola": 1.5,
-      "ssWageBase": 113700
+      "ssWageBase": 113700,
+      "ssWageBaseRatio": 1.032698,
+      "k401Ratio": 1.029412,
+      "iraRatio": 1.1,
+      "hsaRatio": 1.048387
     },
     "2014": {
       "stock": 11.39,
@@ -1349,7 +1499,11 @@
       "highYield": 0.03,
       "limitIncrease401k": 5,
       "ssCola": 1.7,
-      "ssWageBase": 117000
+      "ssWageBase": 117000,
+      "ssWageBaseRatio": 1.029024,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.015385
     },
     "2015": {
       "stock": -0.73,
@@ -1359,7 +1513,11 @@
       "highYield": 0.05,
       "limitIncrease401k": 0,
       "ssCola": 0.0,
-      "ssWageBase": 118500
+      "ssWageBase": 118500,
+      "ssWageBaseRatio": 1.012821,
+      "k401Ratio": 1.028571,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.015152
     },
     "2016": {
       "stock": 9.54,
@@ -1369,7 +1527,11 @@
       "highYield": 0.32,
       "limitIncrease401k": 2.7368421,
       "ssCola": 0.3,
-      "ssWageBase": 118500
+      "ssWageBase": 118500,
+      "ssWageBaseRatio": 1.0,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.0
     },
     "2017": {
       "stock": 19.42,
@@ -1379,7 +1541,11 @@
       "highYield": 0.93,
       "limitIncrease401k": 0,
       "ssCola": 2.0,
-      "ssWageBase": 127200
+      "ssWageBase": 127200,
+      "ssWageBaseRatio": 1.073418,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.014925
     },
     "2018": {
       "stock": -6.24,
@@ -1389,7 +1555,11 @@
       "highYield": 1.94,
       "limitIncrease401k": 2.6623377,
       "ssCola": 2.8,
-      "ssWageBase": 128400
+      "ssWageBase": 128400,
+      "ssWageBaseRatio": 1.009434,
+      "k401Ratio": 1.027778,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.014706
     },
     "2019": {
       "stock": 28.88,
@@ -1399,7 +1569,11 @@
       "highYield": 2.06,
       "limitIncrease401k": 2.9575272,
       "ssCola": 1.6,
-      "ssWageBase": 132900
+      "ssWageBase": 132900,
+      "ssWageBaseRatio": 1.035047,
+      "k401Ratio": 1.027027,
+      "iraRatio": 1.090909,
+      "hsaRatio": 1.014493
     },
     "2020": {
       "stock": 16.26,
@@ -1409,7 +1583,11 @@
       "highYield": 0.35,
       "limitIncrease401k": 2.8987168,
       "ssCola": 1.3,
-      "ssWageBase": 137700
+      "ssWageBase": 137700,
+      "ssWageBaseRatio": 1.036117,
+      "k401Ratio": 1.026316,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.014286
     },
     "2021": {
       "stock": 26.89,
@@ -1419,7 +1597,11 @@
       "highYield": 0.05,
       "limitIncrease401k": 5.8525074,
       "ssCola": 5.9,
-      "ssWageBase": 142800
+      "ssWageBase": 142800,
+      "ssWageBaseRatio": 1.037037,
+      "k401Ratio": 1.0,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.014085
     },
     "2022": {
       "stock": -19.44,
@@ -1429,7 +1611,11 @@
       "highYield": 2.02,
       "limitIncrease401k": 4.4115804,
       "ssCola": 8.7,
-      "ssWageBase": 147000
+      "ssWageBase": 147000,
+      "ssWageBaseRatio": 1.029412,
+      "k401Ratio": 1.051282,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.013889
     },
     "2023": {
       "stock": 24.23,
@@ -1439,7 +1625,8 @@
       "highYield": 5.07,
       "limitIncrease401k": 4.1169529,
       "ssCola": 3.2,
-      "ssWageBase": 160200
+      "ssWageBase": 160200,
+      "ssWageBaseRatio": 1.089796
     },
     "2024": {
       "stock": 23.31,
@@ -1449,11 +1636,18 @@
       "highYield": 4.97,
       "limitIncrease401k": 4.2800492,
       "ssCola": 2.5,
-      "ssWageBase": 168600
+      "ssWageBase": 168600,
+      "ssWageBaseRatio": 1.052434,
+      "k401Ratio": 1.146341,
+      "iraRatio": 1.166667,
+      "hsaRatio": 1.136986
     },
     "2025": {
       "stock": 2.7,
-      "ssWageBase": 176100
+      "ssWageBase": 176100,
+      "ssWageBaseRatio": 1.044484,
+      "iraRatio": 1.0,
+      "hsaRatio": 1.036145
     }
   },
   "ssCola": [
@@ -1714,6 +1908,210 @@
       "2022": 3650,
       "2024": 4150,
       "2025": 4300
+    }
+  },
+  "changeRatios": {
+    "ssWageBase": {
+      "1938": 1.0,
+      "1939": 1.0,
+      "1940": 1.0,
+      "1941": 1.0,
+      "1942": 1.0,
+      "1943": 1.0,
+      "1944": 1.0,
+      "1945": 1.0,
+      "1946": 1.0,
+      "1947": 1.0,
+      "1948": 1.0,
+      "1949": 1.0,
+      "1950": 1.0,
+      "1951": 1.2,
+      "1952": 1.0,
+      "1953": 1.0,
+      "1954": 1.0,
+      "1955": 1.166667,
+      "1956": 1.0,
+      "1957": 1.0,
+      "1958": 1.0,
+      "1959": 1.142857,
+      "1960": 1.0,
+      "1961": 1.0,
+      "1962": 1.0,
+      "1963": 1.0,
+      "1964": 1.0,
+      "1965": 1.0,
+      "1966": 1.375,
+      "1967": 1.0,
+      "1968": 1.181818,
+      "1969": 1.0,
+      "1970": 1.0,
+      "1971": 1.0,
+      "1972": 1.153846,
+      "1973": 1.2,
+      "1974": 1.222222,
+      "1975": 1.068182,
+      "1976": 1.085106,
+      "1977": 1.078431,
+      "1978": 1.072727,
+      "1979": 1.293785,
+      "1980": 1.131004,
+      "1981": 1.146718,
+      "1982": 1.090909,
+      "1983": 1.101852,
+      "1984": 1.058824,
+      "1985": 1.047619,
+      "1986": 1.060606,
+      "1987": 1.042857,
+      "1988": 1.027397,
+      "1989": 1.066667,
+      "1990": 1.06875,
+      "1991": 1.040936,
+      "1992": 1.039326,
+      "1993": 1.037838,
+      "1994": 1.052083,
+      "1995": 1.009901,
+      "1996": 1.02451,
+      "1997": 1.043062,
+      "1998": 1.045872,
+      "1999": 1.061404,
+      "2000": 1.049587,
+      "2001": 1.055118,
+      "2002": 1.05597,
+      "2003": 1.024735,
+      "2004": 1.010345,
+      "2005": 1.023891,
+      "2006": 1.046667,
+      "2007": 1.035032,
+      "2008": 1.046154,
+      "2009": 1.047059,
+      "2010": 1.0,
+      "2011": 1.0,
+      "2012": 1.030899,
+      "2013": 1.032698,
+      "2014": 1.029024,
+      "2015": 1.012821,
+      "2016": 1.0,
+      "2017": 1.073418,
+      "2018": 1.009434,
+      "2019": 1.035047,
+      "2020": 1.036117,
+      "2021": 1.037037,
+      "2022": 1.029412,
+      "2023": 1.089796,
+      "2024": 1.052434,
+      "2025": 1.044484
+    },
+    "401k": {
+      "1987": 1.0,
+      "1988": 1.044714,
+      "1989": 1.042937,
+      "1990": 1.046152,
+      "1991": 1.062163,
+      "1992": 1.029853,
+      "1993": 1.030477,
+      "1994": 1.027352,
+      "1995": 1.0,
+      "1996": 1.028139,
+      "1997": 1.0,
+      "1998": 1.052632,
+      "1999": 1.0,
+      "2000": 1.05,
+      "2001": 1.0,
+      "2002": 1.047619,
+      "2003": 1.090909,
+      "2004": 1.083333,
+      "2005": 1.076923,
+      "2006": 1.071429,
+      "2007": 1.033333,
+      "2008": 1.0,
+      "2009": 1.064516,
+      "2010": 1.0,
+      "2011": 1.0,
+      "2012": 1.030303,
+      "2013": 1.029412,
+      "2014": 1.0,
+      "2015": 1.028571,
+      "2016": 1.0,
+      "2017": 1.0,
+      "2018": 1.027778,
+      "2019": 1.027027,
+      "2020": 1.026316,
+      "2021": 1.0,
+      "2022": 1.051282,
+      "2024": 1.146341
+    },
+    "ira": {
+      "1976": 1.0,
+      "1977": 1.0,
+      "1978": 1.0,
+      "1979": 1.0,
+      "1980": 1.0,
+      "1981": 1.333333,
+      "1982": 1.0,
+      "1983": 1.0,
+      "1984": 1.0,
+      "1985": 1.0,
+      "1986": 1.0,
+      "1987": 1.0,
+      "1988": 1.0,
+      "1989": 1.0,
+      "1990": 1.0,
+      "1991": 1.0,
+      "1992": 1.0,
+      "1993": 1.0,
+      "1994": 1.0,
+      "1995": 1.0,
+      "1996": 1.0,
+      "1997": 1.0,
+      "1998": 1.0,
+      "1999": 1.0,
+      "2000": 1.0,
+      "2001": 1.0,
+      "2002": 1.5,
+      "2003": 1.0,
+      "2004": 1.0,
+      "2005": 1.333333,
+      "2006": 1.0,
+      "2007": 1.0,
+      "2008": 1.25,
+      "2009": 1.0,
+      "2010": 1.0,
+      "2011": 1.0,
+      "2012": 1.0,
+      "2013": 1.1,
+      "2014": 1.0,
+      "2015": 1.0,
+      "2016": 1.0,
+      "2017": 1.0,
+      "2018": 1.0,
+      "2019": 1.090909,
+      "2020": 1.0,
+      "2021": 1.0,
+      "2022": 1.0,
+      "2024": 1.166667,
+      "2025": 1.0
+    },
+    "hsa": {
+      "2005": 1.019231,
+      "2006": 1.018868,
+      "2007": 1.055556,
+      "2008": 1.017544,
+      "2009": 1.034483,
+      "2010": 1.016667,
+      "2011": 1.0,
+      "2012": 1.016393,
+      "2013": 1.048387,
+      "2014": 1.015385,
+      "2015": 1.015152,
+      "2016": 1.0,
+      "2017": 1.014925,
+      "2018": 1.014706,
+      "2019": 1.014493,
+      "2020": 1.014286,
+      "2021": 1.014085,
+      "2022": 1.013889,
+      "2024": 1.136986,
+      "2025": 1.036145
     }
   }
 }

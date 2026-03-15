@@ -261,6 +261,10 @@ export enum MonteCarloSampleType {
   RAISE = 'Raise',
   LIMIT_INCREASE_401K = '401k_limit_increase_rate',
   SS_COLA = 'SS_COLA',
+  SS_WAGE_BASE_CHANGE = 'SS_WAGE_BASE_CHANGE',
+  K401_LIMIT_CHANGE = 'K401_LIMIT_CHANGE',
+  IRA_LIMIT_CHANGE = 'IRA_LIMIT_CHANGE',
+  HSA_LIMIT_CHANGE = 'HSA_LIMIT_CHANGE',
 }
 
 export interface HistoricRates {
@@ -286,6 +290,12 @@ export interface HistoricRates {
     'ira'?: Record<string, number>;
     'hsa'?: Record<string, number>;
   };
+  changeRatios?: {
+    ssWageBase?: Record<string, number>;
+    '401k'?: Record<string, number>;
+    'ira'?: Record<string, number>;
+    'hsa'?: Record<string, number>;
+  };
   yearKeyed?: Record<string, Partial<{
     stock: number;
     bond: number;
@@ -297,6 +307,10 @@ export interface HistoricRates {
     limitIncrease401k: number;
     ssCola: number;
     ssWageBase: number;
+    ssWageBaseRatio: number;
+    k401Ratio: number;
+    iraRatio: number;
+    hsaRatio: number;
   }>>;
 }
 
