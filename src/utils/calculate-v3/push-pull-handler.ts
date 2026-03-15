@@ -224,7 +224,7 @@ export class PushPullHandler {
    * Checks if the account performs pushes based on its configuration
    */
   private accountPerformsPushes(account: Account, segmentStartDate: Date): boolean {
-    // TODO: Replace new Date() with a deterministic reference date passed through the calculation engine
+    // TODO (#29): Replace new Date() with a deterministic reference date passed through the calculation engine
     // This ensures Monte Carlo simulations and other deterministic calculations aren't affected by wall clock time
     return (
       account.performsPushes &&
@@ -237,7 +237,7 @@ export class PushPullHandler {
    * Checks if the account performs pulls based on its configuration
    */
   private accountPerformsPulls(account: Account, segmentStartDate: Date): boolean {
-    // TODO: Replace new Date() with a deterministic reference date passed through the calculation engine
+    // TODO (#29): Replace new Date() with a deterministic reference date passed through the calculation engine
     // This ensures Monte Carlo simulations and other deterministic calculations aren't affected by wall clock time
     return (
       account.performsPulls &&

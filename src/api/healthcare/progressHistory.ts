@@ -27,7 +27,7 @@ export async function getHealthcareProgressHistory(
   }
 
   // Get expenses using existing endpoint logic
-  // TODO: This redundant call to getHealthcareExpenses is known and acceptable for now.
+  // TODO (tech debt - no tracker item): This redundant call to getHealthcareExpenses is known and acceptable for now.
   // Each endpoint (expenseHistory, progressHistory) needs the expenses data independently.
   // Future refactoring could extract this to a shared service layer.
   const expenses = await getHealthcareExpenses(request);

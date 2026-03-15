@@ -590,7 +590,7 @@ export class Calculator {
         const colaMultiplier = Math.pow(1 + pension.cola.fixedRate, yearsCollecting);
         amount = amount * colaMultiplier;
       } else if (pension.cola.type === 'cpiLinked') {
-        // TODO: Implement CPI-linked COLA
+        // TODO (#11): Implement CPI-linked COLA with Monte Carlo integration
         // This requires access to the sampled inflation rate in MC mode or the inflation variable
         // For now, skip COLA application for cpiLinked type
       }

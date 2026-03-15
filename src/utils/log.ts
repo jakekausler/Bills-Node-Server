@@ -20,7 +20,7 @@ export function logToFile(message: string, reset: boolean = false) {
  * Starts timing for a function (currently disabled — logic commented out)
  *
  * Still referenced by src/utils/graph/graph.ts and legacy calculate/ code.
- * TODO: Needs to handle recursive calls
+ * TODO (tech debt - no tracker item): Needs to handle recursive calls
  * @param _fn - Function or function name to start timing for
  */
 export function startTiming(_fn: Function | string) {

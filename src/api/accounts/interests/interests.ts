@@ -38,7 +38,7 @@ export async function addInterest(request: Request) {
  * @todo Skip functionality is not implemented
  */
 export async function updateInterest(request: Request) {
-  // TODO: Skip is not implemented
+  // TODO (tech debt - no tracker item): Skip is not implemented
   const data = await getData<InterestData[]>(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   account.interests = data.data.map((interest) => new Interest(interest));
