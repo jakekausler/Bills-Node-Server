@@ -10,6 +10,20 @@ let cachedWageIndex: Record<number, number> | null = null;
 let cachedBendPoints: Record<number, { first: number; second: number }> | null = null;
 let cachedRMDTable: RMDTableType | null = null;
 
+// Social Security taxable wage base cap (2024 value)
+const SS_WAGE_BASE_2024 = 168600;
+// Historical average NAWI (National Average Wage Index) growth rate
+const NAWI_GROWTH_RATE = 0.035;
+
+/**
+ * Calculate the Social Security taxable wage base cap for a given year.
+ * Uses the 2024 base of $168,600 and inflates at 3.5% annually (historical NAWI average).
+ */
+function getWageBaseCap(year: number): number {
+  const yearsFromBase = Math.max(0, year - 2024);
+  return SS_WAGE_BASE_2024 * Math.pow(1 + NAWI_GROWTH_RATE, yearsFromBase);
+}
+
 export class RetirementManager {
   // List of social securities
   private socialSecurities: SocialSecurity[];
@@ -99,7 +113,11 @@ export class RetirementManager {
     }
     // Add the income for the year, summing with any prior balance
     const priorBalance = this.socialSecurityAnnualIncomes.get(name)?.get(year) || 0;
-    this.socialSecurityAnnualIncomes.get(name)?.set(year, income + priorBalance);
+    const totalIncome = income + priorBalance;
+    // Apply the Social Security taxable wage base cap
+    const wageBaseCap = getWageBaseCap(year);
+    const cappedIncome = Math.min(totalIncome, wageBaseCap);
+    this.socialSecurityAnnualIncomes.get(name)?.set(year, cappedIncome);
   }
 
   private tryAddPensionAnnualIncome(activityName: string, date: Date, income: number) {

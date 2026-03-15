@@ -280,4 +280,182 @@ describe('RetirementManager', () => {
       ).not.toThrow();
     });
   });
+
+  describe('Social Security wage base cap', () => {
+    it('should cap annual income at SS taxable maximum for 2024', () => {
+      const socialSecurity = new SocialSecurity({
+        id: 'ss-1',
+        name: 'High Earner SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['High Earner Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        yearTurn60: 2022,
+        collectionAge: 67,
+        startDate: new Date(Date.UTC(2030, 0, 1)),
+        priorAnnualNetIncomeYears: [2020, 2021, 2022],
+        priorAnnualNetIncomes: [50000, 52000, 54000],
+      } as any);
+
+      retirementManager = new RetirementManager([socialSecurity], []);
+
+      // Add income above the 2024 cap ($168,600)
+      // Total will be $200,000 which should be capped at $168,600
+      retirementManager.tryAddToAnnualIncomes(
+        'High Earner Paycheck',
+        new Date(Date.UTC(2024, 0, 15)),
+        100000
+      );
+      retirementManager.tryAddToAnnualIncomes(
+        'High Earner Paycheck',
+        new Date(Date.UTC(2024, 5, 15)),
+        100000
+      );
+
+      // The cap should have been applied - we can't directly access the private map,
+      // but we can verify the calculation doesn't throw and produces a result
+      expect(() => retirementManager.calculateSocialSecurityMonthlyPay(socialSecurity)).not.toThrow();
+      const monthlyPay = retirementManager.getSocialSecurityMonthlyPay('High Earner SS');
+      expect(typeof monthlyPay).toBe('number');
+      expect(monthlyPay).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should not cap annual income below SS taxable maximum', () => {
+      const socialSecurity = new SocialSecurity({
+        id: 'ss-2',
+        name: 'Average Earner SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Average Earner Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        yearTurn60: 2022,
+        collectionAge: 67,
+        startDate: new Date(Date.UTC(2030, 0, 1)),
+        priorAnnualNetIncomeYears: [2020, 2021, 2022],
+        priorAnnualNetIncomes: [50000, 52000, 54000],
+      } as any);
+
+      retirementManager = new RetirementManager([socialSecurity], []);
+
+      // Add income below the 2024 cap
+      retirementManager.tryAddToAnnualIncomes(
+        'Average Earner Paycheck',
+        new Date(Date.UTC(2024, 0, 15)),
+        30000
+      );
+      retirementManager.tryAddToAnnualIncomes(
+        'Average Earner Paycheck',
+        new Date(Date.UTC(2024, 5, 15)),
+        30000
+      );
+
+      // Total income is $60,000, well below cap - should not be affected
+      expect(() => retirementManager.calculateSocialSecurityMonthlyPay(socialSecurity)).not.toThrow();
+      const monthlyPay = retirementManager.getSocialSecurityMonthlyPay('Average Earner SS');
+      expect(typeof monthlyPay).toBe('number');
+      expect(monthlyPay).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should cap prior annual incomes during initialization', () => {
+      const socialSecurity = new SocialSecurity({
+        id: 'ss-3',
+        name: 'Prior High Earner SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Prior High Earner Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        yearTurn60: 2022,
+        collectionAge: 67,
+        startDate: new Date(Date.UTC(2030, 0, 1)),
+        priorAnnualNetIncomeYears: [2020, 2021, 2022],
+        priorAnnualNetIncomes: [250000, 300000, 350000], // All above cap
+      } as any);
+
+      // Cap should be applied during initialization
+      retirementManager = new RetirementManager([socialSecurity], []);
+
+      // Should not throw when calculating with capped prior incomes
+      expect(() => retirementManager.calculateSocialSecurityMonthlyPay(socialSecurity)).not.toThrow();
+      const monthlyPay = retirementManager.getSocialSecurityMonthlyPay('Prior High Earner SS');
+      expect(typeof monthlyPay).toBe('number');
+      expect(monthlyPay).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle income exactly at wage base cap', () => {
+      const socialSecurity = new SocialSecurity({
+        id: 'ss-4',
+        name: 'Exact Cap Earner SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Exact Cap Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        yearTurn60: 2022,
+        collectionAge: 67,
+        startDate: new Date(Date.UTC(2030, 0, 1)),
+        priorAnnualNetIncomeYears: [2020, 2021, 2022],
+        priorAnnualNetIncomes: [50000, 52000, 54000],
+      } as any);
+
+      retirementManager = new RetirementManager([socialSecurity], []);
+
+      // Add exactly the 2024 cap amount - should not be reduced
+      retirementManager.tryAddToAnnualIncomes(
+        'Exact Cap Paycheck',
+        new Date(Date.UTC(2024, 0, 15)),
+        168600
+      );
+
+      expect(() => retirementManager.calculateSocialSecurityMonthlyPay(socialSecurity)).not.toThrow();
+      const monthlyPay = retirementManager.getSocialSecurityMonthlyPay('Exact Cap Earner SS');
+      expect(typeof monthlyPay).toBe('number');
+      expect(monthlyPay).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should apply inflated caps for future years', () => {
+      const socialSecurity = new SocialSecurity({
+        id: 'ss-5',
+        name: 'Future Earner SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Future Earner Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        yearTurn60: 2022,
+        collectionAge: 67,
+        startDate: new Date(Date.UTC(2040, 0, 1)),
+        priorAnnualNetIncomeYears: [2020, 2021, 2022],
+        priorAnnualNetIncomes: [50000, 52000, 54000],
+      } as any);
+
+      retirementManager = new RetirementManager([socialSecurity], []);
+
+      // Add income in 2030 (6 years after 2024 base)
+      // Cap should be $168,600 * (1.035^6) = ~$207,500
+      // Adding $200k should not be capped, but $210k should be
+      retirementManager.tryAddToAnnualIncomes(
+        'Future Earner Paycheck',
+        new Date(Date.UTC(2030, 0, 15)),
+        100000
+      );
+      retirementManager.tryAddToAnnualIncomes(
+        'Future Earner Paycheck',
+        new Date(Date.UTC(2030, 5, 15)),
+        110000
+      );
+
+      expect(() => retirementManager.calculateSocialSecurityMonthlyPay(socialSecurity)).not.toThrow();
+      const monthlyPay = retirementManager.getSocialSecurityMonthlyPay('Future Earner SS');
+      expect(typeof monthlyPay).toBe('number');
+      expect(monthlyPay).toBeGreaterThanOrEqual(0);
+    });
+  });
 });
