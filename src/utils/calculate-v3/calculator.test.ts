@@ -1344,6 +1344,154 @@ describe('Calculator', () => {
       expect(taxable).toBeDefined();
       expect(taxable![0].taxRate).toBe(0.22);
     });
+
+    it('applies withdrawal tax on manual transfer from pre-tax to non-retirement account', () => {
+      const fromAccount = makeAccount({
+        id: 'from-401k',
+        name: 'Traditional 401k',
+        type: 'Investment',
+        withdrawalTaxRate: 0.22,
+      });
+      const toAccount = makeAccount({ id: 'to-checking', name: 'Checking', type: 'Checking', withdrawalTaxRate: 0 });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn((id: string) => (id === 'from-401k' ? 100000 : 5000)),
+        findAccountById: vi.fn((id: string) => (id === 'from-401k' ? fromAccount : toAccount)),
+      });
+      const calculator = makeCalculator({ balanceTracker });
+      const segmentResult = makeSegmentResult();
+
+      const activity = makeActivity({ id: 'manual-transfer-1', amount: 5000, isTransfer: true });
+
+      const event: ActivityTransferEvent = {
+        id: 'evt-manual-transfer',
+        type: EventType.activityTransfer,
+        date: new Date('2024-01-15'),
+        accountId: 'from-401k',
+        priority: 1,
+        originalActivity: activity,
+        fromAccountId: 'from-401k',
+        toAccountId: 'to-checking',
+      };
+
+      calculator.processActivityTransferEvent(event, segmentResult);
+
+      const taxable = segmentResult.taxableOccurrences.get('Checking');
+      expect(taxable).toBeDefined();
+      expect(taxable).toHaveLength(1);
+      expect(taxable![0].taxRate).toBe(0.22);
+      expect(taxable![0].amount).toBe(5000);
+    });
+
+    it('does NOT apply withdrawal tax on rollover from 401k to IRA (both pre-tax)', () => {
+      const fromAccount = makeAccount({
+        id: 'from-401k',
+        name: 'Traditional 401k',
+        type: 'Investment',
+        withdrawalTaxRate: 0.22,
+      });
+      const toAccount = makeAccount({
+        id: 'to-ira',
+        name: 'Traditional IRA',
+        type: 'Investment',
+        withdrawalTaxRate: 0.22,
+      });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn((id: string) => (id === 'from-401k' ? 100000 : 5000)),
+        findAccountById: vi.fn((id: string) => (id === 'from-401k' ? fromAccount : toAccount)),
+      });
+      const calculator = makeCalculator({ balanceTracker });
+      const segmentResult = makeSegmentResult();
+
+      const activity = makeActivity({ id: 'rollover-1', amount: 50000, isTransfer: true });
+
+      const event: ActivityTransferEvent = {
+        id: 'evt-rollover',
+        type: EventType.activityTransfer,
+        date: new Date('2024-01-15'),
+        accountId: 'from-401k',
+        priority: 1,
+        originalActivity: activity,
+        fromAccountId: 'from-401k',
+        toAccountId: 'to-ira',
+      };
+
+      calculator.processActivityTransferEvent(event, segmentResult);
+
+      const taxable = segmentResult.taxableOccurrences.get('Traditional IRA');
+      expect(taxable).toBeUndefined();
+    });
+
+    it('does NOT apply withdrawal tax on Roth withdrawal to checking (Roth has 0 tax rate)', () => {
+      const fromAccount = makeAccount({
+        id: 'from-roth',
+        name: 'Roth IRA',
+        type: 'Investment',
+        withdrawalTaxRate: 0,
+      });
+      const toAccount = makeAccount({ id: 'to-checking', name: 'Checking', type: 'Checking', withdrawalTaxRate: 0 });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn((id: string) => (id === 'from-roth' ? 50000 : 5000)),
+        findAccountById: vi.fn((id: string) => (id === 'from-roth' ? fromAccount : toAccount)),
+      });
+      const calculator = makeCalculator({ balanceTracker });
+      const segmentResult = makeSegmentResult();
+
+      const activity = makeActivity({ id: 'roth-withdraw-1', amount: 10000, isTransfer: true });
+
+      const event: ActivityTransferEvent = {
+        id: 'evt-roth-withdraw',
+        type: EventType.activityTransfer,
+        date: new Date('2024-01-15'),
+        accountId: 'from-roth',
+        priority: 1,
+        originalActivity: activity,
+        fromAccountId: 'from-roth',
+        toAccountId: 'to-checking',
+      };
+
+      calculator.processActivityTransferEvent(event, segmentResult);
+
+      const taxable = segmentResult.taxableOccurrences.get('Checking');
+      expect(taxable).toBeUndefined();
+    });
+
+    it('still applies withdrawal tax on AUTO-PULL from pre-tax account (regression test)', () => {
+      const fromAccount = makeAccount({
+        id: 'from-401k',
+        name: 'Traditional 401k',
+        type: 'Investment',
+        withdrawalTaxRate: 0.22,
+      });
+      const toAccount = makeAccount({ id: 'to-checking', name: 'Checking', type: 'Checking', withdrawalTaxRate: 0 });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn((id: string) => (id === 'from-401k' ? 100000 : 5000)),
+        findAccountById: vi.fn((id: string) => (id === 'from-401k' ? fromAccount : toAccount)),
+      });
+      const calculator = makeCalculator({ balanceTracker });
+      const segmentResult = makeSegmentResult();
+
+      const bill = makeBill({ id: 'AUTO-PULL-bill-1', amount: 3000, isTransfer: true });
+
+      const event: BillTransferEvent = {
+        id: 'evt-autopull',
+        type: EventType.billTransfer,
+        date: new Date('2024-01-15'),
+        accountId: 'from-401k',
+        priority: 1,
+        originalBill: bill,
+        amount: 3000,
+        firstBill: false,
+        fromAccountId: 'from-401k',
+        toAccountId: 'to-checking',
+      };
+
+      calculator.processBillTransferEvent(event, segmentResult);
+
+      const taxable = segmentResult.taxableOccurrences.get('Checking');
+      expect(taxable).toBeDefined();
+      expect(taxable![0].taxRate).toBe(0.22);
+      expect(taxable![0].amount).toBe(3000);
+    });
   });
 
   // ─── processPensionEvent ──────────────────────────────────────────────────

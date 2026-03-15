@@ -523,8 +523,15 @@ export class Calculator {
     segmentResult.activitiesAdded.get(fromAccountId)?.push(fromActivity);
     segmentResult.activitiesAdded.get(toAccountId)?.push(toActivity);
 
-    // If the activity is an AUTO-PULL or RMD, add a taxable occurrence to the segment result
-    if (original.id.startsWith('AUTO-PULL') || original.id.startsWith('RMD')) {
+    // Apply withdrawal tax on transfers FROM pre-tax retirement accounts TO non-retirement accounts
+    // Pre-tax account: withdrawalTaxRate > 0 (Traditional 401k, Traditional IRA, etc)
+    // Retirement account: usesRMD OR withdrawalTaxRate > 0 (includes both pre-tax and Roth, excludes taxable)
+    // Tax applies when: source is pre-tax AND destination is NOT retirement
+    const isFromPreTax = fromAccount && fromAccount.withdrawalTaxRate > 0;
+    const isToRetirement = toAccount && (toAccount.usesRMD || toAccount.withdrawalTaxRate > 0);
+    const shouldApplyWithdrawalTax = isFromPreTax && !isToRetirement;
+
+    if (shouldApplyWithdrawalTax) {
       // Handle Withdrawal Tax
       const taxRate = fromAccount?.withdrawalTaxRate ?? 0;
       if (taxRate !== 0) {
