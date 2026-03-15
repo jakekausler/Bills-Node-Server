@@ -22,6 +22,7 @@ export interface PercentileDataset {
   isDeterministic?: boolean; // Indicates if this is the deterministic line
   accountId?: string; // The account ID this dataset represents (when not combining accounts)
   accountName?: string; // The account name this dataset represents (when not combining accounts)
+  realValues?: number[]; // Real dollar (inflation-adjusted) values in start-year dollars
 }
 
 export interface MonteCarloGraphOptions {
@@ -42,6 +43,7 @@ interface SimulationYearlyData {
   simulationNumber: number;
   yearlyMinBalances: YearlyMinBalances;
   yearlyAccountBalances?: YearlyAccountBalances;
+  cumulativeInflation?: Record<number, number>;
 }
 
 /**
@@ -155,6 +157,30 @@ function calculatePercentile(sortedValues: number[], percentile: number): number
 
   const weight = index - lower;
   return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
+}
+
+/**
+ * Calculate median cumulative inflation for a given year across all simulations
+ * Used to deflate nominal values to real (start-year) dollars
+ */
+function getMedianCumulativeInflationForYear(
+  simulationData: SimulationYearlyData[],
+  year: number,
+): number {
+  const inflationValues: number[] = [];
+
+  for (const sim of simulationData) {
+    if (sim.cumulativeInflation && sim.cumulativeInflation[year]) {
+      inflationValues.push(sim.cumulativeInflation[year]);
+    }
+  }
+
+  if (inflationValues.length === 0) {
+    return 1.0; // No inflation data, return identity
+  }
+
+  inflationValues.sort((a, b) => a - b);
+  return calculatePercentile(inflationValues, 50); // Median
 }
 
 /**
@@ -297,6 +323,7 @@ export async function generateMonteCarloStatisticsGraph(
     // Create datasets for each percentile (combined accounts)
     percentiles.forEach((percentile) => {
       const data: number[] = [];
+      const realValues: number[] = [];
 
       // For each year, collect all simulation values and calculate percentile
       sortedYears.forEach((year) => {
@@ -313,12 +340,17 @@ export async function generateMonteCarloStatisticsGraph(
         yearValues.sort((a, b) => a - b);
         const percentileValue = calculatePercentile(yearValues, percentile);
         data.push(percentileValue);
+
+        // Calculate real (inflation-adjusted) value
+        const medianInflation = getMedianCumulativeInflationForYear(simulationData, year);
+        realValues.push(percentileValue / medianInflation);
       });
 
       datasets.push({
         label: `${percentile}${getOrdinalSuffix(percentile)} Percentile`,
         data,
         percentile,
+        realValues,
       });
     });
   } else {
@@ -356,6 +388,7 @@ export async function generateMonteCarloStatisticsGraph(
     accountMap.forEach((accountName, accountId) => {
       percentiles.forEach((percentile) => {
         const data: number[] = [];
+        const realValues: number[] = [];
 
         // For each year, collect all simulation values for this account and calculate percentile
         sortedYears.forEach((year) => {
@@ -374,6 +407,10 @@ export async function generateMonteCarloStatisticsGraph(
           yearValues.sort((a, b) => a - b);
           const percentileValue = calculatePercentile(yearValues, percentile);
           data.push(percentileValue);
+
+          // Calculate real (inflation-adjusted) value
+          const medianInflation = getMedianCumulativeInflationForYear(simulationData, year);
+          realValues.push(percentileValue / medianInflation);
         });
 
         datasets.push({
@@ -382,6 +419,7 @@ export async function generateMonteCarloStatisticsGraph(
           percentile,
           accountId,
           accountName,
+          realValues,
         });
       });
     });
@@ -391,10 +429,17 @@ export async function generateMonteCarloStatisticsGraph(
   if (deterministicData) {
     if (combineAccounts) {
       // Single deterministic line for combined accounts
+      const realValues = sortedYears.map((year) => {
+        const nominalValue = deterministicData!.combined[year] ?? 0;
+        const medianInflation = getMedianCumulativeInflationForYear(simulationData, year);
+        return nominalValue / medianInflation;
+      });
+
       const deterministicDataset: PercentileDataset = {
         label: 'Deterministic',
         data: sortedYears.map((year) => deterministicData!.combined[year] ?? 0),
         isDeterministic: true,
+        realValues,
       };
       datasets.push(deterministicDataset);
     } else {
@@ -425,12 +470,19 @@ export async function generateMonteCarloStatisticsGraph(
         }
 
         accountMap.forEach((accountName, accountId) => {
+          const realValues = sortedYears.map((year) => {
+            const nominalValue = deterministicData!.perAccount![year]?.[accountId] ?? 0;
+            const medianInflation = getMedianCumulativeInflationForYear(simulationData, year);
+            return nominalValue / medianInflation;
+          });
+
           const deterministicDataset: PercentileDataset = {
             label: `${accountName} - Deterministic`,
             data: sortedYears.map((year) => deterministicData!.perAccount![year]?.[accountId] ?? 0),
             isDeterministic: true,
             accountId,
             accountName,
+            realValues,
           };
           datasets.push(deterministicDataset);
         });

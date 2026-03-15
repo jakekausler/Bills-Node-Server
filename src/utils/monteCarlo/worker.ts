@@ -8,6 +8,7 @@ import { minDate } from '../io/minDate';
 import { calculateAllActivity } from '../calculate-v3/engine';
 import { generateMonteCarloStatisticsGraph, calculateYearlyMinBalances } from './statisticsGraph';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
+import { MonteCarloHandler } from '../calculate-v3/monte-carlo-handler';
 
 const data = workerData as WorkerData;
 let accountNames: Array<{ id: string; name: string }> = [];
@@ -196,11 +197,27 @@ async function runSingleSimulation(
     // Calculate yearly minimum balances
     const balanceData = calculateYearlyMinBalances(filteredAccounts, true);
 
-    // Create aggregated result with only yearly data
+    // Extract inflation samples and compute cumulative inflation
+    const inflationHandler = await MonteCarloHandler.getInstance(startDate, endDate, seed);
+    const inflationByYear = inflationHandler.getInflationByYear();
+
+    const startYear = startDate.getUTCFullYear();
+    const endYear = endDate.getUTCFullYear();
+    const cumulativeInflation: Record<number, number> = {};
+
+    let cumulative = 1.0;
+    for (let year = startYear; year <= endYear; year++) {
+      cumulativeInflation[year] = cumulative;
+      const rate = inflationByYear[year] || 0;
+      cumulative *= (1 + rate);
+    }
+
+    // Create aggregated result with yearly data and cumulative inflation
     const aggregatedResult: AggregatedSimulationResult = {
       simulationNumber,
       yearlyMinBalances: balanceData.combined,
       yearlyAccountBalances: balanceData.perAccount,
+      cumulativeInflation,
     };
 
     // Write to temporary file - store aggregated data only

@@ -158,6 +158,29 @@ export class MonteCarloHandler {
     return segmentSamples[type];
   }
 
+  /**
+   * Extract inflation rates per year from stored segment samples
+   * Returns a map of year → inflation rate (as decimal, e.g., 0.03 for 3%)
+   */
+  public getInflationByYear(): Record<number, number> {
+    const result: Record<number, number> = {};
+
+    // Segment keys are formatted as "YYYY-M" where M is month (1-12)
+    // Since we sample annually and replicate for all 12 months, we just need the first month of each year
+    for (const [key, samples] of Object.entries(this.segmentSamples)) {
+      const [yearStr, monthStr] = key.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+
+      // Only capture once per year (month 1)
+      if (month === 1 && !result[year]) {
+        result[year] = samples[MonteCarloSampleType.INFLATION];
+      }
+    }
+
+    return result;
+  }
+
   private calculateProxyReturn(proxyDef: ProxyDefinition | undefined, stockReturn: number, bondReturn: number): number {
     if (!proxyDef) {
       return 0;

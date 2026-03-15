@@ -67,6 +67,7 @@ export interface AggregatedSimulationResult {
   simulationNumber: number;
   yearlyMinBalances: YearlyMinBalances;
   yearlyAccountBalances?: YearlyAccountBalances;
+  cumulativeInflation?: Record<number, number>; // year → cumulative inflation multiplier from start year
 }
 
 export type WorkerMessage =

@@ -80,6 +80,7 @@ export async function getAllSimulations(_req: Request): Promise<SimulationProgre
  */
 export async function getSimulationGraph(req: Request): Promise<PercentileGraphData> {
   const { id } = req.params;
+  const real = req.query.real === 'true'; // Check for real dollar (inflation-adjusted) request
 
   if (!id) {
     throw new Error('Simulation ID is required');
@@ -102,6 +103,19 @@ export async function getSimulationGraph(req: Request): Promise<PercentileGraphD
 
   try {
     const graphData = JSON.parse(readFileSync(graphFilePath, 'utf8')) as PercentileGraphData;
+
+    // If real dollar requested, replace data with realValues
+    if (real) {
+      const deflatedDatasets = graphData.datasets.map((dataset) => ({
+        ...dataset,
+        data: dataset.realValues || dataset.data, // Use realValues if available, fall back to nominal
+      }));
+      return {
+        ...graphData,
+        datasets: deflatedDatasets,
+      };
+    }
+
     return graphData;
   } catch (error) {
     throw new Error(`Failed to load graph data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
