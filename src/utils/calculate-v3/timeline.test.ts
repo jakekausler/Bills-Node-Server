@@ -1964,7 +1964,7 @@ describe('Timeline - core methods', () => {
       };
     }
 
-    it('generates an RMD event on Dec 31 for each year in range', async () => {
+    it('generates an RMD event on Jan 1 for each year in range', async () => {
       const rmdAccount = makeMockAccountWithRMD();
       const checkingAccount = { id: 'checking', name: 'Checking' };
       const mockAccountManager = {
@@ -1980,12 +1980,12 @@ describe('Timeline - core methods', () => {
       await (timeline as any).addRmdEvents(accountsAndTransfers, utcDate(2025, 1, 1), utcDate(2026, 12, 31));
 
       const events = (timeline as any).events as RMDEvent[];
-      expect(events.length).toBe(2); // Dec 31 2025 and Dec 31 2026
+      expect(events.length).toBe(2); // Jan 1 2025 and Jan 1 2026
       expect(events[0].type).toBe(EventType.rmd);
       expect(events[0].accountId).toBe('rmd-acct');
-      // Dec 31 check
-      expect(events[0].date.getUTCMonth()).toBe(11); // December
-      expect(events[0].date.getUTCDate()).toBe(31);
+      // Jan 1 check
+      expect(events[0].date.getUTCMonth()).toBe(0); // January
+      expect(events[0].date.getUTCDate()).toBe(1);
     });
 
     it('skips accounts without usesRMD', async () => {
@@ -2040,7 +2040,7 @@ describe('Timeline - core methods', () => {
 
       const events = (timeline as any).events as RMDEvent[];
       expect(events.length).toBe(1);
-      expect(events[0].ownerAge).toBe(75); // Dec 31 2025 - Jan 1 1950 = 75
+      expect(events[0].ownerAge).toBe(75); // Jan 1 2025 - Jan 1 1950 = 75
     });
   });
 

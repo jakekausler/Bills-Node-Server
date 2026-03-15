@@ -514,7 +514,7 @@ describe('SegmentProcessor', () => {
       { type: EventType.pension, calcMethod: 'processPensionEvent', priority: 2 },
       { type: EventType.socialSecurity, calcMethod: 'processSocialSecurityEvent', priority: 2 },
       { type: EventType.tax, calcMethod: 'processTaxEvent', priority: 3 },
-      { type: EventType.rmd, calcMethod: 'processRMDEvent', priority: 3 },
+      { type: EventType.rmd, calcMethod: 'processRMDEvent', priority: 0.5 },
       { type: EventType.spendingTracker, calcMethod: 'processSpendingTrackerEvent', priority: 2.5 },
     ];
 
@@ -626,7 +626,7 @@ describe('SegmentProcessor', () => {
   describe('processDayEvents - event sorting', () => {
     it('processes lower priority events before higher priority events', async () => {
       const sameDate = new Date(Date.UTC(2025, 0, 15));
-      const highPriorityEvent = makeEvent({ id: 'high', type: EventType.rmd, date: sameDate, priority: 3 });
+      const highPriorityEvent = makeEvent({ id: 'high', type: EventType.rmd, date: sameDate, priority: 0.5 });
       const lowPriorityEvent = makeEvent({ id: 'low', type: EventType.interest, date: sameDate, priority: 0 });
       const segment = makeSegment([highPriorityEvent, lowPriorityEvent]);
       const options = makeOptions();
@@ -640,7 +640,7 @@ describe('SegmentProcessor', () => {
       const { processor } = makeProcessor({}, {}, calculator);
       await processor.processSegment(segment, options);
 
-      // Interest (priority 0) should be processed before RMD (priority 3)
+      // Interest (priority 0) should be processed before RMD (priority 0.5)
       expect(callOrder.indexOf('interest')).toBeLessThan(callOrder.indexOf('rmd'));
     });
   });

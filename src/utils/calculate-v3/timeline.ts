@@ -624,9 +624,9 @@ export class Timeline {
   }
 
   private generateRmdEvents(account: Account, startDate: Date, endDate: Date): void {
-    // Transfer RMDs on December 31st
-    const RMD_MONTH = 12;
-    const RMD_DAY = 31;
+    // Transfer RMDs on January 1st (uses prior year-end balance per IRS rules)
+    const RMD_MONTH = 1;
+    const RMD_DAY = 1;
 
     // Check if the account has RMD enabled
     if (!account.usesRMD || !account.rmdAccount || !account.accountOwnerDOB) {
@@ -634,6 +634,8 @@ export class Timeline {
     }
 
     // Add RMD event for each year in the range
+    // Note: RMD for a given year uses the balance from the END of the previous year.
+    // By firing on Jan 1, the balance at that moment IS the prior year-end balance.
     const startYear = startDate.getUTCFullYear();
     const endYear = endDate.getUTCFullYear();
     for (let year = startYear; year <= endYear; year++) {
@@ -647,7 +649,7 @@ export class Timeline {
           ownerAge: dayjs.utc(rmdDate).diff(account.accountOwnerDOB, 'year'),
           fromAccountId: account.id,
           toAccountId: this.accountManager.getAccountByName(account.rmdAccount)?.id || '',
-          priority: 3,
+          priority: 0.5,
         };
         this.addEvent(event);
       }
