@@ -726,9 +726,9 @@ describe('Calculator', () => {
 
       const result = calculator.processInterestEvent(event, segmentResult);
 
-      // Monthly rate = 0.06 / 12 = 0.005, balance = 12000, interest = 60
-      expect(result.get('account-1')).toBeCloseTo(60, 2);
-      expect(segmentResult.balanceChanges.get('account-1')).toBeCloseTo(60, 2);
+      // Monthly rate = Math.pow(1.06, 1/12) - 1 ≈ 0.004867551, balance = 12000, interest ≈ 58.41
+      expect(result.get('account-1')).toBeCloseTo(12000 * (Math.pow(1 + 0.06, 1 / 12) - 1), 2);
+      expect(segmentResult.balanceChanges.get('account-1')).toBeCloseTo(12000 * (Math.pow(1 + 0.06, 1 / 12) - 1), 2);
       expect(segmentResult.activitiesAdded.get('account-1')).toHaveLength(1);
     });
 
@@ -859,8 +859,8 @@ describe('Calculator', () => {
       };
 
       const result = calculator.processInterestEvent(event, segmentResult);
-      // -5000 * 0.12 / 12 = -50
-      expect(result.get('account-1')).toBeCloseTo(-50, 2);
+      // -5000 * (Math.pow(1.12, 1/12) - 1) ≈ -5000 * 0.009488793 ≈ -47.44
+      expect(result.get('account-1')).toBeCloseTo(-5000 * (Math.pow(1 + 0.12, 1 / 12) - 1), 2);
     });
 
     it('adds taxable occurrence when interestPayAccount and interestTaxRate are set', () => {
@@ -958,14 +958,14 @@ describe('Calculator', () => {
       expect(result.get('account-1')).toBeCloseTo(12000 * expectedRate, 4);
     }
 
-    it('handles "week" compounding', () => runInterestTest('week', 0.12 / 52));
-    it('handles "weekly" compounding', () => runInterestTest('weekly', 0.12 / 52));
-    it('handles "day" compounding', () => runInterestTest('day', 0.12 / 365));
-    it('handles "daily" compounding', () => runInterestTest('daily', 0.12 / 365));
-    it('handles "month" compounding', () => runInterestTest('month', 0.12 / 12));
-    it('handles "monthly" compounding', () => runInterestTest('monthly', 0.12 / 12));
-    it('handles "quarter" compounding', () => runInterestTest('quarter', 0.12 / 4));
-    it('handles "quarterly" compounding', () => runInterestTest('quarterly', 0.12 / 4));
+    it('handles "week" compounding', () => runInterestTest('week', Math.pow(1 + 0.12, 1 / 52) - 1));
+    it('handles "weekly" compounding', () => runInterestTest('weekly', Math.pow(1 + 0.12, 1 / 52) - 1));
+    it('handles "day" compounding', () => runInterestTest('day', Math.pow(1 + 0.12, 1 / 365) - 1));
+    it('handles "daily" compounding', () => runInterestTest('daily', Math.pow(1 + 0.12, 1 / 365) - 1));
+    it('handles "month" compounding', () => runInterestTest('month', Math.pow(1 + 0.12, 1 / 12) - 1));
+    it('handles "monthly" compounding', () => runInterestTest('monthly', Math.pow(1 + 0.12, 1 / 12) - 1));
+    it('handles "quarter" compounding', () => runInterestTest('quarter', Math.pow(1 + 0.12, 1 / 4) - 1));
+    it('handles "quarterly" compounding', () => runInterestTest('quarterly', Math.pow(1 + 0.12, 1 / 4) - 1));
     it('handles "year" compounding', () => runInterestTest('year', 0.12 / 1));
     it('handles "yearly" compounding', () => runInterestTest('yearly', 0.12 / 1));
 
@@ -991,8 +991,8 @@ describe('Calculator', () => {
       };
 
       const result = calculator.processInterestEvent(event, segmentResult);
-      // Default monthly: 12000 * 0.12 / 12 = 120
-      expect(result.get('account-1')).toBeCloseTo(120, 2);
+      // Default monthly: 12000 * (Math.pow(1.12, 1/12) - 1) ≈ 12000 * 0.009488793 ≈ 113.865516
+      expect(result.get('account-1')).toBeCloseTo(12000 * (Math.pow(1 + 0.12, 1 / 12) - 1), 2);
     });
   });
 

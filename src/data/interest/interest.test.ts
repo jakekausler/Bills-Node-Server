@@ -329,7 +329,7 @@ describe('periodicInterest', () => {
     const apr = 0.05; // 5% annual rate
     const result = periodicInterest(balance, apr, 'day');
 
-    expect(result).toBeCloseTo((0.05 / 365) * 10000, 2);
+    expect(result).toBeCloseTo((Math.pow(1 + 0.05, 1 / 365) - 1) * 10000, 2);
   });
 
   it('should calculate weekly periodic interest correctly', () => {
@@ -337,7 +337,7 @@ describe('periodicInterest', () => {
     const apr = 0.05; // 5% annual rate
     const result = periodicInterest(balance, apr, 'week');
 
-    expect(result).toBeCloseTo((0.05 / 52) * 10000, 2);
+    expect(result).toBeCloseTo((Math.pow(1 + 0.05, 1 / 52) - 1) * 10000, 2);
   });
 
   it('should calculate monthly periodic interest correctly', () => {
@@ -345,7 +345,7 @@ describe('periodicInterest', () => {
     const apr = 0.05; // 5% annual rate
     const result = periodicInterest(balance, apr, 'month');
 
-    expect(result).toBeCloseTo((0.05 / 12) * 10000, 2);
+    expect(result).toBeCloseTo((Math.pow(1 + 0.05, 1 / 12) - 1) * 10000, 2);
   });
 
   it('should calculate yearly periodic interest correctly', () => {

@@ -993,7 +993,9 @@ export class Calculator {
         }
     }
 
-    const periodRate = annualRate / periodsPerYear;
+    const periodRate = periodsPerYear === 1
+      ? annualRate
+      : Math.pow(1 + annualRate, 1 / periodsPerYear) - 1;
     const interest = balance * periodRate;
 
     // Return raw calculation without rounding to match original behavior exactly

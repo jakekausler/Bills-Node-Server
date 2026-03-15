@@ -144,11 +144,11 @@ export function insertInterest(
  */
 export function periodicInterest(balance: number, apr: number, compounded: 'day' | 'week' | 'month' | 'year') {
   if (compounded === 'day') {
-    return (apr / 365) * balance;
+    return (Math.pow(1 + apr, 1 / 365) - 1) * balance;
   } else if (compounded === 'week') {
-    return (apr / 52) * balance;
+    return (Math.pow(1 + apr, 1 / 52) - 1) * balance;
   } else if (compounded === 'month') {
-    return (apr / 12) * balance;
+    return (Math.pow(1 + apr, 1 / 12) - 1) * balance;
   } else if (compounded === 'year') {
     return apr * balance;
   } else {

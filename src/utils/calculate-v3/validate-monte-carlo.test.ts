@@ -128,7 +128,7 @@ class MonteCarloValidator {
       }
 
       // Calculate the periodic interest (not compounded, just one period)
-      const periodRate = rate / periodsPerYear;
+      const periodRate = periodsPerYear === 1 ? rate : Math.pow(1 + rate, 1 / periodsPerYear) - 1;
       return baseAmount * periodRate;
     }
 
