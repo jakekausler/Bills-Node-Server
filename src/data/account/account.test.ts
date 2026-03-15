@@ -189,6 +189,7 @@ describe('Account', () => {
         pushEnd: null,
         pushAccount: null,
         defaultShowInGraph: false,
+        contributionLimitType: null,
       });
     });
   });

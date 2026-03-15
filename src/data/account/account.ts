@@ -45,6 +45,7 @@ export class Account {
   pushEnd: Date | null;
   pushAccount: string | null;
   defaultShowInGraph: boolean;
+  contributionLimitType: '401k' | 'ira' | 'hsa' | null;
 
   /**
    * Creates a new Account instance
@@ -106,6 +107,7 @@ export class Account {
     this.pushEnd = data.pushEnd ? parseDate(data.pushEnd as DateString) : null;
     this.pushAccount = data.pushAccount || null;
     this.defaultShowInGraph = data.defaultShowInGraph || false;
+    this.contributionLimitType = data.contributionLimitType || null;
   }
 
   /**
@@ -145,6 +147,7 @@ export class Account {
       pushAccount: this.pushAccount,
       defaultShowInGraph: this.defaultShowInGraph,
       balance: this.todayBalance,
+      contributionLimitType: this.contributionLimitType,
     };
   }
 
@@ -179,6 +182,7 @@ export class Account {
       pushEnd: this.pushEnd ? formatDate(this.pushEnd) : null,
       pushAccount: this.pushAccount,
       defaultShowInGraph: this.defaultShowInGraph,
+      contributionLimitType: this.contributionLimitType,
     };
   }
 

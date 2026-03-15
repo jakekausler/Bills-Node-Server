@@ -8,6 +8,7 @@ import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
 import { HealthcareManager } from './healthcare-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
+import { ContributionLimitManager } from './contribution-limit-manager';
 import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -36,6 +37,7 @@ export class Calculator {
   private accountManager: AccountManager;
   private healthcareManager: HealthcareManager;
   private spendingTrackerManager: SpendingTrackerManager;
+  private contributionLimitManager: ContributionLimitManager;
   constructor(
     balanceTracker: BalanceTracker,
     taxManager: TaxManager,
@@ -52,6 +54,7 @@ export class Calculator {
     this.simulation = simulation;
     this.accountManager = accountManager;
     this.spendingTrackerManager = spendingTrackerManager;
+    this.contributionLimitManager = new ContributionLimitManager();
   }
 
   /***************************************
@@ -377,6 +380,9 @@ export class Calculator {
     // Recalculate bill amount with Monte Carlo sampling or deterministic increases if configured
     let amount = event.amount;
     const bill = event.originalBill;
+
+    // Apply contribution limits for transfers to retirement accounts
+    amount = this.applyCappedContribution(event, amount, event.date);
 
     return this.processTransferEvent(event, bill, amount, event.firstBill, segmentResult);
   }
@@ -1028,6 +1034,59 @@ export class Calculator {
 
     // Return raw calculation without rounding to match original behavior exactly
     return interest;
+  }
+
+  /**
+   * Apply contribution limits to a bill transfer amount.
+   * Caps the contribution at the remaining limit for the account owner's limit type.
+   */
+  private applyCappedContribution(
+    event: BillTransferEvent,
+    amount: number | string,
+    date: Date,
+  ): number | string {
+    // Only apply limits to numeric amounts (not variable like {FULL})
+    if (typeof amount !== 'number' || amount <= 0) {
+      return amount;
+    }
+
+    const toAccount = this.balanceTracker.findAccountById(event.toAccountId);
+    if (!toAccount || !toAccount.contributionLimitType) {
+      return amount;
+    }
+
+    // Only cap positive contributions (deposits into the account)
+    // Negative amounts are withdrawals
+    if (amount <= 0) {
+      return amount;
+    }
+
+    const limitType = toAccount.contributionLimitType as '401k' | 'ira' | 'hsa';
+    const year = date.getUTCFullYear();
+    const remaining = this.contributionLimitManager.getRemainingLimit(
+      toAccount.accountOwnerDOB,
+      year,
+      limitType,
+    );
+
+    if (remaining === Infinity) {
+      // No person DOB, can't enforce limits
+      return amount;
+    }
+
+    const cappedAmount = Math.min(amount, remaining);
+
+    // Record the contribution
+    if (cappedAmount > 0) {
+      this.contributionLimitManager.recordContribution(
+        toAccount.accountOwnerDOB,
+        year,
+        limitType,
+        cappedAmount,
+      );
+    }
+
+    return cappedAmount;
   }
 
 }

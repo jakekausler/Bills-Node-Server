@@ -50,6 +50,7 @@ export type AccountData = {
   expenseRatio?: number;
   defaultShowInGraph: boolean;
   balance?: number;
+  contributionLimitType?: '401k' | 'ira' | 'hsa' | null;
 };
 
 export type TransfersData = {
