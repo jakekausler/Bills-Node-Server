@@ -280,6 +280,12 @@ export interface HistoricRates {
   raise: number[];
   limitIncrease401k: number[];
   ssCola?: number[];
+  ssWageBase?: Record<string, number>;
+  contributionLimits?: {
+    '401k'?: Record<string, number>;
+    'ira'?: Record<string, number>;
+    'hsa'?: Record<string, number>;
+  };
   yearKeyed?: Record<string, Partial<{
     stock: number;
     bond: number;
@@ -290,6 +296,7 @@ export interface HistoricRates {
     raise: number;
     limitIncrease401k: number;
     ssCola: number;
+    ssWageBase: number;
   }>>;
 }
 

@@ -1,5 +1,7 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { HistoricRates } from './types';
+import { load } from '../io/io';
 
 dayjs.extend(utc);
 
@@ -16,8 +18,21 @@ const CATCHUP_LIMITS_2024 = {
   'hsa': 1000, // Age 55+
 };
 
-// Annual inflation rate for contribution limits
+// Annual inflation rate for contribution limits (fallback for future years)
 const ANNUAL_INFLATION_RATE = 0.025; // 2.5%
+
+// Module-level cache for historic rates
+let cachedHistoricRates: HistoricRates | null = null;
+
+/**
+ * Load historic rates from data file (cached at module level)
+ */
+function getHistoricRates(): HistoricRates {
+  if (!cachedHistoricRates) {
+    cachedHistoricRates = load<HistoricRates>('historicRates.json');
+  }
+  return cachedHistoricRates;
+}
 
 export type ContributionLimitType = '401k' | 'ira' | 'hsa';
 
@@ -56,6 +71,27 @@ export class ContributionLimitManager {
   }
 
   /**
+   * Get the historical limit for a given year, or null if not available
+   */
+  private getHistoricalLimit(limitType: ContributionLimitType, year: number): number | null {
+    const historicRates = getHistoricRates();
+    const yearStr = String(year);
+
+    if (limitType === '401k' && historicRates.contributionLimits?.['401k']) {
+      const limit = historicRates.contributionLimits['401k'][yearStr];
+      return limit !== undefined ? limit : null;
+    } else if (limitType === 'ira' && historicRates.contributionLimits?.['ira']) {
+      const limit = historicRates.contributionLimits['ira'][yearStr];
+      return limit !== undefined ? limit : null;
+    } else if (limitType === 'hsa' && historicRates.contributionLimits?.['hsa']) {
+      const limit = historicRates.contributionLimits['hsa'][yearStr];
+      return limit !== undefined ? limit : null;
+    }
+
+    return null;
+  }
+
+  /**
    * Inflate a base limit from 2024 to a given year
    */
   private inflateLimitToYear(baseLimit: number, targetYear: number): number {
@@ -68,6 +104,22 @@ export class ContributionLimitManager {
    * Get the base contribution limit for a given limit type, year, and age
    */
   private getBaseLimit(limitType: ContributionLimitType, year: number, ageAtYear: number): number {
+    // Try to get historical limit first
+    const historicalLimit = this.getHistoricalLimit(limitType, year);
+    if (historicalLimit !== null) {
+      let baseLimit = historicalLimit;
+      // Add catch-up if applicable (historical limits are base limits only)
+      if (limitType === '401k' && ageAtYear >= 50) {
+        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['401k'], year);
+      } else if (limitType === 'ira' && ageAtYear >= 50) {
+        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['ira'], year);
+      } else if (limitType === 'hsa' && ageAtYear >= 55) {
+        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['hsa'], year);
+      }
+      return baseLimit;
+    }
+
+    // Fall back to inflation calculation
     let baseLimit = 0;
 
     if (limitType === '401k') {

@@ -1,6 +1,7 @@
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
 import { RMDTableType } from '../calculate/types';
+import { HistoricRates } from './types';
 import { loadAverageWageIndex } from '../io/averageWageIndex';
 import { loadBendPoints } from '../io/bendPoints';
 import { load } from '../io/io';
@@ -9,19 +10,42 @@ import { load } from '../io/io';
 let cachedWageIndex: Record<number, number> | null = null;
 let cachedBendPoints: Record<number, { first: number; second: number }> | null = null;
 let cachedRMDTable: RMDTableType | null = null;
+let cachedHistoricRates: HistoricRates | null = null;
 
 // Social Security taxable wage base cap (2024 value)
 const SS_WAGE_BASE_2024 = 168600;
+const SS_WAGE_BASE_2025 = 176100;
 // Historical average NAWI (National Average Wage Index) growth rate
 const NAWI_GROWTH_RATE = 0.035;
 
 /**
+ * Load historic rates from data file (cached at module level)
+ */
+function getHistoricRates(): HistoricRates {
+  if (!cachedHistoricRates) {
+    cachedHistoricRates = load<HistoricRates>('historicRates.json');
+  }
+  return cachedHistoricRates;
+}
+
+/**
  * Calculate the Social Security taxable wage base cap for a given year.
- * Uses the 2024 base of $168,600 and inflates at 3.5% annually (historical NAWI average).
+ * Uses historical data when available, then inflates at 3.5% annually for future years.
  */
 function getWageBaseCap(year: number): number {
-  const yearsFromBase = Math.max(0, year - 2024);
-  return SS_WAGE_BASE_2024 * Math.pow(1 + NAWI_GROWTH_RATE, yearsFromBase);
+  const historicRates = getHistoricRates();
+
+  // Use historical data if available
+  if (historicRates.ssWageBase) {
+    const yearStr = String(year);
+    if (yearStr in historicRates.ssWageBase) {
+      return historicRates.ssWageBase[yearStr];
+    }
+  }
+
+  // For future years, inflate from most recent known year
+  const yearsFromBase = Math.max(0, year - 2025);
+  return SS_WAGE_BASE_2025 * Math.pow(1 + NAWI_GROWTH_RATE, yearsFromBase);
 }
 
 export class RetirementManager {
