@@ -201,6 +201,7 @@ function processAllSimulations(simulationId: string, separateAccounts: boolean =
       simulationNumber: result.simulationNumber,
       yearlyMinBalances: result.yearlyMinBalances,
       yearlyAccountBalances: separateAccounts ? result.yearlyAccountBalances : undefined,
+      cumulativeInflation: result.cumulativeInflation,
     }));
   } catch (error) {
     throw new Error(`Failed to load simulation results: ${error}`);
