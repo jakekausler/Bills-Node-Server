@@ -35,6 +35,10 @@ export class AccountManager {
     return this.accountIdMap.get(id);
   }
 
+  getAllAccounts(): Account[] {
+    return Array.from(this.accountIdMap.values());
+  }
+
   getPullableAccounts(): Account[] {
     return this.pullableAccounts;
   }
