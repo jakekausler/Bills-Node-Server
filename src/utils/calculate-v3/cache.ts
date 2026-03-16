@@ -89,7 +89,7 @@ class SegmentResultSerializer extends Serializer {
             date: formatDate(occ.date),
             year: occ.year,
             amount: occ.amount,
-            taxRate: occ.taxRate,
+            incomeType: occ.incomeType,
           })),
         ]),
       ),
@@ -135,7 +135,7 @@ class SegmentResultSerializer extends Serializer {
           date: parseDate(occ.date),
           year: occ.year,
           amount: occ.amount,
-          taxRate: occ.taxRate,
+          incomeType: occ.incomeType,
         })),
       ]),
     );

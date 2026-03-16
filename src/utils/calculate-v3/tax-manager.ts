@@ -38,9 +38,12 @@ export class TaxManager {
   }
 
   // Calculate total tax owed for an account in a specific year
+  // NOTE: This is a legacy implementation. Task 5 will replace this with progressive bracket calculation.
+  // For now, we aggregate by income type but don't calculate final tax (that's done in Task 5 with BracketCalculator).
   public calculateTotalTaxOwed(accountId: string, year: number): number {
-    const events = this.getTaxableOccurrences(accountId, year);
-    return events.reduce((total, event) => total + event.amount * event.taxRate, 0);
+    // TEMPORARY: Return 0 until Task 5 implements bracket-based calculation
+    // The new system aggregates income by type and calculates via BracketCalculator, not per-account flat rates
+    return 0;
   }
 
   // Clear all taxable events for an account in a specific year

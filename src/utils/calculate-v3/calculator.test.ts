@@ -905,11 +905,11 @@ describe('Calculator', () => {
       const taxable = segmentResult.taxableOccurrences.get('Checking');
       expect(taxable).toBeDefined();
       expect(taxable!).toHaveLength(1);
-      expect(taxable![0].taxRate).toBe(0.25);
+      expect(taxable![0].incomeType).toBe('interest');
       expect(taxable![0].year).toBe(2024);
     });
 
-    it('does not add taxable occurrence when interestTaxRate is 0', () => {
+    it('adds taxable occurrence for interest even when interestTaxRate is 0 (track all interest income)', () => {
       const account = makeAccount({
         id: 'account-1',
         interestPayAccount: 'Checking',
@@ -937,7 +937,11 @@ describe('Calculator', () => {
 
       calculator.processInterestEvent(event, segmentResult);
 
-      expect(segmentResult.taxableOccurrences.size).toBe(0);
+      // Now tracks interest income regardless of flat rate value (for bracket calculation in Task 5)
+      expect(segmentResult.taxableOccurrences.size).toBe(1);
+      const taxable = segmentResult.taxableOccurrences.get('Checking');
+      expect(taxable).toBeDefined();
+      expect(taxable![0].incomeType).toBe('interest');
     });
 
     it('applies expense ratio to reduce interest on positive balance', () => {
@@ -1342,7 +1346,7 @@ describe('Calculator', () => {
 
       const taxable = segmentResult.taxableOccurrences.get('Checking');
       expect(taxable).toBeDefined();
-      expect(taxable![0].taxRate).toBe(0.22);
+      expect(taxable![0].incomeType).toBe('retirement');
     });
 
     it('applies withdrawal tax on manual transfer from pre-tax to non-retirement account', () => {
@@ -1378,7 +1382,7 @@ describe('Calculator', () => {
       const taxable = segmentResult.taxableOccurrences.get('Checking');
       expect(taxable).toBeDefined();
       expect(taxable).toHaveLength(1);
-      expect(taxable![0].taxRate).toBe(0.22);
+      expect(taxable![0].incomeType).toBe('retirement');
       expect(taxable![0].amount).toBe(5000);
     });
 
@@ -1489,7 +1493,7 @@ describe('Calculator', () => {
 
       const taxable = segmentResult.taxableOccurrences.get('Checking');
       expect(taxable).toBeDefined();
-      expect(taxable![0].taxRate).toBe(0.22);
+      expect(taxable![0].incomeType).toBe('retirement');
       expect(taxable![0].amount).toBe(3000);
     });
   });

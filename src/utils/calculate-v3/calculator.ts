@@ -17,6 +17,7 @@ import {
   ActivityTransferEvent,
   BillEvent,
   BillTransferEvent,
+  IncomeType,
   InterestEvent,
   PensionEvent,
   RMDEvent,
@@ -347,12 +348,12 @@ export class Calculator {
     segmentResult.activitiesAdded.get(accountId)?.push(interestActivity);
 
     // Add taxable occurrence to segment result
-    if (account.interestPayAccount && account.interestTaxRate !== 0) {
+    if (account.interestPayAccount) {
       const taxableOccurrence: TaxableOccurrence = {
         date: event.date,
         year: event.date.getUTCFullYear(),
         amount: interestAmount,
-        taxRate: account.interestTaxRate,
+        incomeType: 'interest' as IncomeType,
       };
       if (!segmentResult.taxableOccurrences.has(account.interestPayAccount)) {
         segmentResult.taxableOccurrences.set(account.interestPayAccount, []);
@@ -539,33 +540,31 @@ export class Calculator {
 
     if (shouldApplyWithdrawalTax) {
       // Handle Withdrawal Tax
-      const taxRate = fromAccount?.withdrawalTaxRate ?? 0;
-      if (taxRate !== 0) {
-        const taxableOccurrence: TaxableOccurrence = {
-          date: fromActivity.date,
-          year: fromActivity.date.getUTCFullYear(),
-          amount: internalAmount,
-          taxRate,
-        };
-        const taxPayAccount = toAccount?.name;
-        if (!taxPayAccount) {
-          throw new Error(`Account ${toAccountId} has no name`);
-        }
-        if (!segmentResult.taxableOccurrences.has(taxPayAccount)) {
-          segmentResult.taxableOccurrences.set(taxPayAccount, []);
-        }
-        segmentResult.taxableOccurrences.get(taxPayAccount)?.push(taxableOccurrence);
+      const taxableOccurrence: TaxableOccurrence = {
+        date: fromActivity.date,
+        year: fromActivity.date.getUTCFullYear(),
+        amount: internalAmount,
+        incomeType: 'retirement' as IncomeType,
+      };
+      const taxPayAccount = toAccount?.name;
+      if (!taxPayAccount) {
+        throw new Error(`Account ${toAccountId} has no name`);
       }
+      if (!segmentResult.taxableOccurrences.has(taxPayAccount)) {
+        segmentResult.taxableOccurrences.set(taxPayAccount, []);
+      }
+      segmentResult.taxableOccurrences.get(taxPayAccount)?.push(taxableOccurrence);
 
       // Handle Early Withdrawal Penalty
       const earlyWithdrawalPenalty = fromAccount?.earlyWithdrawalPenalty ?? 0;
       const earlyWithdrawalDate = fromAccount?.earlyWithdrawalDate;
       if (earlyWithdrawalPenalty !== 0 && earlyWithdrawalDate && isBefore(fromActivity.date, earlyWithdrawalDate)) {
+        const penaltyAmount = internalAmount * earlyWithdrawalPenalty;
         const taxableOccurrence: TaxableOccurrence = {
           date: fromActivity.date,
           year: fromActivity.date.getUTCFullYear(),
-          amount: internalAmount,
-          taxRate: earlyWithdrawalPenalty,
+          amount: penaltyAmount,
+          incomeType: 'penalty' as IncomeType,
         };
         const taxPayAccount = toAccount?.name;
         if (!taxPayAccount) {
@@ -639,6 +638,18 @@ export class Calculator {
     }
     segmentResult.activitiesAdded.get(accountId)?.push(pensionActivity);
 
+    // Track pension income for tax purposes
+    const paymentAmount = Math.abs(amount);
+    if (!segmentResult.taxableOccurrences.has(accountId)) {
+      segmentResult.taxableOccurrences.set(accountId, []);
+    }
+    segmentResult.taxableOccurrences.get(accountId)?.push({
+      date: event.date,
+      year: event.date.getUTCFullYear(),
+      amount: paymentAmount,
+      incomeType: 'ordinary' as IncomeType,
+    });
+
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
@@ -689,6 +700,18 @@ export class Calculator {
       segmentResult.activitiesAdded.set(accountId, []);
     }
     segmentResult.activitiesAdded.get(accountId)?.push(socialSecurityActivity);
+
+    // Track SS income for tax purposes
+    const paymentAmount = Math.abs(amount);
+    if (!segmentResult.taxableOccurrences.has(accountId)) {
+      segmentResult.taxableOccurrences.set(accountId, []);
+    }
+    segmentResult.taxableOccurrences.get(accountId)?.push({
+      date: event.date,
+      year: event.date.getUTCFullYear(),
+      amount: paymentAmount,
+      incomeType: 'socialSecurity' as IncomeType,
+    });
 
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
