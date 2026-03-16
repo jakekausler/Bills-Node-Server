@@ -3,7 +3,7 @@ import { MedicareManager } from './medicare-manager';
 
 // Mock the IO module
 vi.mock('../../utils/io/io', () => ({
-  readHistoricRates: () => ({
+  load: () => ({
     medicare: {
       partBPremium: {
         '2006': 88.5,

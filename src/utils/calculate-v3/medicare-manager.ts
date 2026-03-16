@@ -1,4 +1,5 @@
-import { readHistoricRates } from '../../utils/io/io';
+import { HistoricRates } from './types';
+import { load } from '../io/io';
 
 /**
  * IRMAA (Income-Related Monthly Adjustment Amount) bracket definition
@@ -9,13 +10,24 @@ interface IRMABracket {
   partDSurcharge: number;
 }
 
+// Module-level cache for historic rates
+let cachedHistoricRates: HistoricRates | null = null;
+
+/**
+ * Load historic rates from data file (cached at module level)
+ */
+function getHistoricRates(): HistoricRates {
+  if (!cachedHistoricRates) {
+    cachedHistoricRates = load<HistoricRates>('historicRates.json');
+  }
+  return cachedHistoricRates;
+}
+
 /**
  * Medicare manager for handling IRMAA surcharges, Part B/D premiums,
  * and hospital admission generation with Poisson distribution.
  */
 export class MedicareManager {
-  private historicRates: any;
-
   // 2024 IRMAA brackets for Married Filing Jointly
   // Based on IRS Modified Adjusted Gross Income (MAGI) thresholds
   private readonly IRMAA_BRACKETS_MFJ_2024: IRMABracket[] = [
@@ -52,7 +64,7 @@ export class MedicareManager {
   private readonly MEDIGAP_MONTHLY_PREMIUM_2024 = 200;
 
   constructor() {
-    this.historicRates = readHistoricRates();
+    // Constructor is minimal; historicRates loaded on-demand via getHistoricRates()
   }
 
   /**
@@ -90,7 +102,8 @@ export class MedicareManager {
    * Inflates from latest known data using healthcare CPI.
    */
   getPartBPremium(year: number): number {
-    const medicare = this.historicRates?.medicare || {};
+    const rates = getHistoricRates();
+    const medicare = rates.medicare || {};
     const partBPremiums = medicare.partBPremium || {};
 
     // Find the most recent known year
@@ -111,7 +124,6 @@ export class MedicareManager {
     }
 
     // Inflate forward using healthcare CPI (3% annual default)
-    const healthcareCpi = this.historicRates?.healthcareCpi || {};
     const yearsAfter = year - latestYear;
 
     let inflatedPremium = latestPremium;
@@ -128,7 +140,8 @@ export class MedicareManager {
    * Inflates from latest known data using healthcare CPI.
    */
   getPartDBasePremium(year: number): number {
-    const medicare = this.historicRates?.medicare || {};
+    const rates = getHistoricRates();
+    const medicare = rates.medicare || {};
     const partDPremiums = medicare.partDBasePremium || {};
 
     // Find the most recent known year
@@ -165,7 +178,8 @@ export class MedicareManager {
    * Inflates from latest known data using healthcare CPI.
    */
   getPartADeductible(year: number): number {
-    const medicare = this.historicRates?.medicare || {};
+    const rates = getHistoricRates();
+    const medicare = rates.medicare || {};
     const partADeductibles = medicare.partADeductible || {};
 
     // Find the most recent known year
@@ -202,7 +216,8 @@ export class MedicareManager {
    * Inflates from latest known data using healthcare CPI.
    */
   getPartBDeductible(year: number): number {
-    const medicare = this.historicRates?.medicare || {};
+    const rates = getHistoricRates();
+    const medicare = rates.medicare || {};
     const partBDeductibles = medicare.partBDeductible || {};
 
     // Find the most recent known year
@@ -290,7 +305,8 @@ export class MedicareManager {
    * Uses historical rates or defaults to 3%.
    */
   private getHealthcareInflationRate(year: number): number {
-    const healthcareCpi = this.historicRates?.healthcareCpi || {};
+    const rates = getHistoricRates();
+    const healthcareCpi = rates.healthcareCpi || {};
     const rateArray = healthcareCpi[year] || [];
 
     if (rateArray.length > 0) {
