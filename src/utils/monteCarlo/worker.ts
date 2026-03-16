@@ -197,25 +197,26 @@ async function runSingleSimulation(
     // Calculate yearly minimum balances
     const balanceData = calculateYearlyMinBalances(filteredAccounts, true);
 
-    // #9: Check for funding failure (pull account dropped below minimumBalance)
+    // #9: Check for funding failure using yearly min balances (includes push/pull corrections)
     let fundingFailureYear: number | null = null;
 
-    for (const account of filteredAccounts) {
-      // Find the account config to check if it performs pulls
-      const accountConfig = accountsAndTransfers.accounts.find(
-        (a) => a.id === account.id || a.name === account.name,
-      );
-      if (!accountConfig?.performsPulls) continue;
+    // Get account configs to check which accounts perform pulls
+    const pullAccounts = accountsAndTransfers.accounts
+      .filter((a) => a.performsPulls)
+      .map((a) => ({ id: a.id, name: a.name, minimumBalance: a.minimumBalance ?? 0 }));
 
-      const minBalance = accountConfig.minimumBalance ?? 0;
-
-      for (const activity of account.consolidatedActivity) {
-        if (activity.balance < minBalance) {
-          const year = new Date(activity.date).getUTCFullYear();
-          if (fundingFailureYear === null || year < fundingFailureYear) {
-            fundingFailureYear = year;
+    // Check per-account yearly min balances
+    if (balanceData.perAccount) {
+      for (const [yearStr, accountBalances] of Object.entries(balanceData.perAccount)) {
+        const year = parseInt(yearStr);
+        for (const pullAccount of pullAccounts) {
+          const accountId = pullAccount.id;
+          const minBal = accountBalances[accountId];
+          if (minBal !== undefined && minBal < pullAccount.minimumBalance) {
+            if (fundingFailureYear === null || year < fundingFailureYear) {
+              fundingFailureYear = year;
+            }
           }
-          break; // Found failure for this account, check next
         }
       }
     }

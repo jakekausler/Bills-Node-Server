@@ -5,7 +5,7 @@ import { FilteredAccount, FilteredActivity } from './types';
  * Test suite for #9: Funded Ratio / Success Metrics tracking
  */
 describe('Funded Ratio - Funding Failure Detection', () => {
-  it('should detect no funding failure when pull account stays above minimum', () => {
+  it('should detect no funding failure when pull account yearly min stays above minimum', () => {
     // Simulate an account that performs pulls and stays above minimum
     const accountsAndTransfers = {
       accounts: [
@@ -54,24 +54,33 @@ describe('Funded Ratio - Funding Failure Detection', () => {
       },
     ];
 
-    // Check for funding failure
+    // Mock yearly min balance data (calculated by calculateYearlyMinBalances)
+    const balanceData = {
+      combined: { 2026: 80000, 2027: 80000 },
+      perAccount: {
+        '2026': { acc1: 80000 },
+        '2027': { acc1: 80000 },
+      },
+    };
+
+    // Check for funding failure using yearly min balances
     let fundingFailureYear: number | null = null;
 
-    for (const account of filteredAccounts) {
-      const accountConfig = accountsAndTransfers.accounts.find(
-        (a) => a.id === account.id || a.name === account.name,
-      );
-      if (!accountConfig?.performsPulls) continue;
+    const pullAccounts = accountsAndTransfers.accounts
+      .filter((a) => a.performsPulls)
+      .map((a) => ({ id: a.id, name: a.name, minimumBalance: a.minimumBalance ?? 0 }));
 
-      const minBalance = accountConfig.minimumBalance ?? 0;
-
-      for (const activity of account.consolidatedActivity) {
-        if (activity.balance < minBalance) {
-          const year = new Date(activity.date).getUTCFullYear();
-          if (fundingFailureYear === null || year < fundingFailureYear) {
-            fundingFailureYear = year;
+    if (balanceData.perAccount) {
+      for (const [yearStr, accountBalances] of Object.entries(balanceData.perAccount)) {
+        const year = parseInt(yearStr);
+        for (const pullAccount of pullAccounts) {
+          const accountId = pullAccount.id;
+          const minBal = accountBalances[accountId];
+          if (minBal !== undefined && minBal < pullAccount.minimumBalance) {
+            if (fundingFailureYear === null || year < fundingFailureYear) {
+              fundingFailureYear = year;
+            }
           }
-          break;
         }
       }
     }
@@ -79,7 +88,7 @@ describe('Funded Ratio - Funding Failure Detection', () => {
     expect(fundingFailureYear).toBeNull();
   });
 
-  it('should detect funding failure in the year a pull account drops below minimum', () => {
+  it('should detect funding failure in the year a pull account yearly min drops below minimum', () => {
     const accountsAndTransfers = {
       accounts: [
         {
@@ -118,7 +127,7 @@ describe('Funded Ratio - Funding Failure Detection', () => {
             name: 'Large Withdrawal',
             id: '3',
             amount: -25000,
-            balance: 45000, // Below minimum
+            balance: 45000, // Temporary dip, push/pull corrects it
             from: 'Retirement',
             to: 'Checking',
             date: '2027-03-15',
@@ -127,24 +136,33 @@ describe('Funded Ratio - Funding Failure Detection', () => {
       },
     ];
 
-    // Check for funding failure
+    // Mock yearly min balance data - the yearly min in 2027 is below minimum
+    const balanceData = {
+      combined: { 2026: 70000, 2027: 45000 },
+      perAccount: {
+        '2026': { acc1: 70000 },
+        '2027': { acc1: 45000 }, // Yearly min below minimum
+      },
+    };
+
+    // Check for funding failure using yearly min balances
     let fundingFailureYear: number | null = null;
 
-    for (const account of filteredAccounts) {
-      const accountConfig = accountsAndTransfers.accounts.find(
-        (a) => a.id === account.id || a.name === account.name,
-      );
-      if (!accountConfig?.performsPulls) continue;
+    const pullAccounts = accountsAndTransfers.accounts
+      .filter((a) => a.performsPulls)
+      .map((a) => ({ id: a.id, name: a.name, minimumBalance: a.minimumBalance ?? 0 }));
 
-      const minBalance = accountConfig.minimumBalance ?? 0;
-
-      for (const activity of account.consolidatedActivity) {
-        if (activity.balance < minBalance) {
-          const year = new Date(activity.date).getUTCFullYear();
-          if (fundingFailureYear === null || year < fundingFailureYear) {
-            fundingFailureYear = year;
+    if (balanceData.perAccount) {
+      for (const [yearStr, accountBalances] of Object.entries(balanceData.perAccount)) {
+        const year = parseInt(yearStr);
+        for (const pullAccount of pullAccounts) {
+          const accountId = pullAccount.id;
+          const minBal = accountBalances[accountId];
+          if (minBal !== undefined && minBal < pullAccount.minimumBalance) {
+            if (fundingFailureYear === null || year < fundingFailureYear) {
+              fundingFailureYear = year;
+            }
           }
-          break;
         }
       }
     }
@@ -221,24 +239,32 @@ describe('Funded Ratio - Funding Failure Detection', () => {
       },
     ];
 
-    // Check for funding failure
+    // Mock yearly min balance data
+    const balanceData = {
+      combined: { 2026: 40000 },
+      perAccount: {
+        '2026': { acc1: 40000, acc2: 90000 }, // acc1 below minimum but doesn't perform pulls
+      },
+    };
+
+    // Check for funding failure using yearly min balances
     let fundingFailureYear: number | null = null;
 
-    for (const account of filteredAccounts) {
-      const accountConfig = accountsAndTransfers.accounts.find(
-        (a) => a.id === account.id || a.name === account.name,
-      );
-      if (!accountConfig?.performsPulls) continue;
+    const pullAccounts = accountsAndTransfers.accounts
+      .filter((a) => a.performsPulls)
+      .map((a) => ({ id: a.id, name: a.name, minimumBalance: a.minimumBalance ?? 0 }));
 
-      const minBalance = accountConfig.minimumBalance ?? 0;
-
-      for (const activity of account.consolidatedActivity) {
-        if (activity.balance < minBalance) {
-          const year = new Date(activity.date).getUTCFullYear();
-          if (fundingFailureYear === null || year < fundingFailureYear) {
-            fundingFailureYear = year;
+    if (balanceData.perAccount) {
+      for (const [yearStr, accountBalances] of Object.entries(balanceData.perAccount)) {
+        const year = parseInt(yearStr);
+        for (const pullAccount of pullAccounts) {
+          const accountId = pullAccount.id;
+          const minBal = accountBalances[accountId];
+          if (minBal !== undefined && minBal < pullAccount.minimumBalance) {
+            if (fundingFailureYear === null || year < fundingFailureYear) {
+              fundingFailureYear = year;
+            }
           }
-          break;
         }
       }
     }
@@ -316,24 +342,34 @@ describe('Funded Ratio - Funding Failure Detection', () => {
       },
     ];
 
-    // Check for funding failure
+    // Mock yearly min balance data
+    const balanceData = {
+      combined: { 2026: 50000, 2027: 5000, 2028: 45000 },
+      perAccount: {
+        '2026': { acc1: 100000, acc2: 50000 },
+        '2027': { acc1: 100000, acc2: 5000 }, // acc2 fails in 2027
+        '2028': { acc1: 45000, acc2: 5000 }, // acc1 fails in 2028
+      },
+    };
+
+    // Check for funding failure using yearly min balances
     let fundingFailureYear: number | null = null;
 
-    for (const account of filteredAccounts) {
-      const accountConfig = accountsAndTransfers.accounts.find(
-        (a) => a.id === account.id || a.name === account.name,
-      );
-      if (!accountConfig?.performsPulls) continue;
+    const pullAccounts = accountsAndTransfers.accounts
+      .filter((a) => a.performsPulls)
+      .map((a) => ({ id: a.id, name: a.name, minimumBalance: a.minimumBalance ?? 0 }));
 
-      const minBalance = accountConfig.minimumBalance ?? 0;
-
-      for (const activity of account.consolidatedActivity) {
-        if (activity.balance < minBalance) {
-          const year = new Date(activity.date).getUTCFullYear();
-          if (fundingFailureYear === null || year < fundingFailureYear) {
-            fundingFailureYear = year;
+    if (balanceData.perAccount) {
+      for (const [yearStr, accountBalances] of Object.entries(balanceData.perAccount)) {
+        const year = parseInt(yearStr);
+        for (const pullAccount of pullAccounts) {
+          const accountId = pullAccount.id;
+          const minBal = accountBalances[accountId];
+          if (minBal !== undefined && minBal < pullAccount.minimumBalance) {
+            if (fundingFailureYear === null || year < fundingFailureYear) {
+              fundingFailureYear = year;
+            }
           }
-          break;
         }
       }
     }
