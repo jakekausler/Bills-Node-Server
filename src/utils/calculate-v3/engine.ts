@@ -23,6 +23,9 @@ import utc from 'dayjs/plugin/utc';
 
 dayjs.extend(utc);
 
+// Global reference to the last engine instance (for accessing pull failures after calculation)
+let lastEngine: Engine | null = null;
+
 export class Engine {
   private config: CalculationConfig;
   private cache: CacheManager;
@@ -48,6 +51,9 @@ export class Engine {
     options: CalculationOptions,
     timeline?: Timeline,
   ): Promise<AccountsAndTransfers> {
+    // Set this as the last engine for access to pull failures
+    lastEngine = this;
+
     // Start timing
     this.calculationBegin = Date.now();
 
@@ -304,6 +310,13 @@ export class Engine {
     });
     return results;
   }
+
+  /**
+   * Get pull failures from the push/pull handler
+   */
+  getPullFailures() {
+    return this.pushPullHandler ? this.pushPullHandler.getPullFailures() : [];
+  }
 }
 
 /**
@@ -340,4 +353,11 @@ export async function calculateAllActivity(
 
   const result = await engine.calculate(accountsAndTransfers, options, timeline);
   return result;
+}
+
+/**
+ * Get pull failures from the last calculation
+ */
+export function getLastPullFailures() {
+  return lastEngine ? lastEngine.getPullFailures() : [];
 }

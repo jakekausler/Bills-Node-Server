@@ -5,7 +5,7 @@ import { getAccountsAndTransfers } from '../io/accountsAndTransfers';
 import { WorkerData, WorkerMessage, SimulationResult, FilteredActivity, FilteredAccount, AggregatedSimulationResult } from './types';
 import { Timeline } from '../calculate-v3/timeline';
 import { minDate } from '../io/minDate';
-import { calculateAllActivity } from '../calculate-v3/engine';
+import { calculateAllActivity, getLastPullFailures } from '../calculate-v3/engine';
 import { generateMonteCarloStatisticsGraph, calculateYearlyMinBalances } from './statisticsGraph';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 import { MonteCarloHandler } from '../calculate-v3/monte-carlo-handler';
@@ -197,26 +197,17 @@ async function runSingleSimulation(
     // Calculate yearly minimum balances
     const balanceData = calculateYearlyMinBalances(filteredAccounts, true);
 
-    // #9: Check for funding failure using yearly min balances (includes push/pull corrections)
+    // #9: Check for funding failure using actual pull failures from the engine
+    // A pull failure occurs when the push/pull handler couldn't source enough funds
+    const pullFailures = getLastPullFailures();
     let fundingFailureYear: number | null = null;
 
-    // Get account configs to check which accounts perform pulls
-    const pullAccounts = accountsAndTransfers.accounts
-      .filter((a) => a.performsPulls)
-      .map((a) => ({ id: a.id, name: a.name, minimumBalance: a.minimumBalance ?? 0 }));
-
-    // Check per-account yearly min balances
-    if (balanceData.perAccount) {
-      for (const [yearStr, accountBalances] of Object.entries(balanceData.perAccount)) {
-        const year = parseInt(yearStr);
-        for (const pullAccount of pullAccounts) {
-          const accountId = pullAccount.id;
-          const minBal = accountBalances[accountId];
-          if (minBal !== undefined && minBal < pullAccount.minimumBalance) {
-            if (fundingFailureYear === null || year < fundingFailureYear) {
-              fundingFailureYear = year;
-            }
-          }
+    if (pullFailures.length > 0) {
+      // Get the earliest year with a pull failure
+      for (const failure of pullFailures) {
+        const failureYear = failure.date.getUTCFullYear();
+        if (fundingFailureYear === null || failureYear < fundingFailureYear) {
+          fundingFailureYear = failureYear;
         }
       }
     }

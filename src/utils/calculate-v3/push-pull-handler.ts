@@ -5,9 +5,16 @@ import { AccountManager } from './account-manager';
 import { Activity } from '../../data/activity/activity';
 import { BalanceTracker } from './balance-tracker';
 
+export interface PullFailure {
+  date: Date;
+  accountId: string;
+  shortfall: number;
+}
+
 export class PushPullHandler {
   private accountManager: AccountManager;
   private balanceTracker: BalanceTracker;
+  private pullFailures: PullFailure[] = [];
 
   constructor(accountManager: AccountManager, balanceTracker: BalanceTracker) {
     this.accountManager = accountManager;
@@ -182,6 +189,15 @@ export class PushPullHandler {
       segment.events.push(pullEvent);
     }
 
+    // Track pull failure if we couldn't get enough funds
+    if (toPull > 0) {
+      this.pullFailures.push({
+        date: segment.startDate,
+        accountId: account.id,
+        shortfall: toPull,
+      });
+    }
+
     return pullAmount > 0; // Return true if a pull event was added
   }
 
@@ -240,5 +256,19 @@ export class PushPullHandler {
       isAfterOrSame(segmentStartDate, referenceDate) &&
       (!account.pushStart || isBeforeOrSame(account.pushStart, segmentStartDate))
     );
+  }
+
+  /**
+   * Get all pull failures recorded during processing
+   */
+  getPullFailures(): PullFailure[] {
+    return this.pullFailures;
+  }
+
+  /**
+   * Reset pull failures (called at start of new calculation)
+   */
+  resetPullFailures(): void {
+    this.pullFailures = [];
   }
 }
