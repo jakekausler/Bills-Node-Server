@@ -129,6 +129,8 @@ export enum EventType {
   rmd = 'rmd',
   spendingTracker = 'spendingTracker',
   rothConversion = 'rothConversion',
+  medicarePremium = 'medicarePremium',
+  medicareHospital = 'medicareHospital',
 }
 
 export type TimelineEvent = {
@@ -211,6 +213,20 @@ export type SpendingTrackerEvent = TimelineEvent & {
 
 export type RothConversionEvent = TimelineEvent & {
   type: EventType.rothConversion;
+  year: number;
+};
+
+export type MedicarePremiumEvent = TimelineEvent & {
+  type: EventType.medicarePremium;
+  personName: string;
+  ownerAge: number;
+  year: number;
+};
+
+export type MedicareHospitalEvent = TimelineEvent & {
+  type: EventType.medicareHospital;
+  personName: string;
+  ownerAge: number;
   year: number;
 };
 

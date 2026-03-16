@@ -16,6 +16,8 @@ import {
   TimelineEvent,
   TaxableOccurrence,
   RothConversionEvent,
+  MedicarePremiumEvent,
+  MedicareHospitalEvent,
 } from './types';
 import { CacheManager } from './cache';
 import { BalanceTracker } from './balance-tracker';
@@ -299,6 +301,10 @@ export class SegmentProcessor {
         return this.calculator.processRothConversionEvent(event as RothConversionEvent, segmentResult);
       case EventType.spendingTracker:
         return this.calculator.processSpendingTrackerEvent(event as SpendingTrackerEvent, segmentResult);
+      case EventType.medicarePremium:
+        return this.calculator.processMedicarePremiumEvent(event as MedicarePremiumEvent, segmentResult);
+      case EventType.medicareHospital:
+        return this.calculator.processMedicareHospitalEvent(event as MedicareHospitalEvent, segmentResult);
       default:
         console.warn(`Unknown event type: ${event.type}`);
         return new Map<string, number>();
@@ -334,6 +340,10 @@ export class SegmentProcessor {
         return (event as any).originalActivity?.name || '';
       case EventType.billTransfer:
         return (event as any).originalBill?.name || '';
+      case EventType.medicarePremium:
+        return (event as MedicarePremiumEvent).personName;
+      case EventType.medicareHospital:
+        return (event as MedicareHospitalEvent).personName;
       default:
         return ''; // Unknown events sort to the beginning
     }

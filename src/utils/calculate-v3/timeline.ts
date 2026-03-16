@@ -20,6 +20,8 @@ import {
   TimelineEvent,
   TransferEvent,
   RothConversionEvent,
+  MedicarePremiumEvent,
+  MedicareHospitalEvent,
 } from './types';
 import { Account } from '../../data/account/account';
 import { Bill } from '../../data/bill/bill';
@@ -30,6 +32,7 @@ import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
 import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
 import { computePeriodBoundaries } from './period-utils';
+import { loadVariable } from '../simulation/variable';
 
 export class Timeline {
   private accountManager: AccountManager;
@@ -39,12 +42,14 @@ export class Timeline {
   private calculationBegin: number;
   private enableLogging: boolean;
   private monteCarloConfig: MonteCarloConfig | null;
+  private simulation: string;
 
   constructor(
     accountManager: AccountManager,
     calculationBegin: number,
     enableLogging: boolean,
     monteCarloConfig: MonteCarloConfig | null = null,
+    simulation: string = 'Default',
   ) {
     this.accountManager = accountManager;
     this.events = [];
@@ -53,6 +58,7 @@ export class Timeline {
     this.calculationBegin = calculationBegin;
     this.enableLogging = enableLogging;
     this.monteCarloConfig = monteCarloConfig;
+    this.simulation = simulation;
   }
 
   /**
@@ -64,6 +70,7 @@ export class Timeline {
       this.calculationBegin,
       this.enableLogging,
       monteCarloConfig,
+      this.simulation,
     );
 
     // Clone events and sort them
@@ -125,7 +132,7 @@ export class Timeline {
     spendingTrackerCategories: SpendingTrackerCategory[] = [],
   ): Promise<Timeline> {
     const accountManager = new AccountManager(accountsAndTransfers.accounts, calculationOptions);
-    const timeline = new Timeline(accountManager, calculationBegin, enableLogging, monteCarloConfig);
+    const timeline = new Timeline(accountManager, calculationBegin, enableLogging, monteCarloConfig, calculationOptions.simulation);
 
     // Parallelize all independent add* method calls
     await Promise.all([
@@ -140,6 +147,7 @@ export class Timeline {
       timeline.addTaxEvents(accountsAndTransfers, startDate, endDate),
       timeline.addRothConversionEvents(startDate, endDate, calculationOptions),
       timeline.addSpendingTrackerEvents(spendingTrackerCategories, startDate, endDate),
+      timeline.addMedicareEvents(accountsAndTransfers, startDate, endDate),
     ]);
 
     // Sort and optimize timeline
@@ -322,6 +330,66 @@ export class Timeline {
     this.generateRothConversionEvents(startDate, endDate, calculationOptions);
     if (this.enableLogging) {
       console.log('  Finished adding Roth conversion events', Date.now() - this.calculationBegin, 'ms');
+    }
+  }
+
+  private async addMedicareEvents(
+    accountsAndTransfers: AccountsAndTransfers,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<void> {
+    // Get all Social Securities (these have birth dates)
+    const socialSecurities = this.accountManager.getSocialSecurities();
+
+    for (const socialSecurity of socialSecurities) {
+      // Load birth date from variable
+      let birthDate: Date | null = null;
+      if (socialSecurity.birthDateVariable) {
+        try {
+          const birthDateStr = loadVariable(socialSecurity.birthDateVariable, this.simulation) as string;
+          if (birthDateStr) {
+            birthDate = new Date(birthDateStr);
+          }
+        } catch (error) {
+          console.warn(`Could not load birth date variable ${socialSecurity.birthDateVariable} for ${socialSecurity.name}`);
+        }
+      }
+
+      if (!birthDate) {
+        continue; // Skip if no birth date available
+      }
+
+      // Find the account for payouts (assume Medicare comes from the same account as SS)
+      const payOutAccount = this.accountManager.getAccountByName(socialSecurity.payToAccount);
+      if (!payOutAccount) {
+        console.warn(`Medicare payout account ${socialSecurity.payToAccount} not found`);
+        continue;
+      }
+
+      // Calculate 65th birthday
+      const age65Date = dayjs.utc(birthDate).add(65, 'year').toDate();
+
+      // Generate Medicare premium events (monthly from age 65 through endDate)
+      this.generateMedicarePremiumEvents(
+        socialSecurity.name,
+        age65Date,
+        endDate,
+        payOutAccount.id,
+        birthDate,
+      );
+
+      // Generate Medicare hospital admission events (annual starting at age 65)
+      this.generateMedicareHospitalEvents(
+        socialSecurity.name,
+        age65Date,
+        endDate,
+        payOutAccount.id,
+        birthDate,
+      );
+    }
+
+    if (this.enableLogging) {
+      console.log('  Finished adding Medicare events', Date.now() - this.calculationBegin, 'ms');
     }
   }
 
@@ -724,6 +792,84 @@ export class Timeline {
           priority: 3.5,
           year,
         };
+        this.addEvent(event);
+      }
+    }
+  }
+
+  private generateMedicarePremiumEvents(
+    personName: string,
+    age65Date: Date,
+    endDate: Date,
+    accountId: string,
+    birthDate: Date,
+  ): void {
+    if (age65Date > endDate) {
+      return; // Never turns 65 in this range
+    }
+
+    let currentDate = age65Date;
+    let eventCount = 0;
+
+    while (currentDate <= endDate) {
+      const age = dayjs.utc(currentDate).diff(birthDate, 'year');
+      const year = currentDate.getUTCFullYear();
+
+      const event: MedicarePremiumEvent = {
+        id: `medicare_premium_${personName}_${eventCount}`,
+        type: EventType.medicarePremium,
+        date: new Date(currentDate),
+        accountId: accountId,
+        priority: 2.1, // Slightly after regular bills
+        personName: personName,
+        ownerAge: age,
+        year: year,
+      };
+
+      this.addEvent(event);
+
+      // Move to next month
+      currentDate = dayjs.utc(currentDate).add(1, 'month').toDate();
+      eventCount++;
+
+      // Safety check
+      if (eventCount > 10000) {
+        throw new Error(`Too many Medicare premium events generated for ${personName}`);
+      }
+    }
+  }
+
+  private generateMedicareHospitalEvents(
+    personName: string,
+    age65Date: Date,
+    endDate: Date,
+    accountId: string,
+    birthDate: Date,
+  ): void {
+    if (age65Date > endDate) {
+      return; // Never turns 65 in this range
+    }
+
+    // Generate one hospital check event on January 1 of each year
+    const startYear = age65Date.getUTCFullYear();
+    const endYear = endDate.getUTCFullYear();
+
+    for (let year = startYear; year <= endYear; year++) {
+      const hospitalDate = new Date(Date.UTC(year, 0, 1)); // January 1
+      if (isAfterOrSame(hospitalDate, age65Date) && isBeforeOrSame(hospitalDate, endDate)) {
+        const age = dayjs.utc(hospitalDate).diff(birthDate, 'year');
+
+        const event: MedicareHospitalEvent = {
+          id: `medicare_hospital_${personName}_${year}`,
+          type: EventType.medicareHospital,
+          date: hospitalDate,
+          accountId: accountId,
+          priority: 2.2, // Slightly after premiums
+          personName: personName,
+          ownerAge: age,
+          year: year,
+        };
+
         this.addEvent(event);
       }
     }

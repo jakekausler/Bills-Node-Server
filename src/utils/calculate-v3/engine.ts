@@ -13,6 +13,7 @@ import { AccountManager } from './account-manager';
 import { TaxManager } from './tax-manager';
 import { RetirementManager } from './retirement-manager';
 import { HealthcareManager } from './healthcare-manager';
+import { MedicareManager } from './medicare-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { loadHealthcareConfigs } from '../io/healthcareConfigs';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
@@ -39,6 +40,7 @@ export class Engine {
   private taxManager: TaxManager;
   private retirementManager: RetirementManager;
   private healthcareManager: HealthcareManager;
+  private medicareManager: MedicareManager;
   private calculationBegin: number;
   private monteCarloConfig: MonteCarloConfig | null = null;
 
@@ -215,6 +217,12 @@ export class Engine {
     }
     this.healthcareManager = new HealthcareManager(await loadHealthcareConfigs(), this.simulation);
 
+    // Initialize Medicare manager
+    if (options.enableLogging) {
+      console.log('Initializing Medicare manager...', Date.now() - this.calculationBegin, 'ms');
+    }
+    this.medicareManager = new MedicareManager();
+
     // Initialize spending tracker manager
     if (options.enableLogging) {
       console.log('Initializing spending tracker manager...', Date.now() - this.calculationBegin, 'ms');
@@ -260,6 +268,7 @@ export class Engine {
       this.taxManager,
       this.retirementManager,
       this.healthcareManager,
+      this.medicareManager,
       this.accountManager,
       options.simulation,
       spendingTrackerManager,

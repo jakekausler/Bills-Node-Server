@@ -7,6 +7,7 @@ import { AccountManager } from './account-manager';
 import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
 import { HealthcareManager } from './healthcare-manager';
+import { MedicareManager } from './medicare-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { ContributionLimitManager } from './contribution-limit-manager';
 import { RothConversionManager } from './roth-conversion-manager';
@@ -29,6 +30,8 @@ import {
   TaxableOccurrence,
   TaxEvent,
   RothConversionEvent,
+  MedicarePremiumEvent,
+  MedicareHospitalEvent,
 } from './types';
 
 dayjs.extend(utc);
@@ -40,6 +43,7 @@ export class Calculator {
   private retirementManager: RetirementManager;
   private accountManager: AccountManager;
   private healthcareManager: HealthcareManager;
+  private medicareManager: MedicareManager;
   private spendingTrackerManager: SpendingTrackerManager;
   private contributionLimitManager: ContributionLimitManager;
   private rothConversionManager: RothConversionManager;
@@ -51,6 +55,7 @@ export class Calculator {
     taxManager: TaxManager,
     retirementManager: RetirementManager,
     healthcareManager: HealthcareManager,
+    medicareManager: MedicareManager,
     accountManager: AccountManager,
     simulation: string,
     spendingTrackerManager: SpendingTrackerManager,
@@ -61,6 +66,7 @@ export class Calculator {
     this.taxManager = taxManager;
     this.retirementManager = retirementManager;
     this.healthcareManager = healthcareManager;
+    this.medicareManager = medicareManager;
     this.simulation = simulation;
     this.accountManager = accountManager;
     this.spendingTrackerManager = spendingTrackerManager;
@@ -1157,5 +1163,127 @@ export class Calculator {
 
     return cappedAmount;
   }
+
+  /**
+   * Process a Medicare premium event (monthly Part B, Part D, Medigap premiums + IRMAA)
+   */
+  processMedicarePremiumEvent(event: MedicarePremiumEvent, segmentResult: SegmentResult): Map<string, number> {
+    const accountId = event.accountId;
+    const year = event.year;
+
+    // Get MAGI from 2 years prior for IRMAA calculation (IRS rule)
+    // Use all taxable occurrences from that year to compute MAGI
+    const magiYear = year - 2;
+    const priorOccurrences = this.taxManager.getAllOccurrencesForYear(magiYear);
+    const magi = priorOccurrences.reduce((sum, occ) => sum + occ.amount, 0);
+
+    // Map FilingStatus to Medicare filing status (convert mfs/hoh to single)
+    const medicareFilingStatus = (this.filingStatus === 'mfj') ? 'mfj' : 'single';
+
+    // Get monthly Medicare cost including IRMAA surcharge
+    const monthlyMedicareCost = this.medicareManager.getMonthlyMedicareCost(
+      event.ownerAge,
+      magi,
+      medicareFilingStatus,
+      year,
+    );
+
+    // Find the paying account
+    const payingAccount = this.balanceTracker.findAccountById(accountId);
+    if (!payingAccount) {
+      return new Map();
+    }
+
+    // Create activity for Medicare premium
+    const medicareActivity = new ConsolidatedActivity({
+      id: `MEDICARE-${event.personName}-${formatDate(event.date)}`,
+      name: `Medicare Premium (${event.personName})`,
+      amount: -monthlyMedicareCost,
+      amountIsVariable: false,
+      amountVariable: null,
+      date: formatDate(event.date),
+      dateIsVariable: false,
+      dateVariable: null,
+      from: null,
+      to: null,
+      isTransfer: false,
+      category: 'Healthcare.Medicare',
+      flag: true,
+      flagColor: 'orange',
+    });
+
+    if (!segmentResult.activitiesAdded.has(accountId)) {
+      segmentResult.activitiesAdded.set(accountId, []);
+    }
+    segmentResult.activitiesAdded.get(accountId)?.push(medicareActivity);
+
+    // Update balance
+    const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+    segmentResult.balanceChanges.set(accountId, currentChange - monthlyMedicareCost);
+
+    return new Map([[accountId, -monthlyMedicareCost]]);
+  }
+
+  /**
+   * Process a Medicare hospital admission event (annual check for Poisson-distributed admissions)
+   */
+  processMedicareHospitalEvent(event: MedicareHospitalEvent, segmentResult: SegmentResult): Map<string, number> {
+    const accountId = event.accountId;
+    const year = event.year;
+
+    // For now, use expected value (no random function in deterministic mode)
+    // In future, can integrate MC random via segment processor
+    const numAdmissions = this.medicareManager.generateHospitalAdmissions(event.ownerAge, year);
+
+    if (numAdmissions === 0) {
+      return new Map();
+    }
+
+    // Find the paying account
+    const payingAccount = this.balanceTracker.findAccountById(accountId);
+    if (!payingAccount) {
+      return new Map();
+    }
+
+    let totalHospitalCost = 0;
+
+    // For each admission, calculate cost (Part A deductible + copays)
+    for (let i = 0; i < numAdmissions; i++) {
+      const partADeductible = this.medicareManager.getPartADeductible(year);
+      totalHospitalCost += partADeductible;
+      // Assume average 3-day hospital stay with copay
+      totalHospitalCost += 400; // Average copay per day
+    }
+
+    // Create activity for hospital expenses
+    const hospitalActivity = new ConsolidatedActivity({
+      id: `HOSPITAL-${event.personName}-${formatDate(event.date)}`,
+      name: `Hospital Admissions (${event.personName}) x${numAdmissions}`,
+      amount: -totalHospitalCost,
+      amountIsVariable: false,
+      amountVariable: null,
+      date: formatDate(event.date),
+      dateIsVariable: false,
+      dateVariable: null,
+      from: null,
+      to: null,
+      isTransfer: false,
+      category: 'Healthcare.Hospital',
+      flag: true,
+      flagColor: 'red',
+    });
+
+    if (!segmentResult.activitiesAdded.has(accountId)) {
+      segmentResult.activitiesAdded.set(accountId, []);
+    }
+    segmentResult.activitiesAdded.get(accountId)?.push(hospitalActivity);
+
+    // Update balance
+    const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+    segmentResult.balanceChanges.set(accountId, currentChange - totalHospitalCost);
+
+    return new Map([[accountId, -totalHospitalCost]]);
+  }
+
 
 }
