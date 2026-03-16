@@ -1,11 +1,15 @@
-import { TaxableOccurrence } from './types';
+import { TaxableOccurrence, FilingStatus } from './types';
+import { computeAnnualFederalTax } from './bracket-calculator';
 
 export class TaxManager {
   // Map of years to account ids to taxable events
   private taxableOccurrences: Map<number, Map<string, TaxableOccurrence[]>>;
+  // Cache of computed tax amounts per year
+  private taxCache: Map<number, number>;
 
   constructor() {
     this.taxableOccurrences = new Map<number, Map<string, TaxableOccurrence[]>>();
+    this.taxCache = new Map<number, number>();
   }
 
   // Add multiple taxable occurences for an account
@@ -37,13 +41,56 @@ export class TaxManager {
     return yearMap.get(accountId) || [];
   }
 
-  // Calculate total tax owed for an account in a specific year
-  // NOTE: This is a legacy implementation. Task 5 will replace this with progressive bracket calculation.
-  // For now, we aggregate by income type but don't calculate final tax (that's done in Task 5 with BracketCalculator).
-  public calculateTotalTaxOwed(accountId: string, year: number): number {
-    // TEMPORARY: Return 0 until Task 5 implements bracket-based calculation
-    // The new system aggregates income by type and calculates via BracketCalculator, not per-account flat rates
-    return 0;
+  // Get all taxable occurrences across all accounts for a given year
+  public getAllOccurrencesForYear(year: number): TaxableOccurrence[] {
+    const yearMap = this.taxableOccurrences.get(year);
+    if (!yearMap) return [];
+    const all: TaxableOccurrence[] = [];
+    for (const occurrences of yearMap.values()) {
+      all.push(...occurrences);
+    }
+    return all;
+  }
+
+  // Calculate total tax owed for a year using progressive brackets
+  public calculateTotalTaxOwed(
+    year: number,
+    filingStatus: FilingStatus = 'mfj',
+    bracketInflationRate: number = 0.03,
+  ): number {
+    // Check cache first
+    if (this.taxCache.has(year)) {
+      return this.taxCache.get(year)!;
+    }
+
+    const allOccurrences = this.getAllOccurrencesForYear(year);
+
+    let ordinaryIncome = 0;
+    let ssIncome = 0;
+    let penaltyTotal = 0;
+
+    for (const occurrence of allOccurrences) {
+      switch (occurrence.incomeType) {
+        case 'ordinary':
+        case 'retirement':
+        case 'interest':
+          ordinaryIncome += occurrence.amount;
+          break;
+        case 'socialSecurity':
+          ssIncome += occurrence.amount;
+          break;
+        case 'penalty':
+          penaltyTotal += occurrence.amount; // Pre-computed dollar amount
+          break;
+      }
+    }
+
+    const result = computeAnnualFederalTax(ordinaryIncome, ssIncome, filingStatus, year, bracketInflationRate);
+    const totalTax = result.tax + penaltyTotal;
+
+    // Cache the result
+    this.taxCache.set(year, totalTax);
+    return totalTax;
   }
 
   // Clear all taxable events for an account in a specific year
@@ -56,11 +103,15 @@ export class TaxManager {
         this.taxableOccurrences.delete(year);
       }
     }
+    // Invalidate cache for this year
+    this.taxCache.delete(year);
   }
 
   // Clear all taxable events for all accounts in a specific year
   public clearAllTaxableOccurrences(year: number): void {
     this.taxableOccurrences.delete(year);
+    // Invalidate cache for this year
+    this.taxCache.delete(year);
   }
 
   // Get all accounts that have taxable events in a specific year

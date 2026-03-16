@@ -143,6 +143,8 @@ describe('HSA Reimbursement', () => {
       accountManager,
       'primary',
       spendingTrackerManager,
+      'mfj',
+      0.03,
     );
 
     const segmentResult: SegmentResult = {

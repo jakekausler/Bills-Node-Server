@@ -370,6 +370,8 @@ function makeCalculator(opts: {
     (opts.accountManager ?? makeAccountManager()) as any,
     opts.simulation ?? 'Default',
     (opts.spendingTrackerManager ?? makeSpendingTrackerManager()) as any,
+    opts.filingStatus ?? 'mfj',
+    opts.bracketInflationRate ?? 0.03,
   );
 }
 
@@ -2084,7 +2086,7 @@ describe('Calculator', () => {
 
       calculator.processTaxEvent(event, segmentResult);
 
-      expect(taxManager.calculateTotalTaxOwed).toHaveBeenCalledWith('account-1', 2024);
+      expect(taxManager.calculateTotalTaxOwed).toHaveBeenCalledWith(2024, 'mfj', 0.03);
     });
   });
 

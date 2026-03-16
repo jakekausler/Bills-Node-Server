@@ -17,6 +17,7 @@ import {
   ActivityTransferEvent,
   BillEvent,
   BillTransferEvent,
+  FilingStatus,
   IncomeType,
   InterestEvent,
   PensionEvent,
@@ -39,6 +40,9 @@ export class Calculator {
   private healthcareManager: HealthcareManager;
   private spendingTrackerManager: SpendingTrackerManager;
   private contributionLimitManager: ContributionLimitManager;
+  private filingStatus: FilingStatus;
+  private bracketInflationRate: number;
+
   constructor(
     balanceTracker: BalanceTracker,
     taxManager: TaxManager,
@@ -47,6 +51,8 @@ export class Calculator {
     accountManager: AccountManager,
     simulation: string,
     spendingTrackerManager: SpendingTrackerManager,
+    filingStatus: FilingStatus = 'mfj',
+    bracketInflationRate: number = 0.03,
   ) {
     this.balanceTracker = balanceTracker;
     this.taxManager = taxManager;
@@ -55,6 +61,8 @@ export class Calculator {
     this.simulation = simulation;
     this.accountManager = accountManager;
     this.spendingTrackerManager = spendingTrackerManager;
+    this.filingStatus = filingStatus;
+    this.bracketInflationRate = bracketInflationRate;
     this.contributionLimitManager = new ContributionLimitManager();
   }
 
@@ -727,8 +735,12 @@ export class Calculator {
     }
     const accountId = account.id;
 
-    // Calculate the tax amount
-    const amount = -this.taxManager.calculateTotalTaxOwed(accountId, event.date.getUTCFullYear() - 1);
+    // Calculate the tax amount using progressive brackets
+    const amount = -this.taxManager.calculateTotalTaxOwed(
+      event.date.getUTCFullYear() - 1,
+      this.filingStatus,
+      this.bracketInflationRate,
+    );
     if (amount === 0) {
       return new Map();
     }

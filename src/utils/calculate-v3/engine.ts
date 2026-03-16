@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { AccountsAndTransfers } from '../../data/account/types';
-import { CalculationConfig, CalculationOptions, MonteCarloConfig } from './types';
+import { CalculationConfig, CalculationOptions, FilingStatus, MonteCarloConfig } from './types';
 import { CacheManager, initializeCache } from './cache';
 import { Timeline } from './timeline';
 import { BalanceTracker } from './balance-tracker';
@@ -257,6 +257,8 @@ export class Engine {
       this.accountManager,
       options.simulation,
       spendingTrackerManager,
+      (options.filingStatus as FilingStatus) || 'mfj',
+      options.bracketInflationRate || 0.03,
     );
 
     // Initialize push-pull handler

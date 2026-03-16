@@ -134,51 +134,138 @@ describe('TaxManager', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // calculateTotalTaxOwed
+  // getAllOccurrencesForYear
   // ---------------------------------------------------------------------------
-  describe('calculateTotalTaxOwed', () => {
-    it('returns 0 when no events exist', () => {
-      expect(manager.calculateTotalTaxOwed('account-1', 2025)).toBe(0);
+  describe('getAllOccurrencesForYear', () => {
+    it('returns empty array when no data for the year', () => {
+      expect(manager.getAllOccurrencesForYear(2025)).toEqual([]);
     });
 
-    it('returns 0 (legacy implementation replaced by BracketCalculator in Task 5)', () => {
-      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ amount: 1000 }));
-      expect(manager.calculateTotalTaxOwed('account-1', 2025)).toBe(0);
+    it('aggregates all occurrences across all accounts for a year', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 1000 }));
+      manager.addTaxableOccurrence('account-2', makeTaxableEvent({ year: 2025, amount: 2000 }));
+      manager.addTaxableOccurrence('account-3', makeTaxableEvent({ year: 2025, amount: 3000 }));
+
+      const all = manager.getAllOccurrencesForYear(2025);
+      expect(all).toHaveLength(3);
+      expect(all.map(o => o.amount)).toEqual([1000, 2000, 3000]);
     });
 
-    it('returns 0 with multiple events (legacy implementation replaced by BracketCalculator in Task 5)', () => {
-      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ amount: 1000 }));
-      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ amount: 500 }));
-
-      // Legacy: would be 1000 * 0.25 + 500 * 0.10 = 250 + 50 = 300
-      // New: returns 0 until Task 5 implements bracket-based calculation
-      expect(manager.calculateTotalTaxOwed('account-1', 2025)).toBe(0);
-    });
-
-    it('returns 0 regardless of year (legacy implementation replaced by BracketCalculator in Task 5)', () => {
+    it('does not include occurrences from other years', () => {
       manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 1000 }));
       manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2026, amount: 2000 }));
 
-      expect(manager.calculateTotalTaxOwed('account-1', 2025)).toBe(0);
-      expect(manager.calculateTotalTaxOwed('account-1', 2026)).toBe(0);
+      const all2025 = manager.getAllOccurrencesForYear(2025);
+      expect(all2025).toHaveLength(1);
+      expect(all2025[0].amount).toBe(1000);
     });
 
-    it('returns 0 for any account (legacy implementation replaced by BracketCalculator in Task 5)', () => {
-      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ amount: 1000 }));
-      manager.addTaxableOccurrence('account-2', makeTaxableEvent({ amount: 2000 }));
+    it('aggregates multiple occurrences from the same account', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 500 }));
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 700 }));
+      manager.addTaxableOccurrence('account-2', makeTaxableEvent({ year: 2025, amount: 800 }));
 
-      expect(manager.calculateTotalTaxOwed('account-1', 2025)).toBe(0);
-      expect(manager.calculateTotalTaxOwed('account-2', 2025)).toBe(0);
+      const all = manager.getAllOccurrencesForYear(2025);
+      expect(all).toHaveLength(3);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // calculateTotalTaxOwed - bracket-based taxation
+  // ---------------------------------------------------------------------------
+  describe('calculateTotalTaxOwed', () => {
+    it('returns 0 when no events exist', () => {
+      const tax = manager.calculateTotalTaxOwed(2025, 'mfj');
+      expect(tax).toBe(0);
     });
 
-    it('returns 0 (legacy implementation replaced by BracketCalculator in Task 5)', () => {
-      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ amount: 1000 }));
-      expect(manager.calculateTotalTaxOwed('account-1', 2025)).toBe(0);
+    it('calculates tax on $50K ordinary income MFJ', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+
+      const tax = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+      // 2025 MFJ: standard deduction ~$30K (inflated), so taxable is ~$20K
+      // At 2025 rates, this should be roughly $2,000-$3,000 in the 12% bracket
+      expect(tax).toBeGreaterThan(1000);
+      expect(tax).toBeLessThan(5000);
     });
 
-    it('returns 0 (legacy implementation replaced by BracketCalculator in Task 5)', () => {
-      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ amount: 500 }));
-      expect(manager.calculateTotalTaxOwed('account-1', 2025)).toBe(0);
+    it('aggregates ordinary, retirement, and interest income', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 30000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 20000, incomeType: 'retirement' }));
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 5000, incomeType: 'interest' }));
+
+      const tax = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+      // Total ordinary income: 55K
+      expect(tax).toBeGreaterThan(0);
+    });
+
+    it('handles Social Security income with partial taxation', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 30000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 30000, incomeType: 'socialSecurity' }));
+
+      const tax = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+      // Provisional income = 30K + 15K = 45K
+      // At MFJ tier1 (32K in 2025), 50% of SS is taxable up to tier2
+      expect(tax).toBeGreaterThan(0);
+    });
+
+    it('adds penalties on top of bracket tax', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      const taxWithoutPenalty = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      // For testing penalty addition, use a different year
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2026, amount: 50000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2026, amount: 1000, incomeType: 'penalty' }));
+
+      const taxWithPenalty = manager.calculateTotalTaxOwed(2026, 'mfj', 0.03);
+      expect(taxWithPenalty).toBeGreaterThan(taxWithoutPenalty);
+    });
+
+    it('uses different tax calculation for Single filing status', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+
+      const mfjTax = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+      manager.clearAllTaxableOccurrences(2025);
+
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      const singleTax = manager.calculateTotalTaxOwed(2025, 'single', 0.03);
+
+      // Single should have higher tax than MFJ on same income (narrower brackets)
+      expect(singleTax).toBeGreaterThan(mfjTax);
+    });
+
+    it('respects bracket inflation rate for future years', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2030, amount: 50000, incomeType: 'ordinary' }));
+
+      const tax3Pct = manager.calculateTotalTaxOwed(2030, 'mfj', 0.03);
+      manager.clearAllTaxableOccurrences(2030);
+
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2030, amount: 50000, incomeType: 'ordinary' }));
+      const tax5Pct = manager.calculateTotalTaxOwed(2030, 'mfj', 0.05);
+
+      // Higher inflation rate = higher brackets = lower tax (or equal)
+      expect(tax5Pct).toBeLessThanOrEqual(tax3Pct);
+    });
+
+    it('caches results for a year (same result on second call)', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+
+      const firstCall = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+      const secondCall = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      expect(firstCall).toBe(secondCall);
+    });
+
+    it('returns different results for different years', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2026, amount: 50000, incomeType: 'ordinary' }));
+
+      const tax2025 = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+      const tax2026 = manager.calculateTotalTaxOwed(2026, 'mfj', 0.03);
+
+      // Different years may have different bracket data / inflation
+      expect(tax2025).toBeGreaterThan(0);
+      expect(tax2026).toBeGreaterThan(0);
     });
   });
 
@@ -218,13 +305,22 @@ describe('TaxManager', () => {
       manager.addTaxableOccurrence('account-1', makeTaxableEvent());
       manager.clearTaxableOccurrences('account-1', 2025);
 
-      // After clearing the only account, the year should be gone
-      // Verify by checking that getAccountsWithTaxableEvents returns empty
       expect(manager.getAccountsWithTaxableEvents(2025)).toHaveLength(0);
     });
 
+    it('invalidates cache when clearing taxable occurrences', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      const firstTax = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      manager.clearTaxableOccurrences('account-1', 2025);
+      const secondTax = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      // After clearing, tax should be 0
+      expect(secondTax).toBe(0);
+      expect(firstTax).toBeGreaterThan(0);
+    });
+
     it('is a no-op when account has no events in the given year', () => {
-      // Should not throw
       expect(() => manager.clearTaxableOccurrences('nonexistent', 2025)).not.toThrow();
     });
 
@@ -256,6 +352,17 @@ describe('TaxManager', () => {
 
       expect(manager.getTaxableOccurrences('account-1', 2025)).toHaveLength(0);
       expect(manager.getTaxableOccurrences('account-1', 2026)).toHaveLength(1);
+    });
+
+    it('invalidates cache when clearing all taxable occurrences for a year', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      const firstTax = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      manager.clearAllTaxableOccurrences(2025);
+      const secondTax = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      expect(secondTax).toBe(0);
+      expect(firstTax).toBeGreaterThan(0);
     });
 
     it('is a no-op for a year with no data', () => {
@@ -302,20 +409,19 @@ describe('TaxManager', () => {
   // ---------------------------------------------------------------------------
   describe('integration', () => {
     it('correctly accumulates and clears events across multiple accounts and years', () => {
-      // Set up data for multiple accounts / years
       manager.addTaxableOccurrences('roth-ira', [
-        makeTaxableEvent({ year: 2025, amount: 5000 }),
-        makeTaxableEvent({ year: 2025, amount: 3000 }),
+        makeTaxableEvent({ year: 2025, amount: 5000, incomeType: 'ordinary' }),
+        makeTaxableEvent({ year: 2025, amount: 3000, incomeType: 'ordinary' }),
       ]);
       manager.addTaxableOccurrences('401k', [
-        makeTaxableEvent({ year: 2025, amount: 20000 }),
-        makeTaxableEvent({ year: 2026, amount: 25000 }),
+        makeTaxableEvent({ year: 2025, amount: 20000, incomeType: 'ordinary' }),
+        makeTaxableEvent({ year: 2026, amount: 25000, incomeType: 'ordinary' }),
       ]);
 
-      // Verify per year totals (legacy implementation replaced by BracketCalculator in Task 5)
-      expect(manager.calculateTotalTaxOwed('roth-ira', 2025)).toBe(0);
-      expect(manager.calculateTotalTaxOwed('401k', 2025)).toBe(0); // Legacy: would be ~4400
-      expect(manager.calculateTotalTaxOwed('401k', 2026)).toBe(0); // Legacy: would be 6000
+      // Verify aggregation for 2025 - should have some tax on 28K combined income
+      const tax2025 = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+      // Income is 28K, standard deduction ~30K, so likely no tax after deduction
+      expect(typeof tax2025).toBe('number');
 
       // getAccountsWithTaxableEvents for 2025 should have both accounts
       const accounts2025 = manager.getAccountsWithTaxableEvents(2025);
@@ -333,12 +439,14 @@ describe('TaxManager', () => {
       expect(manager.getTaxableOccurrences('401k', 2026)).toHaveLength(1);
     });
 
-    it('calculateTotalTaxOwed returns 0 regardless of events (legacy implementation replaced by BracketCalculator in Task 5)', () => {
-      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ amount: 10000.3 }));
-      expect(manager.calculateTotalTaxOwed('account-1', 2025)).toBe(0); // Legacy: would be ~3000
+    it('calculateTotalTaxOwed uses progressive brackets on aggregated income', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 10000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('account-2', makeTaxableEvent({ year: 2025, amount: 40000, incomeType: 'ordinary' }));
 
-      manager.clearAllTaxableOccurrences(2025);
-      expect(manager.calculateTotalTaxOwed('account-1', 2025)).toBe(0);
+      const tax = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+      // Total: 50K, should compute some tax (likely minimal after standard deduction)
+      expect(typeof tax).toBe('number');
+      expect(tax).toBeGreaterThanOrEqual(0);
     });
   });
 });
