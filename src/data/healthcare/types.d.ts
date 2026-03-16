@@ -22,6 +22,10 @@ export type HealthcareConfig = {
   // Reset date
   resetMonth: number;
   resetDay: number;
+
+  // Deductible/OOP inflation configuration
+  deductibleInflationVariable?: string;  // e.g., "HEALTHCARE_INFLATION"
+  deductibleInflationRate?: number;       // Fallback fixed rate (e.g., 0.05 for 5%)
 };
 
 export type HealthcareConfigsData = {

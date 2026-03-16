@@ -455,7 +455,9 @@ describe('HealthcareManager', () => {
       // Expected: Patient pays $1500 (to deductible) + $150 (30% of remaining $500) = $1650
       const janeConfig: HealthcareConfig = {
         ...testConfig,
+        id: 'jane-test-config',
         coveredPersons: ['Jane'],
+        startDate: '2024-01-01',
         individualDeductible: 1500,
         familyDeductible: 3000,
         coinsurancePercent: 30,
@@ -471,7 +473,7 @@ describe('HealthcareManager', () => {
         healthcarePerson: 'Jane',
       };
 
-      const date = new Date('2026-01-31');
+      const date = new Date('2024-01-31'); // Use start year to avoid inflation
       const cost = managerJane['calculateDeductibleBasedCost'](
         mockExpense as any,
         janeConfig,
@@ -666,6 +668,145 @@ describe('HealthcareManager', () => {
       // OOP should not increase beyond the initial recorded 1500
       const oopProgress = manager.getOOPProgress(testConfig, date, 'John');
       expect(oopProgress.individualRemaining).toBe(3500); // 5000 - 1500 (OOP not incremented by this call)
+    });
+  });
+
+  describe('Deductible/OOP inflation (#13 Phase 5)', () => {
+    it('should inflate individual deductible by default 5% per year', () => {
+      const configWithInflation: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-inflation',
+        startDate: '2024-01-01',
+        individualDeductible: 1000,
+      };
+      const managerInflation = new HealthcareManager([configWithInflation]);
+
+      // Year 0 (2024): should return base value
+      const date2024 = new Date('2024-06-15');
+      const progress2024 = managerInflation.getDeductibleProgress(configWithInflation, date2024, 'John');
+      expect(progress2024.individualRemaining).toBe(1000);
+
+      // Year 1 (2025): should inflate by 5% → 1050
+      const date2025 = new Date('2025-06-15');
+      const progress2025 = managerInflation.getDeductibleProgress(configWithInflation, date2025, 'John');
+      expect(progress2025.individualRemaining).toBe(1050);
+
+      // Year 2 (2026): should inflate by 5% compounded → 1102.5 ≈ 1103 (rounded)
+      const date2026 = new Date('2026-06-15');
+      const progress2026 = managerInflation.getDeductibleProgress(configWithInflation, date2026, 'John');
+      expect(progress2026.individualRemaining).toBe(1103);
+    });
+
+    it('should use custom deductible inflation rate when specified', () => {
+      const configCustomRate: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-custom-rate',
+        startDate: '2024-01-01',
+        individualDeductible: 1000,
+        deductibleInflationRate: 0.10, // 10% custom rate
+      };
+      const managerCustom = new HealthcareManager([configCustomRate]);
+
+      // Year 1 (2025): should inflate by 10% → 1100
+      const date2025 = new Date('2025-06-15');
+      const progress2025 = managerCustom.getDeductibleProgress(configCustomRate, date2025, 'John');
+      expect(progress2025.individualRemaining).toBe(1100);
+    });
+
+    it('should inflate family deductible by default 5% per year', () => {
+      const configWithInflation: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-family-inflation',
+        startDate: '2024-01-01',
+        familyDeductible: 2000,
+      };
+      const managerInflation = new HealthcareManager([configWithInflation]);
+
+      // Year 0 (2024): should return base value
+      const date2024 = new Date('2024-06-15');
+      const progress2024 = managerInflation.getDeductibleProgress(configWithInflation, date2024, 'John');
+      expect(progress2024.familyRemaining).toBe(2000);
+
+      // Year 1 (2025): should inflate by 5% → 2100
+      const date2025 = new Date('2025-06-15');
+      const progress2025 = managerInflation.getDeductibleProgress(configWithInflation, date2025, 'John');
+      expect(progress2025.familyRemaining).toBe(2100);
+    });
+
+    it('should inflate individual OOP max by default 5% per year', () => {
+      const configWithInflation: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-oop-inflation',
+        startDate: '2024-01-01',
+        individualOutOfPocketMax: 5000,
+      };
+      const managerInflation = new HealthcareManager([configWithInflation]);
+
+      // Year 0 (2024): should return base value
+      const date2024 = new Date('2024-06-15');
+      const progress2024 = managerInflation.getOOPProgress(configWithInflation, date2024, 'John');
+      expect(progress2024.individualRemaining).toBe(5000);
+
+      // Year 1 (2025): should inflate by 5% → 5250
+      const date2025 = new Date('2025-06-15');
+      const progress2025 = managerInflation.getOOPProgress(configWithInflation, date2025, 'John');
+      expect(progress2025.individualRemaining).toBe(5250);
+    });
+
+    it('should inflate family OOP max by default 5% per year', () => {
+      const configWithInflation: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-family-oop-inflation',
+        startDate: '2024-01-01',
+        familyOutOfPocketMax: 10000,
+      };
+      const managerInflation = new HealthcareManager([configWithInflation]);
+
+      // Year 0 (2024): should return base value
+      const date2024 = new Date('2024-06-15');
+      const progress2024 = managerInflation.getOOPProgress(configWithInflation, date2024, 'John');
+      expect(progress2024.familyRemaining).toBe(10000);
+
+      // Year 1 (2025): should inflate by 5% → 10500
+      const date2025 = new Date('2025-06-15');
+      const progress2025 = managerInflation.getOOPProgress(configWithInflation, date2025, 'John');
+      expect(progress2025.familyRemaining).toBe(10500);
+    });
+
+    it('should return base values when no inflation rate specified (default 5%)', () => {
+      const configNoRate: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-no-rate',
+        startDate: '2024-01-01',
+        individualDeductible: 1000,
+        // No deductibleInflationRate specified, should use default 5%
+      };
+      const managerNoRate = new HealthcareManager([configNoRate]);
+
+      // Year 1: should still apply 5% default
+      const date2025 = new Date('2025-06-15');
+      const progress2025 = managerNoRate.getDeductibleProgress(configNoRate, date2025, 'John');
+      expect(progress2025.individualRemaining).toBe(1050); // 5% of 1000 = 1050
+    });
+
+    it('should handle year 0 (start year) correctly', () => {
+      const configWithInflation: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-year-0',
+        startDate: '2024-01-01',
+        individualDeductible: 1500,
+      };
+      const managerInflation = new HealthcareManager([configWithInflation]);
+
+      // Date in start year should have zero years of inflation
+      const dateStartYear = new Date('2024-01-15');
+      const progressStart = managerInflation.getDeductibleProgress(configWithInflation, dateStartYear, 'John');
+      expect(progressStart.individualRemaining).toBe(1500); // No inflation yet
+
+      // Late in start year should still be year 0
+      const dateEndYear = new Date('2024-12-15');
+      const progressEnd = managerInflation.getDeductibleProgress(configWithInflation, dateEndYear, 'John');
+      expect(progressEnd.individualRemaining).toBe(1500); // Still no inflation
     });
   });
 });

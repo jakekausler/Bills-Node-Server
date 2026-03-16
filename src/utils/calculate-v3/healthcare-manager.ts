@@ -30,6 +30,50 @@ export class HealthcareManager {
   }
 
   /**
+   * Compute the inflated deductible value for a given date
+   */
+  private getInflatedDeductible(config: HealthcareConfig, date: Date): number {
+    const baseYear = parseDate(config.startDate).getUTCFullYear();
+    const currentYear = date.getUTCFullYear();
+    const yearsDiff = Math.max(0, currentYear - baseYear);
+    const rate = config.deductibleInflationRate ?? 0.05; // Default 5% healthcare inflation
+    return Math.round(config.individualDeductible * Math.pow(1 + rate, yearsDiff));
+  }
+
+  /**
+   * Compute the inflated family deductible value for a given date
+   */
+  private getInflatedFamilyDeductible(config: HealthcareConfig, date: Date): number {
+    const baseYear = parseDate(config.startDate).getUTCFullYear();
+    const currentYear = date.getUTCFullYear();
+    const yearsDiff = Math.max(0, currentYear - baseYear);
+    const rate = config.deductibleInflationRate ?? 0.05; // Default 5% healthcare inflation
+    return Math.round(config.familyDeductible * Math.pow(1 + rate, yearsDiff));
+  }
+
+  /**
+   * Compute the inflated individual OOP max value for a given date
+   */
+  private getInflatedIndividualOOP(config: HealthcareConfig, date: Date): number {
+    const baseYear = parseDate(config.startDate).getUTCFullYear();
+    const currentYear = date.getUTCFullYear();
+    const yearsDiff = Math.max(0, currentYear - baseYear);
+    const rate = config.deductibleInflationRate ?? 0.05; // Default 5% healthcare inflation
+    return Math.round(config.individualOutOfPocketMax * Math.pow(1 + rate, yearsDiff));
+  }
+
+  /**
+   * Compute the inflated family OOP max value for a given date
+   */
+  private getInflatedFamilyOOP(config: HealthcareConfig, date: Date): number {
+    const baseYear = parseDate(config.startDate).getUTCFullYear();
+    const currentYear = date.getUTCFullYear();
+    const yearsDiff = Math.max(0, currentYear - baseYear);
+    const rate = config.deductibleInflationRate ?? 0.05; // Default 5% healthcare inflation
+    return Math.round(config.familyOutOfPocketMax * Math.pow(1 + rate, yearsDiff));
+  }
+
+  /**
    * Find the active healthcare config for a person at a given date
    */
   getActiveConfig(personName: string, date: Date): HealthcareConfig | null {
@@ -200,12 +244,15 @@ export class HealthcareManager {
       return sum + (tracker.individualDeductible.get(person) || 0);
     }, 0);
 
-    const individualRemaining = Math.max(0, config.individualDeductible - individualSpent);
-    const familyRemaining = Math.max(0, config.familyDeductible - familySpent);
+    const inflatedIndividualDeductible = this.getInflatedDeductible(config, date);
+    const inflatedFamilyDeductible = this.getInflatedFamilyDeductible(config, date);
+
+    const individualRemaining = Math.max(0, inflatedIndividualDeductible - individualSpent);
+    const familyRemaining = Math.max(0, inflatedFamilyDeductible - familySpent);
 
     return {
-      individualMet: individualSpent >= config.individualDeductible,
-      familyMet: familySpent >= config.familyDeductible,
+      individualMet: individualSpent >= inflatedIndividualDeductible,
+      familyMet: familySpent >= inflatedFamilyDeductible,
       individualRemaining,
       familyRemaining,
     };
@@ -234,11 +281,14 @@ export class HealthcareManager {
       return sum + (tracker.individualOOP.get(person) || 0);
     }, 0);
 
-    const individualRemaining = Math.max(0, config.individualOutOfPocketMax - individualSpent);
-    const familyRemaining = Math.max(0, config.familyOutOfPocketMax - familySpent);
+    const inflatedIndividualOOP = this.getInflatedIndividualOOP(config, date);
+    const inflatedFamilyOOP = this.getInflatedFamilyOOP(config, date);
 
-    const individualMet = individualSpent >= config.individualOutOfPocketMax;
-    const familyMet = familySpent >= config.familyOutOfPocketMax;
+    const individualRemaining = Math.max(0, inflatedIndividualOOP - individualSpent);
+    const familyRemaining = Math.max(0, inflatedFamilyOOP - familySpent);
+
+    const individualMet = individualSpent >= inflatedIndividualOOP;
+    const familyMet = familySpent >= inflatedFamilyOOP;
 
     return {
       individualMet,
