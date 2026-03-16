@@ -15,6 +15,7 @@ import {
   SpendingTrackerEvent,
   TimelineEvent,
   TaxableOccurrence,
+  RothConversionEvent,
 } from './types';
 import { CacheManager } from './cache';
 import { BalanceTracker } from './balance-tracker';
@@ -294,6 +295,8 @@ export class SegmentProcessor {
         return this.calculator.processTaxEvent(event as TaxEvent, segmentResult);
       case EventType.rmd:
         return this.calculator.processRMDEvent(event as RMDEvent, segmentResult);
+      case EventType.rothConversion:
+        return this.calculator.processRothConversionEvent(event as RothConversionEvent, segmentResult);
       case EventType.spendingTracker:
         return this.calculator.processSpendingTrackerEvent(event as SpendingTrackerEvent, segmentResult);
       default:
@@ -323,6 +326,8 @@ export class SegmentProcessor {
         return 'Tax';
       case EventType.rmd:
         return 'RMD';
+      case EventType.rothConversion:
+        return 'Roth Conversion';
       case EventType.spendingTracker:
         return (event as SpendingTrackerEvent).categoryName;
       case EventType.activityTransfer:

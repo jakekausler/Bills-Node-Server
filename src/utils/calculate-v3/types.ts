@@ -128,6 +128,7 @@ export enum EventType {
   tax = 'tax',
   rmd = 'rmd',
   spendingTracker = 'spendingTracker',
+  rothConversion = 'rothConversion',
 }
 
 export type TimelineEvent = {
@@ -206,6 +207,11 @@ export type SpendingTrackerEvent = TimelineEvent & {
   /** Virtual events process carry but don't create remainder activities.
    *  These are periods before the category's startDate. */
   virtual: boolean;
+};
+
+export type RothConversionEvent = TimelineEvent & {
+  type: EventType.rothConversion;
+  year: number;
 };
 
 export type Segment = {

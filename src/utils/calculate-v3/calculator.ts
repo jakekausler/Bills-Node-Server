@@ -9,6 +9,7 @@ import { TaxManager } from './tax-manager';
 import { HealthcareManager } from './healthcare-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { ContributionLimitManager } from './contribution-limit-manager';
+import { RothConversionManager } from './roth-conversion-manager';
 import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -27,6 +28,7 @@ import {
   SpendingTrackerEvent,
   TaxableOccurrence,
   TaxEvent,
+  RothConversionEvent,
 } from './types';
 
 dayjs.extend(utc);
@@ -40,6 +42,7 @@ export class Calculator {
   private healthcareManager: HealthcareManager;
   private spendingTrackerManager: SpendingTrackerManager;
   private contributionLimitManager: ContributionLimitManager;
+  private rothConversionManager: RothConversionManager;
   private filingStatus: FilingStatus;
   private bracketInflationRate: number;
 
@@ -64,6 +67,8 @@ export class Calculator {
     this.filingStatus = filingStatus;
     this.bracketInflationRate = bracketInflationRate;
     this.contributionLimitManager = new ContributionLimitManager();
+    this.rothConversionManager = new RothConversionManager(accountManager);
+    this.rothConversionManager.setBalanceTracker(balanceTracker);
   }
 
   /***************************************
@@ -855,6 +860,23 @@ export class Calculator {
       [account.id, -rmdAmount],
       [rmdAccount.id, rmdAmount],
     ]);
+  }
+
+  processRothConversionEvent(event: RothConversionEvent, segmentResult: SegmentResult): Map<string, number> {
+    // Process Roth conversions for this year
+    // This delegates to the RothConversionManager which handles the bracket-filling logic
+    // TODO #20: Process conversions and apply to segment result
+    this.rothConversionManager.processConversions(
+      event.year,
+      this.taxManager,
+      this.balanceTracker,
+      this.filingStatus,
+      this.bracketInflationRate,
+    );
+
+    // For Level 1, Roth conversions don't create activities or balance changes
+    // They are tracked internally in the manager for later use in withdrawal logic
+    return new Map<string, number>();
   }
 
   processSpendingTrackerEvent(event: SpendingTrackerEvent, segmentResult: SegmentResult): Map<string, number> {

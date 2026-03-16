@@ -19,6 +19,7 @@ import {
   TaxEvent,
   TimelineEvent,
   TransferEvent,
+  RothConversionEvent,
 } from './types';
 import { Account } from '../../data/account/account';
 import { Bill } from '../../data/bill/bill';
@@ -137,6 +138,7 @@ export class Timeline {
       timeline.addPensionEvents(endDate),
       timeline.addRmdEvents(accountsAndTransfers, startDate, endDate),
       timeline.addTaxEvents(accountsAndTransfers, startDate, endDate),
+      timeline.addRothConversionEvents(startDate, endDate, calculationOptions),
       timeline.addSpendingTrackerEvents(spendingTrackerCategories, startDate, endDate),
     ]);
 
@@ -309,6 +311,17 @@ export class Timeline {
     }
     if (this.enableLogging) {
       console.log('  Finished adding tax events', Date.now() - this.calculationBegin, 'ms');
+    }
+  }
+
+  private async addRothConversionEvents(
+    startDate: Date,
+    endDate: Date,
+    calculationOptions: CalculationOptions,
+  ): Promise<void> {
+    this.generateRothConversionEvents(startDate, endDate, calculationOptions);
+    if (this.enableLogging) {
+      console.log('  Finished adding Roth conversion events', Date.now() - this.calculationBegin, 'ms');
     }
   }
 
@@ -680,6 +693,36 @@ export class Timeline {
           date: taxDate,
           accountId: account.id,
           priority: 3,
+        };
+        this.addEvent(event);
+      }
+    }
+  }
+
+  private generateRothConversionEvents(
+    startDate: Date,
+    endDate: Date,
+    calculationOptions: CalculationOptions,
+  ): void {
+    // Generate Roth conversion events on December 31 for each year in range
+    // Priority 3.5: after RMD (0.5), tax (3), but as a year-end processing event
+    // TODO #20: Roth conversion events for bracket-filling strategy
+    const CONVERSION_MONTH = 12;
+    const CONVERSION_DAY = 31;
+
+    const startYear = startDate.getUTCFullYear();
+    const endYear = endDate.getUTCFullYear();
+
+    for (let year = startYear; year <= endYear; year++) {
+      const conversionDate = new Date(Date.UTC(year, CONVERSION_MONTH - 1, CONVERSION_DAY));
+      if (isAfterOrSame(conversionDate, startDate) && isBeforeOrSame(conversionDate, endDate)) {
+        const event: RothConversionEvent = {
+          id: `roth_conversion_${year}`,
+          type: EventType.rothConversion,
+          date: conversionDate,
+          accountId: '', // No specific account, processed globally
+          priority: 3.5,
+          year,
         };
         this.addEvent(event);
       }

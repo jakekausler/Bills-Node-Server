@@ -1,0 +1,22 @@
+[
+  {
+    "enabled": true,
+    "sourceAccount": "Jake 401(k)",
+    "destinationAccount": "Jake Roth IRA",
+    "startDateVariable": "RETIRE_DATE",
+    "endDateVariable": "JAKE_SOCIAL_SECURITY_START_DATE",
+    "strategy": "fillBracket",
+    "targetBracketRate": 0.22,
+    "priority": "largerFirst"
+  },
+  {
+    "enabled": true,
+    "sourceAccount": "Kendall 401(k)",
+    "destinationAccount": "Kendall Roth IRA",
+    "startDateVariable": "RETIRE_DATE",
+    "endDateVariable": "KENDALL_SOCIAL_SECURITY_START_DATE",
+    "strategy": "fillBracket",
+    "targetBracketRate": 0.22,
+    "priority": "largerFirst"
+  }
+]
