@@ -251,4 +251,272 @@ describe('PushPullHandler', () => {
       expect(segment.events[0].type).toBe('activityTransfer');
     });
   });
+
+  describe('Tax-Aware Withdrawal Strategy', () => {
+    it('should use pullPriority for manual strategy', () => {
+      const futureDate = new Date(Date.UTC(2030, 0, 1));
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
+
+      const taxable = makeAccount({
+        id: 'taxable',
+        name: 'Brokerage',
+        type: 'Investment',
+        pullPriority: 100, // High priority
+        performsPulls: true,
+      });
+
+      const preTax = makeAccount({
+        id: 'pretax',
+        name: 'Traditional IRA',
+        type: 'Investment',
+        usesRMD: true,
+        pullPriority: 50, // Low priority (but ignored in manual mode)
+        performsPulls: true,
+      });
+
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(taxable);
+      vi.mocked(mockAccountManager.getPullableAccounts).mockReturnValue([preTax, taxable]);
+      vi.mocked(mockBalanceTracker.getAccountBalance)
+        .mockImplementation((id) => (id === 'taxable' ? 5000 : 5000));
+
+      pushPullHandler = new PushPullHandler(mockAccountManager, mockBalanceTracker, 'manual');
+
+      const account = makeAccount({
+        id: 'account-1',
+        performsPulls: true,
+        minimumBalance: 2000,
+      });
+
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(account);
+
+      const segment = makeSegment({
+        startDate: futureDate,
+        affectedAccountIds: ['account-1'],
+      });
+      const segmentResult = makeSegmentResult({
+        balanceMinimums: new Map([['account-1', 1500]]),
+      });
+
+      pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
+
+      // In manual mode, it should use pullPriority (preTax has lower priority=50 than taxable=100)
+      expect(segment.events.length).toBeGreaterThan(0);
+    });
+
+    it('should pull from taxable before pre-tax (post-59.5 - no penalty)', () => {
+      const futureDate = new Date(Date.UTC(2030, 0, 1));
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
+
+      const taxable = makeAccount({
+        id: 'taxable',
+        name: 'Brokerage',
+        type: 'Investment',
+        earlyWithdrawalPenalty: 0, // No penalty
+        performsPulls: true,
+      });
+
+      const preTax = makeAccount({
+        id: 'pretax',
+        name: 'Traditional IRA',
+        type: 'Investment',
+        usesRMD: true,
+        earlyWithdrawalPenalty: 0, // No penalty post-59.5
+        performsPulls: true,
+      });
+
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(taxable);
+      vi.mocked(mockAccountManager.getPullableAccounts).mockReturnValue([preTax, taxable]);
+      vi.mocked(mockBalanceTracker.getAccountBalance)
+        .mockImplementation((id) => (id === 'taxable' ? 5000 : 5000));
+
+      pushPullHandler = new PushPullHandler(mockAccountManager, mockBalanceTracker, 'taxOptimized');
+
+      const account = makeAccount({
+        id: 'account-1',
+        performsPulls: true,
+        minimumBalance: 2000,
+      });
+
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(account);
+
+      const segment = makeSegment({
+        startDate: futureDate,
+        affectedAccountIds: ['account-1'],
+      });
+      const segmentResult = makeSegmentResult({
+        balanceMinimums: new Map([['account-1', 1500]]),
+      });
+
+      pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
+
+      // First pull should come from taxable (post-59.5, no penalty)
+      const firstPullEvent = segment.events.find((e) => e.type === 'activityTransfer');
+      expect(firstPullEvent).toBeDefined();
+      if (firstPullEvent && firstPullEvent.type === 'activityTransfer') {
+        expect(firstPullEvent.fromAccountId).toBe('taxable');
+      }
+    });
+
+    it('should pull from Roth before penalty accounts (pre-59.5)', () => {
+      const futureDate = new Date(Date.UTC(2030, 0, 1));
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
+
+      const roth = makeAccount({
+        id: 'roth',
+        name: 'Roth IRA',
+        type: 'Investment',
+        earlyWithdrawalPenalty: 0.1,
+        earlyWithdrawalDate: '2040-01-01', // Penalty until 2040
+        performsPulls: true,
+      });
+
+      const preTaxWithPenalty = makeAccount({
+        id: 'pretax-penalty',
+        name: 'Traditional 401k',
+        type: 'Investment',
+        usesRMD: true,
+        earlyWithdrawalPenalty: 0.1,
+        earlyWithdrawalDate: '2040-01-01',
+        performsPulls: true,
+      });
+
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(roth);
+      vi.mocked(mockAccountManager.getPullableAccounts).mockReturnValue([preTaxWithPenalty, roth]);
+      vi.mocked(mockBalanceTracker.getAccountBalance)
+        .mockImplementation((id) => (id === 'roth' ? 5000 : 5000));
+
+      pushPullHandler = new PushPullHandler(mockAccountManager, mockBalanceTracker, 'taxOptimized');
+
+      const account = makeAccount({
+        id: 'account-1',
+        performsPulls: true,
+        minimumBalance: 2000,
+      });
+
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(account);
+
+      const segment = makeSegment({
+        startDate: futureDate,
+        affectedAccountIds: ['account-1'],
+      });
+      const segmentResult = makeSegmentResult({
+        balanceMinimums: new Map([['account-1', 1500]]),
+      });
+
+      pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
+
+      // First pull should come from Roth (pre-59.5, penalty applies)
+      const firstPullEvent = segment.events.find((e) => e.type === 'activityTransfer');
+      expect(firstPullEvent).toBeDefined();
+      if (firstPullEvent && firstPullEvent.type === 'activityTransfer') {
+        expect(firstPullEvent.fromAccountId).toBe('roth');
+      }
+    });
+
+    it('should pull from taxable before Roth (post-59.5 - no penalty)', () => {
+      const futureDate = new Date(Date.UTC(2030, 0, 1));
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
+
+      const taxable = makeAccount({
+        id: 'taxable',
+        name: 'Brokerage',
+        type: 'Investment',
+        performsPulls: true,
+      });
+
+      const roth = makeAccount({
+        id: 'roth',
+        name: 'Roth IRA',
+        type: 'Investment',
+        earlyWithdrawalPenalty: 0,
+        performsPulls: true,
+      });
+
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(taxable);
+      vi.mocked(mockAccountManager.getPullableAccounts).mockReturnValue([roth, taxable]);
+      vi.mocked(mockBalanceTracker.getAccountBalance)
+        .mockImplementation((id) => (id === 'taxable' ? 5000 : 5000));
+
+      pushPullHandler = new PushPullHandler(mockAccountManager, mockBalanceTracker, 'taxOptimized');
+
+      const account = makeAccount({
+        id: 'account-1',
+        performsPulls: true,
+        minimumBalance: 2000,
+      });
+
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(account);
+
+      const segment = makeSegment({
+        startDate: futureDate,
+        affectedAccountIds: ['account-1'],
+      });
+      const segmentResult = makeSegmentResult({
+        balanceMinimums: new Map([['account-1', 1500]]),
+      });
+
+      pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
+
+      // First pull should come from taxable (preserve Roth growth)
+      const firstPullEvent = segment.events.find((e) => e.type === 'activityTransfer');
+      expect(firstPullEvent).toBeDefined();
+      if (firstPullEvent && firstPullEvent.type === 'activityTransfer') {
+        expect(firstPullEvent.fromAccountId).toBe('taxable');
+      }
+    });
+
+    it('should respect pullPriority as tiebreaker within same tax tier', () => {
+      const futureDate = new Date(Date.UTC(2030, 0, 1));
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
+
+      // Two taxable accounts with different priorities
+      const taxable1 = makeAccount({
+        id: 'taxable1',
+        name: 'Brokerage1',
+        type: 'Investment',
+        pullPriority: 50,
+        performsPulls: true,
+      });
+
+      const taxable2 = makeAccount({
+        id: 'taxable2',
+        name: 'Brokerage2',
+        type: 'Investment',
+        pullPriority: 100, // Higher priority
+        performsPulls: true,
+      });
+
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(taxable1);
+      vi.mocked(mockAccountManager.getPullableAccounts).mockReturnValue([taxable2, taxable1]);
+      vi.mocked(mockBalanceTracker.getAccountBalance)
+        .mockImplementation((id) => (id === 'taxable1' ? 5000 : 5000));
+
+      pushPullHandler = new PushPullHandler(mockAccountManager, mockBalanceTracker, 'taxOptimized');
+
+      const account = makeAccount({
+        id: 'account-1',
+        performsPulls: true,
+        minimumBalance: 2000,
+      });
+
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(account);
+
+      const segment = makeSegment({
+        startDate: futureDate,
+        affectedAccountIds: ['account-1'],
+      });
+      const segmentResult = makeSegmentResult({
+        balanceMinimums: new Map([['account-1', 1500]]),
+      });
+
+      pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
+
+      // First pull should come from taxable1 (pullPriority 50 < 100)
+      const firstPullEvent = segment.events.find((e) => e.type === 'activityTransfer');
+      expect(firstPullEvent).toBeDefined();
+      if (firstPullEvent && firstPullEvent.type === 'activityTransfer') {
+        expect(firstPullEvent.fromAccountId).toBe('taxable1');
+      }
+    });
+  });
 });

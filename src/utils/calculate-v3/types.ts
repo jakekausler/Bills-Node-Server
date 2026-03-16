@@ -31,6 +31,7 @@ export type CalculationOptions = {
   seed?: number; // Optional seed for reproducible Monte Carlo
   filingStatus?: FilingStatus;
   bracketInflationRate?: number;
+  withdrawalStrategy?: 'manual' | 'taxOptimized'; // Account withdrawal strategy
 };
 
 export type TaxableOccurrence = {

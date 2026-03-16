@@ -15,10 +15,12 @@ export class PushPullHandler {
   private accountManager: AccountManager;
   private balanceTracker: BalanceTracker;
   private pullFailures: PullFailure[] = [];
+  private withdrawalStrategy: 'manual' | 'taxOptimized' = 'manual';
 
-  constructor(accountManager: AccountManager, balanceTracker: BalanceTracker) {
+  constructor(accountManager: AccountManager, balanceTracker: BalanceTracker, withdrawalStrategy?: 'manual' | 'taxOptimized') {
     this.accountManager = accountManager;
     this.balanceTracker = balanceTracker;
+    this.withdrawalStrategy = withdrawalStrategy || 'manual';
   }
 
   /**
@@ -136,7 +138,7 @@ export class PushPullHandler {
 
     // Continue pulling until the amount to pull is 0 or no more pullable accounts are found
     while (toPull > 0) {
-      const pullableAccount = this.getNextPullableAccount(accountsChecked);
+      const pullableAccount = this.getNextPullableAccount(accountsChecked, segment.startDate);
       accountsChecked.add(pullableAccount?.id ?? '');
       if (!pullableAccount) {
         break;
@@ -201,15 +203,56 @@ export class PushPullHandler {
     return pullAmount > 0; // Return true if a pull event was added
   }
 
-  private getNextPullableAccount(accountsChecked: Set<string>): Account | undefined {
-    return (
-      this.accountManager
-        .getPullableAccounts()
-        .filter(
-          (a) => this.balanceTracker.getAccountBalance(a.id) > (a.minimumBalance ?? 0) && !accountsChecked.has(a.id),
-        )
-        .sort((a, b) => a.pullPriority - b.pullPriority)[0] ?? null
-    );
+  private getNextPullableAccount(accountsChecked: Set<string>, segmentDate: Date): Account | undefined {
+    const pullable = this.accountManager
+      .getPullableAccounts()
+      .filter(
+        (a) => this.balanceTracker.getAccountBalance(a.id) > (a.minimumBalance ?? 0) && !accountsChecked.has(a.id),
+      );
+
+    if (this.withdrawalStrategy === 'taxOptimized') {
+      return pullable.sort((a, b) => {
+        const scoreA = this.getTaxAwarePriority(a, segmentDate);
+        const scoreB = this.getTaxAwarePriority(b, segmentDate);
+        if (scoreA !== scoreB) return scoreA - scoreB;
+        return a.pullPriority - b.pullPriority; // Tiebreaker
+      })[0] ?? undefined;
+    }
+
+    return pullable.sort((a, b) => a.pullPriority - b.pullPriority)[0] ?? undefined;
+  }
+
+  /**
+   * Calculate tax-aware priority for an account (lower = higher priority to pull)
+   *
+   * Pre-59.5 (penalty applies):
+   *  10 - Taxable accounts (checking, savings, brokerage)
+   *  50 - Roth contributions (tax-free, penalty-free)
+   * 100 - Tax-deferred WITH penalty (401k/IRA before 59.5)
+   *
+   * Post-59.5 (no penalty):
+   *  10 - Taxable accounts (fill low brackets)
+   *  40 - Tax-deferred (ordinary income)
+   *  50 - Roth (preserve tax-free growth)
+   */
+  private getTaxAwarePriority(account: Account, date: Date): number {
+    const isPreTax = account.usesRMD; // 401k, traditional IRA
+    const isRoth = account.name.toLowerCase().includes('roth'); // Heuristic for Roth accounts
+    const hasPenalty = account.earlyWithdrawalPenalty > 0 &&
+      account.earlyWithdrawalDate &&
+      date < account.earlyWithdrawalDate;
+
+    // Penalty era (pre-59.5): Roth contributions get high priority, penalty accounts avoided
+    if (hasPenalty) {
+      if (isRoth) return 50; // Roth: pull contributions (tax-free, penalty-free)
+      if (isPreTax) return 100; // Pre-tax with penalty: absolute last resort
+      return 10; // Taxable: pull first (no tax consequence on principal)
+    }
+
+    // No penalty (post-59.5): preserve Roth growth, use taxable/pre-tax first
+    if (isRoth) return 50; // Roth: pull last to preserve tax-free growth
+    if (isPreTax) return 40; // Pre-tax: ordinary income, no penalty
+    return 10; // Taxable: fill low brackets first
   }
 
   /**

@@ -146,14 +146,18 @@ export class Engine {
       };
     }
 
-    // Load tax configuration (filing status)
+    // Load tax configuration (filing status and withdrawal strategy)
     const taxConfigPath = join(process.cwd(), 'data', 'taxConfig.json');
     const taxConfig = existsSync(taxConfigPath)
       ? JSON.parse(readFileSync(taxConfigPath, 'utf-8'))
-      : { filingStatus: 'mfj' };
+      : { filingStatus: 'mfj', withdrawalStrategy: 'manual' };
 
     if (!options.filingStatus) {
       options.filingStatus = taxConfig.filingStatus || 'mfj';
+    }
+
+    if (!options.withdrawalStrategy) {
+      options.withdrawalStrategy = taxConfig.withdrawalStrategy || 'manual';
     }
 
     // Set bracket inflation rate: use MC inflation if available, else default to 0.03
@@ -265,7 +269,7 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Initializing push-pull handler...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.pushPullHandler = new PushPullHandler(this.accountManager, this.balanceTracker);
+    this.pushPullHandler = new PushPullHandler(this.accountManager, this.balanceTracker, options.withdrawalStrategy);
 
     // Initialize segment processor
     if (options.enableLogging) {
