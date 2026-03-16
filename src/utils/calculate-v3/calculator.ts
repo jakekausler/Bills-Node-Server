@@ -835,6 +835,17 @@ export class Calculator {
     segmentResult.activitiesAdded.get(account.id)?.push(rmdFromActivity);
     segmentResult.activitiesAdded.get(rmdAccount.id)?.push(rmdToActivity);
 
+    // Track RMD income for tax purposes
+    if (!segmentResult.taxableOccurrences.has(rmdAccount.id)) {
+      segmentResult.taxableOccurrences.set(rmdAccount.id, []);
+    }
+    segmentResult.taxableOccurrences.get(rmdAccount.id)?.push({
+      date: event.date,
+      year: event.date.getUTCFullYear(),
+      amount: rmdAmount,
+      incomeType: 'retirement' as IncomeType,
+    });
+
     // Update balance in segment result
     const fromCurrentChange = segmentResult.balanceChanges.get(account.id) || 0;
     const toCurrentChange = segmentResult.balanceChanges.get(rmdAccount.id) || 0;

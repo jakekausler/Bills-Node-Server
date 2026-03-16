@@ -58,7 +58,7 @@ import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 
 import { SegmentProcessor } from './segment-processor';
-import { CalculationOptions, EventType, Segment, SegmentResult, TimelineEvent } from './types';
+import { CalculationOptions, EventType, IncomeType, Segment, SegmentResult, TimelineEvent } from './types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -461,7 +461,7 @@ describe('SegmentProcessor', () => {
 
     it('adds taxable occurrences to tax manager', async () => {
       const event = makeEvent({ type: EventType.tax, id: 'tax-1', date: new Date(Date.UTC(2025, 2, 1)), priority: 3 });
-      const mockTaxableOccurrence = { date: new Date(), year: 2025, amount: 1000, taxRate: 0.22 };
+      const mockTaxableOccurrence = { date: new Date(), year: 2025, amount: 1000, incomeType: 'ordinary' as IncomeType };
       const calculator = makeMockCalculator({
         processTaxEvent: vi.fn().mockImplementation((_event, segmentResult) => {
           segmentResult.taxableOccurrences.set('Checking', [mockTaxableOccurrence]);
@@ -481,7 +481,7 @@ describe('SegmentProcessor', () => {
     it('warns when taxable occurrence account not found', async () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const event = makeEvent({ type: EventType.tax, id: 'tax-1', priority: 3 });
-      const mockTaxableOccurrence = { date: new Date(), year: 2025, amount: 1000, taxRate: 0.22 };
+      const mockTaxableOccurrence = { date: new Date(), year: 2025, amount: 1000, incomeType: 'ordinary' as IncomeType };
       const calculator = makeMockCalculator({
         processTaxEvent: vi.fn().mockImplementation((_event, segmentResult) => {
           segmentResult.taxableOccurrences.set('UnknownAccount', [mockTaxableOccurrence]);
