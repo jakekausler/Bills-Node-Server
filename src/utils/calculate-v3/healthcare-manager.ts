@@ -2,6 +2,7 @@ import { HealthcareConfig } from '../../data/healthcare/types';
 import { Bill } from '../../data/bill/bill';
 import { Activity } from '../../data/activity/activity';
 import { parseDate } from '../../utils/date/date';
+import { loadDateOrVariable } from '../../utils/simulation/loadVariableValue';
 
 type YearTracker = {
   planYear: number;
@@ -25,8 +26,51 @@ export class HealthcareManager {
   private processedExpenses: Map<string, number> = new Map();
   private checkpointProcessedExpenses: Map<string, number> = new Map();
 
-  constructor(healthcareConfigs: HealthcareConfig[]) {
-    this.configs = healthcareConfigs;
+  constructor(healthcareConfigs: HealthcareConfig[], simulation: string = 'Default') {
+    // Resolve date variables for each config
+    this.configs = healthcareConfigs.map(config => this.resolveConfigDates(config, simulation));
+  }
+
+  /**
+   * Resolve date variables in a healthcare config
+   * @private
+   */
+  private resolveConfigDates(config: HealthcareConfig, simulation: string): HealthcareConfig {
+    const resolved = { ...config };
+
+    // Resolve start date if it's a variable
+    if (config.startDateIsVariable && config.startDateVariable) {
+      try {
+        const { date } = loadDateOrVariable(
+          config.startDate,
+          config.startDateIsVariable,
+          config.startDateVariable,
+          simulation,
+        );
+        resolved.startDate = date.toISOString().split('T')[0] as any;
+      } catch (e) {
+        // If variable resolution fails, keep original date
+        console.warn(`Failed to resolve startDateVariable for config "${config.name}":`, e);
+      }
+    }
+
+    // Resolve end date if it's a variable
+    if (config.endDateIsVariable && config.endDateVariable && config.endDate) {
+      try {
+        const { date } = loadDateOrVariable(
+          config.endDate,
+          config.endDateIsVariable,
+          config.endDateVariable,
+          simulation,
+        );
+        resolved.endDate = date.toISOString().split('T')[0] as any;
+      } catch (e) {
+        // If variable resolution fails, keep original date
+        console.warn(`Failed to resolve endDateVariable for config "${config.name}":`, e);
+      }
+    }
+
+    return resolved;
   }
 
   /**

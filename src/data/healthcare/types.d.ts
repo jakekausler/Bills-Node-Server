@@ -5,7 +5,11 @@ export type HealthcareConfig = {
   name: string;
   coveredPersons: string[];  // e.g., ["Jake", "Jane"]
   startDate: DateString;
+  startDateIsVariable?: boolean;
+  startDateVariable?: string | null;
   endDate: DateString | null;
+  endDateIsVariable?: boolean;
+  endDateVariable?: string | null;
 
   // Individual thresholds
   individualDeductible: number;

@@ -1,0 +1,423 @@
+{
+  "2007": [
+    {
+      "tier": 0,
+      "singleMin": 0.0,
+      "singleMax": 85000.0,
+      "marriedMin": 0.0,
+      "marriedMax": 170000.0,
+      "partBPremium": 93.5,
+      "partDSurcharge": 0.0
+    },
+    {
+      "tier": 1,
+      "singleMin": 85000.0,
+      "singleMax": 107000.0,
+      "marriedMin": 170000.0,
+      "marriedMax": 214000.0,
+      "partBPremium": 112.0,
+      "partDSurcharge": 12.0
+    },
+    {
+      "tier": 2,
+      "singleMin": 107000.0,
+      "singleMax": 160000.0,
+      "marriedMin": 214000.0,
+      "marriedMax": 320000.0,
+      "partBPremium": 131.0,
+      "partDSurcharge": 31.1
+    },
+    {
+      "tier": 3,
+      "singleMin": 160000.0,
+      "singleMax": 214000.0,
+      "marriedMin": 320000.0,
+      "marriedMax": 428000.0,
+      "partBPremium": 149.0,
+      "partDSurcharge": 50.1
+    },
+    {
+      "tier": 4,
+      "singleMin": 214000.0,
+      "singleMax": 10000000,
+      "marriedMin": 428000.0,
+      "marriedMax": 10000000,
+      "partBPremium": 168.0,
+      "partDSurcharge": 69.1
+    }
+  ],
+  "2013": [
+    {
+      "tier": 0,
+      "singleMin": 0.0,
+      "singleMax": 85000.0,
+      "marriedMin": 0.0,
+      "marriedMax": 170000.0,
+      "partBPremium": 104.9,
+      "partDSurcharge": 0.0
+    },
+    {
+      "tier": 1,
+      "singleMin": 85000.0,
+      "singleMax": 107000.0,
+      "marriedMin": 170000.0,
+      "marriedMax": 214000.0,
+      "partBPremium": 146.9,
+      "partDSurcharge": 11.6
+    },
+    {
+      "tier": 2,
+      "singleMin": 107000.0,
+      "singleMax": 160000.0,
+      "marriedMin": 214000.0,
+      "marriedMax": 320000.0,
+      "partBPremium": 209.8,
+      "partDSurcharge": 29.9
+    },
+    {
+      "tier": 3,
+      "singleMin": 160000.0,
+      "singleMax": 214000.0,
+      "marriedMin": 320000.0,
+      "marriedMax": 428000.0,
+      "partBPremium": 272.7,
+      "partDSurcharge": 48.3
+    },
+    {
+      "tier": 4,
+      "singleMin": 214000.0,
+      "singleMax": 10000000,
+      "marriedMin": 428000.0,
+      "marriedMax": 10000000,
+      "partBPremium": 335.7,
+      "partDSurcharge": 66.6
+    }
+  ],
+  "2016": [
+    {
+      "tier": 0,
+      "singleMin": 0.0,
+      "singleMax": 85000.0,
+      "marriedMin": 0.0,
+      "marriedMax": 170000.0,
+      "partBPremium": 121.8,
+      "partDSurcharge": 0.0
+    },
+    {
+      "tier": 1,
+      "singleMin": 85000.0,
+      "singleMax": 107000.0,
+      "marriedMin": 170000.0,
+      "marriedMax": 214000.0,
+      "partBPremium": 170.5,
+      "partDSurcharge": 12.7
+    },
+    {
+      "tier": 2,
+      "singleMin": 107000.0,
+      "singleMax": 160000.0,
+      "marriedMin": 214000.0,
+      "marriedMax": 320000.0,
+      "partBPremium": 243.6,
+      "partDSurcharge": 32.8
+    },
+    {
+      "tier": 3,
+      "singleMin": 160000.0,
+      "singleMax": 214000.0,
+      "marriedMin": 320000.0,
+      "marriedMax": 428000.0,
+      "partBPremium": 316.7,
+      "partDSurcharge": 52.8
+    },
+    {
+      "tier": 4,
+      "singleMin": 214000.0,
+      "singleMax": 10000000,
+      "marriedMin": 428000.0,
+      "marriedMax": 10000000,
+      "partBPremium": 389.8,
+      "partDSurcharge": 72.9
+    }
+  ],
+  "2019": [
+    {
+      "tier": 0,
+      "singleMin": 0.0,
+      "singleMax": 85000.0,
+      "marriedMin": 0.0,
+      "marriedMax": 170000.0,
+      "partBPremium": 135.5,
+      "partDSurcharge": 0.0
+    },
+    {
+      "tier": 1,
+      "singleMin": 85000.0,
+      "singleMax": 107000.0,
+      "marriedMin": 170000.0,
+      "marriedMax": 214000.0,
+      "partBPremium": 189.6,
+      "partDSurcharge": 12.4
+    },
+    {
+      "tier": 2,
+      "singleMin": 107000.0,
+      "singleMax": 133500.0,
+      "marriedMin": 214000.0,
+      "marriedMax": 267000.0,
+      "partBPremium": 270.9,
+      "partDSurcharge": 31.9
+    },
+    {
+      "tier": 3,
+      "singleMin": 133500.0,
+      "singleMax": 160000.0,
+      "marriedMin": 267000.0,
+      "marriedMax": 320000.0,
+      "partBPremium": 352.2,
+      "partDSurcharge": 51.4
+    },
+    {
+      "tier": 4,
+      "singleMin": 160000.0,
+      "singleMax": 500000.0,
+      "marriedMin": 320000.0,
+      "marriedMax": 750000.0,
+      "partBPremium": 433.4,
+      "partDSurcharge": 70.9
+    },
+    {
+      "tier": 5,
+      "singleMin": 500000.0,
+      "singleMax": 10000000,
+      "marriedMin": 750000.0,
+      "marriedMax": 10000000,
+      "partBPremium": 460.5,
+      "partDSurcharge": 77.4
+    }
+  ],
+  "2020": [
+    {
+      "tier": 0,
+      "singleMin": 0.0,
+      "singleMax": 87000.0,
+      "marriedMin": 0.0,
+      "marriedMax": 174000.0,
+      "partBPremium": 144.6,
+      "partDSurcharge": 0.0
+    },
+    {
+      "tier": 1,
+      "singleMin": 87000.0,
+      "singleMax": 109000.0,
+      "marriedMin": 174000.0,
+      "marriedMax": 218000.0,
+      "partBPremium": 202.4,
+      "partDSurcharge": 12.2
+    },
+    {
+      "tier": 2,
+      "singleMin": 109000.0,
+      "singleMax": 136000.0,
+      "marriedMin": 218000.0,
+      "marriedMax": 272000.0,
+      "partBPremium": 289.2,
+      "partDSurcharge": 31.5
+    },
+    {
+      "tier": 3,
+      "singleMin": 136000.0,
+      "singleMax": 163000.0,
+      "marriedMin": 272000.0,
+      "marriedMax": 326000.0,
+      "partBPremium": 376.0,
+      "partDSurcharge": 50.7
+    },
+    {
+      "tier": 4,
+      "singleMin": 163000.0,
+      "singleMax": 500000.0,
+      "marriedMin": 326000.0,
+      "marriedMax": 750000.0,
+      "partBPremium": 462.7,
+      "partDSurcharge": 70.0
+    },
+    {
+      "tier": 5,
+      "singleMin": 500000.0,
+      "singleMax": 10000000,
+      "marriedMin": 750000.0,
+      "marriedMax": 10000000,
+      "partBPremium": 491.6,
+      "partDSurcharge": 76.4
+    }
+  ],
+  "2023": [
+    {
+      "tier": 0,
+      "singleMin": 0.0,
+      "singleMax": 97000.0,
+      "marriedMin": 0.0,
+      "marriedMax": 194000.0,
+      "partBPremium": 164.9,
+      "partDSurcharge": 0.0
+    },
+    {
+      "tier": 1,
+      "singleMin": 97000.0,
+      "singleMax": 123000.0,
+      "marriedMin": 194000.0,
+      "marriedMax": 246000.0,
+      "partBPremium": 230.8,
+      "partDSurcharge": 12.2
+    },
+    {
+      "tier": 2,
+      "singleMin": 123000.0,
+      "singleMax": 153000.0,
+      "marriedMin": 246000.0,
+      "marriedMax": 306000.0,
+      "partBPremium": 329.7,
+      "partDSurcharge": 31.5
+    },
+    {
+      "tier": 3,
+      "singleMin": 153000.0,
+      "singleMax": 183000.0,
+      "marriedMin": 306000.0,
+      "marriedMax": 366000.0,
+      "partBPremium": 428.6,
+      "partDSurcharge": 50.7
+    },
+    {
+      "tier": 4,
+      "singleMin": 183000.0,
+      "singleMax": 500000.0,
+      "marriedMin": 366000.0,
+      "marriedMax": 750000.0,
+      "partBPremium": 527.5,
+      "partDSurcharge": 70.0
+    },
+    {
+      "tier": 5,
+      "singleMin": 500000.0,
+      "singleMax": 10000000,
+      "marriedMin": 750000.0,
+      "marriedMax": 10000000,
+      "partBPremium": 560.5,
+      "partDSurcharge": 76.4
+    }
+  ],
+  "2026": [
+    {
+      "tier": 0,
+      "singleMin": 0.0,
+      "singleMax": 109000.0,
+      "marriedMin": 0.0,
+      "marriedMax": 218000.0,
+      "partBPremium": 202.9,
+      "partDSurcharge": 0.0
+    },
+    {
+      "tier": 1,
+      "singleMin": 109000.0,
+      "singleMax": 137000.0,
+      "marriedMin": 218000.0,
+      "marriedMax": 274000.0,
+      "partBPremium": 283.0,
+      "partDSurcharge": 13.0
+    },
+    {
+      "tier": 2,
+      "singleMin": 137000.0,
+      "singleMax": 171000.0,
+      "marriedMin": 274000.0,
+      "marriedMax": 342000.0,
+      "partBPremium": 364.0,
+      "partDSurcharge": 33.0
+    },
+    {
+      "tier": 3,
+      "singleMin": 171000.0,
+      "singleMax": 205000.0,
+      "marriedMin": 342000.0,
+      "marriedMax": 410000.0,
+      "partBPremium": 445.0,
+      "partDSurcharge": 53.0
+    },
+    {
+      "tier": 4,
+      "singleMin": 205000.0,
+      "singleMax": 500000.0,
+      "marriedMin": 410000.0,
+      "marriedMax": 750000.0,
+      "partBPremium": 526.0,
+      "partDSurcharge": 73.0
+    },
+    {
+      "tier": 5,
+      "singleMin": 500000.0,
+      "singleMax": 10000000,
+      "marriedMin": 750000.0,
+      "marriedMax": 10000000,
+      "partBPremium": 689.9,
+      "partDSurcharge": 80.0
+    }
+  ],
+  "2024": [
+    {
+      "tier": 0,
+      "singleMin": 0.0,
+      "singleMax": 101000.0,
+      "marriedMin": 0.0,
+      "marriedMax": 202000.0,
+      "partBPremium": 177.56666666666666,
+      "partDSurcharge": 0.0
+    },
+    {
+      "tier": 1,
+      "singleMin": 101000.0,
+      "singleMax": 127666.66666666667,
+      "marriedMin": 202000.0,
+      "marriedMax": 255333.33333333334,
+      "partBPremium": 248.20000000000002,
+      "partDSurcharge": 12.466666666666667
+    },
+    {
+      "tier": 2,
+      "singleMin": 127666.66666666667,
+      "singleMax": 159000.0,
+      "marriedMin": 255333.33333333334,
+      "marriedMax": 318000.0,
+      "partBPremium": 341.1333333333333,
+      "partDSurcharge": 32.0
+    },
+    {
+      "tier": 3,
+      "singleMin": 159000.0,
+      "singleMax": 190333.33333333334,
+      "marriedMin": 318000.0,
+      "marriedMax": 380666.6666666667,
+      "partBPremium": 434.06666666666666,
+      "partDSurcharge": 51.46666666666667
+    },
+    {
+      "tier": 4,
+      "singleMin": 190333.33333333334,
+      "singleMax": 500000.0,
+      "marriedMin": 380666.6666666667,
+      "marriedMax": 750000.0,
+      "partBPremium": 527.0,
+      "partDSurcharge": 71.0
+    },
+    {
+      "tier": 5,
+      "singleMin": 500000.0,
+      "singleMax": 999999999,
+      "marriedMin": 750000.0,
+      "marriedMax": 999999999,
+      "partBPremium": 603.6333333333333,
+      "partDSurcharge": 77.60000000000001
+    }
+  ]
+}

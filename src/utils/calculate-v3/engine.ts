@@ -29,6 +29,7 @@ let lastEngine: Engine | null = null;
 export class Engine {
   private config: CalculationConfig;
   private cache: CacheManager;
+  private simulation: string;
   private timeline: Timeline;
   private balanceTracker: BalanceTracker;
   private segmentProcessor: SegmentProcessor;
@@ -42,6 +43,7 @@ export class Engine {
   private monteCarloConfig: MonteCarloConfig | null = null;
 
   constructor(simulation: string, config: Partial<CalculationConfig> = {}, monteCarlo: boolean = false) {
+    this.simulation = simulation;
     this.config = this.mergeConfig(config);
     this.cache = initializeCache(this.config, simulation, monteCarlo);
   }
@@ -211,7 +213,7 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Initializing healthcare manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.healthcareManager = new HealthcareManager(await loadHealthcareConfigs());
+    this.healthcareManager = new HealthcareManager(await loadHealthcareConfigs(), this.simulation);
 
     // Initialize spending tracker manager
     if (options.enableLogging) {

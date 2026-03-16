@@ -307,11 +307,23 @@ export interface HistoricRates {
     'ira'?: Record<string, number>;
     'hsa'?: Record<string, number>;
   };
+  medicare?: {
+    partBPremium?: Record<string, number>;
+    partBDeductible?: Record<string, number>;
+    partADeductible?: Record<string, number>;
+    partDBasePremium?: Record<string, number>;
+    medigapPlanG?: Record<string, number>;
+  };
   changeRatios?: {
     ssWageBase?: Record<string, number>;
     '401k'?: Record<string, number>;
     'ira'?: Record<string, number>;
     'hsa'?: Record<string, number>;
+    partBPremium?: Record<string, number>;
+    partBDeductible?: Record<string, number>;
+    partADeductible?: Record<string, number>;
+    partDBasePremium?: Record<string, number>;
+    medigapPlanG?: Record<string, number>;
   };
   yearKeyed?: Record<string, Partial<{
     stock: number;

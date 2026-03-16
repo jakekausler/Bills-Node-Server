@@ -3,40 +3,103 @@ import { MedicareManager } from './medicare-manager';
 
 // Mock the IO module
 vi.mock('../../utils/io/io', () => ({
-  load: () => ({
-    medicare: {
-      partBPremium: {
-        '2006': 88.5,
-        '2010': 110.5,
-        '2012': 99.9,
+  load: (filename: string) => {
+    if (filename === 'irmaaBrackets.json') {
+      return {
+        '2024': [
+          {
+            tier: 0,
+            singleMin: 0,
+            singleMax: 137000,
+            marriedMin: 0,
+            marriedMax: 206000,
+            partBPremium: 174.7,
+            partDSurcharge: 0,
+          },
+          {
+            tier: 1,
+            singleMin: 137000,
+            singleMax: 171500,
+            marriedMin: 206000,
+            marriedMax: 258000,
+            partBPremium: 245.6,
+            partDSurcharge: 12.9,
+          },
+          {
+            tier: 2,
+            singleMin: 171500,
+            singleMax: 214500,
+            marriedMin: 258000,
+            marriedMax: 322000,
+            partBPremium: 351.7,
+            partDSurcharge: 33.3,
+          },
+          {
+            tier: 3,
+            singleMin: 214500,
+            singleMax: 257500,
+            marriedMin: 322000,
+            marriedMax: 386000,
+            partBPremium: 457.7,
+            partDSurcharge: 53.8,
+          },
+          {
+            tier: 4,
+            singleMin: 257500,
+            singleMax: 500000,
+            marriedMin: 386000,
+            marriedMax: 750000,
+            partBPremium: 563.8,
+            partDSurcharge: 74.2,
+          },
+          {
+            tier: 5,
+            singleMin: 500000,
+            singleMax: 9999999,
+            marriedMin: 750000,
+            marriedMax: 9999999,
+            partBPremium: 594,
+            partDSurcharge: 81,
+          },
+        ],
+      };
+    }
+    // Default to historicRates format
+    return {
+      medicare: {
+        partBPremium: {
+          '2006': 88.5,
+          '2010': 110.5,
+          '2012': 99.9,
+        },
+        partBDeductible: {
+          '2006': 124,
+          '2010': 155,
+          '2012': 140,
+        },
+        partADeductible: {
+          '2006': 952,
+          '2010': 1100,
+          '2012': 1156,
+        },
+        partDDeductible: {
+          '2006': 250,
+          '2010': 310,
+          '2012': 320,
+        },
+        partDBasePremium: {
+          '2006': 32.2,
+          '2010': 31.94,
+          '2012': 31.08,
+        },
       },
-      partBDeductible: {
-        '2006': 124,
-        '2010': 155,
-        '2012': 140,
+      healthcareCpi: {
+        2023: [3.5],
+        2024: [2.8],
+        2025: [2.5],
       },
-      partADeductible: {
-        '2006': 952,
-        '2010': 1100,
-        '2012': 1156,
-      },
-      partDDeductible: {
-        '2006': 250,
-        '2010': 310,
-        '2012': 320,
-      },
-      partDBasePremium: {
-        '2006': 32.2,
-        '2010': 31.94,
-        '2012': 31.08,
-      },
-    },
-    healthcareCpi: {
-      2023: [3.5],
-      2024: [2.8],
-      2025: [2.5],
-    },
-  }),
+    };
+  },
 }));
 
 describe('MedicareManager', () => {
