@@ -146,6 +146,27 @@ export class Engine {
       };
     }
 
+    // Load tax configuration (filing status)
+    const taxConfigPath = join(process.cwd(), 'data', 'taxConfig.json');
+    const taxConfig = existsSync(taxConfigPath)
+      ? JSON.parse(readFileSync(taxConfigPath, 'utf-8'))
+      : { filingStatus: 'mfj' };
+
+    if (!options.filingStatus) {
+      options.filingStatus = taxConfig.filingStatus || 'mfj';
+    }
+
+    // Set bracket inflation rate: use MC inflation if available, else default to 0.03
+    if (!options.bracketInflationRate) {
+      // If MC is enabled, try to extract inflation from MC config
+      if (this.monteCarloConfig && this.monteCarloConfig.handler) {
+        // Default to 0.03 for now; can be enhanced to use actual MC inflation sample
+        options.bracketInflationRate = 0.03;
+      } else {
+        options.bracketInflationRate = 0.03;
+      }
+    }
+
     const spendingTrackerCategories = loadSpendingTrackerCategories();
 
     if (!timeline) {

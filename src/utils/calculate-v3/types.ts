@@ -6,6 +6,12 @@ import { Interest } from '../../data/interest/interest';
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
 import { DateString } from '../date/types';
+import { FilingStatus } from './bracket-calculator';
+
+export type IncomeType = 'ordinary' | 'retirement' | 'socialSecurity' | 'interest' | 'penalty';
+
+// Re-export FilingStatus for convenience
+export type { FilingStatus };
 
 export type CalculationConfig = {
   snapshotInterval: 'monthly' | 'quarterly' | 'yearly';
@@ -23,6 +29,8 @@ export type CalculationOptions = {
   enableLogging: boolean;
   config: Partial<CalculationConfig>;
   seed?: number; // Optional seed for reproducible Monte Carlo
+  filingStatus?: FilingStatus;
+  bracketInflationRate?: number;
 };
 
 export type TaxableOccurrence = {
@@ -32,15 +40,15 @@ export type TaxableOccurrence = {
   year: number;
   /** Amount of the taxable event */
   amount: number;
-  /** Tax rate applied to this event */
-  taxRate: number;
+  /** Type of income for this taxable event */
+  incomeType: IncomeType;
 };
 
 export type TaxableOccurrenceData = {
   date: DateString;
   year: number;
   amount: number;
-  taxRate: number;
+  incomeType: IncomeType;
 };
 
 /**
