@@ -945,7 +945,10 @@
       "highYield": 4.86,
       "ssWageBase": 6600,
       "ssWageBaseRatio": 1.375,
-      "healthcareCpi": 4.43
+      "healthcareCpi": 4.43,
+      "partBPremium": 3.0,
+      "partADeductible": 40.0,
+      "partBDeductible": 50.0
     },
     "1967": {
       "stock": 20.09,
@@ -955,7 +958,10 @@
       "highYield": 4.29,
       "ssWageBase": 6600,
       "ssWageBaseRatio": 1.0,
-      "healthcareCpi": 7.03
+      "healthcareCpi": 7.03,
+      "partBPremium": 3.0,
+      "partADeductible": 40.0,
+      "partBDeductible": 50.0
     },
     "1968": {
       "stock": 7.66,
@@ -965,7 +971,10 @@
       "highYield": 5.34,
       "ssWageBase": 7800,
       "ssWageBaseRatio": 1.181818,
-      "healthcareCpi": 6.1
+      "healthcareCpi": 6.1,
+      "partBPremium": 4.0,
+      "partADeductible": 40.0,
+      "partBDeductible": 50.0
     },
     "1969": {
       "stock": -11.36,
@@ -975,7 +984,10 @@
       "highYield": 6.67,
       "ssWageBase": 7800,
       "ssWageBaseRatio": 1.0,
-      "healthcareCpi": 6.86
+      "healthcareCpi": 6.86,
+      "partBPremium": 4.0,
+      "partADeductible": 44.0,
+      "partBDeductible": 50.0
     },
     "1970": {
       "stock": 0.1,
@@ -985,7 +997,10 @@
       "highYield": 6.39,
       "ssWageBase": 7800,
       "ssWageBaseRatio": 1.0,
-      "healthcareCpi": 6.4
+      "healthcareCpi": 6.4,
+      "partBPremium": 5.3,
+      "partADeductible": 52.0,
+      "partBDeductible": 50.0
     },
     "1971": {
       "stock": 10.79,
@@ -995,7 +1010,10 @@
       "highYield": 4.33,
       "ssWageBase": 7800,
       "ssWageBaseRatio": 1.0,
-      "healthcareCpi": 6.4
+      "healthcareCpi": 6.4,
+      "partBPremium": 5.6,
+      "partADeductible": 60.0,
+      "partBDeductible": 50.0
     },
     "1972": {
       "stock": 15.63,
@@ -1005,7 +1023,10 @@
       "highYield": 4.06,
       "ssWageBase": 9000,
       "ssWageBaseRatio": 1.153846,
-      "healthcareCpi": 3.3
+      "healthcareCpi": 3.3,
+      "partBPremium": 5.8,
+      "partADeductible": 68.0,
+      "partBDeductible": 50.0
     },
     "1973": {
       "stock": -17.37,
@@ -1015,7 +1036,10 @@
       "highYield": 7.04,
       "ssWageBase": 10800,
       "ssWageBaseRatio": 1.2,
-      "healthcareCpi": 3.84
+      "healthcareCpi": 3.84,
+      "partBPremium": 6.3,
+      "partADeductible": 72.0,
+      "partBDeductible": 60.0
     },
     "1974": {
       "stock": -29.72,
@@ -1025,7 +1049,10 @@
       "highYield": 7.85,
       "ssWageBase": 13200,
       "ssWageBaseRatio": 1.222222,
-      "healthcareCpi": 9.31
+      "healthcareCpi": 9.31,
+      "partBPremium": 6.7,
+      "partADeductible": 84.0,
+      "partBDeductible": 60.0
     },
     "1975": {
       "stock": 31.55,
@@ -1036,7 +1063,10 @@
       "ssCola": 8.0,
       "ssWageBase": 14100,
       "ssWageBaseRatio": 1.068182,
-      "healthcareCpi": 12.1
+      "healthcareCpi": 12.1,
+      "partBPremium": 6.7,
+      "partADeductible": 92.0,
+      "partBDeductible": 60.0
     },
     "1976": {
       "stock": 19.15,
@@ -1048,7 +1078,10 @@
       "ssWageBase": 15300,
       "ssWageBaseRatio": 1.085106,
       "iraRatio": 1.0,
-      "healthcareCpi": 9.49
+      "healthcareCpi": 9.49,
+      "partBPremium": 7.2,
+      "partADeductible": 104.0,
+      "partBDeductible": 60.0
     },
     "1977": {
       "stock": -11.5,
@@ -1060,7 +1093,10 @@
       "ssWageBase": 16500,
       "ssWageBaseRatio": 1.078431,
       "iraRatio": 1.0,
-      "healthcareCpi": 9.57
+      "healthcareCpi": 9.57,
+      "partBPremium": 7.7,
+      "partADeductible": 124.0,
+      "partBDeductible": 60.0
     },
     "1978": {
       "stock": 1.06,
@@ -1072,7 +1108,10 @@
       "ssWageBase": 17700,
       "ssWageBaseRatio": 1.072727,
       "iraRatio": 1.0,
-      "healthcareCpi": 8.38
+      "healthcareCpi": 8.38,
+      "partBPremium": 8.2,
+      "partADeductible": 144.0,
+      "partBDeductible": 60.0
     },
     "1979": {
       "stock": 12.31,
@@ -1084,7 +1123,10 @@
       "ssWageBase": 22900,
       "ssWageBaseRatio": 1.293785,
       "iraRatio": 1.0,
-      "healthcareCpi": 9.27
+      "healthcareCpi": 9.27,
+      "partBPremium": 8.7,
+      "partADeductible": 160.0,
+      "partBDeductible": 60.0
     },
     "1980": {
       "stock": 25.77,
@@ -1096,7 +1138,10 @@
       "ssWageBase": 25900,
       "ssWageBaseRatio": 1.131004,
       "iraRatio": 1.0,
-      "healthcareCpi": 10.94
+      "healthcareCpi": 10.94,
+      "partBPremium": 9.6,
+      "partADeductible": 180.0,
+      "partBDeductible": 60.0
     },
     "1981": {
       "stock": -9.73,
@@ -1108,7 +1153,9 @@
       "ssWageBase": 29700,
       "ssWageBaseRatio": 1.146718,
       "iraRatio": 1.333333,
-      "healthcareCpi": 10.78
+      "healthcareCpi": 10.78,
+      "partBPremium": 11.0,
+      "partADeductible": 204.0
     },
     "1982": {
       "stock": 14.76,
@@ -1120,7 +1167,10 @@
       "ssWageBase": 32400,
       "ssWageBaseRatio": 1.090909,
       "iraRatio": 1.0,
-      "healthcareCpi": 11.69
+      "healthcareCpi": 11.69,
+      "partBPremium": 12.2,
+      "partADeductible": 260.0,
+      "partBDeductible": 75.0
     },
     "1983": {
       "stock": 17.27,
@@ -1132,7 +1182,10 @@
       "ssWageBase": 35700,
       "ssWageBaseRatio": 1.101852,
       "iraRatio": 1.0,
-      "healthcareCpi": 8.68
+      "healthcareCpi": 8.68,
+      "partBPremium": 12.2,
+      "partADeductible": 304.0,
+      "partBDeductible": 75.0
     },
     "1984": {
       "stock": 1.4,
@@ -1144,7 +1197,10 @@
       "ssWageBase": 37800,
       "ssWageBaseRatio": 1.058824,
       "iraRatio": 1.0,
-      "healthcareCpi": 6.28
+      "healthcareCpi": 6.28,
+      "partBPremium": 14.6,
+      "partADeductible": 356.0,
+      "partBDeductible": 75.0
     },
     "1985": {
       "stock": 26.33,
@@ -1156,7 +1212,10 @@
       "ssWageBase": 39600,
       "ssWageBaseRatio": 1.047619,
       "iraRatio": 1.0,
-      "healthcareCpi": 6.21
+      "healthcareCpi": 6.21,
+      "partBPremium": 15.5,
+      "partADeductible": 400.0,
+      "partBDeductible": 75.0
     },
     "1986": {
       "stock": 14.62,
@@ -1168,7 +1227,10 @@
       "ssWageBase": 42000,
       "ssWageBaseRatio": 1.060606,
       "iraRatio": 1.0,
-      "healthcareCpi": 7.53
+      "healthcareCpi": 7.53,
+      "partBPremium": 15.5,
+      "partADeductible": 492.0,
+      "partBDeductible": 75.0
     },
     "1987": {
       "stock": 2.03,
@@ -1182,7 +1244,10 @@
       "ssWageBaseRatio": 1.042857,
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
-      "healthcareCpi": 6.56
+      "healthcareCpi": 6.56,
+      "partBPremium": 17.9,
+      "partADeductible": 520.0,
+      "partBDeductible": 75.0
     },
     "1988": {
       "stock": 12.4,
@@ -1196,7 +1261,10 @@
       "ssWageBaseRatio": 1.027397,
       "k401Ratio": 1.044714,
       "iraRatio": 1.0,
-      "healthcareCpi": 6.49
+      "healthcareCpi": 6.49,
+      "partBPremium": 24.8,
+      "partADeductible": 540.0,
+      "partBDeductible": 75.0
     },
     "1989": {
       "stock": 27.25,
@@ -1210,7 +1278,10 @@
       "ssWageBaseRatio": 1.066667,
       "k401Ratio": 1.042937,
       "iraRatio": 1.0,
-      "healthcareCpi": 7.66
+      "healthcareCpi": 7.66,
+      "partBPremium": 31.9,
+      "partADeductible": 560.0,
+      "partBDeductible": 75.0
     },
     "1990": {
       "stock": -6.56,
@@ -1224,7 +1295,10 @@
       "ssWageBaseRatio": 1.06875,
       "k401Ratio": 1.046152,
       "iraRatio": 1.0,
-      "healthcareCpi": 9.08
+      "healthcareCpi": 9.08,
+      "partBPremium": 28.6,
+      "partADeductible": 592.0,
+      "partBDeductible": 75.0
     },
     "1991": {
       "stock": 26.31,
@@ -1238,7 +1312,10 @@
       "ssWageBaseRatio": 1.040936,
       "k401Ratio": 1.062163,
       "iraRatio": 1.0,
-      "healthcareCpi": 8.73
+      "healthcareCpi": 8.73,
+      "partBPremium": 29.9,
+      "partADeductible": 628.0,
+      "partBDeductible": 100.0
     },
     "1992": {
       "stock": 4.46,
@@ -1252,7 +1329,10 @@
       "ssWageBaseRatio": 1.039326,
       "k401Ratio": 1.029853,
       "iraRatio": 1.0,
-      "healthcareCpi": 7.37
+      "healthcareCpi": 7.37,
+      "partBPremium": 31.8,
+      "partADeductible": 652.0,
+      "partBDeductible": 100.0
     },
     "1993": {
       "stock": 7.06,
@@ -1266,7 +1346,10 @@
       "ssWageBaseRatio": 1.037838,
       "k401Ratio": 1.030477,
       "iraRatio": 1.0,
-      "healthcareCpi": 5.97
+      "healthcareCpi": 5.97,
+      "partBPremium": 36.6,
+      "partADeductible": 676.0,
+      "partBDeductible": 100.0
     },
     "1994": {
       "stock": -1.54,
@@ -1280,7 +1363,10 @@
       "ssWageBaseRatio": 1.052083,
       "k401Ratio": 1.027352,
       "iraRatio": 1.0,
-      "healthcareCpi": 4.78
+      "healthcareCpi": 4.78,
+      "partBPremium": 41.1,
+      "partADeductible": 696.0,
+      "partBDeductible": 100.0
     },
     "1995": {
       "stock": 34.11,
@@ -1294,7 +1380,10 @@
       "ssWageBaseRatio": 1.009901,
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
-      "healthcareCpi": 4.47
+      "healthcareCpi": 4.47,
+      "partBPremium": 46.1,
+      "partADeductible": 716.0,
+      "partBDeductible": 100.0
     },
     "1996": {
       "stock": 20.26,
@@ -1308,7 +1397,10 @@
       "ssWageBaseRatio": 1.02451,
       "k401Ratio": 1.028139,
       "iraRatio": 1.0,
-      "healthcareCpi": 3.55
+      "healthcareCpi": 3.55,
+      "partBPremium": 42.5,
+      "partADeductible": 736.0,
+      "partBDeductible": 100.0
     },
     "1997": {
       "stock": 31.01,
@@ -1322,7 +1414,10 @@
       "ssWageBaseRatio": 1.043062,
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
-      "healthcareCpi": 2.77
+      "healthcareCpi": 2.77,
+      "partBPremium": 43.8,
+      "partADeductible": 760.0,
+      "partBDeductible": 100.0
     },
     "1998": {
       "stock": 26.67,
@@ -1336,7 +1431,10 @@
       "ssWageBaseRatio": 1.045872,
       "k401Ratio": 1.052632,
       "iraRatio": 1.0,
-      "healthcareCpi": 3.21
+      "healthcareCpi": 3.21,
+      "partBPremium": 43.8,
+      "partADeductible": 764.0,
+      "partBDeductible": 100.0
     },
     "1999": {
       "stock": 19.53,
@@ -1350,7 +1448,10 @@
       "ssWageBaseRatio": 1.061404,
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
-      "healthcareCpi": 3.48
+      "healthcareCpi": 3.48,
+      "partBPremium": 45.5,
+      "partADeductible": 768.0,
+      "partBDeductible": 100.0
     },
     "2000": {
       "stock": -10.14,
@@ -1364,7 +1465,10 @@
       "ssWageBaseRatio": 1.049587,
       "k401Ratio": 1.05,
       "iraRatio": 1.0,
-      "healthcareCpi": 4.07
+      "healthcareCpi": 4.07,
+      "partBPremium": 45.5,
+      "partADeductible": 776.0,
+      "partBDeductible": 100.0
     },
     "2001": {
       "stock": -13.04,
@@ -1378,7 +1482,10 @@
       "ssWageBaseRatio": 1.055118,
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
-      "healthcareCpi": 4.61
+      "healthcareCpi": 4.61,
+      "partBPremium": 50.0,
+      "partADeductible": 792.0,
+      "partBDeductible": 100.0
     },
     "2002": {
       "stock": -23.37,
@@ -1392,7 +1499,10 @@
       "ssWageBaseRatio": 1.05597,
       "k401Ratio": 1.047619,
       "iraRatio": 1.5,
-      "healthcareCpi": 4.72
+      "healthcareCpi": 4.72,
+      "partBPremium": 54.0,
+      "partADeductible": 812.0,
+      "partBDeductible": 100.0
     },
     "2003": {
       "stock": 26.38,
@@ -1406,7 +1516,10 @@
       "ssWageBaseRatio": 1.024735,
       "k401Ratio": 1.090909,
       "iraRatio": 1.0,
-      "healthcareCpi": 4.0
+      "healthcareCpi": 4.0,
+      "partBPremium": 58.7,
+      "partADeductible": 840.0,
+      "partBDeductible": 100.0
     },
     "2004": {
       "stock": 8.99,
@@ -1420,7 +1533,10 @@
       "ssWageBaseRatio": 1.010345,
       "k401Ratio": 1.083333,
       "iraRatio": 1.0,
-      "healthcareCpi": 4.4
+      "healthcareCpi": 4.4,
+      "partBPremium": 66.6,
+      "partADeductible": 876.0,
+      "partBDeductible": 100.0
     },
     "2005": {
       "stock": 3,
@@ -1435,7 +1551,10 @@
       "k401Ratio": 1.076923,
       "iraRatio": 1.333333,
       "hsaRatio": 1.019231,
-      "healthcareCpi": 4.22
+      "healthcareCpi": 4.22,
+      "partBPremium": 78.2,
+      "partADeductible": 912.0,
+      "partBDeductible": 110.0
     },
     "2006": {
       "stock": 13.62,
@@ -1450,7 +1569,10 @@
       "k401Ratio": 1.071429,
       "iraRatio": 1.0,
       "hsaRatio": 1.018868,
-      "healthcareCpi": 4.01
+      "healthcareCpi": 4.01,
+      "partBPremium": 88.5,
+      "partADeductible": 952.0,
+      "partBDeductible": 124.0
     },
     "2007": {
       "stock": 3.53,
@@ -1465,7 +1587,10 @@
       "k401Ratio": 1.033333,
       "iraRatio": 1.0,
       "hsaRatio": 1.055556,
-      "healthcareCpi": 4.42
+      "healthcareCpi": 4.42,
+      "partBPremium": 93.5,
+      "partADeductible": 992.0,
+      "partBDeductible": 131.0
     },
     "2008": {
       "stock": -38.49,
@@ -1480,7 +1605,10 @@
       "k401Ratio": 1.0,
       "iraRatio": 1.25,
       "hsaRatio": 1.017544,
-      "healthcareCpi": 3.7
+      "healthcareCpi": 3.7,
+      "partBPremium": 96.4,
+      "partADeductible": 1024.0,
+      "partBDeductible": 135.0
     },
     "2009": {
       "stock": 23.45,
@@ -1495,7 +1623,10 @@
       "k401Ratio": 1.064516,
       "iraRatio": 1.0,
       "hsaRatio": 1.034483,
-      "healthcareCpi": 3.17
+      "healthcareCpi": 3.17,
+      "partBPremium": 96.4,
+      "partADeductible": 1068.0,
+      "partBDeductible": 135.0
     },
     "2010": {
       "stock": 12.78,
@@ -1510,7 +1641,9 @@
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
       "hsaRatio": 1.016667,
-      "healthcareCpi": 3.41
+      "healthcareCpi": 3.41,
+      "partADeductible": 1100.0,
+      "partBDeductible": 155.0
     },
     "2011": {
       "stock": 0,
@@ -1525,7 +1658,9 @@
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
       "hsaRatio": 1.0,
-      "healthcareCpi": 3.04
+      "healthcareCpi": 3.04,
+      "partADeductible": 1132.0,
+      "partBDeductible": 162.0
     },
     "2012": {
       "stock": 13.41,
@@ -1540,7 +1675,10 @@
       "k401Ratio": 1.030303,
       "iraRatio": 1.0,
       "hsaRatio": 1.016393,
-      "healthcareCpi": 3.67
+      "healthcareCpi": 3.67,
+      "partBPremium": 99.9,
+      "partADeductible": 1156.0,
+      "partBDeductible": 140.0
     },
     "2013": {
       "stock": 29.6,
@@ -2269,5 +2407,169 @@
     4.05,
     0.46,
     2.69
-  ]
+  ],
+  "medicare": {
+    "partBPremium": {
+      "1966": 3.0,
+      "1967": 3.0,
+      "1968": 4.0,
+      "1969": 4.0,
+      "1970": 5.3,
+      "1971": 5.6,
+      "1972": 5.8,
+      "1973": 6.3,
+      "1974": 6.7,
+      "1975": 6.7,
+      "1976": 7.2,
+      "1977": 7.7,
+      "1978": 8.2,
+      "1979": 8.7,
+      "1980": 9.6,
+      "1981": 11.0,
+      "1982": 12.2,
+      "1983": 12.2,
+      "1984": 14.6,
+      "1985": 15.5,
+      "1986": 15.5,
+      "1987": 17.9,
+      "1988": 24.8,
+      "1989": 31.9,
+      "1990": 28.6,
+      "1991": 29.9,
+      "1992": 31.8,
+      "1993": 36.6,
+      "1994": 41.1,
+      "1995": 46.1,
+      "1996": 42.5,
+      "1997": 43.8,
+      "1998": 43.8,
+      "1999": 45.5,
+      "2000": 45.5,
+      "2001": 50.0,
+      "2002": 54.0,
+      "2003": 58.7,
+      "2004": 66.6,
+      "2005": 78.2,
+      "2006": 88.5,
+      "2007": 93.5,
+      "2008": 96.4,
+      "2009": 96.4,
+      "2012": 99.9
+    },
+    "partBDeductible": {
+      "1966": 50.0,
+      "1967": 50.0,
+      "1968": 50.0,
+      "1969": 50.0,
+      "1970": 50.0,
+      "1971": 50.0,
+      "1972": 50.0,
+      "1973": 60.0,
+      "1974": 60.0,
+      "1975": 60.0,
+      "1976": 60.0,
+      "1977": 60.0,
+      "1978": 60.0,
+      "1979": 60.0,
+      "1980": 60.0,
+      "1982": 75.0,
+      "1983": 75.0,
+      "1984": 75.0,
+      "1985": 75.0,
+      "1986": 75.0,
+      "1987": 75.0,
+      "1988": 75.0,
+      "1989": 75.0,
+      "1990": 75.0,
+      "1991": 100.0,
+      "1992": 100.0,
+      "1993": 100.0,
+      "1994": 100.0,
+      "1995": 100.0,
+      "1996": 100.0,
+      "1997": 100.0,
+      "1998": 100.0,
+      "1999": 100.0,
+      "2000": 100.0,
+      "2001": 100.0,
+      "2002": 100.0,
+      "2003": 100.0,
+      "2004": 100.0,
+      "2005": 110.0,
+      "2006": 124.0,
+      "2007": 131.0,
+      "2008": 135.0,
+      "2009": 135.0,
+      "2010": 155.0,
+      "2011": 162.0,
+      "2012": 140.0
+    },
+    "partADeductible": {
+      "1966": 40.0,
+      "1967": 40.0,
+      "1968": 40.0,
+      "1969": 44.0,
+      "1970": 52.0,
+      "1971": 60.0,
+      "1972": 68.0,
+      "1973": 72.0,
+      "1974": 84.0,
+      "1975": 92.0,
+      "1976": 104.0,
+      "1977": 124.0,
+      "1978": 144.0,
+      "1979": 160.0,
+      "1980": 180.0,
+      "1981": 204.0,
+      "1982": 260.0,
+      "1983": 304.0,
+      "1984": 356.0,
+      "1985": 400.0,
+      "1986": 492.0,
+      "1987": 520.0,
+      "1988": 540.0,
+      "1989": 560.0,
+      "1990": 592.0,
+      "1991": 628.0,
+      "1992": 652.0,
+      "1993": 676.0,
+      "1994": 696.0,
+      "1995": 716.0,
+      "1996": 736.0,
+      "1997": 760.0,
+      "1998": 764.0,
+      "1999": 768.0,
+      "2000": 776.0,
+      "2001": 792.0,
+      "2002": 812.0,
+      "2003": 840.0,
+      "2004": 876.0,
+      "2005": 912.0,
+      "2006": 952.0,
+      "2007": 992.0,
+      "2008": 1024.0,
+      "2009": 1068.0,
+      "2010": 1100.0,
+      "2011": 1132.0,
+      "2012": 1156.0
+    },
+    "partDDeductible": {
+      "2006": 250.0,
+      "2007": 265.0,
+      "2008": 275.0,
+      "2009": 295.0,
+      "2010": 310.0,
+      "2011": 310.0,
+      "2012": 320.0
+    },
+    "partDBasePremium": {
+      "2006": 32.2,
+      "2007": 27.35,
+      "2008": 27.93,
+      "2009": 30.36,
+      "2010": 31.94,
+      "2011": 32.34,
+      "2012": 31.08
+    }
+  }
 }
