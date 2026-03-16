@@ -872,6 +872,7 @@ export class Calculator {
       this.balanceTracker,
       this.filingStatus,
       this.bracketInflationRate,
+      this.simulation,
     );
 
     // For Level 1, Roth conversions don't create activities or balance changes

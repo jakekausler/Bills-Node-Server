@@ -4,6 +4,7 @@ import { TaxManager } from './tax-manager';
 import { BalanceTracker } from './balance-tracker';
 import { AccountManager } from './account-manager';
 import { FilingStatus, getBracketDataForYear } from './bracket-calculator';
+import { loadDateOrVariable } from '../simulation/loadVariableValue';
 import dayjs from 'dayjs';
 
 interface ConversionLot {
@@ -28,6 +29,7 @@ export class RothConversionManager {
   private configs: RothConversionConfig[] = [];
   private conversionLots: Map<string, ConversionLot[]> = new Map();
   private accountManager: AccountManager;
+  private balanceTracker: BalanceTracker | null = null;
 
   constructor(accountManager: AccountManager) {
     this.accountManager = accountManager;
@@ -57,15 +59,30 @@ export class RothConversionManager {
     balanceTracker: BalanceTracker,
     filingStatus: FilingStatus = 'mfj',
     inflationRate: number = 0.03,
+    simulation: string = 'default',
   ): void {
     if (!this.configs || this.configs.length === 0) {
       return;
     }
 
-    for (const config of this.configs) {
-      if (!config.enabled) {
-        continue;
-      }
+    // Store balance tracker for use in calculateLiquidAssets
+    this.balanceTracker = balanceTracker;
+
+    // Filter and sort enabled configs by priority
+    const enabledConfigs = this.configs.filter(c => c.enabled);
+    const sortedConfigs = this.sortConfigsByPriority(enabledConfigs, balanceTracker);
+
+    for (const config of sortedConfigs) {
+      // Load start/end dates from variables
+      const startDateResult = loadDateOrVariable(null, true, config.startDateVariable, simulation);
+      const endDateResult = loadDateOrVariable(null, true, config.endDateVariable, simulation);
+
+      const startDate = startDateResult.date ? startDateResult.date.getUTCFullYear() : null;
+      const endDate = endDateResult.date ? endDateResult.date.getUTCFullYear() : null;
+
+      // Skip if current year is outside the conversion window
+      if (startDate !== null && year < startDate) continue;
+      if (endDate !== null && year > endDate) continue;
 
       // Get source and destination accounts
       const sourceAccount = this.accountManager.getAccountByName(config.sourceAccount);
@@ -114,8 +131,8 @@ export class RothConversionManager {
       const conversionAmount = Math.min(sourceBalance, remainingSpace);
       const estimatedConversionTax = conversionAmount * config.targetBracketRate;
 
-      // Liquid assets = non-RMD, non-destination accounts that perform pulls
-      const liquidAvailable = this.calculateLiquidAssets(destAccount.id);
+      // Liquid assets = accounts with performsPulls === true && usesRMD === false && not destination
+      const liquidAvailable = this.calculateLiquidAssets(destAccount.id, balanceTracker);
       if (liquidAvailable < estimatedConversionTax) {
         // Can't cover tax without depleting liquid reserves
         continue;
@@ -141,6 +158,35 @@ export class RothConversionManager {
         incomeType: 'retirement',
       });
     }
+  }
+
+  /**
+   * Sort configs by priority (largerFirst or smallerFirst)
+   */
+  private sortConfigsByPriority(
+    configs: RothConversionConfig[],
+    balanceTracker: BalanceTracker,
+  ): RothConversionConfig[] {
+    return configs.sort((a, b) => {
+      const accountA = this.accountManager.getAccountByName(a.sourceAccount);
+      const accountB = this.accountManager.getAccountByName(b.sourceAccount);
+
+      if (!accountA || !accountB) {
+        return 0;
+      }
+
+      const balA = balanceTracker.getAccountBalance(accountA.id);
+      const balB = balanceTracker.getAccountBalance(accountB.id);
+
+      // Use the first config's priority for sorting (assumes all same priority)
+      const priority = configs[0]?.priority ?? 'largerFirst';
+
+      if (priority === 'largerFirst') {
+        return balB - balA; // Larger balance first
+      } else {
+        return balA - balB; // Smaller balance first
+      }
+    });
   }
 
   /**
@@ -187,9 +233,9 @@ export class RothConversionManager {
 
   /**
    * Calculate available liquid assets for paying conversion tax
-   * Includes: non-RMD accounts that are NOT the destination Roth
+   * Includes: accounts with performsPulls === true && usesRMD === false && not destination
    */
-  private calculateLiquidAssets(excludeAccountId: string): number {
+  private calculateLiquidAssets(excludeAccountId: string, balanceTracker: BalanceTracker): number {
     let totalLiquid = 0;
 
     for (const account of this.accountManager.getAllAccounts()) {
@@ -200,8 +246,12 @@ export class RothConversionManager {
         // RMD accounts not liquid for this purpose
         continue;
       }
+      if (!account.performsPulls) {
+        // Only pull accounts can be used for tax payments
+        continue;
+      }
 
-      const balance = this.balanceTracker.getAccountBalance(account.id);
+      const balance = balanceTracker.getAccountBalance(account.id);
       totalLiquid += Math.max(0, balance - (account.minimumBalance ?? 0));
     }
 
@@ -225,8 +275,6 @@ export class RothConversionManager {
     }
     return null;
   }
-
-  private balanceTracker: BalanceTracker | null = null;
 
   public setBalanceTracker(balanceTracker: BalanceTracker): void {
     this.balanceTracker = balanceTracker;
