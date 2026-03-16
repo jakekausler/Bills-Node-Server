@@ -9,4 +9,5 @@ export type SocialSecurityData = {
   priorAnnualNetIncomes: number[];
   priorAnnualNetIncomeYears: number[];
   colaVariable?: string;
+  spouseName?: string;
 };

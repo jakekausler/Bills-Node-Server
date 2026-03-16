@@ -172,7 +172,20 @@ export class RetirementManager {
     const pia = this.computePIA(socialSecurity.yearTurn60 + 2, aime);
     const birthYear = socialSecurity.birthDate.getUTCFullYear();
     const factorForCollectionAge = this.factorForCollectionAge(socialSecurity.collectionAge, birthYear);
-    const monthlyPay = pia * factorForCollectionAge;
+    let monthlyPay = pia * factorForCollectionAge;
+
+    // Apply spousal benefit if spouse exists and their benefit has been calculated
+    // TODO #26: Store raw PIA for more accurate spousal benefit calculation (currently using adjusted monthly pay as approximation)
+    if (socialSecurity.spouseName) {
+      const spouseMonthlyPay = this.socialSecurityMonthlyPay.get(socialSecurity.spouseName);
+      if (spouseMonthlyPay && spouseMonthlyPay > 0) {
+        // Spousal benefit = 50% of spouse's monthly pay (approximates 50% of PIA with claiming age adjustments)
+        const spousalBenefit = spouseMonthlyPay * 0.5;
+        // Lower-earning spouse gets the higher of their own benefit or spousal benefit
+        monthlyPay = Math.max(monthlyPay, spousalBenefit);
+      }
+    }
+
     this.socialSecurityMonthlyPay.set(socialSecurity.name, monthlyPay);
   }
 

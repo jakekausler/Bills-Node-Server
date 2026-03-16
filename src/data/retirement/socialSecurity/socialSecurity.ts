@@ -45,6 +45,8 @@ export class SocialSecurity {
   firstPaymentYear: number | null;
   /** Variable name for COLA adjustment (optional) */
   colaVariable: string | null;
+  /** Name of the linked spouse's SS config for spousal benefits calculation */
+  spouseName: string | null;
 
   /**
    * Creates a new Social Security benefit configuration
@@ -74,6 +76,7 @@ export class SocialSecurity {
     this.collectionAge = dayjs.utc(this.startDate).diff(this.birthDate, 'year', false);
     this.firstPaymentYear = null;
     this.colaVariable = data.colaVariable ?? null;
+    this.spouseName = data.spouseName ?? null;
   }
 
   serialize(): SocialSecurityData {
@@ -90,6 +93,9 @@ export class SocialSecurity {
     };
     if (this.colaVariable) {
       data.colaVariable = this.colaVariable;
+    }
+    if (this.spouseName) {
+      data.spouseName = this.spouseName;
     }
     return data;
   }

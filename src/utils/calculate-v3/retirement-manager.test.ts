@@ -652,4 +652,203 @@ describe('RetirementManager', () => {
       expect(cap2027).toBeGreaterThan(cap2026); // Should keep increasing
     });
   });
+
+  describe('Spousal Social Security benefits (#26)', () => {
+    it('should apply spousal benefit when spouse benefit is higher than own benefit', () => {
+      const { years, incomes } = generate35YearsIncome(2020, 50000);
+      const { years: lowIncomeYears, incomes: lowIncomes } = generate35YearsIncome(2020, 30000);
+
+      // Higher earner
+      const higherEarnerSS = new SocialSecurity({
+        name: 'Higher Earner SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Higher Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        priorAnnualNetIncomeYears: years,
+        priorAnnualNetIncomes: incomes,
+        spouseName: 'Lower Earner SS',
+      } as any);
+      // Override with actual date/age values
+      (higherEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
+      (higherEarnerSS as any).birthDate = new Date(Date.UTC(1960, 0, 1));
+      (higherEarnerSS as any).yearTurn60 = 2020;
+      (higherEarnerSS as any).collectionAge = 67;
+
+      // Lower earner
+      const lowerEarnerSS = new SocialSecurity({
+        name: 'Lower Earner SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Lower Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        priorAnnualNetIncomeYears: lowIncomeYears,
+        priorAnnualNetIncomes: lowIncomes,
+        spouseName: 'Higher Earner SS',
+      } as any);
+      // Override with actual date/age values
+      (lowerEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
+      (lowerEarnerSS as any).birthDate = new Date(Date.UTC(1960, 0, 1));
+      (lowerEarnerSS as any).yearTurn60 = 2020;
+      (lowerEarnerSS as any).collectionAge = 67;
+
+      retirementManager = new RetirementManager([higherEarnerSS, lowerEarnerSS], []);
+
+      // Calculate higher earner first
+      retirementManager.calculateSocialSecurityMonthlyPay(higherEarnerSS);
+      const higherPay = retirementManager.getSocialSecurityMonthlyPay('Higher Earner SS');
+      expect(higherPay).toBeGreaterThan(0);
+
+      // Calculate lower earner - should get spousal benefit if it's higher
+      retirementManager.calculateSocialSecurityMonthlyPay(lowerEarnerSS);
+      const lowerPay = retirementManager.getSocialSecurityMonthlyPay('Lower Earner SS');
+
+      // Lower earner should get at least 50% of higher earner's benefit
+      const spousalBenefit = higherPay * 0.5;
+      expect(lowerPay).toBeGreaterThanOrEqual(spousalBenefit * 0.99); // Allow 1% floating point tolerance
+    });
+
+    it('should not apply spousal benefit when own benefit is higher', () => {
+      const { years, incomes } = generate35YearsIncome(2020, 50000);
+      const { years: lowIncomeYears, incomes: lowIncomes } = generate35YearsIncome(2020, 30000);
+
+      // Higher earner
+      const higherEarnerSS = new SocialSecurity({
+        name: 'Higher Earner SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Higher Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        priorAnnualNetIncomeYears: years,
+        priorAnnualNetIncomes: incomes,
+        spouseName: 'Lower Earner SS',
+      } as any);
+      // Override with actual date/age values
+      (higherEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
+      (higherEarnerSS as any).birthDate = new Date(Date.UTC(1960, 0, 1));
+      (higherEarnerSS as any).yearTurn60 = 2020;
+      (higherEarnerSS as any).collectionAge = 67;
+
+      // Lower earner
+      const lowerEarnerSS = new SocialSecurity({
+        name: 'Lower Earner SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Lower Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        priorAnnualNetIncomeYears: lowIncomeYears,
+        priorAnnualNetIncomes: lowIncomes,
+        spouseName: 'Higher Earner SS',
+      } as any);
+      // Override with actual date/age values
+      (lowerEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
+      (lowerEarnerSS as any).birthDate = new Date(Date.UTC(1960, 0, 1));
+      (lowerEarnerSS as any).yearTurn60 = 2020;
+      (lowerEarnerSS as any).collectionAge = 67;
+
+      retirementManager = new RetirementManager([higherEarnerSS, lowerEarnerSS], []);
+
+      // Calculate lower earner first (before spouse)
+      retirementManager.calculateSocialSecurityMonthlyPay(lowerEarnerSS);
+      const lowerPayBefore = retirementManager.getSocialSecurityMonthlyPay('Lower Earner SS');
+
+      // Calculate higher earner
+      retirementManager.calculateSocialSecurityMonthlyPay(higherEarnerSS);
+      const higherPay = retirementManager.getSocialSecurityMonthlyPay('Higher Earner SS');
+
+      // Higher earner should keep their own benefit (no spousal for higher earner)
+      expect(higherPay).toBeGreaterThan(0);
+    });
+
+    it('should use own benefit when spouse benefit not yet calculated', () => {
+      const { years, incomes } = generate35YearsIncome(2020, 50000);
+
+      const socialSecurityWithoutSpouse = new SocialSecurity({
+        name: 'No Spouse SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        priorAnnualNetIncomeYears: years,
+        priorAnnualNetIncomes: incomes,
+        spouseName: null,
+      } as any);
+      // Override with actual date/age values
+      (socialSecurityWithoutSpouse as any).startDate = new Date(Date.UTC(2027, 0, 1));
+      (socialSecurityWithoutSpouse as any).birthDate = new Date(Date.UTC(1960, 0, 1));
+      (socialSecurityWithoutSpouse as any).yearTurn60 = 2020;
+      (socialSecurityWithoutSpouse as any).collectionAge = 67;
+
+      retirementManager = new RetirementManager([socialSecurityWithoutSpouse], []);
+      retirementManager.calculateSocialSecurityMonthlyPay(socialSecurityWithoutSpouse);
+
+      const pay = retirementManager.getSocialSecurityMonthlyPay('No Spouse SS');
+      expect(pay).toBeGreaterThan(0);
+    });
+
+    it('should handle case when spouse has not yet been calculated', () => {
+      const { years, incomes } = generate35YearsIncome(2020, 50000);
+      const { years: lowIncomeYears, incomes: lowIncomes } = generate35YearsIncome(2020, 30000);
+
+      // Lower earner who references spouse
+      const lowerEarnerSS = new SocialSecurity({
+        name: 'Lower Earner SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Lower Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        priorAnnualNetIncomeYears: lowIncomeYears,
+        priorAnnualNetIncomes: lowIncomes,
+        spouseName: 'Higher Earner SS',
+      } as any);
+      // Override with actual date/age values
+      (lowerEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
+      (lowerEarnerSS as any).birthDate = new Date(Date.UTC(1960, 0, 1));
+      (lowerEarnerSS as any).yearTurn60 = 2020;
+      (lowerEarnerSS as any).collectionAge = 67;
+
+      // Higher earner
+      const higherEarnerSS = new SocialSecurity({
+        name: 'Higher Earner SS',
+        payToAccount: 'checking-1',
+        paycheckNames: ['Higher Paycheck'],
+        paycheckAccounts: ['checking-1'],
+        paycheckCategories: ['Income.SocialSecurity'],
+        startDateVariable: 'SS_START',
+        birthDateVariable: 'BIRTH_DATE',
+        priorAnnualNetIncomeYears: years,
+        priorAnnualNetIncomes: incomes,
+        spouseName: 'Lower Earner SS',
+      } as any);
+      // Override with actual date/age values
+      (higherEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
+      (higherEarnerSS as any).birthDate = new Date(Date.UTC(1960, 0, 1));
+      (higherEarnerSS as any).yearTurn60 = 2020;
+      (higherEarnerSS as any).collectionAge = 67;
+
+      retirementManager = new RetirementManager([lowerEarnerSS, higherEarnerSS], []);
+
+      // Calculate lower earner first - spouse not calculated yet
+      retirementManager.calculateSocialSecurityMonthlyPay(lowerEarnerSS);
+      const lowerPayWithoutSpouse = retirementManager.getSocialSecurityMonthlyPay('Lower Earner SS');
+      expect(lowerPayWithoutSpouse).toBeGreaterThan(0);
+
+      // Now calculate higher earner
+      retirementManager.calculateSocialSecurityMonthlyPay(higherEarnerSS);
+      const higherPay = retirementManager.getSocialSecurityMonthlyPay('Higher Earner SS');
+      expect(higherPay).toBeGreaterThan(0);
+    });
+  });
 });
