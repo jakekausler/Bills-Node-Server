@@ -13,6 +13,10 @@ export interface PercentileGraphData {
   type: 'percentile';
   labels: string[]; // Years as strings
   datasets: PercentileDataset[];
+  fundedRatio?: number; // #9: % of simulations that never failed
+  failedSimulations?: number; // #9: Count of failed simulations
+  totalSimulations?: number; // #9: Total simulations run
+  medianFailureYear?: number | null; // #9: Median year of failure for failed sims
 }
 
 export interface PercentileDataset {
@@ -44,6 +48,7 @@ interface SimulationYearlyData {
   yearlyMinBalances: YearlyMinBalances;
   yearlyAccountBalances?: YearlyAccountBalances;
   cumulativeInflation?: Record<number, number>;
+  fundingFailureYear?: number | null; // #9: First year a pull account dropped below minimumBalance
 }
 
 /**
@@ -202,6 +207,7 @@ function processAllSimulations(simulationId: string, separateAccounts: boolean =
       yearlyMinBalances: result.yearlyMinBalances,
       yearlyAccountBalances: separateAccounts ? result.yearlyAccountBalances : undefined,
       cumulativeInflation: result.cumulativeInflation,
+      fundingFailureYear: result.fundingFailureYear,
     }));
   } catch (error) {
     throw new Error(`Failed to load simulation results: ${error}`);
@@ -293,6 +299,21 @@ export async function generateMonteCarloStatisticsGraph(
   if (simulationData.length === 0) {
     throw new Error('No simulation data found');
   }
+
+  // #9: Compute funded ratio and failure statistics
+  const totalSims = simulationData.length;
+  const failedSims = simulationData.filter(
+    (s) => s.fundingFailureYear !== null && s.fundingFailureYear !== undefined,
+  ).length;
+  const fundedRatio = ((totalSims - failedSims) / totalSims) * 100;
+
+  const failureYears = simulationData
+    .filter((s) => s.fundingFailureYear !== null && s.fundingFailureYear !== undefined)
+    .map((s) => s.fundingFailureYear!);
+  const medianFailureYear =
+    failureYears.length > 0
+      ? failureYears.sort((a, b) => a - b)[Math.floor(failureYears.length / 2)]
+      : null;
 
   // Collect all unique years across all simulations
   const allYears = new Set<number>();
@@ -495,6 +516,10 @@ export async function generateMonteCarloStatisticsGraph(
     type: 'percentile',
     labels,
     datasets,
+    fundedRatio,
+    failedSimulations: failedSims,
+    totalSimulations: totalSims,
+    medianFailureYear,
   };
 }
 

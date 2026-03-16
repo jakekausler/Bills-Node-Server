@@ -197,6 +197,29 @@ async function runSingleSimulation(
     // Calculate yearly minimum balances
     const balanceData = calculateYearlyMinBalances(filteredAccounts, true);
 
+    // #9: Check for funding failure (pull account dropped below minimumBalance)
+    let fundingFailureYear: number | null = null;
+
+    for (const account of filteredAccounts) {
+      // Find the account config to check if it performs pulls
+      const accountConfig = accountsAndTransfers.accounts.find(
+        (a) => a.id === account.id || a.name === account.name,
+      );
+      if (!accountConfig?.performsPulls) continue;
+
+      const minBalance = accountConfig.minimumBalance ?? 0;
+
+      for (const activity of account.consolidatedActivity) {
+        if (activity.balance < minBalance) {
+          const year = new Date(activity.date).getUTCFullYear();
+          if (fundingFailureYear === null || year < fundingFailureYear) {
+            fundingFailureYear = year;
+          }
+          break; // Found failure for this account, check next
+        }
+      }
+    }
+
     // Extract inflation samples and compute cumulative inflation
     const inflationHandler = await MonteCarloHandler.getInstance(startDate, endDate, seed);
     const inflationByYear = inflationHandler.getInflationByYear();
@@ -218,6 +241,7 @@ async function runSingleSimulation(
       yearlyMinBalances: balanceData.combined,
       yearlyAccountBalances: balanceData.perAccount,
       cumulativeInflation,
+      fundingFailureYear,
     };
 
     // Write to temporary file - store aggregated data only

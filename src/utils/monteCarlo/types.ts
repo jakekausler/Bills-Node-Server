@@ -68,6 +68,7 @@ export interface AggregatedSimulationResult {
   yearlyMinBalances: YearlyMinBalances;
   yearlyAccountBalances?: YearlyAccountBalances;
   cumulativeInflation?: Record<number, number>; // year → cumulative inflation multiplier from start year
+  fundingFailureYear?: number | null; // #9: First year a pull account dropped below minimumBalance (null = never failed)
 }
 
 export type WorkerMessage =
