@@ -1320,6 +1320,7 @@ describe('Calculator', () => {
         name: 'IRA',
         type: 'Investment',
         withdrawalTaxRate: 0.22,
+        usesRMD: true,
       });
       const toAccount = makeAccount({ id: 'to-acct', name: 'Checking', type: 'Checking' });
       const balanceTracker = makeBalanceTracker({
@@ -1357,6 +1358,7 @@ describe('Calculator', () => {
         name: 'Traditional 401k',
         type: 'Investment',
         withdrawalTaxRate: 0.22,
+        usesRMD: true,
       });
       const toAccount = makeAccount({ id: 'to-checking', name: 'Checking', type: 'Checking', withdrawalTaxRate: 0 });
       const balanceTracker = makeBalanceTracker({
@@ -1467,6 +1469,7 @@ describe('Calculator', () => {
         name: 'Traditional 401k',
         type: 'Investment',
         withdrawalTaxRate: 0.22,
+        usesRMD: true,
       });
       const toAccount = makeAccount({ id: 'to-checking', name: 'Checking', type: 'Checking', withdrawalTaxRate: 0 });
       const balanceTracker = makeBalanceTracker({
