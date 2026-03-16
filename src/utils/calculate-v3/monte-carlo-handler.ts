@@ -94,6 +94,11 @@ export class MonteCarloHandler {
         ? yearData.inflation / 100
         : this.drawRandomSample(this.historicRates?.inflation) / 100;
 
+      // Healthcare Inflation - correlated draw from same historical year
+      yearSamples[MonteCarloSampleType.HEALTHCARE_INFLATION] = yearData.healthcareCpi !== undefined
+        ? yearData.healthcareCpi / 100
+        : this.drawRandomSample(this.historicRates?.healthcareCpi) / 100;
+
       // Raise - correlated draw from same historical year
       yearSamples[MonteCarloSampleType.RAISE] = yearData.raise !== undefined
         ? yearData.raise / 100

@@ -1,5 +1,6 @@
 {
   "INFLATION": "Inflation",
+  "HEALTHCARE_INFLATION": "HealthcareInflation",
   "RAISE_RATE": "Raise",
   "HIGH_YIELD_SAVINGS_RATE": "HYSA",
   "LOW_YIELD_SAVINGS_RATE": "LYSA",

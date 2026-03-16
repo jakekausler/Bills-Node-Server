@@ -273,6 +273,7 @@ export enum MonteCarloSampleType {
   LYSA = 'LYSA',
   PORTFOLIO = 'Portfolio',
   INFLATION = 'Inflation',
+  HEALTHCARE_INFLATION = 'HealthcareInflation',
   RAISE = 'Raise',
   LIMIT_INCREASE_401K = '401k_limit_increase_rate',
   SS_COLA = 'SS_COLA',
@@ -296,6 +297,7 @@ export interface HistoricRates {
     lowYield: number[];
   };
   inflation: number[];
+  healthcareCpi?: number[];
   raise: number[];
   limitIncrease401k: number[];
   ssCola?: number[];
@@ -318,6 +320,7 @@ export interface HistoricRates {
     highYield: number;
     lowYield: number;
     inflation: number;
+    healthcareCpi: number;
     raise: number;
     limitIncrease401k: number;
     ssCola: number;

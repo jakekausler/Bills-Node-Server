@@ -769,7 +769,8 @@
       "bond": 1.95,
       "inflation": 8.1,
       "ssWageBase": 3000,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 6.28
     },
     "1949": {
       "stock": 10.26,
@@ -777,7 +778,8 @@
       "inflation": -1.2,
       "raise": 3.7,
       "ssWageBase": 3000,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 3.07
     },
     "1950": {
       "stock": 21.78,
@@ -785,7 +787,8 @@
       "inflation": 1.3,
       "raise": 3.8,
       "ssWageBase": 3000,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 1.8
     },
     "1951": {
       "stock": 16.46,
@@ -793,7 +796,8 @@
       "inflation": 7.9,
       "raise": 4.1,
       "ssWageBase": 3600,
-      "ssWageBaseRatio": 1.2
+      "ssWageBaseRatio": 1.2,
+      "healthcareCpi": 4.8
     },
     "1952": {
       "stock": 11.78,
@@ -801,7 +805,8 @@
       "inflation": 1.9,
       "raise": 4.1,
       "ssWageBase": 3600,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 5.58
     },
     "1953": {
       "stock": -6.62,
@@ -809,7 +814,8 @@
       "inflation": 0.8,
       "raise": 4.6,
       "ssWageBase": 3600,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 3.49
     },
     "1954": {
       "stock": 45.02,
@@ -818,7 +824,8 @@
       "raise": 4.8,
       "highYield": 0.94,
       "ssWageBase": 3600,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 3.08
     },
     "1955": {
       "stock": 26.4,
@@ -827,7 +834,8 @@
       "raise": 4.3,
       "highYield": 1.72,
       "ssWageBase": 4200,
-      "ssWageBaseRatio": 1.166667
+      "ssWageBaseRatio": 1.166667,
+      "healthcareCpi": 2.38
     },
     "1956": {
       "stock": 2.62,
@@ -836,7 +844,8 @@
       "raise": 4.1,
       "highYield": 2.62,
       "ssWageBase": 4200,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 3.56
     },
     "1957": {
       "stock": -14.31,
@@ -845,7 +854,8 @@
       "raise": 3.6,
       "highYield": 3.22,
       "ssWageBase": 4200,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 4.1
     },
     "1958": {
       "stock": 38.06,
@@ -854,7 +864,8 @@
       "raise": 3.5,
       "highYield": 1.77,
       "ssWageBase": 4200,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 4.87
     },
     "1959": {
       "stock": 8.48,
@@ -863,7 +874,8 @@
       "raise": 3.4,
       "highYield": 3.39,
       "ssWageBase": 4800,
-      "ssWageBaseRatio": 1.142857
+      "ssWageBaseRatio": 1.142857,
+      "healthcareCpi": 4.16
     },
     "1960": {
       "stock": -2.97,
@@ -872,7 +884,8 @@
       "raise": 3.0,
       "highYield": 2.87,
       "ssWageBase": 4800,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 3.57
     },
     "1961": {
       "stock": 23.13,
@@ -881,7 +894,8 @@
       "raise": 3.1,
       "highYield": 2.35,
       "ssWageBase": 4800,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 2.92
     },
     "1962": {
       "stock": -11.81,
@@ -890,7 +904,8 @@
       "raise": 3.1,
       "highYield": 2.77,
       "ssWageBase": 4800,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 2.69
     },
     "1963": {
       "stock": 18.89,
@@ -899,7 +914,8 @@
       "raise": 2.3,
       "highYield": 3.16,
       "ssWageBase": 4800,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 2.37
     },
     "1964": {
       "stock": 12.97,
@@ -908,7 +924,8 @@
       "raise": 2.3,
       "highYield": 3.55,
       "ssWageBase": 4800,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 2.11
     },
     "1965": {
       "stock": 9.06,
@@ -917,7 +934,8 @@
       "raise": 2.0,
       "highYield": 3.95,
       "ssWageBase": 4800,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 2.41
     },
     "1966": {
       "stock": -13.09,
@@ -926,7 +944,8 @@
       "raise": 1.7,
       "highYield": 4.86,
       "ssWageBase": 6600,
-      "ssWageBaseRatio": 1.375
+      "ssWageBaseRatio": 1.375,
+      "healthcareCpi": 4.43
     },
     "1967": {
       "stock": 20.09,
@@ -935,7 +954,8 @@
       "raise": 1.8,
       "highYield": 4.29,
       "ssWageBase": 6600,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 7.03
     },
     "1968": {
       "stock": 7.66,
@@ -944,7 +964,8 @@
       "raise": 1.8,
       "highYield": 5.34,
       "ssWageBase": 7800,
-      "ssWageBaseRatio": 1.181818
+      "ssWageBaseRatio": 1.181818,
+      "healthcareCpi": 6.1
     },
     "1969": {
       "stock": -11.36,
@@ -953,7 +974,8 @@
       "raise": 1.8,
       "highYield": 6.67,
       "ssWageBase": 7800,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 6.86
     },
     "1970": {
       "stock": 0.1,
@@ -962,7 +984,8 @@
       "raise": 1.7,
       "highYield": 6.39,
       "ssWageBase": 7800,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 6.4
     },
     "1971": {
       "stock": 10.79,
@@ -971,7 +994,8 @@
       "raise": 1.5,
       "highYield": 4.33,
       "ssWageBase": 7800,
-      "ssWageBaseRatio": 1.0
+      "ssWageBaseRatio": 1.0,
+      "healthcareCpi": 6.4
     },
     "1972": {
       "stock": 15.63,
@@ -980,7 +1004,8 @@
       "raise": 1.3,
       "highYield": 4.06,
       "ssWageBase": 9000,
-      "ssWageBaseRatio": 1.153846
+      "ssWageBaseRatio": 1.153846,
+      "healthcareCpi": 3.3
     },
     "1973": {
       "stock": -17.37,
@@ -989,7 +1014,8 @@
       "raise": 1.5,
       "highYield": 7.04,
       "ssWageBase": 10800,
-      "ssWageBaseRatio": 1.2
+      "ssWageBaseRatio": 1.2,
+      "healthcareCpi": 3.84
     },
     "1974": {
       "stock": -29.72,
@@ -998,7 +1024,8 @@
       "raise": 1.6,
       "highYield": 7.85,
       "ssWageBase": 13200,
-      "ssWageBaseRatio": 1.222222
+      "ssWageBaseRatio": 1.222222,
+      "healthcareCpi": 9.31
     },
     "1975": {
       "stock": 31.55,
@@ -1008,7 +1035,8 @@
       "highYield": 5.79,
       "ssCola": 8.0,
       "ssWageBase": 14100,
-      "ssWageBaseRatio": 1.068182
+      "ssWageBaseRatio": 1.068182,
+      "healthcareCpi": 12.1
     },
     "1976": {
       "stock": 19.15,
@@ -1019,7 +1047,8 @@
       "ssCola": 6.4,
       "ssWageBase": 15300,
       "ssWageBaseRatio": 1.085106,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 9.49
     },
     "1977": {
       "stock": -11.5,
@@ -1030,7 +1059,8 @@
       "ssCola": 5.9,
       "ssWageBase": 16500,
       "ssWageBaseRatio": 1.078431,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 9.57
     },
     "1978": {
       "stock": 1.06,
@@ -1041,7 +1071,8 @@
       "ssCola": 6.5,
       "ssWageBase": 17700,
       "ssWageBaseRatio": 1.072727,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 8.38
     },
     "1979": {
       "stock": 12.31,
@@ -1052,7 +1083,8 @@
       "ssCola": 9.9,
       "ssWageBase": 22900,
       "ssWageBaseRatio": 1.293785,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 9.27
     },
     "1980": {
       "stock": 25.77,
@@ -1063,7 +1095,8 @@
       "ssCola": 14.3,
       "ssWageBase": 25900,
       "ssWageBaseRatio": 1.131004,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 10.94
     },
     "1981": {
       "stock": -9.73,
@@ -1074,7 +1107,8 @@
       "ssCola": 11.2,
       "ssWageBase": 29700,
       "ssWageBaseRatio": 1.146718,
-      "iraRatio": 1.333333
+      "iraRatio": 1.333333,
+      "healthcareCpi": 10.78
     },
     "1982": {
       "stock": 14.76,
@@ -1085,7 +1119,8 @@
       "ssCola": 7.4,
       "ssWageBase": 32400,
       "ssWageBaseRatio": 1.090909,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 11.69
     },
     "1983": {
       "stock": 17.27,
@@ -1096,7 +1131,8 @@
       "ssCola": 3.5,
       "ssWageBase": 35700,
       "ssWageBaseRatio": 1.101852,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 8.68
     },
     "1984": {
       "stock": 1.4,
@@ -1107,7 +1143,8 @@
       "ssCola": 3.5,
       "ssWageBase": 37800,
       "ssWageBaseRatio": 1.058824,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 6.28
     },
     "1985": {
       "stock": 26.33,
@@ -1118,7 +1155,8 @@
       "ssCola": 3.1,
       "ssWageBase": 39600,
       "ssWageBaseRatio": 1.047619,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 6.21
     },
     "1986": {
       "stock": 14.62,
@@ -1129,7 +1167,8 @@
       "ssCola": 1.3,
       "ssWageBase": 42000,
       "ssWageBaseRatio": 1.060606,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 7.53
     },
     "1987": {
       "stock": 2.03,
@@ -1142,7 +1181,8 @@
       "ssWageBase": 43800,
       "ssWageBaseRatio": 1.042857,
       "k401Ratio": 1.0,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 6.56
     },
     "1988": {
       "stock": 12.4,
@@ -1155,7 +1195,8 @@
       "ssWageBase": 45000,
       "ssWageBaseRatio": 1.027397,
       "k401Ratio": 1.044714,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 6.49
     },
     "1989": {
       "stock": 27.25,
@@ -1168,7 +1209,8 @@
       "ssWageBase": 48000,
       "ssWageBaseRatio": 1.066667,
       "k401Ratio": 1.042937,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 7.66
     },
     "1990": {
       "stock": -6.56,
@@ -1181,7 +1223,8 @@
       "ssWageBase": 51300,
       "ssWageBaseRatio": 1.06875,
       "k401Ratio": 1.046152,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 9.08
     },
     "1991": {
       "stock": 26.31,
@@ -1194,7 +1237,8 @@
       "ssWageBase": 53400,
       "ssWageBaseRatio": 1.040936,
       "k401Ratio": 1.062163,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 8.73
     },
     "1992": {
       "stock": 4.46,
@@ -1207,7 +1251,8 @@
       "ssWageBase": 55500,
       "ssWageBaseRatio": 1.039326,
       "k401Ratio": 1.029853,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 7.37
     },
     "1993": {
       "stock": 7.06,
@@ -1220,7 +1265,8 @@
       "ssWageBase": 57600,
       "ssWageBaseRatio": 1.037838,
       "k401Ratio": 1.030477,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 5.97
     },
     "1994": {
       "stock": -1.54,
@@ -1233,7 +1279,8 @@
       "ssWageBase": 60600,
       "ssWageBaseRatio": 1.052083,
       "k401Ratio": 1.027352,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 4.78
     },
     "1995": {
       "stock": 34.11,
@@ -1246,7 +1293,8 @@
       "ssWageBase": 61200,
       "ssWageBaseRatio": 1.009901,
       "k401Ratio": 1.0,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 4.47
     },
     "1996": {
       "stock": 20.26,
@@ -1259,7 +1307,8 @@
       "ssWageBase": 62700,
       "ssWageBaseRatio": 1.02451,
       "k401Ratio": 1.028139,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 3.55
     },
     "1997": {
       "stock": 31.01,
@@ -1272,7 +1321,8 @@
       "ssWageBase": 65400,
       "ssWageBaseRatio": 1.043062,
       "k401Ratio": 1.0,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 2.77
     },
     "1998": {
       "stock": 26.67,
@@ -1285,7 +1335,8 @@
       "ssWageBase": 68400,
       "ssWageBaseRatio": 1.045872,
       "k401Ratio": 1.052632,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 3.21
     },
     "1999": {
       "stock": 19.53,
@@ -1298,7 +1349,8 @@
       "ssWageBase": 72600,
       "ssWageBaseRatio": 1.061404,
       "k401Ratio": 1.0,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 3.48
     },
     "2000": {
       "stock": -10.14,
@@ -1311,7 +1363,8 @@
       "ssWageBase": 76200,
       "ssWageBaseRatio": 1.049587,
       "k401Ratio": 1.05,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 4.07
     },
     "2001": {
       "stock": -13.04,
@@ -1324,7 +1377,8 @@
       "ssWageBase": 80400,
       "ssWageBaseRatio": 1.055118,
       "k401Ratio": 1.0,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 4.61
     },
     "2002": {
       "stock": -23.37,
@@ -1337,7 +1391,8 @@
       "ssWageBase": 84900,
       "ssWageBaseRatio": 1.05597,
       "k401Ratio": 1.047619,
-      "iraRatio": 1.5
+      "iraRatio": 1.5,
+      "healthcareCpi": 4.72
     },
     "2003": {
       "stock": 26.38,
@@ -1350,7 +1405,8 @@
       "ssWageBase": 87000,
       "ssWageBaseRatio": 1.024735,
       "k401Ratio": 1.090909,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 4.0
     },
     "2004": {
       "stock": 8.99,
@@ -1363,7 +1419,8 @@
       "ssWageBase": 87900,
       "ssWageBaseRatio": 1.010345,
       "k401Ratio": 1.083333,
-      "iraRatio": 1.0
+      "iraRatio": 1.0,
+      "healthcareCpi": 4.4
     },
     "2005": {
       "stock": 3,
@@ -1377,7 +1434,8 @@
       "ssWageBaseRatio": 1.023891,
       "k401Ratio": 1.076923,
       "iraRatio": 1.333333,
-      "hsaRatio": 1.019231
+      "hsaRatio": 1.019231,
+      "healthcareCpi": 4.22
     },
     "2006": {
       "stock": 13.62,
@@ -1391,7 +1449,8 @@
       "ssWageBaseRatio": 1.046667,
       "k401Ratio": 1.071429,
       "iraRatio": 1.0,
-      "hsaRatio": 1.018868
+      "hsaRatio": 1.018868,
+      "healthcareCpi": 4.01
     },
     "2007": {
       "stock": 3.53,
@@ -1405,7 +1464,8 @@
       "ssWageBaseRatio": 1.035032,
       "k401Ratio": 1.033333,
       "iraRatio": 1.0,
-      "hsaRatio": 1.055556
+      "hsaRatio": 1.055556,
+      "healthcareCpi": 4.42
     },
     "2008": {
       "stock": -38.49,
@@ -1419,7 +1479,8 @@
       "ssWageBaseRatio": 1.046154,
       "k401Ratio": 1.0,
       "iraRatio": 1.25,
-      "hsaRatio": 1.017544
+      "hsaRatio": 1.017544,
+      "healthcareCpi": 3.7
     },
     "2009": {
       "stock": 23.45,
@@ -1433,7 +1494,8 @@
       "ssWageBaseRatio": 1.047059,
       "k401Ratio": 1.064516,
       "iraRatio": 1.0,
-      "hsaRatio": 1.034483
+      "hsaRatio": 1.034483,
+      "healthcareCpi": 3.17
     },
     "2010": {
       "stock": 12.78,
@@ -1447,7 +1509,8 @@
       "ssWageBaseRatio": 1.0,
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
-      "hsaRatio": 1.016667
+      "hsaRatio": 1.016667,
+      "healthcareCpi": 3.41
     },
     "2011": {
       "stock": 0,
@@ -1461,7 +1524,8 @@
       "ssWageBaseRatio": 1.0,
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
-      "hsaRatio": 1.0
+      "hsaRatio": 1.0,
+      "healthcareCpi": 3.04
     },
     "2012": {
       "stock": 13.41,
@@ -1475,7 +1539,8 @@
       "ssWageBaseRatio": 1.030899,
       "k401Ratio": 1.030303,
       "iraRatio": 1.0,
-      "hsaRatio": 1.016393
+      "hsaRatio": 1.016393,
+      "healthcareCpi": 3.67
     },
     "2013": {
       "stock": 29.6,
@@ -1489,7 +1554,8 @@
       "ssWageBaseRatio": 1.032698,
       "k401Ratio": 1.029412,
       "iraRatio": 1.1,
-      "hsaRatio": 1.048387
+      "hsaRatio": 1.048387,
+      "healthcareCpi": 2.46
     },
     "2014": {
       "stock": 11.39,
@@ -1503,7 +1569,8 @@
       "ssWageBaseRatio": 1.029024,
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
-      "hsaRatio": 1.015385
+      "hsaRatio": 1.015385,
+      "healthcareCpi": 2.39
     },
     "2015": {
       "stock": -0.73,
@@ -1517,7 +1584,8 @@
       "ssWageBaseRatio": 1.012821,
       "k401Ratio": 1.028571,
       "iraRatio": 1.0,
-      "hsaRatio": 1.015152
+      "hsaRatio": 1.015152,
+      "healthcareCpi": 2.63
     },
     "2016": {
       "stock": 9.54,
@@ -1531,7 +1599,8 @@
       "ssWageBaseRatio": 1.0,
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
-      "hsaRatio": 1.0
+      "hsaRatio": 1.0,
+      "healthcareCpi": 3.79
     },
     "2017": {
       "stock": 19.42,
@@ -1545,7 +1614,8 @@
       "ssWageBaseRatio": 1.073418,
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
-      "hsaRatio": 1.014925
+      "hsaRatio": 1.014925,
+      "healthcareCpi": 2.51
     },
     "2018": {
       "stock": -6.24,
@@ -1559,7 +1629,8 @@
       "ssWageBaseRatio": 1.009434,
       "k401Ratio": 1.027778,
       "iraRatio": 1.0,
-      "hsaRatio": 1.014706
+      "hsaRatio": 1.014706,
+      "healthcareCpi": 1.97
     },
     "2019": {
       "stock": 28.88,
@@ -1573,7 +1644,8 @@
       "ssWageBaseRatio": 1.035047,
       "k401Ratio": 1.027027,
       "iraRatio": 1.090909,
-      "hsaRatio": 1.014493
+      "hsaRatio": 1.014493,
+      "healthcareCpi": 2.83
     },
     "2020": {
       "stock": 16.26,
@@ -1587,7 +1659,8 @@
       "ssWageBaseRatio": 1.036117,
       "k401Ratio": 1.026316,
       "iraRatio": 1.0,
-      "hsaRatio": 1.014286
+      "hsaRatio": 1.014286,
+      "healthcareCpi": 4.1
     },
     "2021": {
       "stock": 26.89,
@@ -1601,7 +1674,8 @@
       "ssWageBaseRatio": 1.037037,
       "k401Ratio": 1.0,
       "iraRatio": 1.0,
-      "hsaRatio": 1.014085
+      "hsaRatio": 1.014085,
+      "healthcareCpi": 1.24
     },
     "2022": {
       "stock": -19.44,
@@ -1615,7 +1689,8 @@
       "ssWageBaseRatio": 1.029412,
       "k401Ratio": 1.051282,
       "iraRatio": 1.0,
-      "hsaRatio": 1.013889
+      "hsaRatio": 1.013889,
+      "healthcareCpi": 4.05
     },
     "2023": {
       "stock": 24.23,
@@ -1626,7 +1701,8 @@
       "limitIncrease401k": 4.1169529,
       "ssCola": 3.2,
       "ssWageBase": 160200,
-      "ssWageBaseRatio": 1.089796
+      "ssWageBaseRatio": 1.089796,
+      "healthcareCpi": 0.46
     },
     "2024": {
       "stock": 23.31,
@@ -1640,7 +1716,8 @@
       "ssWageBaseRatio": 1.052434,
       "k401Ratio": 1.146341,
       "iraRatio": 1.166667,
-      "hsaRatio": 1.136986
+      "hsaRatio": 1.136986,
+      "healthcareCpi": 2.69
     },
     "2025": {
       "stock": 2.7,
@@ -2113,5 +2190,84 @@
       "2024": 1.136986,
       "2025": 1.036145
     }
-  }
+  },
+  "healthcareCpi": [
+    6.28,
+    3.07,
+    1.8,
+    4.8,
+    5.58,
+    3.49,
+    3.08,
+    2.38,
+    3.56,
+    4.1,
+    4.87,
+    4.16,
+    3.57,
+    2.92,
+    2.69,
+    2.37,
+    2.11,
+    2.41,
+    4.43,
+    7.03,
+    6.1,
+    6.86,
+    6.4,
+    6.4,
+    3.3,
+    3.84,
+    9.31,
+    12.1,
+    9.49,
+    9.57,
+    8.38,
+    9.27,
+    10.94,
+    10.78,
+    11.69,
+    8.68,
+    6.28,
+    6.21,
+    7.53,
+    6.56,
+    6.49,
+    7.66,
+    9.08,
+    8.73,
+    7.37,
+    5.97,
+    4.78,
+    4.47,
+    3.55,
+    2.77,
+    3.21,
+    3.48,
+    4.07,
+    4.61,
+    4.72,
+    4.0,
+    4.4,
+    4.22,
+    4.01,
+    4.42,
+    3.7,
+    3.17,
+    3.41,
+    3.04,
+    3.67,
+    2.46,
+    2.39,
+    2.63,
+    3.79,
+    2.51,
+    1.97,
+    2.83,
+    4.1,
+    1.24,
+    4.05,
+    0.46,
+    2.69
+  ]
 }

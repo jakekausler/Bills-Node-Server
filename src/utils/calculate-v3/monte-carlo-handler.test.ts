@@ -31,6 +31,7 @@ const mockHistoricRates = {
     lowYield: [0.5, 1, 1.5, 0.8],
   },
   inflation: [2, 3, 4, 2.5, 3.5],
+  healthcareCpi: [4, 5, 6, 5.5, 4.5],
   raise: [3, 5, 2, 4, 3.5],
   limitIncrease401k: [5, 6, 7, 5.5],
 };
@@ -134,6 +135,12 @@ describe('MonteCarloHandler', () => {
     it('returns a number for INFLATION sample type', () => {
       const date = new Date(2025, 0, 1); // January 2025
       const sample = handler.getSample(MonteCarloSampleType.INFLATION, date);
+      expect(typeof sample).toBe('number');
+    });
+
+    it('returns a number for HEALTHCARE_INFLATION sample type', () => {
+      const date = new Date(2025, 1, 1); // February 2025
+      const sample = handler.getSample(MonteCarloSampleType.HEALTHCARE_INFLATION, date);
       expect(typeof sample).toBe('number');
     });
 
