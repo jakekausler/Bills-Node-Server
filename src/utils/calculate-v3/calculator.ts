@@ -78,7 +78,7 @@ export class Calculator {
     this.filingStatus = filingStatus;
     this.bracketInflationRate = bracketInflationRate;
     this.contributionLimitManager = new ContributionLimitManager();
-    this.rothConversionManager = new RothConversionManager(accountManager);
+    this.rothConversionManager = new RothConversionManager(accountManager, acaManager);
     this.rothConversionManager.setBalanceTracker(balanceTracker);
   }
 

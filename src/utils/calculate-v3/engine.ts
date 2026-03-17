@@ -18,6 +18,7 @@ import { AcaManager } from './aca-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { loadHealthcareConfigs } from '../io/healthcareConfigs';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
+import { loadVariable } from '../simulation/variable';
 import { MonteCarloHandler } from './monte-carlo-handler';
 import { computePeriodBoundaries } from './period-utils';
 import dayjs from 'dayjs';
@@ -217,7 +218,82 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Initializing healthcare manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.healthcareManager = new HealthcareManager(await loadHealthcareConfigs(), this.simulation);
+    let healthcareConfigs = await loadHealthcareConfigs();
+
+    // Task 7: Add virtual ACA healthcare plan if needed
+    // Check if we need to generate a virtual ACA plan for the retirement-to-65 gap
+    try {
+      const retireDateResult = loadVariable('RETIRE_DATE', this.simulation);
+      const retireDate = retireDateResult instanceof Date ? retireDateResult : null;
+
+      if (retireDate) {
+        // Get both persons' birth dates from social security config
+        const socialSecurities = this.accountManager.getSocialSecurities();
+        const birthDates: Date[] = [];
+
+        for (const ss of socialSecurities) {
+          try {
+            const birthDateResult = loadVariable(ss.birthDateVariable, this.simulation);
+            if (birthDateResult instanceof Date) {
+              birthDates.push(birthDateResult);
+            }
+          } catch (e) {
+            // Skip if birth date not found
+          }
+        }
+
+        if (birthDates.length >= 2) {
+          // Calculate age 65 dates for both persons
+          const age65Date1 = dayjs.utc(birthDates[0]).add(65, 'year').toDate();
+          const age65Date2 = dayjs.utc(birthDates[1]).add(65, 'year').toDate();
+          const earlierAge65Date = age65Date1 < age65Date2 ? age65Date1 : age65Date2;
+
+          // Check if no plan covers the ACA gap (between retire date and age 65)
+          const hasCoverageDuringGap = healthcareConfigs.some(config => {
+            const configStartDate = new Date(config.startDate);
+            const configEndDate = config.endDate ? new Date(config.endDate) : null;
+            return (
+              configStartDate <= retireDate &&
+              (!configEndDate || configEndDate >= earlierAge65Date)
+            );
+          });
+
+          if (!hasCoverageDuringGap && retireDate < earlierAge65Date) {
+            // Initialize ACA manager temporarily to get deductible/OOP values
+            this.acaManager = new AcaManager();
+            const retireYear = retireDate.getUTCFullYear();
+            const acaDeductible = this.acaManager.getAcaDeductible(retireYear);
+            const acaOOPMax = this.acaManager.getAcaOOPMax(retireYear);
+
+            // Create virtual ACA Silver plan
+            const virtualAcaPlan: HealthcareConfig = {
+              id: 'virtual-aca-silver-' + Math.random().toString(36).substring(7),
+              name: 'ACA Silver Plan (Virtual)',
+              coveredPersons: ['Jake', 'Kendall'],
+              startDate: retireDate.toISOString().split('T')[0] as any,
+              startDateIsVariable: false,
+              endDate: earlierAge65Date.toISOString().split('T')[0] as any,
+              endDateIsVariable: false,
+              individualDeductible: acaDeductible.individual,
+              individualOutOfPocketMax: acaOOPMax.individual,
+              familyDeductible: acaDeductible.family,
+              familyOutOfPocketMax: acaOOPMax.family,
+              hsaAccountId: null,
+              hsaReimbursementEnabled: false,
+              resetMonth: 0,
+              resetDay: 1,
+              deductibleInflationRate: 0.05, // 5% healthcare inflation
+            };
+
+            healthcareConfigs = [...healthcareConfigs, virtualAcaPlan];
+          }
+        }
+      }
+    } catch (e) {
+      // If variable loading fails, proceed with existing configs
+    }
+
+    this.healthcareManager = new HealthcareManager(healthcareConfigs, this.simulation);
 
     // Initialize Medicare manager
     if (options.enableLogging) {

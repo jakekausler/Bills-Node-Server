@@ -3,8 +3,10 @@ import { join } from 'path';
 import { TaxManager } from './tax-manager';
 import { BalanceTracker } from './balance-tracker';
 import { AccountManager } from './account-manager';
+import { AcaManager } from './aca-manager';
 import { FilingStatus, getBracketDataForYear } from './bracket-calculator';
 import { loadDateOrVariable } from '../simulation/loadVariableValue';
+import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
 
 interface ConversionLot {
@@ -30,9 +32,11 @@ export class RothConversionManager {
   private conversionLots: Map<string, ConversionLot[]> = new Map();
   private accountManager: AccountManager;
   private balanceTracker: BalanceTracker | null = null;
+  private acaManager: AcaManager | null = null;
 
-  constructor(accountManager: AccountManager) {
+  constructor(accountManager: AccountManager, acaManager?: AcaManager) {
     this.accountManager = accountManager;
+    this.acaManager = acaManager || null;
     this.loadConfig();
   }
 
@@ -128,8 +132,97 @@ export class RothConversionManager {
       }
 
       // Check liquid assets can cover estimated tax on conversion
-      const conversionAmount = Math.min(sourceBalance, remainingSpace);
-      const estimatedConversionTax = conversionAmount * config.targetBracketRate;
+      let conversionAmount = Math.min(sourceBalance, remainingSpace);
+      let estimatedConversionTax = conversionAmount * config.targetBracketRate;
+      let effectiveMarginalRate = config.targetBracketRate;
+
+      // Task 6: Check ACA subsidy loss if in ACA period
+      if (this.acaManager) {
+        try {
+          // Determine if we're in ACA period during year+1 (when this year's MAGI affects ACA subsidy)
+          const retireDateResult = loadVariable('RETIRE_DATE', simulation);
+          const retireYear = retireDateResult instanceof Date ? retireDateResult.getUTCFullYear() : null;
+
+          // Check if config has birth date variable
+          let age65Year: number | null = null;
+          if (config.startDateVariable) {
+            try {
+              const birthDateResult = loadVariable(config.startDateVariable, simulation);
+              if (birthDateResult instanceof Date) {
+                age65Year = dayjs.utc(birthDateResult).add(65, 'year').year();
+              }
+            } catch (e) {
+              // Birth date variable not found, skip ACA check
+            }
+          }
+
+          // Only check ACA if we have both retire date and age 65 year
+          if (retireYear !== null && age65Year !== null) {
+            // Conversion in December of year N affects MAGI for year N, which affects ACA subsidy in year N+1
+            const nextYear = year + 1;
+            const inAcaPeriodNextYear = nextYear >= retireYear && nextYear < age65Year;
+
+            if (inAcaPeriodNextYear) {
+              // Get current year's income (MAGI for next year ACA subsidy calculation)
+              const currentMAGI = ordinaryIncome;
+
+              // Get gross premium for next year - use ages one year older
+              const estimatedAge1NextYear = 40; // Estimate conservative age
+              const estimatedAge2NextYear = 39;
+              const grossPremiumNextYear = this.acaManager.getAcaCoupleGrossPremium(
+                estimatedAge1NextYear,
+                estimatedAge2NextYear,
+                nextYear
+              );
+
+              // Calculate subsidy before and after conversion
+              const subsidyBefore = this.acaManager.calculateMonthlySubsidy(
+                currentMAGI,
+                2, // household size
+                nextYear,
+                grossPremiumNextYear
+              );
+
+              const subsidyAfter = this.acaManager.calculateMonthlySubsidy(
+                currentMAGI + conversionAmount,
+                2,
+                nextYear,
+                grossPremiumNextYear
+              );
+
+              // Annual subsidy loss = monthly difference × 12
+              const annualSubsidyLoss = Math.max(0, (subsidyBefore - subsidyAfter) * 12);
+
+              if (annualSubsidyLoss > 0 && conversionAmount > 0) {
+                // Effective marginal rate includes subsidy loss
+                const subsidyLossRate = annualSubsidyLoss / conversionAmount;
+                effectiveMarginalRate = config.targetBracketRate + subsidyLossRate;
+
+                // If combined rate exceeds target + 5%, reduce conversion or skip
+                if (effectiveMarginalRate > config.targetBracketRate + 0.05) {
+                  // Reduce conversion to bring rate within threshold
+                  const maxConversionForRate = annualSubsidyLoss > 0
+                    ? (config.targetBracketRate * conversionAmount + 0.05 * conversionAmount) /
+                      (config.targetBracketRate + (annualSubsidyLoss / conversionAmount))
+                    : conversionAmount;
+
+                  conversionAmount = Math.min(conversionAmount, Math.max(0, maxConversionForRate));
+
+                  // If conversion reduced to near-zero, skip this year
+                  if (conversionAmount < 100) {
+                    continue;
+                  }
+
+                  // Recalculate tax with reduced amount
+                  estimatedConversionTax = conversionAmount * config.targetBracketRate;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          // If any variable loading fails, proceed without ACA check
+        }
+      }
 
       // Liquid assets = accounts with performsPulls === true && usesRMD === false && not destination
       const liquidAvailable = this.calculateLiquidAssets(destAccount.id, balanceTracker);
