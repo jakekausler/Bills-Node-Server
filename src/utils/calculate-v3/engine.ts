@@ -295,6 +295,63 @@ export class Engine {
       // If variable loading fails, proceed with existing configs
     }
 
+    // Task 13: Add virtual Medicare healthcare plan at age 65
+    // Medicare provides deductible/OOP cap framework for post-65 healthcare bills
+    try {
+      const socialSecurities = this.accountManager.getSocialSecurities();
+      const birthDates: Date[] = [];
+
+      for (const ss of socialSecurities) {
+        try {
+          const birthDateResult = loadVariable(ss.birthDateVariable, this.simulation);
+          if (birthDateResult instanceof Date) {
+            birthDates.push(birthDateResult);
+          }
+        } catch (e) {
+          // Skip if birth date not found
+        }
+      }
+
+      if (birthDates.length >= 2) {
+        // Calculate age 65 dates for both persons
+        const age65Date1 = dayjs.utc(birthDates[0]).add(65, 'year').toDate();
+        const age65Date2 = dayjs.utc(birthDates[1]).add(65, 'year').toDate();
+        const earlierAge65Date = age65Date1 < age65Date2 ? age65Date1 : age65Date2;
+
+        // Check if no plan already covers from age 65+ (should not happen, but safety check)
+        const hasMedicareEquivalent = healthcareConfigs.some(config => {
+          const configName = (config.name || '').toLowerCase();
+          return configName.includes('medicare');
+        });
+
+        if (!hasMedicareEquivalent) {
+          // Create virtual Medicare plan
+          const virtualMedicarePlan: HealthcareConfig = {
+            id: 'virtual-medicare-' + Math.random().toString(36).substring(7),
+            name: 'Medicare Plan (Virtual)',
+            coveredPersons: ['Jake', 'Kendall'],
+            startDate: earlierAge65Date.toISOString().split('T')[0] as any,
+            startDateIsVariable: false,
+            endDate: null, // Runs forever
+            endDateIsVariable: false,
+            individualDeductible: 240, // 2024 Part B deductible
+            individualOutOfPocketMax: 5000, // Effective OOP with Medigap
+            familyDeductible: 480, // 2 × individual
+            familyOutOfPocketMax: 10000, // 2 × individual
+            hsaAccountId: null,
+            hsaReimbursementEnabled: true, // HSA can reimburse at 65+
+            resetMonth: 0,
+            resetDay: 1,
+            deductibleInflationRate: 0.05, // 5% healthcare CPI
+          };
+
+          healthcareConfigs = [...healthcareConfigs, virtualMedicarePlan];
+        }
+      }
+    } catch (e) {
+      // If variable loading fails, proceed with existing configs
+    }
+
     this.healthcareManager = new HealthcareManager(healthcareConfigs, this.simulation);
 
     // Initialize Medicare manager
