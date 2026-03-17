@@ -4,6 +4,8 @@ import { ActivityTransferEvent, EventType, Segment, SegmentResult } from './type
 import { AccountManager } from './account-manager';
 import { Activity } from '../../data/activity/activity';
 import { BalanceTracker } from './balance-tracker';
+import { RothConversionManager } from './roth-conversion-manager';
+import { TaxManager } from './tax-manager';
 
 export interface PullFailure {
   date: Date;
@@ -16,11 +18,21 @@ export class PushPullHandler {
   private balanceTracker: BalanceTracker;
   private pullFailures: PullFailure[] = [];
   private withdrawalStrategy: 'manual' | 'taxOptimized' = 'manual';
+  private rothConversionManager: RothConversionManager | null;
+  private taxManager: TaxManager | null;
 
-  constructor(accountManager: AccountManager, balanceTracker: BalanceTracker, withdrawalStrategy?: 'manual' | 'taxOptimized') {
+  constructor(
+    accountManager: AccountManager,
+    balanceTracker: BalanceTracker,
+    withdrawalStrategy?: 'manual' | 'taxOptimized',
+    rothConversionManager?: RothConversionManager,
+    taxManager?: TaxManager,
+  ) {
     this.accountManager = accountManager;
     this.balanceTracker = balanceTracker;
     this.withdrawalStrategy = withdrawalStrategy || 'manual';
+    this.rothConversionManager = rothConversionManager || null;
+    this.taxManager = taxManager || null;
   }
 
   /**
@@ -28,6 +40,10 @@ export class PushPullHandler {
    */
   handleAccountPushPulls(segmentResult: SegmentResult, segment: Segment, referenceDate: Date): boolean {
     let pushPullEventAdded = false;
+    // Track cumulative amounts already committed from each source account
+    // so that multiple pull requests in the same segment don't overdraw
+    const committedPulls = new Map<string, number>();
+
     for (const accountId of segment.affectedAccountIds) {
       const account = this.accountManager.getAccountById(accountId);
       if (!account) {
@@ -59,7 +75,7 @@ export class PushPullHandler {
           pushPullEventAdded = true;
         }
       } else if (pullNeeded && performsPulls) {
-        if (this.addPullEvents(segment, account, min)) {
+        if (this.addPullEvents(segment, account, min, committedPulls)) {
           pushPullEventAdded = true;
         }
       }
@@ -126,7 +142,7 @@ export class PushPullHandler {
   /**
    * Adds pull events to the segment
    */
-  private addPullEvents(segment: Segment, account: Account, minBalance: number): boolean {
+  private addPullEvents(segment: Segment, account: Account, minBalance: number, committedPulls: Map<string, number> = new Map()): boolean {
     // Calculate the amount to pull
     let pullAmount = 0;
     let toPull = Math.abs(minBalance - (account.minimumBalance ?? 0));
@@ -138,24 +154,29 @@ export class PushPullHandler {
 
     // Continue pulling until the amount to pull is 0 or no more pullable accounts are found
     while (toPull > 0) {
-      const pullableAccount = this.getNextPullableAccount(accountsChecked, segment.startDate);
+      const pullableAccount = this.getNextPullableAccount(accountsChecked, segment.startDate, committedPulls);
       accountsChecked.add(pullableAccount?.id ?? '');
       if (!pullableAccount) {
         break;
       }
 
-      // Calculate the amount available to pull from the pullable account
+      // Calculate the amount available to pull from the pullable account,
+      // accounting for amounts already committed from this source in this segment
       const pullableAccountBalance = this.balanceTracker.getAccountBalance(pullableAccount.id);
-      const availableAmount = Math.min(toPull, pullableAccountBalance - (pullableAccount.minimumBalance ?? 0));
+      const alreadyCommitted = committedPulls.get(pullableAccount.id) || 0;
+      const availableAmount = Math.min(toPull, pullableAccountBalance - alreadyCommitted - (pullableAccount.minimumBalance ?? 0));
 
-      // If no amount is available, break
+      // If no amount is available from this account, try the next one
       if (availableAmount <= 0) {
-        break;
+        continue;
       }
 
       // Update the amount to pull and the amount pulled
       pullAmount += availableAmount;
       toPull -= availableAmount;
+
+      // Track the committed pull so subsequent requests see reduced availability
+      committedPulls.set(pullableAccount.id, alreadyCommitted + availableAmount);
 
       // Create the pull activity
       const pullActivity = new Activity({
@@ -189,6 +210,10 @@ export class PushPullHandler {
 
       // Add the pull event to the segment
       segment.events.push(pullEvent);
+
+      // Roth 5-year lot penalty: if pulling from a Roth account with conversion lots
+      // still within the 5-year holding period, add a 10% penalty on the penaltyable portion
+      this.applyRothConversionPenalty(pullableAccount, availableAmount, segment.startDate, account);
     }
 
     // Track pull failure if we couldn't get enough funds
@@ -203,11 +228,52 @@ export class PushPullHandler {
     return pullAmount > 0; // Return true if a pull event was added
   }
 
-  private getNextPullableAccount(accountsChecked: Set<string>, segmentDate: Date): Account | undefined {
+  /**
+   * Apply 10% penalty for Roth conversion lots still within the 5-year holding period.
+   * Withdrawals of conversion amounts within 5 years incur a 10% penalty regardless of age.
+   */
+  private applyRothConversionPenalty(
+    sourceAccount: Account,
+    withdrawalAmount: number,
+    date: Date,
+    destinationAccount: Account,
+  ): void {
+    if (!this.rothConversionManager || !this.taxManager) return;
+
+    // Only applies to Roth accounts
+    const isRoth = sourceAccount.name.toLowerCase().includes('roth');
+    if (!isRoth) return;
+
+    const currentYear = date.getUTCFullYear();
+    const penaltyableBalance = this.rothConversionManager.getPenaltyableBalance(sourceAccount.id, currentYear);
+
+    if (penaltyableBalance <= 0) return;
+
+    // The penaltyable portion of this withdrawal is the lesser of the withdrawal
+    // amount and the remaining penaltyable balance
+    const penaltyablePortion = Math.min(withdrawalAmount, penaltyableBalance);
+    if (penaltyablePortion <= 0) return;
+
+    const penaltyAmount = penaltyablePortion * 0.10;
+
+    // Add penalty as a taxable occurrence via the TaxManager
+    // The penalty is charged to the destination account (the account receiving funds)
+    this.taxManager.addTaxableOccurrence(destinationAccount.name, {
+      date,
+      year: currentYear,
+      amount: penaltyAmount,
+      incomeType: 'penalty',
+    });
+  }
+
+  private getNextPullableAccount(accountsChecked: Set<string>, segmentDate: Date, committedPulls: Map<string, number> = new Map()): Account | undefined {
     const pullable = this.accountManager
       .getPullableAccounts()
       .filter(
-        (a) => this.balanceTracker.getAccountBalance(a.id) > (a.minimumBalance ?? 0) && !accountsChecked.has(a.id),
+        (a) => {
+          const committed = committedPulls.get(a.id) || 0;
+          return this.balanceTracker.getAccountBalance(a.id) - committed > (a.minimumBalance ?? 0) && !accountsChecked.has(a.id);
+        },
       );
 
     if (this.withdrawalStrategy === 'taxOptimized') {

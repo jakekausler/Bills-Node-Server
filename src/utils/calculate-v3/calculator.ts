@@ -89,6 +89,13 @@ export class Calculator {
   }
 
   /**
+   * Get the RothConversionManager (for 5-year lot enforcement in push-pull handler)
+   */
+  getRothConversionManager(): RothConversionManager {
+    return this.rothConversionManager;
+  }
+
+  /**
    * Set Monte Carlo configuration (for accessing seeded PRNG)
    */
   setMonteCarloConfig(config: any): void {

@@ -40,6 +40,8 @@ import {
   getSimulationStatus,
   getAllSimulations,
   getSimulationGraph,
+  getSimulationResults,
+  getSimulationResultByNumber,
   deleteSimulation,
 } from './api/monteCarlo/monteCarlo';
 import { getHealthcareProgress } from './api/healthcare/progress';
@@ -376,6 +378,24 @@ app.get('/api/monte_carlo/simulations/:id/graph', verifyToken, asyncHandler(asyn
       error instanceof Error && (error.message.includes('not found') || error.message.includes('not yet completed'))
         ? 404
         : 400;
+    res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}));
+
+app.get('/api/monte_carlo/simulations/:id/results', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    res.json(await getSimulationResults(req));
+  } catch (error) {
+    const statusCode = error instanceof Error && error.message.includes('not found') ? 404 : 400;
+    res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}));
+
+app.get('/api/monte_carlo/simulations/:id/results/:simNumber', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    res.json(await getSimulationResultByNumber(req));
+  } catch (error) {
+    const statusCode = error instanceof Error && error.message.includes('not found') ? 404 : 400;
     res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }));

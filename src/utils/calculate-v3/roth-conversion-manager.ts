@@ -63,7 +63,6 @@ export class RothConversionManager {
    * Runs after all other events for the year to determine remaining bracket space.
    * Returns array of conversions that actually happened.
    *
-   * TODO #20: Handle conversion lots tracking and 5-year rule integration
    */
   /** Key used to store conversion taxable occurrences so they can be cleared on reprocess */
   private static readonly CONVERSION_TAX_KEY = '__roth_conversion__';
@@ -319,7 +318,6 @@ export class RothConversionManager {
 
   /**
    * Get all conversion lots for an account
-   * TODO #20: Integration with withdrawal handler for 5-year rule
    */
   public getConversionLots(accountId: string): ConversionLot[] {
     return this.conversionLots.get(accountId) || [];
@@ -327,7 +325,6 @@ export class RothConversionManager {
 
   /**
    * Get penalty-free balance from conversions (those past 5-year holding period)
-   * TODO #20: Push/pull priority ordering based on penalty status
    */
   public getPenaltyFreeBalance(accountId: string, currentYear: number): number {
     const lots = this.conversionLots.get(accountId) || [];
@@ -344,7 +341,6 @@ export class RothConversionManager {
 
   /**
    * Get balance of conversions within 5-year period (subject to penalty)
-   * TODO #20: Penalty calculation in withdrawal handler
    */
   public getPenaltyableBalance(accountId: string, currentYear: number): number {
     const lots = this.conversionLots.get(accountId) || [];

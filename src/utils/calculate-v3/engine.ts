@@ -309,7 +309,13 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Initializing push-pull handler...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.pushPullHandler = new PushPullHandler(this.accountManager, this.balanceTracker, options.withdrawalStrategy);
+    this.pushPullHandler = new PushPullHandler(
+      this.accountManager,
+      this.balanceTracker,
+      options.withdrawalStrategy,
+      this.calculator.getRothConversionManager(),
+      this.taxManager,
+    );
 
     // Initialize segment processor
     if (options.enableLogging) {

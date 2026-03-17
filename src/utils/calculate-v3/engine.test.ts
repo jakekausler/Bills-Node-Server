@@ -32,6 +32,7 @@ vi.mock('./segment-processor', () => ({
 vi.mock('./calculator', () => ({
   Calculator: vi.fn(() => ({
     setMonteCarloConfig: vi.fn(),
+    getRothConversionManager: vi.fn(() => ({})),
   })),
 }));
 

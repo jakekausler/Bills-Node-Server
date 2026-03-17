@@ -132,14 +132,15 @@ export class AcaManager {
 
   /**
    * Get combined ACA premium for a couple (two individual premiums)
+   * Skips any person who is 65+ (on Medicare).
    * @param age1 - Age of first person
    * @param age2 - Age of second person
    * @param year - Year for which to get the premium
    * @returns Combined monthly ACA premium for couple
    */
   getAcaCoupleGrossPremium(age1: number, age2: number, year: number): number {
-    const premium1 = this.getAcaPremiumForPerson(age1, year);
-    const premium2 = this.getAcaPremiumForPerson(age2, year);
+    const premium1 = age1 < 65 ? this.getAcaPremiumForPerson(age1, year) : 0;
+    const premium2 = age2 < 65 ? this.getAcaPremiumForPerson(age2, year) : 0;
     return Math.round((premium1 + premium2) * 100) / 100;
   }
 
