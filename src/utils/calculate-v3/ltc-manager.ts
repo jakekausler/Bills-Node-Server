@@ -311,6 +311,9 @@ export class LTCManager {
 
     if (!config?.hasInsurance || !state) return 0;
 
+    // Only pay benefits if person is actually in care (not healthy or deceased)
+    if (state.currentState === 'healthy' || state.currentState === 'deceased') return 0;
+
     // Check elimination period
     if (state.eliminationDaysRemaining > 0) return 0;
 
