@@ -1,6 +1,6 @@
 import { Request } from 'express';
 import { getData } from '../../utils/net/request';
-import { loadHealthcareConfigs } from '../../utils/io/healthcareConfigs';
+import { loadAllHealthcareConfigs } from '../../utils/io/virtualHealthcarePlans';
 import { calculateAllActivity } from '../../utils/calculate-v3/engine';
 import { getPlanYear } from './utils';
 import dayjs from 'dayjs';
@@ -49,8 +49,8 @@ export async function getHealthcareProgress(
   const dateStr = (request.query.date as string) || new Date().toISOString().split('T')[0];
   const date = dayjs.utc(dateStr).toDate();
 
-  // Load healthcare configurations
-  const configs = await loadHealthcareConfigs();
+  // Load healthcare configurations (including virtual plans)
+  const configs = loadAllHealthcareConfigs(simulation);
   if (configs.length === 0) {
     return {};
   }

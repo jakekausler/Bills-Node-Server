@@ -24,6 +24,14 @@ function getHistoricRates(): HistoricRates {
  * ACA: month 19 until age 65
  * Subsidy calculation based on MAGI vs Federal Poverty Level (FPL)
  */
+/**
+ * Clears module-level cache for ACA historic rates.
+ * Used by the cache-clear endpoint to force re-reads from disk.
+ */
+export function clearAcaCache() {
+  cachedHistoricRates = null;
+}
+
 export class AcaManager {
   private readonly DEFAULT_HEALTHCARE_INFLATION = 0.05; // 5% default
 
@@ -295,38 +303,9 @@ export class AcaManager {
    * @returns Object with individual and family deductibles
    */
   getAcaDeductible(year: number): { individual: number; family: number } {
-    const rates = getHistoricRates();
-    const oopMaxData = rates.acaOutOfPocketMax || {};
+    // Silver plan deductible ≈ 50% of OOP max; delegate inflation to getAcaOOPMax
+    const oopMax = this.getAcaOOPMax(year);
 
-    // Get the most recent OOP max data
-    const knownYears = Object.keys(oopMaxData)
-      .map(y => parseInt(y, 10))
-      .sort((a, b) => b - a);
-
-    if (knownYears.length === 0) {
-      return { individual: 3500, family: 7000 }; // Reasonable default for Silver plan
-    }
-
-    // Find appropriate year
-    let targetYear = year;
-    while (targetYear >= knownYears[0] && !oopMaxData[targetYear.toString()]) {
-      targetYear--;
-    }
-
-    if (targetYear < knownYears[0]) {
-      targetYear = knownYears[0];
-    }
-
-    const oopMax = oopMaxData[targetYear.toString()] as {
-      individual: number;
-      family: number;
-    } | undefined;
-
-    if (!oopMax) {
-      return { individual: 3500, family: 7000 };
-    }
-
-    // Silver plan deductible is approximately 50% of OOP max
     return {
       individual: Math.round(oopMax.individual * 0.5 * 100) / 100,
       family: Math.round(oopMax.family * 0.5 * 100) / 100,

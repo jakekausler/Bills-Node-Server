@@ -1,15 +1,73 @@
 import { Request } from 'express';
 import { getData } from '../../utils/net/request';
-import { loadHealthcareConfigs } from '../../utils/io/healthcareConfigs';
+import { loadAllHealthcareConfigs } from '../../utils/io/virtualHealthcarePlans';
 import { calculateAllActivity } from '../../utils/calculate-v3/engine';
 import { HealthcareConfig } from '../../data/healthcare/types';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
 import { Account } from '../../data/account/account';
 import { getPlanYear } from './utils';
+import { Bill } from '../../data/bill/bill';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
 dayjs.extend(utc);
+
+/**
+ * Compute the inflated bill amount for a given date, replicating the engine's
+ * calculateBillAmount logic from timeline.ts.
+ */
+function getInflatedBillAmount(bill: Bill, currentDate: Date): number {
+  if (
+    bill.amount === '{HALF}' ||
+    bill.amount === '-{HALF}' ||
+    bill.amount === '{FULL}' ||
+    bill.amount === '-{FULL}'
+  ) {
+    return 0;
+  }
+
+  let amount = bill.amount;
+
+  // Apply ceilingMultiple if configured
+  if (bill.ceilingMultiple && bill.ceilingMultiple > 0) {
+    amount = Math.ceil(amount / bill.ceilingMultiple) * bill.ceilingMultiple;
+  }
+
+  // Apply inflation if configured
+  if (bill.increaseBy) {
+    const yearsDiff = countYearIncreases(bill.startDate, currentDate, bill.increaseByDate);
+    for (let i = 0; i < yearsDiff; i++) {
+      amount *= 1 + bill.increaseBy;
+      if (bill.ceilingMultiple && bill.ceilingMultiple > 0) {
+        amount = Math.ceil(amount / bill.ceilingMultiple) * bill.ceilingMultiple;
+      }
+    }
+  }
+
+  return Math.abs(amount);
+}
+
+/**
+ * Count the number of increase-date milestones between startDate and endDate.
+ * Mirrors timeline.ts yearIncreases().
+ */
+function countYearIncreases(
+  startDate: Date,
+  endDate: Date,
+  increaseDate: { day: number; month: number }
+): number {
+  let count = 0;
+  const startYear = startDate.getUTCFullYear();
+  const endYear = endDate.getUTCFullYear();
+
+  for (let year = startYear; year <= endYear; year++) {
+    const milestone = new Date(Date.UTC(year, increaseDate.month, increaseDate.day));
+    if (milestone >= startDate && milestone <= endDate) {
+      count++;
+    }
+  }
+  return count;
+}
 
 export type HealthcareExpense = {
   id: string;
@@ -72,7 +130,7 @@ function calculateRemainingAmounts(
   config: HealthcareConfig,
   planYear: number,
   sortedExpenses: ConsolidatedActivity[],
-  billLookup: Map<string, number>
+  billObjectLookup: Map<string, Bill>
 ): {
   individualDeductibleRemaining: number;
   familyDeductibleRemaining: number;
@@ -124,7 +182,9 @@ function calculateRemainingAmounts(
     const personData = personSpending.get(person)!;
 
     const patientCost = Math.abs(Number(e.amount));
-    const billAmount = e.billId ? (billLookup.get(e.billId) || 0) : patientCost;
+    const eDate = dayjs.utc(e.date).toDate();
+    const billObj = e.billId ? billObjectLookup.get(e.billId) : null;
+    const billAmount = billObj ? getInflatedBillAmount(billObj, eDate) : patientCost;
 
     // Check if this is a copay-based expense
     const hasCopay = e.copayAmount !== null && e.copayAmount !== undefined && e.copayAmount > 0;
@@ -267,8 +327,8 @@ export async function getHealthcareExpenses(
   const startDateStr = request.query.startDate as string | undefined;
   const endDateStr = request.query.endDate as string | undefined;
 
-  // Load healthcare configurations
-  const configs = await loadHealthcareConfigs();
+  // Load healthcare configurations (including virtual plans)
+  const configs = loadAllHealthcareConfigs(simulation);
 
   // Load data and run calculation
   const data = await getData(request);
@@ -287,22 +347,22 @@ export async function getHealthcareExpenses(
     false  // enableLogging
   );
 
-  // Create bill lookup map for original amounts from ALL account bills
-  const billLookup = new Map<string, number>();
+  // Create bill object lookup map for inflating amounts per-date
+  const billObjectLookup = new Map<string, Bill>();
 
   // Collect bills from all accounts (this includes healthcare bills stored in account.bills)
   for (const account of accountsAndTransfers.accounts) {
     if (account.bills) {
       for (const bill of account.bills) {
-        billLookup.set(bill.id, Math.abs(Number(bill.amount)));
+        billObjectLookup.set(bill.id, bill);
       }
     }
   }
 
   // Also include bills from transfers.bills (these are typically transfer bills)
   for (const bill of calculatedData.transfers.bills) {
-    if (!billLookup.has(bill.id)) {
-      billLookup.set(bill.id, Math.abs(Number(bill.amount)));
+    if (!billObjectLookup.has(bill.id)) {
+      billObjectLookup.set(bill.id, bill);
     }
   }
 
@@ -387,7 +447,7 @@ export async function getHealthcareExpenses(
           config,
           planYear,
           sortedHealthcareActivities,
-          billLookup
+          billObjectLookup
         );
       }
 
@@ -397,7 +457,10 @@ export async function getHealthcareExpenses(
         date: typeof activity.date === 'string' ? activity.date : dayjs(activity.date).format('YYYY-MM-DD'),
         name: activity.name,
         person: person,
-        billAmount: activity.billId ? (billLookup.get(activity.billId) ?? 0) : Math.abs(Number(activity.amount)),
+        billAmount: (() => {
+          const billObj = activity.billId ? billObjectLookup.get(activity.billId) : null;
+          return billObj ? getInflatedBillAmount(billObj, expenseDate) : Math.abs(Number(activity.amount));
+        })(),
         patientCost: Math.abs(Number(activity.amount)),
         copay: activity.copayAmount ?? null,
         coinsurance: activity.coinsurancePercent ?? null,

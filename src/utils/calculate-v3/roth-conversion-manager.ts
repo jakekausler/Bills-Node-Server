@@ -38,7 +38,6 @@ export class RothConversionManager {
   private configs: RothConversionConfig[] = [];
   private conversionLots: Map<string, ConversionLot[]> = new Map();
   private accountManager: AccountManager;
-  private balanceTracker: BalanceTracker | null = null;
   private acaManager: AcaManager | null = null;
   private conversionsThisYear: ConversionResult[] = [];
 
@@ -66,6 +65,9 @@ export class RothConversionManager {
    *
    * TODO #20: Handle conversion lots tracking and 5-year rule integration
    */
+  /** Key used to store conversion taxable occurrences so they can be cleared on reprocess */
+  private static readonly CONVERSION_TAX_KEY = '__roth_conversion__';
+
   public processConversions(
     year: number,
     taxManager: TaxManager,
@@ -79,8 +81,9 @@ export class RothConversionManager {
       return [];
     }
 
-    // Store balance tracker for use in calculateLiquidAssets
-    this.balanceTracker = balanceTracker;
+    // Clear any conversion occurrences from a prior pass (segment reprocessing)
+    // so that we don't double-count conversion income when calculating bracket space
+    taxManager.clearTaxableOccurrences(RothConversionManager.CONVERSION_TAX_KEY, year);
 
     // Filter and sort enabled configs by priority
     const enabledConfigs = this.configs.filter(c => c.enabled);
@@ -141,9 +144,8 @@ export class RothConversionManager {
         continue;
       }
 
-      // Check liquid assets can cover estimated tax on conversion
+      // Determine conversion amount: min of source balance and remaining bracket space
       let conversionAmount = Math.min(sourceBalance, remainingSpace);
-      let estimatedConversionTax = conversionAmount * config.targetBracketRate;
       let effectiveMarginalRate = config.targetBracketRate;
 
       // Task 6: Check ACA subsidy loss if in ACA period
@@ -239,8 +241,7 @@ export class RothConversionManager {
                     continue;
                   }
 
-                  // Recalculate tax with reduced amount
-                  estimatedConversionTax = conversionAmount * config.targetBracketRate;
+                  // conversionAmount has been reduced to keep effective rate reasonable
                 }
               }
             }
@@ -250,12 +251,9 @@ export class RothConversionManager {
         }
       }
 
-      // Liquid assets = accounts with performsPulls === true && usesRMD === false && not destination
-      const liquidAvailable = this.calculateLiquidAssets(destAccount.id, balanceTracker);
-      if (liquidAvailable < estimatedConversionTax) {
-        // Can't cover tax without depleting liquid reserves
-        continue;
-      }
+      // Note: Tax on the conversion is handled by the normal tax event (Apr 15 next year).
+      // The push/pull handler covers any deficit created by the tax payment, so we do not
+      // gate conversions on current liquid-account balances.
 
       // Record the conversion
       if (!this.conversionLots.has(destAccount.id)) {
@@ -277,8 +275,9 @@ export class RothConversionManager {
         year,
       });
 
-      // Add taxable occurrence for the conversion
-      taxManager.addTaxableOccurrence(sourceAccount.id, {
+      // Add taxable occurrence for the conversion using a dedicated key
+      // so we can clear just these on segment reprocessing
+      taxManager.addTaxableOccurrence(RothConversionManager.CONVERSION_TAX_KEY, {
         date: new Date(year, 11, 31), // Dec 31
         year,
         amount: conversionAmount,
@@ -361,33 +360,6 @@ export class RothConversionManager {
   }
 
   /**
-   * Calculate available liquid assets for paying conversion tax
-   * Includes: accounts with performsPulls === true && usesRMD === false && not destination
-   */
-  private calculateLiquidAssets(excludeAccountId: string, balanceTracker: BalanceTracker): number {
-    let totalLiquid = 0;
-
-    for (const account of this.accountManager.getAllAccounts()) {
-      if (account.id === excludeAccountId) {
-        continue;
-      }
-      if (account.usesRMD) {
-        // RMD accounts not liquid for this purpose
-        continue;
-      }
-      if (!account.performsPulls) {
-        // Only pull accounts can be used for tax payments
-        continue;
-      }
-
-      const balance = balanceTracker.getAccountBalance(account.id);
-      totalLiquid += Math.max(0, balance - (account.minimumBalance ?? 0));
-    }
-
-    return totalLiquid;
-  }
-
-  /**
    * Find which tax bracket a given rate falls into
    */
   private findBracketForRate(
@@ -405,7 +377,8 @@ export class RothConversionManager {
     return null;
   }
 
-  public setBalanceTracker(balanceTracker: BalanceTracker): void {
-    this.balanceTracker = balanceTracker;
+  /** @deprecated No longer needed — kept for API compatibility */
+  public setBalanceTracker(_balanceTracker: BalanceTracker): void {
+    // No-op: liquid-asset gating removed; tax is paid via normal tax event + push/pull
   }
 }

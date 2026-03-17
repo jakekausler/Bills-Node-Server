@@ -53,7 +53,14 @@ import { promisify } from 'util';
 import rateLimit from 'express-rate-limit';
 import { getMoneyMovementChart } from './api/moneyMovement/movement';
 import { loadHealthcareConfigs, saveHealthcareConfigs } from './utils/io/healthcareConfigs';
+import { loadAllHealthcareConfigs } from './utils/io/virtualHealthcarePlans';
 import { v4 as uuidv4 } from 'uuid';
+import { clearDataCache } from './utils/io/dataCache';
+import { CacheManager } from './utils/calculate-v3/cache';
+import { clearRetirementCache } from './utils/calculate-v3/retirement-manager';
+import { clearAcaCache } from './utils/calculate-v3/aca-manager';
+import { clearMedicareCache } from './utils/calculate-v3/medicare-manager';
+import { clearContributionLimitCache } from './utils/calculate-v3/contribution-limit-manager';
 import {
   getSpendingTrackerCategories,
   getSpendingTrackerCategory,
@@ -448,7 +455,8 @@ app.get('/api/moneyMovement', verifyToken, asyncHandler(async (req: Request, res
 // Healthcare config routes
 app.get('/api/healthcare/configs', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const configs = await loadHealthcareConfigs();
+    const simulation = (req.query.simulation as string) || 'Default';
+    const configs = loadAllHealthcareConfigs(simulation);
     res.json(configs);
   } catch (error) {
     console.error('Error loading healthcare configs:', error);
@@ -666,6 +674,17 @@ app
   .delete(verifyToken, apiErrorHandler(deleteSpendingTrackerCategory));
 
 app.get('/api/spending-tracker/:id/chart-data', verifyToken, apiErrorHandler(getSpendingTrackerChartData));
+
+// Cache clear endpoint (for development — forces re-reads of data files)
+app.post('/api/cache/clear', verifyToken, (_req: Request, res: Response) => {
+  clearDataCache();
+  CacheManager.clearAll();
+  clearRetirementCache();
+  clearAcaCache();
+  clearMedicareCache();
+  clearContributionLimitCache();
+  res.json({ success: true });
+});
 
 // Dev-only frontend logging endpoints
 const FRONTEND_LOG_FILE = '/tmp/frontend.log';

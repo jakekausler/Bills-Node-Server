@@ -174,12 +174,12 @@ describe('RothConversionManager', () => {
   });
 
   describe('Liquid Asset Check', () => {
-    it('should skip conversion if insufficient liquid assets', () => {
+    it('should proceed with conversion regardless of liquid asset balance (tax handled by normal tax event)', () => {
       const year = 2026;
       const mockBalanceTracker = {
         getAccountBalance: vi.fn((id: string) => {
           if (id === 'jake-401k-id') return 200000;
-          if (id === 'checking-id') return 5000; // Only $5K liquid (not enough for tax)
+          if (id === 'checking-id') return 5000; // Low liquid balance is OK
           return 0;
         }),
       } as any;
@@ -193,9 +193,10 @@ describe('RothConversionManager', () => {
 
       manager.processConversions(year, taxManager, mockBalanceTracker, 'mfj', 0.03, 'default');
 
-      // Should skip because liquid assets can't cover estimated tax
+      // Should proceed — tax on conversion is paid via the normal tax event + push/pull handler
       const lots = manager.getConversionLots('jake-roth-id');
-      expect(lots.length).toBe(0);
+      expect(lots.length).toBeGreaterThan(0);
+      expect(lots[0]?.amount).toBeGreaterThan(0);
     });
   });
 

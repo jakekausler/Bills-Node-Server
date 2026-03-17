@@ -311,8 +311,8 @@ export class Calculator {
       return new Map([[accountId, Number(amount)]]);
     }
 
-    // Calculate patient cost
-    const patientCost = this.healthcareManager.calculatePatientCost(bill, config, event.date);
+    // Calculate patient cost using the inflated event amount
+    const patientCost = this.healthcareManager.calculatePatientCost(bill, config, event.date, event.amount as number);
 
     // Create consolidated activity for the bill
     const billActivity = new ConsolidatedActivity(
@@ -677,10 +677,11 @@ export class Calculator {
 
     // Track pension income for tax purposes
     const paymentAmount = Math.abs(amount);
-    if (!segmentResult.taxableOccurrences.has(accountId)) {
-      segmentResult.taxableOccurrences.set(accountId, []);
+    const pensionAccountName = this.balanceTracker.findAccountById(accountId)?.name ?? accountId;
+    if (!segmentResult.taxableOccurrences.has(pensionAccountName)) {
+      segmentResult.taxableOccurrences.set(pensionAccountName, []);
     }
-    segmentResult.taxableOccurrences.get(accountId)?.push({
+    segmentResult.taxableOccurrences.get(pensionAccountName)?.push({
       date: event.date,
       year: event.date.getUTCFullYear(),
       amount: paymentAmount,
@@ -740,10 +741,11 @@ export class Calculator {
 
     // Track SS income for tax purposes
     const paymentAmount = Math.abs(amount);
-    if (!segmentResult.taxableOccurrences.has(accountId)) {
-      segmentResult.taxableOccurrences.set(accountId, []);
+    const ssAccountName = this.balanceTracker.findAccountById(accountId)?.name ?? accountId;
+    if (!segmentResult.taxableOccurrences.has(ssAccountName)) {
+      segmentResult.taxableOccurrences.set(ssAccountName, []);
     }
-    segmentResult.taxableOccurrences.get(accountId)?.push({
+    segmentResult.taxableOccurrences.get(ssAccountName)?.push({
       date: event.date,
       year: event.date.getUTCFullYear(),
       amount: paymentAmount,
@@ -865,10 +867,10 @@ export class Calculator {
     segmentResult.activitiesAdded.get(rmdAccount.id)?.push(rmdToActivity);
 
     // Track RMD income for tax purposes
-    if (!segmentResult.taxableOccurrences.has(rmdAccount.id)) {
-      segmentResult.taxableOccurrences.set(rmdAccount.id, []);
+    if (!segmentResult.taxableOccurrences.has(rmdAccount.name)) {
+      segmentResult.taxableOccurrences.set(rmdAccount.name, []);
     }
-    segmentResult.taxableOccurrences.get(rmdAccount.id)?.push({
+    segmentResult.taxableOccurrences.get(rmdAccount.name)?.push({
       date: event.date,
       year: event.date.getUTCFullYear(),
       amount: rmdAmount,
@@ -930,12 +932,47 @@ export class Calculator {
       }
       segmentResult.activitiesAdded.get(conversion.sourceAccountId)?.push(transferActivity);
 
-      // Update balances
-      this.balanceTracker.adjustBalance(conversion.sourceAccountId, -conversion.amount);
-      this.balanceTracker.adjustBalance(conversion.destinationAccountId, conversion.amount);
+      // Also add the activity to the destination account so it shows up there
+      if (!segmentResult.activitiesAdded.has(conversion.destinationAccountId)) {
+        segmentResult.activitiesAdded.set(conversion.destinationAccountId, []);
+      }
+      segmentResult.activitiesAdded.get(conversion.destinationAccountId)?.push(
+        new ConsolidatedActivity({
+          id: `ROTH-CONVERSION-${conversion.destinationAccountId}-${conversion.sourceAccountId}-${event.year}`,
+          name: `Roth Conversion: ${sourceAccount.name} → ${destAccount.name}`,
+          amount: conversion.amount,
+          amountIsVariable: false,
+          amountVariable: null,
+          date: formatDate(new Date(event.year, 11, 31)),
+          dateIsVariable: false,
+          dateVariable: null,
+          from: sourceAccount.name,
+          to: destAccount.name,
+          isTransfer: true,
+          category: 'Roth Conversion',
+          flag: false,
+          flagColor: null,
+        }),
+      );
+
+      // Track balance changes for the segment processor to apply
+      const srcChange = segmentResult.balanceChanges.get(conversion.sourceAccountId) || 0;
+      segmentResult.balanceChanges.set(conversion.sourceAccountId, srcChange - conversion.amount);
+
+      const destChange = segmentResult.balanceChanges.get(conversion.destinationAccountId) || 0;
+      segmentResult.balanceChanges.set(conversion.destinationAccountId, destChange + conversion.amount);
     }
 
-    return new Map<string, number>();
+    // Return the combined balance changes from all conversions
+    const balanceChanges = new Map<string, number>();
+    for (const conversion of conversions) {
+      const srcCurrent = balanceChanges.get(conversion.sourceAccountId) || 0;
+      balanceChanges.set(conversion.sourceAccountId, srcCurrent - conversion.amount);
+
+      const destCurrent = balanceChanges.get(conversion.destinationAccountId) || 0;
+      balanceChanges.set(conversion.destinationAccountId, destCurrent + conversion.amount);
+    }
+    return balanceChanges;
   }
 
   processSpendingTrackerEvent(event: SpendingTrackerEvent, segmentResult: SegmentResult): Map<string, number> {

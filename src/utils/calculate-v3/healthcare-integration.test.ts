@@ -14,7 +14,12 @@ vi.mock('../io/healthcareConfigs', () => ({
     mockConfigs = configs;
     return Promise.resolve();
   }),
-  loadHealthcareConfigs: vi.fn(() => Promise.resolve(mockConfigs)),
+  loadHealthcareConfigs: vi.fn(() => mockConfigs),
+}));
+
+vi.mock('../io/virtualHealthcarePlans', () => ({
+  loadAllHealthcareConfigs: vi.fn(() => mockConfigs),
+  generateVirtualHealthcarePlans: vi.fn(() => []),
 }));
 
 vi.mock('../io/retirement', () => ({

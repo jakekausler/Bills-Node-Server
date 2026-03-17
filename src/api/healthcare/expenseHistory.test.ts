@@ -13,12 +13,12 @@ vi.mock('./expenses', () => ({
   getHealthcareExpenses: vi.fn(),
 }));
 
-vi.mock('../../utils/io/healthcareConfigs', () => ({
-  loadHealthcareConfigs: vi.fn(),
+vi.mock('../../utils/io/virtualHealthcarePlans', () => ({
+  loadAllHealthcareConfigs: vi.fn(),
 }));
 
 import { getHealthcareExpenses } from './expenses';
-import { loadHealthcareConfigs } from '../../utils/io/healthcareConfigs';
+import { loadAllHealthcareConfigs } from '../../utils/io/virtualHealthcarePlans';
 
 const mockRequest = {
   query: {
@@ -62,7 +62,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should throw when config is not found', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([]);
 
       await expect(getHealthcareExpenseHistory(mockRequest)).rejects.toThrow(
         'Healthcare config with id config-1 not found'
@@ -70,7 +70,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should return empty array when no expenses exist for config', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([]);
 
       const result = await getHealthcareExpenseHistory(mockRequest);
@@ -78,7 +78,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should return empty array when expenses exist but none match config covered persons', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',
@@ -105,7 +105,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should aggregate single expense into family and person data points', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',
@@ -158,7 +158,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should accumulate multiple expenses on the same date for the same person', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',
@@ -225,7 +225,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should aggregate expenses from multiple people on the same date', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',
@@ -302,7 +302,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should produce separate data points for different dates', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',
@@ -361,7 +361,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should sort results by date ascending, with family (null) before individuals', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',
@@ -419,7 +419,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should sort individuals alphabetically on the same date', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',
@@ -469,7 +469,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should correctly compute netCost as totalPatientCost minus totalHsaReimbursed', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',
@@ -505,7 +505,7 @@ describe('Healthcare Expense History API', () => {
         ...baseConfig,
         coveredPersons: ['John'],
       };
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([singlePersonConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([singlePersonConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',
@@ -563,7 +563,7 @@ describe('Healthcare Expense History API', () => {
         name: 'Other Plan',
         coveredPersons: ['Alice'],
       };
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig, config2]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig, config2]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',
@@ -594,7 +594,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should handle zero hsaReimbursed correctly', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',
@@ -624,7 +624,7 @@ describe('Healthcare Expense History API', () => {
     });
 
     it('should update netCost when accumulating multiple expenses on same date', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         {
           id: 'exp-1',

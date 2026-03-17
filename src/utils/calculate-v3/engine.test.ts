@@ -66,7 +66,12 @@ vi.mock('./monte-carlo-handler', () => ({
 }));
 
 vi.mock('../io/healthcareConfigs', () => ({
-  loadHealthcareConfigs: vi.fn().mockResolvedValue([]),
+  loadHealthcareConfigs: vi.fn().mockReturnValue([]),
+}));
+
+vi.mock('../io/virtualHealthcarePlans', () => ({
+  loadAllHealthcareConfigs: vi.fn().mockReturnValue([]),
+  generateVirtualHealthcarePlans: vi.fn().mockReturnValue([]),
 }));
 
 vi.mock('../io/spendingTracker', () => ({

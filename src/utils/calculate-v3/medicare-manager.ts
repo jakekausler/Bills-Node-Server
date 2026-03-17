@@ -42,6 +42,15 @@ function getIRMABrackets(): Record<string, IRMABracket[]> {
  * Medicare manager for handling IRMAA surcharges, Part B/D premiums,
  * and hospital admission generation with Poisson distribution.
  */
+/**
+ * Clears module-level caches for Medicare data.
+ * Used by the cache-clear endpoint to force re-reads from disk.
+ */
+export function clearMedicareCache() {
+  cachedHistoricRates = null;
+  cachedIRMABrackets = null;
+}
+
 export class MedicareManager {
   // Hospital admission rates (Poisson lambda) by age
   // Represents expected number of hospital admissions per year

@@ -2,7 +2,6 @@ import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { CalculationConfig, CalculationOptions, FilingStatus, MonteCarloConfig } from './types';
-import { HealthcareConfig } from '../../data/healthcare/types';
 import { CacheManager, initializeCache } from './cache';
 import { Timeline } from './timeline';
 import { BalanceTracker } from './balance-tracker';
@@ -18,9 +17,8 @@ import { MedicareManager } from './medicare-manager';
 import { AcaManager } from './aca-manager';
 import { LTCManager } from './ltc-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
-import { loadHealthcareConfigs } from '../io/healthcareConfigs';
+import { loadAllHealthcareConfigs } from '../io/virtualHealthcarePlans';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
-import { loadVariable } from '../simulation/variable';
 import { MonteCarloHandler } from './monte-carlo-handler';
 import { computePeriodBoundaries } from './period-utils';
 import dayjs from 'dayjs';
@@ -221,153 +219,7 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Initializing healthcare manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    let healthcareConfigs = await loadHealthcareConfigs();
-
-    // Task 7: Add virtual ACA healthcare plan if needed
-    // Check if we need to generate a virtual ACA plan for the retirement-to-65 gap
-    try {
-      const retireDateResult = loadVariable('RETIRE_DATE', this.simulation);
-      const retireDate = retireDateResult instanceof Date ? retireDateResult : null;
-
-      if (retireDate) {
-        // Get both persons' birth dates from social security config
-        const socialSecurities = this.accountManager.getSocialSecurities();
-        const birthDates: Date[] = [];
-
-        for (const ss of socialSecurities) {
-          try {
-            const birthDateResult = loadVariable(ss.birthDateVariable, this.simulation);
-            if (birthDateResult instanceof Date) {
-              birthDates.push(birthDateResult);
-            }
-          } catch (e) {
-            // Skip if birth date not found
-          }
-        }
-
-        if (birthDates.length >= 2) {
-          // Calculate age 65 dates for both persons
-          const age65Date1 = dayjs.utc(birthDates[0]).add(65, 'year').toDate();
-          const age65Date2 = dayjs.utc(birthDates[1]).add(65, 'year').toDate();
-          const laterAge65Date = age65Date1 > age65Date2 ? age65Date1 : age65Date2;
-
-          // Check if no plan covers the ACA gap (between retire date and age 65)
-          const hasCoverageDuringGap = healthcareConfigs.some(config => {
-            const configStartDate = new Date(config.startDate);
-            const configEndDate = config.endDate ? new Date(config.endDate) : null;
-            return (
-              configStartDate <= retireDate &&
-              (!configEndDate || configEndDate >= laterAge65Date)
-            );
-          });
-
-          if (!hasCoverageDuringGap && retireDate < laterAge65Date) {
-            // Initialize ACA manager temporarily to get deductible/OOP values
-            this.acaManager = new AcaManager();
-            const retireYear = retireDate.getUTCFullYear();
-            const acaDeductible = this.acaManager.getAcaDeductible(retireYear);
-            const acaOOPMax = this.acaManager.getAcaOOPMax(retireYear);
-
-            // Pre-inflate from base year (last known data year) to plan start year
-            // ACA OOP max: 5.1% annual change based on 13 years of data (2014-2027)
-            const baseYear = 2024; // Last year with known absolute values from historicRates
-            const planStartYear = retireYear;
-            const yearsToInflate = Math.max(0, planStartYear - baseYear);
-            const acaOOPInflator = Math.pow(1.051, yearsToInflate);
-
-            // Create virtual ACA Silver plan
-            const virtualAcaPlan: HealthcareConfig = {
-              id: 'virtual-aca-silver-' + Math.random().toString(36).substring(7),
-              name: 'ACA Silver Plan (Virtual)',
-              coveredPersons: ['Jake', 'Kendall'],
-              startDate: retireDate.toISOString().split('T')[0] as any,
-              startDateIsVariable: false,
-              endDate: laterAge65Date.toISOString().split('T')[0] as any,
-              endDateIsVariable: false,
-              individualDeductible: Math.round(acaDeductible.individual * acaOOPInflator),
-              individualOutOfPocketMax: Math.round(acaOOPMax.individual * acaOOPInflator),
-              familyDeductible: Math.round(acaDeductible.family * acaOOPInflator),
-              familyOutOfPocketMax: Math.round(acaOOPMax.family * acaOOPInflator),
-              hsaAccountId: null,
-              hsaReimbursementEnabled: false,
-              resetMonth: 0,
-              resetDay: 1,
-              deductibleInflationRate: 0.05, // 5% healthcare inflation
-            };
-
-            healthcareConfigs = [...healthcareConfigs, virtualAcaPlan];
-          }
-        }
-      }
-    } catch (e) {
-      // If variable loading fails, proceed with existing configs
-    }
-
-    // Task 13: Add virtual Medicare healthcare plan at age 65
-    // Medicare provides deductible/OOP cap framework for post-65 healthcare bills
-    try {
-      const socialSecurities = this.accountManager.getSocialSecurities();
-      const birthDates: Date[] = [];
-
-      for (const ss of socialSecurities) {
-        try {
-          const birthDateResult = loadVariable(ss.birthDateVariable, this.simulation);
-          if (birthDateResult instanceof Date) {
-            birthDates.push(birthDateResult);
-          }
-        } catch (e) {
-          // Skip if birth date not found
-        }
-      }
-
-      if (birthDates.length >= 2) {
-        // Calculate age 65 dates for both persons
-        const age65Date1 = dayjs.utc(birthDates[0]).add(65, 'year').toDate();
-        const age65Date2 = dayjs.utc(birthDates[1]).add(65, 'year').toDate();
-        const earlierAge65Date = age65Date1 < age65Date2 ? age65Date1 : age65Date2;
-
-        // Check if no plan already covers from age 65+ (should not happen, but safety check)
-        const hasMedicareEquivalent = healthcareConfigs.some(config => {
-          const configName = (config.name || '').toLowerCase();
-          return configName.includes('medicare');
-        });
-
-        if (!hasMedicareEquivalent) {
-          // Pre-inflate from base year (last known data year) to plan start year
-          // Medicare Part B deductible: 3.2% annual change based on 59 years of historical data
-          // OOP: 5.0% annual change (tracks healthcare CPI more closely)
-          const baseYear = 2024; // Last year with known absolute values
-          const medicareStartYear = earlierAge65Date.getUTCFullYear();
-          const yearsToInflate = Math.max(0, medicareStartYear - baseYear);
-          const medicareDeductibleInflator = Math.pow(1.032, yearsToInflate);
-          const medicareOOPInflator = Math.pow(1.05, yearsToInflate);
-
-          // Create virtual Medicare plan
-          const virtualMedicarePlan: HealthcareConfig = {
-            id: 'virtual-medicare-' + Math.random().toString(36).substring(7),
-            name: 'Medicare Plan (Virtual)',
-            coveredPersons: ['Jake', 'Kendall'],
-            startDate: earlierAge65Date.toISOString().split('T')[0] as any,
-            startDateIsVariable: false,
-            endDate: null, // Runs forever
-            endDateIsVariable: false,
-            individualDeductible: Math.round(240 * medicareDeductibleInflator), // 2024 Part B deductible
-            individualOutOfPocketMax: Math.round(5000 * medicareOOPInflator), // Effective OOP with Medigap
-            familyDeductible: Math.round(480 * medicareDeductibleInflator), // 2 × individual
-            familyOutOfPocketMax: Math.round(10000 * medicareOOPInflator), // 2 × individual
-            hsaAccountId: null,
-            hsaReimbursementEnabled: true, // HSA can reimburse at 65+
-            resetMonth: 0,
-            resetDay: 1,
-            deductibleInflationRate: 0.05, // 5% healthcare CPI
-          };
-
-          healthcareConfigs = [...healthcareConfigs, virtualMedicarePlan];
-        }
-      }
-    } catch (e) {
-      // If variable loading fails, proceed with existing configs
-    }
+    const healthcareConfigs = loadAllHealthcareConfigs(this.simulation);
 
     // TODO (#13): MC sampling for deductible/OOP change ratios
     // Eventually sample deductible/OOP max using MC-sampled change ratios (acaOOPMax, medicareDeductible)

@@ -1,6 +1,6 @@
 import { Request } from 'express';
 import { getHealthcareExpenses, HealthcareExpense } from './expenses';
-import { loadHealthcareConfigs } from '../../utils/io/healthcareConfigs';
+import { loadAllHealthcareConfigs } from '../../utils/io/virtualHealthcarePlans';
 
 export type ExpenseHistoryDataPoint = {
   date: string;
@@ -16,13 +16,14 @@ export async function getHealthcareExpenseHistory(
 ): Promise<ExpenseHistoryDataPoint[]> {
   // Get query params
   const configId = request.query.configId as string;
+  const simulation = (request.query.simulation as string) || 'Default';
 
   if (!configId) {
     throw new Error('configId query parameter is required');
   }
 
-  // Load configs to get covered persons
-  const configs = await loadHealthcareConfigs();
+  // Load configs to get covered persons (including virtual plans)
+  const configs = loadAllHealthcareConfigs(simulation);
   const config = configs.find(c => c.id === configId);
   if (!config) {
     throw new Error(`Healthcare config with id ${configId} not found`);

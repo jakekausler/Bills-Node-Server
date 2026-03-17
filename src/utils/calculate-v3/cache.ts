@@ -353,6 +353,14 @@ export class CacheManager {
     }
   }
 
+  /**
+   * Clears ALL entries from the static memory cache, regardless of simulation.
+   * Used by the cache-clear endpoint.
+   */
+  static clearAll(): void {
+    CacheManager.memoryCache.clear();
+  }
+
   async clear(): Promise<void> {
     // Only delete entries belonging to this simulation
     for (const key of CacheManager.memoryCache.keys()) {

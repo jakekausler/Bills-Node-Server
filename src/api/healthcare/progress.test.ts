@@ -7,8 +7,8 @@ vi.mock('../../utils/net/request', () => ({
   getData: vi.fn(),
 }));
 
-vi.mock('../../utils/io/healthcareConfigs', () => ({
-  loadHealthcareConfigs: vi.fn(),
+vi.mock('../../utils/io/virtualHealthcarePlans', () => ({
+  loadAllHealthcareConfigs: vi.fn(),
 }));
 
 vi.mock('../../utils/calculate-v3/engine', () => ({
@@ -16,7 +16,7 @@ vi.mock('../../utils/calculate-v3/engine', () => ({
 }));
 
 import { getData } from '../../utils/net/request';
-import { loadHealthcareConfigs } from '../../utils/io/healthcareConfigs';
+import { loadAllHealthcareConfigs } from '../../utils/io/virtualHealthcarePlans';
 import { calculateAllActivity } from '../../utils/calculate-v3/engine';
 
 describe('Healthcare Progress API', () => {
@@ -50,7 +50,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       // Mock getData to return mock accounts with healthcare activities
       const mockAccounts = [
@@ -122,7 +122,7 @@ describe('Healthcare Progress API', () => {
     });
 
     it('should return empty object when no configs exist', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([]);
       vi.mocked(getData).mockReturnValue({
         simulation: 'Default',
         accountsAndTransfers: {
@@ -160,7 +160,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -230,7 +230,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       // Copay-based expense: $50 copay, bill amount $250
       const mockAccounts = [
@@ -298,7 +298,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       // Bill of $300 with 20% coinsurance; deductible is only $100
       // Expected: $100 to deductible, then 20% of remaining $200 = $40, total patient: $140
@@ -369,7 +369,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -452,7 +452,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([configWithEmptyPersons]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([configWithEmptyPersons]);
 
       vi.mocked(getData).mockResolvedValue({
         simulation: 'Default',
@@ -491,7 +491,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([expiredConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([expiredConfig]);
 
       vi.mocked(getData).mockResolvedValue({
         simulation: 'Default',
@@ -530,7 +530,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       // Activity on 2024-07-01 is after query date 2024-06-15 and should be excluded
       const mockAccounts = [
@@ -598,7 +598,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       vi.mocked(getData).mockResolvedValue({
         simulation: 'Default',
@@ -638,7 +638,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -718,7 +718,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockTransferBills = [
         { id: 'transfer-bill-1', amount: 500 },
@@ -789,7 +789,7 @@ describe('Healthcare Progress API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([julyResetConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([julyResetConfig]);
 
       // Activity in the plan year (Oct 2023 - within the 2023 plan year that runs Jul 2023 - Jul 2024)
       const mockAccounts = [

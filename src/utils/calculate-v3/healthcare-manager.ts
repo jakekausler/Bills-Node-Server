@@ -431,7 +431,7 @@ export class HealthcareManager {
   /**
    * Calculate the actual patient cost for a healthcare expense
    */
-  calculatePatientCost(expense: Bill | Activity, config: HealthcareConfig, date: Date): number {
+  calculatePatientCost(expense: Bill | Activity, config: HealthcareConfig, date: Date, overrideAmount?: number): number {
     // Check if already processed (idempotent protection against segment reprocessing)
     const expenseKey = this.getExpenseKey(expense, date);
     if (this.processedExpenses.has(expenseKey)) {
@@ -441,7 +441,7 @@ export class HealthcareManager {
     // Reset tracking if we've crossed into a new plan year
     this.resetIfNeeded(config, date);
 
-    const billAmount = typeof expense.amount === 'number' ? Math.abs(expense.amount) : 0;
+    const billAmount = overrideAmount !== undefined ? Math.abs(overrideAmount) : (typeof expense.amount === 'number' ? Math.abs(expense.amount) : 0);
     const personName = expense.healthcarePerson || '';
 
     // If expense has a copay > 0, use copay logic

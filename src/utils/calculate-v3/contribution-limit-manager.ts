@@ -34,6 +34,14 @@ function getHistoricRates(): HistoricRates {
   return cachedHistoricRates;
 }
 
+/**
+ * Clears module-level cache for contribution limit historic rates.
+ * Used by the cache-clear endpoint to force re-reads from disk.
+ */
+export function clearContributionLimitCache() {
+  cachedHistoricRates = null;
+}
+
 export type ContributionLimitType = '401k' | 'ira' | 'hsa';
 
 /**

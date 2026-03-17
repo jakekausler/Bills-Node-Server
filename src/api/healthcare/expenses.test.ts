@@ -7,8 +7,8 @@ vi.mock('../../utils/net/request', () => ({
   getData: vi.fn(),
 }));
 
-vi.mock('../../utils/io/healthcareConfigs', () => ({
-  loadHealthcareConfigs: vi.fn(),
+vi.mock('../../utils/io/virtualHealthcarePlans', () => ({
+  loadAllHealthcareConfigs: vi.fn(),
 }));
 
 vi.mock('../../utils/calculate-v3/engine', () => ({
@@ -16,7 +16,7 @@ vi.mock('../../utils/calculate-v3/engine', () => ({
 }));
 
 import { getData } from '../../utils/net/request';
-import { loadHealthcareConfigs } from '../../utils/io/healthcareConfigs';
+import { loadAllHealthcareConfigs } from '../../utils/io/virtualHealthcarePlans';
 import { calculateAllActivity } from '../../utils/calculate-v3/engine';
 
 describe('Healthcare Expenses API', () => {
@@ -50,7 +50,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -200,7 +200,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -259,7 +259,7 @@ describe('Healthcare Expenses API', () => {
     });
 
     it('should return empty array when no healthcare expenses exist', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([]);
 
       vi.mocked(getData).mockResolvedValue({
         simulation: 'Default',
@@ -299,7 +299,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -364,7 +364,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -426,7 +426,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -491,7 +491,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       // First expense (will be processed first): $200 bill with 20% coinsurance, deductible is $100
       // Second expense: we want to check the remaining deductible for the SECOND expense
@@ -576,7 +576,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -658,7 +658,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -742,7 +742,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -816,7 +816,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -890,7 +890,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       // No HSA account in the list
       const mockAccounts = [
@@ -953,7 +953,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -1030,7 +1030,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {
@@ -1107,7 +1107,7 @@ describe('Healthcare Expenses API', () => {
         resetDay: 1,
       };
 
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([mockConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([mockConfig]);
 
       const mockAccounts = [
         {

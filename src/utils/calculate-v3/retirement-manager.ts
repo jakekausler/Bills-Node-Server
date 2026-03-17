@@ -54,6 +54,17 @@ function getWageBaseCap(year: number, mcChangeRatio?: number): number {
   return SS_WAGE_BASE_2025 * Math.pow(1 + NAWI_GROWTH_RATE, yearsFromBase);
 }
 
+/**
+ * Clears all module-level caches for retirement data.
+ * Used by the cache-clear endpoint to force re-reads from disk.
+ */
+export function clearRetirementCache() {
+  cachedWageIndex = null;
+  cachedBendPoints = null;
+  cachedRMDTable = null;
+  cachedHistoricRates = null;
+}
+
 export class RetirementManager {
   // List of social securities
   private socialSecurities: SocialSecurity[];

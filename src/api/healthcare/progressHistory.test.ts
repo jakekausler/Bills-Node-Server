@@ -13,12 +13,12 @@ vi.mock('./expenses', () => ({
   getHealthcareExpenses: vi.fn(),
 }));
 
-vi.mock('../../utils/io/healthcareConfigs', () => ({
-  loadHealthcareConfigs: vi.fn(),
+vi.mock('../../utils/io/virtualHealthcarePlans', () => ({
+  loadAllHealthcareConfigs: vi.fn(),
 }));
 
 import { getHealthcareExpenses } from './expenses';
-import { loadHealthcareConfigs } from '../../utils/io/healthcareConfigs';
+import { loadAllHealthcareConfigs } from '../../utils/io/virtualHealthcarePlans';
 
 const mockRequest = {
   query: {
@@ -88,7 +88,7 @@ describe('Healthcare Progress History API', () => {
     });
 
     it('should throw when config is not found', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([]);
 
       await expect(getHealthcareProgressHistory(mockRequest)).rejects.toThrow(
         'Healthcare config with id config-1 not found'
@@ -100,7 +100,7 @@ describe('Healthcare Progress History API', () => {
     // -----------------------------------------------------------------------
 
     it('should return empty array when getHealthcareExpenses returns no expenses', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([]);
 
       const result = await getHealthcareProgressHistory(mockRequest);
@@ -108,7 +108,7 @@ describe('Healthcare Progress History API', () => {
     });
 
     it('should return empty array when no expenses match config covered persons', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({ person: 'Alice' }), // not in coveredPersons
       ]);
@@ -122,7 +122,7 @@ describe('Healthcare Progress History API', () => {
     // -----------------------------------------------------------------------
 
     it('should produce family and per-person data points for a single expense', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({
           person: 'John',
@@ -163,7 +163,7 @@ describe('Healthcare Progress History API', () => {
     // -----------------------------------------------------------------------
 
     it('should compute deductibleSpent as config limit minus remaining', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({
           individualDeductibleRemaining: 500,
@@ -185,7 +185,7 @@ describe('Healthcare Progress History API', () => {
     });
 
     it('should compute deductibleSpent as zero when nothing has been spent', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({
           individualDeductibleRemaining: 1500, // full remaining = no spend
@@ -211,7 +211,7 @@ describe('Healthcare Progress History API', () => {
     // -----------------------------------------------------------------------
 
     it('should produce separate per-person data points for different people on the same date', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({
           id: 'exp-1',
@@ -260,7 +260,7 @@ describe('Healthcare Progress History API', () => {
     // -----------------------------------------------------------------------
 
     it('should use the last expense when multiple expenses share the same date and person', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({
           id: 'exp-early',
@@ -291,7 +291,7 @@ describe('Healthcare Progress History API', () => {
     });
 
     it('should use the last expense per date for family-level data points', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({
           id: 'exp-1',
@@ -326,7 +326,7 @@ describe('Healthcare Progress History API', () => {
     // -----------------------------------------------------------------------
 
     it('should produce separate data points for different dates', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({
           id: 'exp-march',
@@ -371,7 +371,7 @@ describe('Healthcare Progress History API', () => {
     // -----------------------------------------------------------------------
 
     it('should sort results by date ascending', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({
           id: 'exp-june',
@@ -402,7 +402,7 @@ describe('Healthcare Progress History API', () => {
     });
 
     it('should place family (null personName) before individuals on the same date', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({ person: 'John', date: '2024-03-15' }),
       ]);
@@ -415,7 +415,7 @@ describe('Healthcare Progress History API', () => {
     });
 
     it('should sort individuals alphabetically on the same date', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({
           id: 'exp-john',
@@ -454,7 +454,7 @@ describe('Healthcare Progress History API', () => {
         ...baseConfig,
         coveredPersons: ['John'],
       };
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([singlePersonConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([singlePersonConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({ id: 'exp-john', person: 'John', date: '2024-03-15' }),
         makeExpense({ id: 'exp-alice', person: 'Alice', date: '2024-03-15' }), // not covered
@@ -478,7 +478,7 @@ describe('Healthcare Progress History API', () => {
         name: 'Other Plan',
         coveredPersons: ['Alice'],
       };
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig, config2]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig, config2]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({ person: 'John' }),
       ]);
@@ -496,7 +496,7 @@ describe('Healthcare Progress History API', () => {
     // -----------------------------------------------------------------------
 
     it('should return data points with date, personName, deductibleSpent, and oopSpent fields', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({
           person: 'John',
@@ -527,7 +527,7 @@ describe('Healthcare Progress History API', () => {
     // -----------------------------------------------------------------------
 
     it('should handle two family-level points on different dates correctly', async () => {
-      vi.mocked(loadHealthcareConfigs).mockResolvedValue([baseConfig]);
+      vi.mocked(loadAllHealthcareConfigs).mockReturnValue([baseConfig]);
       vi.mocked(getHealthcareExpenses).mockResolvedValue([
         makeExpense({ id: 'e1', person: 'John', date: '2024-01-10' }),
         makeExpense({ id: 'e2', person: 'John', date: '2024-02-10' }),
