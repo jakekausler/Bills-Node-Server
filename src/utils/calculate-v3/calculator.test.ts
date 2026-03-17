@@ -349,6 +349,16 @@ function makeSpendingTrackerManager(overrides: Partial<{
   };
 }
 
+function makeMedicareManager(overrides: Partial<{
+  getActiveConfig: ReturnType<typeof vi.fn>;
+  processMedicareEvents: ReturnType<typeof vi.fn>;
+}> = {}): Partial<any> {
+  return {
+    getActiveConfig: overrides.getActiveConfig ?? vi.fn(() => null),
+    processMedicareEvents: overrides.processMedicareEvents ?? vi.fn(),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Calculator factory
 // ---------------------------------------------------------------------------
@@ -358,15 +368,19 @@ function makeCalculator(opts: {
   taxManager?: ReturnType<typeof makeTaxManager>;
   retirementManager?: ReturnType<typeof makeRetirementManager>;
   healthcareManager?: ReturnType<typeof makeHealthcareManager>;
+  medicareManager?: ReturnType<typeof makeMedicareManager>;
   accountManager?: ReturnType<typeof makeAccountManager>;
   spendingTrackerManager?: ReturnType<typeof makeSpendingTrackerManager>;
   simulation?: string;
+  filingStatus?: string;
+  bracketInflationRate?: number;
 } = {}): Calculator {
   return new Calculator(
     (opts.balanceTracker ?? makeBalanceTracker()) as any,
     (opts.taxManager ?? makeTaxManager()) as any,
     (opts.retirementManager ?? makeRetirementManager()) as any,
     (opts.healthcareManager ?? makeHealthcareManager()) as any,
+    (opts.medicareManager ?? makeMedicareManager()) as any,
     (opts.accountManager ?? makeAccountManager()) as any,
     opts.simulation ?? 'Default',
     (opts.spendingTrackerManager ?? makeSpendingTrackerManager()) as any,
