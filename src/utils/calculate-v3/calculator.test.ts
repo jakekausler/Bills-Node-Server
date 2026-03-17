@@ -369,6 +369,20 @@ function makeAcaManager(overrides: Partial<{
   };
 }
 
+function makeLTCManager(overrides: Partial<{
+  stepMonth: ReturnType<typeof vi.fn>;
+  getNetMonthlyCost: ReturnType<typeof vi.fn>;
+  getConfig: ReturnType<typeof vi.fn>;
+  getPersonState: ReturnType<typeof vi.fn>;
+}> = {}): Partial<any> {
+  return {
+    stepMonth: overrides.stepMonth ?? vi.fn(),
+    getNetMonthlyCost: overrides.getNetMonthlyCost ?? vi.fn(() => 0),
+    getConfig: overrides.getConfig ?? vi.fn(() => null),
+    getPersonState: overrides.getPersonState ?? vi.fn(() => null),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Calculator factory
 // ---------------------------------------------------------------------------
@@ -379,6 +393,7 @@ function makeCalculator(opts: {
   retirementManager?: ReturnType<typeof makeRetirementManager>;
   healthcareManager?: ReturnType<typeof makeHealthcareManager>;
   medicareManager?: ReturnType<typeof makeMedicareManager>;
+  ltcManager?: ReturnType<typeof makeLTCManager>;
   acaManager?: ReturnType<typeof makeAcaManager>;
   accountManager?: ReturnType<typeof makeAccountManager>;
   spendingTrackerManager?: ReturnType<typeof makeSpendingTrackerManager>;
@@ -392,6 +407,7 @@ function makeCalculator(opts: {
     (opts.retirementManager ?? makeRetirementManager()) as any,
     (opts.healthcareManager ?? makeHealthcareManager()) as any,
     (opts.medicareManager ?? makeMedicareManager()) as any,
+    (opts.ltcManager ?? makeLTCManager()) as any,
     (opts.accountManager ?? makeAccountManager()) as any,
     opts.simulation ?? 'Default',
     (opts.spendingTrackerManager ?? makeSpendingTrackerManager()) as any,

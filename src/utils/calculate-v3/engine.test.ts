@@ -30,7 +30,9 @@ vi.mock('./segment-processor', () => ({
 }));
 
 vi.mock('./calculator', () => ({
-  Calculator: vi.fn(),
+  Calculator: vi.fn(() => ({
+    setMonteCarloConfig: vi.fn(),
+  })),
 }));
 
 vi.mock('./push-pull-handler', () => ({

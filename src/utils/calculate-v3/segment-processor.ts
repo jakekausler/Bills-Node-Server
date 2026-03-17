@@ -19,6 +19,7 @@ import {
   MedicarePremiumEvent,
   MedicareHospitalEvent,
   AcaPremiumEvent,
+  LTCCheckEvent,
 } from './types';
 import { CacheManager } from './cache';
 import { BalanceTracker } from './balance-tracker';
@@ -308,6 +309,8 @@ export class SegmentProcessor {
         return this.calculator.processMedicareHospitalEvent(event as MedicareHospitalEvent, segmentResult);
       case EventType.acaPremium:
         return this.calculator.processAcaPremiumEvent(event as AcaPremiumEvent, segmentResult);
+      case EventType.ltcCheck:
+        return this.calculator.processLTCCheckEvent(event as LTCCheckEvent, segmentResult);
       default:
         console.warn(`Unknown event type: ${event.type}`);
         return new Map<string, number>();
@@ -347,6 +350,8 @@ export class SegmentProcessor {
         return (event as MedicarePremiumEvent).personName;
       case EventType.medicareHospital:
         return (event as MedicareHospitalEvent).personName;
+      case EventType.ltcCheck:
+        return (event as LTCCheckEvent).personName;
       case EventType.acaPremium:
         return (event as AcaPremiumEvent).personName;
       default:
