@@ -1387,11 +1387,6 @@ export class Calculator {
       () => this.monteCarloConfig.handler.random() :
       null;
 
-    // Log LTC check event for debugging
-    if (true) { // TODO: Replace with proper logging flag when available
-      console.log(`LTC Check: ${personName} age ${event.ownerAge} year ${event.year} - mode: ${random ? 'MC' : 'deterministic'}`);
-    }
-
     // If we have a PRNG, step the Markov chain; otherwise use expected cost
     if (random) {
       this.ltcManager.stepMonth(personName, event.ownerAge, event.gender, event.monthIndex, random);
@@ -1415,13 +1410,6 @@ export class Calculator {
     } else {
       // Deterministic mode: use actuarially expected cost (no state transitions)
       netMonthlyCost = this.ltcManager.getExpectedMonthlyCost(event.ownerAge, event.gender, event.year);
-    }
-
-    // Log LTC cost calculation for debugging
-    if (netMonthlyCost > 0 && true) { // TODO: Replace with proper logging flag when available
-      const state = this.ltcManager.getPersonState(personName);
-      const stateLabel = random ? (state?.currentState || 'unknown') : 'expected';
-      console.log(`  LTC Cost: $${netMonthlyCost.toFixed(2)} (${stateLabel})`);
     }
 
     // If cost is zero, no activity needed (healthy or fully covered by insurance)
