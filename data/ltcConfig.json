@@ -1,0 +1,28 @@
+[
+  {
+    "personName": "Jake",
+    "gender": "male",
+    "birthDateVariable": "JAKE_BIRTH_DATE",
+    "hasInsurance": false,
+    "insurancePurchaseAge": 60,
+    "annualPremium": 3500,
+    "premiumInflationRate": 0.05,
+    "dailyBenefitCap": 200,
+    "benefitInflationRate": 0.03,
+    "benefitPeriodYears": 4,
+    "eliminationDays": 90
+  },
+  {
+    "personName": "Kendall",
+    "gender": "female",
+    "birthDateVariable": "KENDALL_BIRTH_DATE",
+    "hasInsurance": false,
+    "insurancePurchaseAge": 60,
+    "annualPremium": 3500,
+    "premiumInflationRate": 0.05,
+    "dailyBenefitCap": 200,
+    "benefitInflationRate": 0.03,
+    "benefitPeriodYears": 4,
+    "eliminationDays": 90
+  }
+]
