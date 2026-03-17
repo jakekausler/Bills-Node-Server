@@ -398,7 +398,8 @@ export class Timeline {
   }
 
   private async addLTCEvents(startDate: Date, endDate: Date): Promise<void> {
-    // LTC events are generated per-person from age 65 onward
+    // LTC events are generated per-person from insurance purchase age onward (default 60)
+    // Markov chain only steps when age >= 65, but premiums start at purchase age
     // Load LTC config (we'll keep it simple for now and generate events for Jake and Kendall)
     const socialSecurities = this.accountManager.getSocialSecurities();
 
@@ -425,6 +426,7 @@ export class Timeline {
         }
 
         const birthDate = new Date(birthDateStr);
+        const age60Date = dayjs.utc(birthDate).add(60, 'year').toDate();
         const age65Date = dayjs.utc(birthDate).add(65, 'year').toDate();
 
         // Extract person name by removing " Social Security" suffix
@@ -433,10 +435,14 @@ export class Timeline {
         // For now, determine gender from the person name (Jake = male, Kendall = female)
         const gender = personName === 'Jake' ? 'male' : 'female';
 
+        // Start events from the earlier of age 60 (purchase age) or age 65 (Markov chain start)
+        // but use age 60 as earliest since premiums start then
+        const eventStartDate = age60Date;
+
         this.generateLTCCheckEvents(
           personName,
           gender,
-          age65Date,
+          eventStartDate,
           endDate,
           jakeAccount.id,
           birthDate,

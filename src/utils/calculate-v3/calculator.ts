@@ -12,7 +12,7 @@ import { LTCManager } from './ltc-manager';
 import { AcaManager } from './aca-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { ContributionLimitManager } from './contribution-limit-manager';
-import { RothConversionManager } from './roth-conversion-manager';
+import { RothConversionManager, ConversionResult } from './roth-conversion-manager';
 import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -889,8 +889,7 @@ export class Calculator {
   processRothConversionEvent(event: RothConversionEvent, segmentResult: SegmentResult): Map<string, number> {
     // Process Roth conversions for this year
     // This delegates to the RothConversionManager which handles the bracket-filling logic
-    // TODO #20: Process conversions and apply to segment result
-    this.rothConversionManager.processConversions(
+    const conversions = this.rothConversionManager.processConversions(
       event.year,
       this.taxManager,
       this.balanceTracker,
@@ -899,8 +898,43 @@ export class Calculator {
       this.simulation,
     );
 
-    // For Level 1, Roth conversions don't create activities or balance changes
-    // They are tracked internally in the manager for later use in withdrawal logic
+    // Create transfer activities for each conversion that happened
+    for (const conversion of conversions) {
+      const sourceAccount = this.balanceTracker.findAccountById(conversion.sourceAccountId);
+      const destAccount = this.balanceTracker.findAccountById(conversion.destinationAccountId);
+
+      if (!sourceAccount || !destAccount) {
+        continue;
+      }
+
+      // Create transfer activity
+      const transferActivity = new ConsolidatedActivity({
+        id: `ROTH-CONVERSION-${conversion.sourceAccountId}-${conversion.destinationAccountId}-${event.year}`,
+        name: `Roth Conversion: ${sourceAccount.name} → ${destAccount.name}`,
+        amount: conversion.amount,
+        amountIsVariable: false,
+        amountVariable: null,
+        date: formatDate(new Date(event.year, 11, 31)), // Dec 31
+        dateIsVariable: false,
+        dateVariable: null,
+        from: sourceAccount.name,
+        to: destAccount.name,
+        isTransfer: true,
+        category: 'Roth Conversion',
+        flag: false,
+        flagColor: null,
+      });
+
+      if (!segmentResult.activitiesAdded.has(conversion.sourceAccountId)) {
+        segmentResult.activitiesAdded.set(conversion.sourceAccountId, []);
+      }
+      segmentResult.activitiesAdded.get(conversion.sourceAccountId)?.push(transferActivity);
+
+      // Update balances
+      this.balanceTracker.adjustBalance(conversion.sourceAccountId, -conversion.amount);
+      this.balanceTracker.adjustBalance(conversion.destinationAccountId, conversion.amount);
+    }
+
     return new Map<string, number>();
   }
 
@@ -1381,40 +1415,38 @@ export class Calculator {
     const accountId = event.accountId;
     const personName = event.personName;
 
-    // Get the seeded random function from MC handler (for reproducibility)
-    // In deterministic mode, fall back to expected cost calculation
-    const random = this.monteCarloConfig?.handler?.random ?
-      () => this.monteCarloConfig.handler.random() :
-      null;
-
-    // If we have a PRNG, step the Markov chain; otherwise use expected cost
-    if (random) {
-      this.ltcManager.stepMonth(personName, event.ownerAge, event.gender, event.monthIndex, random);
-    }
-
     // Get the config for this person
     const config = this.ltcManager.getConfig(personName);
     if (!config) {
       return new Map();
     }
 
+    // Get the seeded random function from MC handler (for reproducibility)
+    // In deterministic mode, fall back to expected cost calculation
+    const random = this.monteCarloConfig?.handler?.random ?
+      () => this.monteCarloConfig.handler.random() :
+      null;
+
+    // Markov chain only steps when age >= 65
+    // Before that, only premiums are charged (if applicable)
+    if (event.ownerAge >= 65 && random) {
+      this.ltcManager.stepMonth(personName, event.ownerAge, event.gender, event.monthIndex, random);
+    }
+
     // Get the birth year from the birth date
     const birthYear = event.birthDate.getUTCFullYear();
 
     // Calculate net monthly cost (gross - insurance benefit)
-    // In deterministic mode, use expected cost; in MC mode, use actual state cost
-    let netMonthlyCost: number;
-    if (random) {
-      // MC mode: use actual state cost from Markov chain
-      netMonthlyCost = this.ltcManager.getNetMonthlyCost(personName, event.year, birthYear);
-    } else {
-      // Deterministic mode: use actuarially expected cost (no state transitions)
-      netMonthlyCost = this.ltcManager.getExpectedMonthlyCost(event.ownerAge, event.gender, event.year);
-    }
-
-    // If cost is zero, no activity needed (healthy or fully covered by insurance)
-    if (netMonthlyCost <= 0) {
-      return new Map();
+    // Only charge LTC costs if age >= 65
+    let netMonthlyCost: number = 0;
+    if (event.ownerAge >= 65) {
+      if (random) {
+        // MC mode: use actual state cost from Markov chain
+        netMonthlyCost = this.ltcManager.getNetMonthlyCost(personName, event.year, birthYear);
+      } else {
+        // Deterministic mode: use actuarially expected cost (no state transitions)
+        netMonthlyCost = this.ltcManager.getExpectedMonthlyCost(event.ownerAge, event.gender, event.year);
+      }
     }
 
     // Find the paying account
@@ -1423,40 +1455,47 @@ export class Calculator {
       return new Map();
     }
 
-    // Get current LTC state to determine the type of care
-    const state = this.ltcManager.getPersonState(personName);
-    if (!state) {
-      return new Map();
+    // Create activity for LTC expense only if age >= 65 and cost > 0
+    if (event.ownerAge >= 65 && netMonthlyCost > 0) {
+      // Get current LTC state to determine the type of care
+      const state = this.ltcManager.getPersonState(personName);
+      if (!state) {
+        return new Map();
+      }
+
+      // Map state to description
+      const stateDescription = state.currentState === 'homeCare' ? 'Home Care'
+        : state.currentState === 'assistedLiving' ? 'Assisted Living'
+        : state.currentState === 'nursingHome' ? 'Nursing Home'
+        : 'Long-Term Care';
+
+      // Create activity for LTC expense
+      const ltcActivity = new ConsolidatedActivity({
+        id: `LTC-${personName}-${formatDate(event.date)}-${state.currentState}`,
+        name: `LTC: ${stateDescription} (${personName})`,
+        amount: -netMonthlyCost,
+        amountIsVariable: false,
+        amountVariable: null,
+        date: formatDate(event.date),
+        dateIsVariable: false,
+        dateVariable: null,
+        from: null,
+        to: null,
+        isTransfer: false,
+        category: `Healthcare.LTC.${state.currentState}`,
+        flag: true,
+        flagColor: 'red',
+      });
+
+      if (!segmentResult.activitiesAdded.has(accountId)) {
+        segmentResult.activitiesAdded.set(accountId, []);
+      }
+      segmentResult.activitiesAdded.get(accountId)?.push(ltcActivity);
+
+      // Update balance for LTC cost
+      const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+      segmentResult.balanceChanges.set(accountId, currentChange - netMonthlyCost);
     }
-
-    // Map state to description
-    const stateDescription = state.currentState === 'homeCare' ? 'Home Care'
-      : state.currentState === 'assistedLiving' ? 'Assisted Living'
-      : state.currentState === 'nursingHome' ? 'Nursing Home'
-      : 'Long-Term Care';
-
-    // Create activity for LTC expense
-    const ltcActivity = new ConsolidatedActivity({
-      id: `LTC-${personName}-${formatDate(event.date)}-${state.currentState}`,
-      name: `LTC: ${stateDescription} (${personName})`,
-      amount: -netMonthlyCost,
-      amountIsVariable: false,
-      amountVariable: null,
-      date: formatDate(event.date),
-      dateIsVariable: false,
-      dateVariable: null,
-      from: null,
-      to: null,
-      isTransfer: false,
-      category: `Healthcare.LTC.${state.currentState}`,
-      flag: true,
-      flagColor: 'red',
-    });
-
-    if (!segmentResult.activitiesAdded.has(accountId)) {
-      segmentResult.activitiesAdded.set(accountId, []);
-    }
-    segmentResult.activitiesAdded.get(accountId)?.push(ltcActivity);
 
     // Handle LTC insurance premium on January events (annual, once per person)
     if (event.date.getUTCMonth() === 0 && config.hasInsurance && event.ownerAge >= (config.insurancePurchaseAge ?? 60)) {
@@ -1490,10 +1529,6 @@ export class Calculator {
       const premiumChange = segmentResult.balanceChanges.get(accountId) || 0;
       segmentResult.balanceChanges.set(accountId, premiumChange - annualPremium);
     }
-
-    // Update balance for LTC cost
-    const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
-    segmentResult.balanceChanges.set(accountId, currentChange - netMonthlyCost);
 
     return new Map([[accountId, -netMonthlyCost]]);
   }

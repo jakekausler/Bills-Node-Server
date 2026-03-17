@@ -27,12 +27,20 @@ interface RothConversionConfig {
   priority: 'largerFirst' | 'smallerFirst';
 }
 
+export interface ConversionResult {
+  sourceAccountId: string;
+  destinationAccountId: string;
+  amount: number;
+  year: number;
+}
+
 export class RothConversionManager {
   private configs: RothConversionConfig[] = [];
   private conversionLots: Map<string, ConversionLot[]> = new Map();
   private accountManager: AccountManager;
   private balanceTracker: BalanceTracker | null = null;
   private acaManager: AcaManager | null = null;
+  private conversionsThisYear: ConversionResult[] = [];
 
   constructor(accountManager: AccountManager, acaManager?: AcaManager) {
     this.accountManager = accountManager;
@@ -54,6 +62,7 @@ export class RothConversionManager {
   /**
    * Process Roth conversions for a given year.
    * Runs after all other events for the year to determine remaining bracket space.
+   * Returns array of conversions that actually happened.
    *
    * TODO #20: Handle conversion lots tracking and 5-year rule integration
    */
@@ -64,9 +73,10 @@ export class RothConversionManager {
     filingStatus: FilingStatus = 'mfj',
     inflationRate: number = 0.03,
     simulation: string = 'default',
-  ): void {
+  ): ConversionResult[] {
+    this.conversionsThisYear = [];
     if (!this.configs || this.configs.length === 0) {
-      return;
+      return [];
     }
 
     // Store balance tracker for use in calculateLiquidAssets
@@ -259,6 +269,14 @@ export class RothConversionManager {
         penaltyFreeYear: year + 5,
       });
 
+      // Track this conversion for activity creation
+      this.conversionsThisYear.push({
+        sourceAccountId: sourceAccount.id,
+        destinationAccountId: destAccount.id,
+        amount: conversionAmount,
+        year,
+      });
+
       // Add taxable occurrence for the conversion
       taxManager.addTaxableOccurrence(sourceAccount.id, {
         date: new Date(year, 11, 31), // Dec 31
@@ -267,6 +285,8 @@ export class RothConversionManager {
         incomeType: 'retirement',
       });
     }
+
+    return this.conversionsThisYear;
   }
 
   /**
