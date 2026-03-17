@@ -3130,5 +3130,63 @@
   },
   "employerPremium": {
     "2026": 1124.32
+  },
+  "acaOutOfPocketMax": {
+    "2014": {
+      "individual": 6350,
+      "family": 12700
+    },
+    "2015": {
+      "individual": 6600,
+      "family": 13200
+    },
+    "2016": {
+      "individual": 6850,
+      "family": 13700
+    },
+    "2017": {
+      "individual": 7150,
+      "family": 14300
+    },
+    "2018": {
+      "individual": 7350,
+      "family": 14700
+    },
+    "2019": {
+      "individual": 7900,
+      "family": 15800
+    },
+    "2020": {
+      "individual": 8150,
+      "family": 16300
+    },
+    "2021": {
+      "individual": 8550,
+      "family": 17100
+    },
+    "2022": {
+      "individual": 8700,
+      "family": 17400
+    },
+    "2023": {
+      "individual": 9100,
+      "family": 18200
+    },
+    "2024": {
+      "individual": 9450,
+      "family": 18900
+    },
+    "2025": {
+      "individual": 9200,
+      "family": 18400
+    },
+    "2026": {
+      "individual": 10600,
+      "family": 21200
+    },
+    "2027": {
+      "individual": 12000,
+      "family": 24000
+    }
   }
 }
