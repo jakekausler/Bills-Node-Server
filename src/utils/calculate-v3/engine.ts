@@ -14,6 +14,7 @@ import { TaxManager } from './tax-manager';
 import { RetirementManager } from './retirement-manager';
 import { HealthcareManager } from './healthcare-manager';
 import { MedicareManager } from './medicare-manager';
+import { AcaManager } from './aca-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { loadHealthcareConfigs } from '../io/healthcareConfigs';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
@@ -41,6 +42,7 @@ export class Engine {
   private retirementManager: RetirementManager;
   private healthcareManager: HealthcareManager;
   private medicareManager: MedicareManager;
+  private acaManager: AcaManager;
   private calculationBegin: number;
   private monteCarloConfig: MonteCarloConfig | null = null;
 
@@ -223,6 +225,12 @@ export class Engine {
     }
     this.medicareManager = new MedicareManager();
 
+    // Initialize ACA manager
+    if (options.enableLogging) {
+      console.log('Initializing ACA manager...', Date.now() - this.calculationBegin, 'ms');
+    }
+    this.acaManager = new AcaManager();
+
     // Initialize spending tracker manager
     if (options.enableLogging) {
       console.log('Initializing spending tracker manager...', Date.now() - this.calculationBegin, 'ms');
@@ -272,6 +280,7 @@ export class Engine {
       this.accountManager,
       options.simulation,
       spendingTrackerManager,
+      this.acaManager,
       (options.filingStatus as FilingStatus) || 'mfj',
       options.bracketInflationRate || 0.03,
     );

@@ -131,6 +131,7 @@ export enum EventType {
   rothConversion = 'rothConversion',
   medicarePremium = 'medicarePremium',
   medicareHospital = 'medicareHospital',
+  acaPremium = 'acaPremium',
 }
 
 export type TimelineEvent = {
@@ -228,6 +229,17 @@ export type MedicareHospitalEvent = TimelineEvent & {
   personName: string;
   ownerAge: number;
   year: number;
+};
+
+export type AcaPremiumEvent = TimelineEvent & {
+  type: EventType.acaPremium;
+  personName: string;
+  ownerAge: number;
+  year: number;
+  retirementDate: Date;
+  isCobraPeriod: boolean;
+  birthDate1: Date;
+  birthDate2: Date;
 };
 
 export type Segment = {

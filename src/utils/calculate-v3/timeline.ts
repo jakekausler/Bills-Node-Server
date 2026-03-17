@@ -22,6 +22,7 @@ import {
   RothConversionEvent,
   MedicarePremiumEvent,
   MedicareHospitalEvent,
+  AcaPremiumEvent,
 } from './types';
 import { Account } from '../../data/account/account';
 import { Bill } from '../../data/bill/bill';
@@ -148,6 +149,7 @@ export class Timeline {
       timeline.addRothConversionEvents(startDate, endDate, calculationOptions),
       timeline.addSpendingTrackerEvents(spendingTrackerCategories, startDate, endDate),
       timeline.addMedicareEvents(accountsAndTransfers, startDate, endDate),
+      timeline.addAcaEvents(startDate, endDate),
     ]);
 
     // Sort and optimize timeline
@@ -390,6 +392,72 @@ export class Timeline {
 
     if (this.enableLogging) {
       console.log('  Finished adding Medicare events', Date.now() - this.calculationBegin, 'ms');
+    }
+  }
+
+  private async addAcaEvents(startDate: Date, endDate: Date): Promise<void> {
+    const socialSecurities = this.accountManager.getSocialSecurities();
+
+    // Load retirement date
+    const retireDateResult = loadVariable('RETIRE_DATE', this.simulation);
+    if (!retireDateResult) {
+      if (this.enableLogging) {
+        console.log('  No retirement date found, skipping ACA events');
+      }
+      return;
+    }
+    const retireDate = new Date(retireDateResult as string);
+
+    // Find Jake's account for all healthcare payments
+    const jakeAccount = this.accountManager.getAccountByName('Jake');
+    if (!jakeAccount) {
+      if (this.enableLogging) {
+        console.log('  Jake account not found, skipping ACA events');
+      }
+      return;
+    }
+
+    // Get both persons' birth dates
+    const birthDates: Date[] = [];
+    for (const ss of socialSecurities) {
+      if (ss.birthDateVariable) {
+        try {
+          const birthDateStr = loadVariable(ss.birthDateVariable, this.simulation) as string;
+          if (birthDateStr) {
+            birthDates.push(new Date(birthDateStr));
+          }
+        } catch (error) {
+          console.warn(`Could not load birth date variable ${ss.birthDateVariable}`);
+        }
+      }
+    }
+
+    if (birthDates.length < 2) {
+      if (this.enableLogging) {
+        console.log('  Both birth dates needed for ACA household events, skipping');
+      }
+      return;
+    }
+
+    // Find the later age-65 date (when last person leaves ACA for Medicare)
+    const age65Date1 = dayjs.utc(birthDates[0]).add(65, 'year').toDate();
+    const age65Date2 = dayjs.utc(birthDates[1]).add(65, 'year').toDate();
+    const laterAge65Date = age65Date1 > age65Date2 ? age65Date1 : age65Date2;
+
+    // Generate ONE set of household ACA events from retirement to later age-65
+    this.generateAcaPremiumEvents(
+      'Household',
+      retireDate,
+      laterAge65Date,
+      jakeAccount.id,
+      birthDates[0],
+      birthDates[1],
+      startDate,
+      endDate,
+    );
+
+    if (this.enableLogging) {
+      console.log('  Finished adding ACA events', Date.now() - this.calculationBegin, 'ms');
     }
   }
 
@@ -871,6 +939,62 @@ export class Timeline {
         };
 
         this.addEvent(event);
+      }
+    }
+  }
+
+  private generateAcaPremiumEvents(
+    personName: string,
+    retireDate: Date,
+    laterAge65Date: Date,
+    accountId: string,
+    birthDate1: Date,
+    birthDate2: Date,
+    startDate: Date,
+    endDate: Date,
+  ): void {
+    // ACA events run from retirement to the later age-65 date (when both are 65+)
+    if (retireDate > endDate || laterAge65Date < startDate) {
+      return; // No overlap with calculation period
+    }
+
+    // Determine COBRA period: first 18 months after retirement
+    const cobraEndDate = dayjs.utc(retireDate).add(18, 'months').toDate();
+
+    let currentDate = dayjs.utc(retireDate).startOf('month').toDate();
+    let eventCount = 0;
+
+    while (currentDate <= laterAge65Date && currentDate <= endDate) {
+      // Only generate events within the calculation period
+      if (currentDate >= startDate) {
+        const year = currentDate.getUTCFullYear();
+        const isCobraPeriod = currentDate < cobraEndDate;
+
+        const event: AcaPremiumEvent = {
+          id: `aca_premium_${personName}_${eventCount}`,
+          type: EventType.acaPremium,
+          date: new Date(currentDate),
+          accountId: accountId,
+          priority: 2.1, // Same as Medicare premiums
+          personName: personName,
+          ownerAge: dayjs.utc(currentDate).diff(birthDate1, 'year'),
+          year: year,
+          retirementDate: retireDate,
+          isCobraPeriod: isCobraPeriod,
+          birthDate1: birthDate1,
+          birthDate2: birthDate2,
+        };
+
+        this.addEvent(event);
+      }
+
+      // Move to next month
+      currentDate = dayjs.utc(currentDate).add(1, 'month').toDate();
+      eventCount++;
+
+      // Safety check
+      if (eventCount > 10000) {
+        throw new Error(`Too many ACA premium events generated for ${personName}`);
       }
     }
   }

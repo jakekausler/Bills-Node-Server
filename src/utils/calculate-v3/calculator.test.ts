@@ -359,6 +359,16 @@ function makeMedicareManager(overrides: Partial<{
   };
 }
 
+function makeAcaManager(overrides: Partial<{
+  getMonthlyHealthcarePremium: ReturnType<typeof vi.fn>;
+  getMonthlySubsidy: ReturnType<typeof vi.fn>;
+}> = {}): Partial<any> {
+  return {
+    getMonthlyHealthcarePremium: overrides.getMonthlyHealthcarePremium ?? vi.fn(() => 400),
+    getMonthlySubsidy: overrides.getMonthlySubsidy ?? vi.fn(() => 100),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Calculator factory
 // ---------------------------------------------------------------------------
@@ -369,6 +379,7 @@ function makeCalculator(opts: {
   retirementManager?: ReturnType<typeof makeRetirementManager>;
   healthcareManager?: ReturnType<typeof makeHealthcareManager>;
   medicareManager?: ReturnType<typeof makeMedicareManager>;
+  acaManager?: ReturnType<typeof makeAcaManager>;
   accountManager?: ReturnType<typeof makeAccountManager>;
   spendingTrackerManager?: ReturnType<typeof makeSpendingTrackerManager>;
   simulation?: string;
@@ -384,6 +395,7 @@ function makeCalculator(opts: {
     (opts.accountManager ?? makeAccountManager()) as any,
     opts.simulation ?? 'Default',
     (opts.spendingTrackerManager ?? makeSpendingTrackerManager()) as any,
+    (opts.acaManager ?? makeAcaManager()) as any,
     opts.filingStatus ?? 'mfj',
     opts.bracketInflationRate ?? 0.03,
   );

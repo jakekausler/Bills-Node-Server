@@ -4,6 +4,8 @@ import { BalanceTracker } from './balance-tracker';
 import { TaxManager } from './tax-manager';
 import { RetirementManager } from './retirement-manager';
 import { HealthcareManager } from './healthcare-manager';
+import { MedicareManager } from './medicare-manager';
+import { AcaManager } from './aca-manager';
 import { AccountManager } from './account-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { Account } from '../../data/account/account';
@@ -134,15 +136,19 @@ describe('HSA Reimbursement', () => {
     };
     const accountManager = new AccountManager([hsaAccount, paymentAccount], calculationOptions);
     const spendingTrackerManager = new SpendingTrackerManager([], 'primary', new Date());
+    const medicareManager = new MedicareManager();
+    const acaManager = new AcaManager();
 
     const calculator = new Calculator(
       balanceTracker,
       taxManager,
       retirementManager,
       healthcareManager,
+      medicareManager,
       accountManager,
       'primary',
       spendingTrackerManager,
+      acaManager,
       'mfj',
       0.03,
     );

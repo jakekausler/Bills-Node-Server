@@ -8,6 +8,7 @@ import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
 import { HealthcareManager } from './healthcare-manager';
 import { MedicareManager } from './medicare-manager';
+import { AcaManager } from './aca-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { ContributionLimitManager } from './contribution-limit-manager';
 import { RothConversionManager } from './roth-conversion-manager';
@@ -32,6 +33,7 @@ import {
   RothConversionEvent,
   MedicarePremiumEvent,
   MedicareHospitalEvent,
+  AcaPremiumEvent,
 } from './types';
 
 dayjs.extend(utc);
@@ -44,6 +46,7 @@ export class Calculator {
   private accountManager: AccountManager;
   private healthcareManager: HealthcareManager;
   private medicareManager: MedicareManager;
+  private acaManager: AcaManager;
   private spendingTrackerManager: SpendingTrackerManager;
   private contributionLimitManager: ContributionLimitManager;
   private rothConversionManager: RothConversionManager;
@@ -59,6 +62,7 @@ export class Calculator {
     accountManager: AccountManager,
     simulation: string,
     spendingTrackerManager: SpendingTrackerManager,
+    acaManager: AcaManager,
     filingStatus: FilingStatus = 'mfj',
     bracketInflationRate: number = 0.03,
   ) {
@@ -67,6 +71,7 @@ export class Calculator {
     this.retirementManager = retirementManager;
     this.healthcareManager = healthcareManager;
     this.medicareManager = medicareManager;
+    this.acaManager = acaManager;
     this.simulation = simulation;
     this.accountManager = accountManager;
     this.spendingTrackerManager = spendingTrackerManager;
@@ -1285,5 +1290,75 @@ export class Calculator {
     return new Map([[accountId, -totalHospitalCost]]);
   }
 
+  /**
+   * Process an ACA/COBRA premium event
+   */
+  processAcaPremiumEvent(event: AcaPremiumEvent, segmentResult: SegmentResult): Map<string, number> {
+    const accountId = event.accountId;
+    const year = event.year;
+
+    // Get MAGI from prior year (ACA uses prior-year income for subsidy calculation)
+    const priorYearOccurrences = this.taxManager.getAllOccurrencesForYear(year - 1);
+    let priorMAGI = 0;
+    for (const occ of priorYearOccurrences) {
+      if (occ.incomeType !== 'penalty') {
+        priorMAGI += occ.amount;
+      }
+    }
+
+    // Calculate both persons' ages from their birth dates
+    const age1 = dayjs.utc(event.date).diff(event.birthDate1, 'year');
+    const age2 = dayjs.utc(event.date).diff(event.birthDate2, 'year');
+
+    // Get monthly ACA/COBRA premium
+    const monthlyPremium = this.acaManager.getMonthlyHealthcarePremium(
+      event.retirementDate,
+      event.date,
+      age1,
+      age2,
+      priorMAGI,
+      2, // household size = 2
+      year,
+    );
+
+    // Find the paying account
+    const payingAccount = this.balanceTracker.findAccountById(accountId);
+    if (!payingAccount) {
+      return new Map();
+    }
+
+    // Create activity for ACA/COBRA premium
+    const premiumName = event.isCobraPeriod ? 'COBRA Premium' : 'ACA Silver Premium';
+    const categoryName = event.isCobraPeriod ? 'Healthcare.COBRA' : 'Healthcare.ACA';
+    const flagColor = event.isCobraPeriod ? 'orange' : 'cyan';
+
+    const acaActivity = new ConsolidatedActivity({
+      id: `ACA-${event.personName}-${formatDate(event.date)}`,
+      name: premiumName,
+      amount: -monthlyPremium,
+      amountIsVariable: false,
+      amountVariable: null,
+      date: formatDate(event.date),
+      dateIsVariable: false,
+      dateVariable: null,
+      from: null,
+      to: null,
+      isTransfer: false,
+      category: categoryName,
+      flag: true,
+      flagColor: flagColor,
+    });
+
+    if (!segmentResult.activitiesAdded.has(accountId)) {
+      segmentResult.activitiesAdded.set(accountId, []);
+    }
+    segmentResult.activitiesAdded.get(accountId)?.push(acaActivity);
+
+    // Update balance
+    const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
+    segmentResult.balanceChanges.set(accountId, currentChange - monthlyPremium);
+
+    return new Map([[accountId, -monthlyPremium]]);
+  }
 
 }
