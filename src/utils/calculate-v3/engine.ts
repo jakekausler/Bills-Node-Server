@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { CalculationConfig, CalculationOptions, FilingStatus, MonteCarloConfig } from './types';
+import { HealthcareConfig } from '../../data/healthcare/types';
 import { CacheManager, initializeCache } from './cache';
 import { Timeline } from './timeline';
 import { BalanceTracker } from './balance-tracker';
@@ -267,6 +268,13 @@ export class Engine {
             const acaDeductible = this.acaManager.getAcaDeductible(retireYear);
             const acaOOPMax = this.acaManager.getAcaOOPMax(retireYear);
 
+            // Pre-inflate from base year (last known data year) to plan start year
+            // ACA OOP max: 5.1% annual change based on 13 years of data (2014-2027)
+            const baseYear = 2024; // Last year with known absolute values from historicRates
+            const planStartYear = retireYear;
+            const yearsToInflate = Math.max(0, planStartYear - baseYear);
+            const acaOOPInflator = Math.pow(1.051, yearsToInflate);
+
             // Create virtual ACA Silver plan
             const virtualAcaPlan: HealthcareConfig = {
               id: 'virtual-aca-silver-' + Math.random().toString(36).substring(7),
@@ -276,10 +284,10 @@ export class Engine {
               startDateIsVariable: false,
               endDate: laterAge65Date.toISOString().split('T')[0] as any,
               endDateIsVariable: false,
-              individualDeductible: acaDeductible.individual,
-              individualOutOfPocketMax: acaOOPMax.individual,
-              familyDeductible: acaDeductible.family,
-              familyOutOfPocketMax: acaOOPMax.family,
+              individualDeductible: Math.round(acaDeductible.individual * acaOOPInflator),
+              individualOutOfPocketMax: Math.round(acaOOPMax.individual * acaOOPInflator),
+              familyDeductible: Math.round(acaDeductible.family * acaOOPInflator),
+              familyOutOfPocketMax: Math.round(acaOOPMax.family * acaOOPInflator),
               hsaAccountId: null,
               hsaReimbursementEnabled: false,
               resetMonth: 0,
@@ -325,6 +333,15 @@ export class Engine {
         });
 
         if (!hasMedicareEquivalent) {
+          // Pre-inflate from base year (last known data year) to plan start year
+          // Medicare Part B deductible: 3.2% annual change based on 59 years of historical data
+          // OOP: 5.0% annual change (tracks healthcare CPI more closely)
+          const baseYear = 2024; // Last year with known absolute values
+          const medicareStartYear = earlierAge65Date.getUTCFullYear();
+          const yearsToInflate = Math.max(0, medicareStartYear - baseYear);
+          const medicareDeductibleInflator = Math.pow(1.032, yearsToInflate);
+          const medicareOOPInflator = Math.pow(1.05, yearsToInflate);
+
           // Create virtual Medicare plan
           const virtualMedicarePlan: HealthcareConfig = {
             id: 'virtual-medicare-' + Math.random().toString(36).substring(7),
@@ -334,10 +351,10 @@ export class Engine {
             startDateIsVariable: false,
             endDate: null, // Runs forever
             endDateIsVariable: false,
-            individualDeductible: 240, // 2024 Part B deductible
-            individualOutOfPocketMax: 5000, // Effective OOP with Medigap
-            familyDeductible: 480, // 2 × individual
-            familyOutOfPocketMax: 10000, // 2 × individual
+            individualDeductible: Math.round(240 * medicareDeductibleInflator), // 2024 Part B deductible
+            individualOutOfPocketMax: Math.round(5000 * medicareOOPInflator), // Effective OOP with Medigap
+            familyDeductible: Math.round(480 * medicareDeductibleInflator), // 2 × individual
+            familyOutOfPocketMax: Math.round(10000 * medicareOOPInflator), // 2 × individual
             hsaAccountId: null,
             hsaReimbursementEnabled: true, // HSA can reimburse at 65+
             resetMonth: 0,
@@ -351,6 +368,10 @@ export class Engine {
     } catch (e) {
       // If variable loading fails, proceed with existing configs
     }
+
+    // TODO (#13): MC sampling for deductible/OOP change ratios
+    // Eventually sample deductible/OOP max using MC-sampled change ratios (acaOOPMax, medicareDeductible)
+    // instead of fixed historical averages. This would make healthcare costs vary per simulation.
 
     this.healthcareManager = new HealthcareManager(healthcareConfigs, this.simulation);
 
