@@ -427,11 +427,14 @@ export class Timeline {
         const birthDate = new Date(birthDateStr);
         const age65Date = dayjs.utc(birthDate).add(65, 'year').toDate();
 
+        // Extract person name by removing " Social Security" suffix
+        const personName = socialSecurity.name.replace(' Social Security', '');
+
         // For now, determine gender from the person name (Jake = male, Kendall = female)
-        const gender = socialSecurity.name === 'Jake' ? 'male' : 'female';
+        const gender = personName === 'Jake' ? 'male' : 'female';
 
         this.generateLTCCheckEvents(
-          socialSecurity.name,
+          personName,
           gender,
           age65Date,
           endDate,
