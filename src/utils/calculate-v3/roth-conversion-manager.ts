@@ -143,21 +143,37 @@ export class RothConversionManager {
           const retireDateResult = loadVariable('RETIRE_DATE', simulation);
           const retireYear = retireDateResult instanceof Date ? retireDateResult.getUTCFullYear() : null;
 
-          // Check if config has birth date variable
-          let age65Year: number | null = null;
-          if (config.startDateVariable) {
-            try {
-              const birthDateResult = loadVariable(config.startDateVariable, simulation);
-              if (birthDateResult instanceof Date) {
-                age65Year = dayjs.utc(birthDateResult).add(65, 'year').year();
-              }
-            } catch (e) {
-              // Birth date variable not found, skip ACA check
+          // Load real birth dates from Social Security configs
+          let birthDate1: Date | null = null;
+          let birthDate2: Date | null = null;
+          let age65Year1: number | null = null;
+          let age65Year2: number | null = null;
+
+          try {
+            const birthDateResult1 = loadVariable('JAKE_BIRTH_DATE', simulation);
+            if (birthDateResult1 instanceof Date) {
+              birthDate1 = birthDateResult1;
+              age65Year1 = dayjs.utc(birthDate1).add(65, 'year').year();
             }
+          } catch (e) {
+            // Birth date variable not found, skip ACA check
           }
 
+          try {
+            const birthDateResult2 = loadVariable('KENDALL_BIRTH_DATE', simulation);
+            if (birthDateResult2 instanceof Date) {
+              birthDate2 = birthDateResult2;
+              age65Year2 = dayjs.utc(birthDate2).add(65, 'year').year();
+            }
+          } catch (e) {
+            // Birth date variable not found, skip ACA check
+          }
+
+          // Use the later (max) age 65 year (last person to reach Medicare eligibility)
+          const age65Year = age65Year1 !== null && age65Year2 !== null ? Math.max(age65Year1, age65Year2) : null;
+
           // Only check ACA if we have both retire date and age 65 year
-          if (retireYear !== null && age65Year !== null) {
+          if (retireYear !== null && age65Year !== null && birthDate1 !== null && birthDate2 !== null) {
             // Conversion in December of year N affects MAGI for year N, which affects ACA subsidy in year N+1
             const nextYear = year + 1;
             const inAcaPeriodNextYear = nextYear >= retireYear && nextYear < age65Year;
@@ -166,12 +182,12 @@ export class RothConversionManager {
               // Get current year's income (MAGI for next year ACA subsidy calculation)
               const currentMAGI = ordinaryIncome;
 
-              // Get gross premium for next year - use ages one year older
-              const estimatedAge1NextYear = 40; // Estimate conservative age
-              const estimatedAge2NextYear = 39;
+              // Calculate real ages for next year (July 1 age convention)
+              const age1NextYear = dayjs.utc(new Date(Date.UTC(year + 1, 6, 1))).diff(birthDate1, 'year');
+              const age2NextYear = dayjs.utc(new Date(Date.UTC(year + 1, 6, 1))).diff(birthDate2, 'year');
               const grossPremiumNextYear = this.acaManager.getAcaCoupleGrossPremium(
-                estimatedAge1NextYear,
-                estimatedAge2NextYear,
+                age1NextYear,
+                age2NextYear,
                 nextYear
               );
 

@@ -246,7 +246,7 @@ export class Engine {
           // Calculate age 65 dates for both persons
           const age65Date1 = dayjs.utc(birthDates[0]).add(65, 'year').toDate();
           const age65Date2 = dayjs.utc(birthDates[1]).add(65, 'year').toDate();
-          const earlierAge65Date = age65Date1 < age65Date2 ? age65Date1 : age65Date2;
+          const laterAge65Date = age65Date1 > age65Date2 ? age65Date1 : age65Date2;
 
           // Check if no plan covers the ACA gap (between retire date and age 65)
           const hasCoverageDuringGap = healthcareConfigs.some(config => {
@@ -254,11 +254,11 @@ export class Engine {
             const configEndDate = config.endDate ? new Date(config.endDate) : null;
             return (
               configStartDate <= retireDate &&
-              (!configEndDate || configEndDate >= earlierAge65Date)
+              (!configEndDate || configEndDate >= laterAge65Date)
             );
           });
 
-          if (!hasCoverageDuringGap && retireDate < earlierAge65Date) {
+          if (!hasCoverageDuringGap && retireDate < laterAge65Date) {
             // Initialize ACA manager temporarily to get deductible/OOP values
             this.acaManager = new AcaManager();
             const retireYear = retireDate.getUTCFullYear();
@@ -272,7 +272,7 @@ export class Engine {
               coveredPersons: ['Jake', 'Kendall'],
               startDate: retireDate.toISOString().split('T')[0] as any,
               startDateIsVariable: false,
-              endDate: earlierAge65Date.toISOString().split('T')[0] as any,
+              endDate: laterAge65Date.toISOString().split('T')[0] as any,
               endDateIsVariable: false,
               individualDeductible: acaDeductible.individual,
               individualOutOfPocketMax: acaOOPMax.individual,
