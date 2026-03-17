@@ -23,6 +23,7 @@ import {
   MedicarePremiumEvent,
   MedicareHospitalEvent,
   AcaPremiumEvent,
+  LTCCheckEvent,
 } from './types';
 import { Account } from '../../data/account/account';
 import { Bill } from '../../data/bill/bill';
@@ -150,6 +151,7 @@ export class Timeline {
       timeline.addSpendingTrackerEvents(spendingTrackerCategories, startDate, endDate),
       timeline.addMedicareEvents(accountsAndTransfers, startDate, endDate),
       timeline.addAcaEvents(startDate, endDate),
+      timeline.addLTCEvents(startDate, endDate),
     ]);
 
     // Sort and optimize timeline
@@ -392,6 +394,61 @@ export class Timeline {
 
     if (this.enableLogging) {
       console.log('  Finished adding Medicare events', Date.now() - this.calculationBegin, 'ms');
+    }
+  }
+
+  private async addLTCEvents(startDate: Date, endDate: Date): Promise<void> {
+    // LTC events are generated per-person from age 65 onward
+    // Load LTC config (we'll keep it simple for now and generate events for Jake and Kendall)
+    const socialSecurities = this.accountManager.getSocialSecurities();
+
+    // Find Jake's account for all LTC payments
+    const jakeAccount = this.accountManager.getAccountByName('Jake');
+    if (!jakeAccount) {
+      if (this.enableLogging) {
+        console.log('  Jake account not found, skipping LTC events');
+      }
+      return;
+    }
+
+    // Generate LTC events for each person
+    let monthIndex = 0;
+    for (const socialSecurity of socialSecurities) {
+      if (!socialSecurity.birthDateVariable) {
+        continue; // Skip if no birth date
+      }
+
+      try {
+        const birthDateStr = loadVariable(socialSecurity.birthDateVariable, this.simulation) as string;
+        if (!birthDateStr) {
+          continue;
+        }
+
+        const birthDate = new Date(birthDateStr);
+        const age65Date = dayjs.utc(birthDate).add(65, 'year').toDate();
+
+        // For now, determine gender from the person name (Jake = male, Kendall = female)
+        const gender = socialSecurity.name === 'Jake' ? 'male' : 'female';
+
+        this.generateLTCCheckEvents(
+          socialSecurity.name,
+          gender,
+          age65Date,
+          endDate,
+          jakeAccount.id,
+          birthDate,
+          startDate,
+          monthIndex,
+        );
+
+        monthIndex = 0; // Reset for next person (independent month counters)
+      } catch (error) {
+        console.warn(`Could not load birth date variable ${socialSecurity.birthDateVariable} for ${socialSecurity.name}`);
+      }
+    }
+
+    if (this.enableLogging) {
+      console.log('  Finished adding LTC events', Date.now() - this.calculationBegin, 'ms');
     }
   }
 
@@ -939,6 +996,54 @@ export class Timeline {
         };
 
         this.addEvent(event);
+      }
+    }
+  }
+
+  private generateLTCCheckEvents(
+    personName: string,
+    gender: string,
+    age65Date: Date,
+    endDate: Date,
+    accountId: string,
+    birthDate: Date,
+    startDate: Date,
+    monthIndex: number,
+  ): void {
+    if (age65Date > endDate) {
+      return; // Never turns 65 in this range
+    }
+
+    let currentDate = age65Date;
+    let monthCounter = monthIndex;
+
+    while (currentDate <= endDate) {
+      const age = dayjs.utc(currentDate).diff(birthDate, 'year');
+      const year = currentDate.getUTCFullYear();
+
+      const event: LTCCheckEvent = {
+        id: `ltc_check_${personName}_${monthCounter}`,
+        type: EventType.ltcCheck,
+        date: new Date(currentDate),
+        accountId: accountId,
+        priority: 2.3, // After Medicare (2.1-2.2), before tax (3)
+        personName: personName,
+        gender: gender,
+        ownerAge: age,
+        year: year,
+        birthDate: birthDate,
+        monthIndex: monthCounter,
+      };
+
+      this.addEvent(event);
+
+      // Move to next month
+      currentDate = dayjs.utc(currentDate).add(1, 'month').toDate();
+      monthCounter++;
+
+      // Safety check
+      if (monthCounter > 100000) {
+        throw new Error(`Too many LTC check events generated for ${personName}`);
       }
     }
   }
