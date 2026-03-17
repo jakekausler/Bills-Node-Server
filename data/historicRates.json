@@ -2875,5 +2875,260 @@
       "2025": 160,
       "2026": 170
     }
+  },
+  "fpl": {
+    "2026": {
+      "firstPerson": 15960.0,
+      "additionalPerson": 5680.0
+    },
+    "2025": {
+      "firstPerson": 15650.0,
+      "additionalPerson": 5500.0
+    },
+    "2024": {
+      "firstPerson": 15060.0,
+      "additionalPerson": 5380.0
+    },
+    "2023": {
+      "firstPerson": 14580.0,
+      "additionalPerson": 5140.0
+    },
+    "2022": {
+      "firstPerson": 13590.0,
+      "additionalPerson": 4720.0
+    },
+    "2021": {
+      "firstPerson": 12880.0,
+      "additionalPerson": 4540.0
+    },
+    "2020": {
+      "firstPerson": 12760.0,
+      "additionalPerson": 4480.0
+    },
+    "2019": {
+      "firstPerson": 12490.0,
+      "additionalPerson": 4420.0
+    },
+    "2018": {
+      "firstPerson": 12140.0,
+      "additionalPerson": 4320.0
+    },
+    "2017": {
+      "firstPerson": 12060.0,
+      "additionalPerson": 4180.0
+    },
+    "2015": {
+      "firstPerson": 11770.0,
+      "additionalPerson": 4160.0
+    },
+    "2014": {
+      "firstPerson": 11670.0,
+      "additionalPerson": 4060.0
+    },
+    "2013": {
+      "firstPerson": 11490.0,
+      "additionalPerson": 4020.0
+    },
+    "2012": {
+      "firstPerson": 11170.0,
+      "additionalPerson": 3960.0
+    },
+    "2011": {
+      "firstPerson": 10890.0,
+      "additionalPerson": 3820.0
+    },
+    "2010": {
+      "firstPerson": 10830.0,
+      "additionalPerson": 3740.0
+    },
+    "2009": {
+      "firstPerson": 10830.0,
+      "additionalPerson": 3740.0
+    },
+    "2008": {
+      "firstPerson": 10400.0,
+      "additionalPerson": 3600.0
+    },
+    "2007": {
+      "firstPerson": 10210.0,
+      "additionalPerson": 3480.0
+    },
+    "2006": {
+      "firstPerson": 9800.0,
+      "additionalPerson": 3400.0
+    },
+    "2005": {
+      "firstPerson": 9570.0,
+      "additionalPerson": 3260.0
+    },
+    "2004": {
+      "firstPerson": 9310.0,
+      "additionalPerson": 3180.0
+    },
+    "2003": {
+      "firstPerson": 8980.0,
+      "additionalPerson": 3140.0
+    },
+    "2002": {
+      "firstPerson": 8860.0,
+      "additionalPerson": 3080.0
+    },
+    "2001": {
+      "firstPerson": 8590.0,
+      "additionalPerson": 3020.0
+    },
+    "2000": {
+      "firstPerson": 8350.0,
+      "additionalPerson": 2900.0
+    },
+    "1999": {
+      "firstPerson": 8240.0,
+      "additionalPerson": 2820.0
+    },
+    "1998": {
+      "firstPerson": 8050.0,
+      "additionalPerson": 2800.0
+    },
+    "1997": {
+      "firstPerson": 7890.0,
+      "additionalPerson": 2720.0
+    },
+    "1996": {
+      "firstPerson": 7740.0,
+      "additionalPerson": 2620.0
+    },
+    "1995": {
+      "firstPerson": 7470.0,
+      "additionalPerson": 2560.0
+    },
+    "1994": {
+      "firstPerson": 7360.0,
+      "additionalPerson": 2480.0
+    },
+    "1993": {
+      "firstPerson": 6970.0,
+      "additionalPerson": 2460.0
+    },
+    "1992": {
+      "firstPerson": 6810.0,
+      "additionalPerson": 2380.0
+    },
+    "1991": {
+      "firstPerson": 6620.0,
+      "additionalPerson": 2260.0
+    },
+    "1990": {
+      "firstPerson": 6280.0,
+      "additionalPerson": 2140.0
+    },
+    "1989": {
+      "firstPerson": 5980.0,
+      "additionalPerson": 2040.0
+    },
+    "1988": {
+      "firstPerson": 5770.0,
+      "additionalPerson": 1960.0
+    },
+    "1987": {
+      "firstPerson": 5500.0,
+      "additionalPerson": 1900.0
+    },
+    "1986": {
+      "firstPerson": 5360.0,
+      "additionalPerson": 1880.0
+    },
+    "1985": {
+      "firstPerson": 5250.0,
+      "additionalPerson": 1800.0
+    },
+    "1984": {
+      "firstPerson": 4980.0,
+      "additionalPerson": 1740.0
+    },
+    "1983": {
+      "firstPerson": 4860.0,
+      "additionalPerson": 1680.0
+    }
+  },
+  "acaAgeCurve": {
+    "0": 0.765,
+    "1": 0.765,
+    "2": 0.765,
+    "3": 0.765,
+    "4": 0.765,
+    "5": 0.765,
+    "6": 0.765,
+    "7": 0.765,
+    "8": 0.765,
+    "9": 0.765,
+    "10": 0.765,
+    "11": 0.765,
+    "12": 0.765,
+    "13": 0.765,
+    "14": 0.765,
+    "15": 0.833,
+    "16": 0.859,
+    "17": 0.885,
+    "18": 0.913,
+    "19": 0.941,
+    "20": 0.97,
+    "21": 1.0,
+    "22": 1.0,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.004,
+    "26": 1.024,
+    "27": 1.048,
+    "28": 1.087,
+    "29": 1.119,
+    "30": 1.135,
+    "31": 1.159,
+    "32": 1.183,
+    "33": 1.198,
+    "34": 1.214,
+    "35": 1.222,
+    "36": 1.23,
+    "37": 1.238,
+    "38": 1.246,
+    "39": 1.262,
+    "40": 1.278,
+    "41": 1.302,
+    "42": 1.325,
+    "43": 1.357,
+    "44": 1.397,
+    "45": 1.444,
+    "46": 1.5,
+    "47": 1.563,
+    "48": 1.635,
+    "49": 1.706,
+    "50": 1.786,
+    "51": 1.865,
+    "52": 1.952,
+    "53": 2.04,
+    "54": 2.135,
+    "55": 2.23,
+    "56": 2.333,
+    "57": 2.437,
+    "58": 2.548,
+    "59": 2.603,
+    "60": 2.714,
+    "61": 2.81,
+    "62": 2.873,
+    "63": 2.952,
+    "64": 3.0
+  },
+  "acaBenchmarkPremium": {
+    "2018": 627.0,
+    "2019": 618.0,
+    "2020": 553.0,
+    "2021": 516.0,
+    "2022": 504.0,
+    "2023": 512.0,
+    "2024": 495.0,
+    "2025": 507.0,
+    "2026": 638.0
+  },
+  "employerPremium": {
+    "2026": 1124.32
   }
 }
