@@ -132,6 +132,7 @@ export enum EventType {
   medicarePremium = 'medicarePremium',
   medicareHospital = 'medicareHospital',
   acaPremium = 'acaPremium',
+  ltcCheck = 'ltcCheck',
 }
 
 export type TimelineEvent = {
@@ -240,6 +241,16 @@ export type AcaPremiumEvent = TimelineEvent & {
   isCobraPeriod: boolean;
   birthDate1: Date;
   birthDate2: Date;
+};
+
+export type LTCCheckEvent = TimelineEvent & {
+  type: EventType.ltcCheck;
+  personName: string;
+  gender: string;
+  ownerAge: number;
+  year: number;
+  birthDate: Date;
+  monthIndex: number;
 };
 
 export type Segment = {
