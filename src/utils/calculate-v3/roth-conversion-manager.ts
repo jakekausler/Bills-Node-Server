@@ -239,7 +239,7 @@ export class RothConversionManager {
             const nextYearStart = dayjs.utc(new Date(Date.UTC(nextYear, 0, 1)));
             const afterCobra = cobraEndDate ? nextYearStart.isAfter(cobraEndDate) || nextYearStart.isSame(cobraEndDate) : true;
 
-            const inAcaPeriodNextYear = nextYear >= retireYear && nextYear < age65Year && afterCobra;
+            const inAcaPeriodNextYear = nextYear >= retireYear && nextYear <= age65Year && afterCobra;
 
             if (inAcaPeriodNextYear) {
               // Get current year's income (MAGI for next year ACA subsidy calculation)
