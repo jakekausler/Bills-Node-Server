@@ -1007,11 +1007,11 @@ export class Calculator {
         continue;
       }
 
-      // Create transfer activity
+      // Create transfer activity (negative amount — money leaving source account)
       const transferActivity = new ConsolidatedActivity({
         id: `ROTH-CONVERSION-${conversion.sourceAccountId}-${conversion.destinationAccountId}-${event.year}`,
         name: `Roth Conversion: ${sourceAccount.name} → ${destAccount.name}`,
-        amount: conversion.amount,
+        amount: -conversion.amount,
         amountIsVariable: false,
         amountVariable: null,
         date: formatDate(new Date(event.year, 11, 31)), // Dec 31
