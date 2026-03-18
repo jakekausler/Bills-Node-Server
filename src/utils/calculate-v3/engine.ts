@@ -211,9 +211,14 @@ export class Engine {
       options.withdrawalStrategy = taxConfig.withdrawalStrategy || 'manual';
     }
 
+    if (!options.taxAccountName && taxConfig.taxAccountName) {
+      options.taxAccountName = taxConfig.taxAccountName;
+    }
+
     this.log('tax-config-loaded', {
       filingStatus: options.filingStatus,
       withdrawalStrategy: options.withdrawalStrategy,
+      taxAccountName: options.taxAccountName,
     });
 
     // Set bracket inflation rate: use MC inflation if available, else default to 0.03

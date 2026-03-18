@@ -48,6 +48,9 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
     return virtualPlans;
   }
 
+  // Find HSA account ID from existing configs for reimbursement on virtual plans
+  const hsaAccountId = existingConfigs.find(c => c.hsaAccountId)?.hsaAccountId ?? null;
+
   // Calculate age 65 dates
   const age65Date1 = dayjs.utc(birthDates[0]).add(65, 'year').toDate();
   const age65Date2 = dayjs.utc(birthDates[1]).add(65, 'year').toDate();
@@ -90,8 +93,8 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
           individualOutOfPocketMax: Math.round(acaOOPMax.individual),
           familyDeductible: Math.round(acaDeductible.family),
           familyOutOfPocketMax: Math.round(acaOOPMax.family),
-          hsaAccountId: null,
-          hsaReimbursementEnabled: false,
+          hsaAccountId: hsaAccountId,
+          hsaReimbursementEnabled: !!hsaAccountId,
           resetMonth: 0,
           resetDay: 1,
           deductibleInflationRate: 0.05, // 5% healthcare inflation
@@ -134,8 +137,8 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
         individualOutOfPocketMax: Math.round(5000 * medicareOOPInflator), // Effective OOP with Medigap
         familyDeductible: Math.round(480 * medicareDeductibleInflator), // 2 × individual
         familyOutOfPocketMax: Math.round(10000 * medicareOOPInflator), // 2 × individual
-        hsaAccountId: null,
-        hsaReimbursementEnabled: true, // HSA can reimburse at 65+
+        hsaAccountId: hsaAccountId,
+        hsaReimbursementEnabled: !!hsaAccountId, // HSA can reimburse at 65+
         resetMonth: 0,
         resetDay: 1,
         deductibleInflationRate: 0.05, // 5% healthcare CPI

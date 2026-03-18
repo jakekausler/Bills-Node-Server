@@ -34,6 +34,7 @@ export type CalculationOptions = {
   filingStatus?: FilingStatus;
   bracketInflationRate?: number;
   withdrawalStrategy?: 'manual' | 'taxOptimized'; // Account withdrawal strategy
+  taxAccountName?: string; // Explicit account name for tax events (from taxConfig)
 };
 
 export type TaxableOccurrence = {

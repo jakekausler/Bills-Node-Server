@@ -220,7 +220,7 @@ export class Timeline {
       timeline.addSocialSecurityEvents(endDate),
       timeline.addPensionEvents(endDate),
       timeline.addRmdEvents(accountsAndTransfers, startDate, endDate),
-      timeline.addTaxEvents(accountsAndTransfers, startDate, endDate),
+      timeline.addTaxEvents(accountsAndTransfers, startDate, endDate, calculationOptions),
       timeline.addRothConversionEvents(startDate, endDate, calculationOptions),
       timeline.addSpendingTrackerEvents(spendingTrackerCategories, startDate, endDate),
       timeline.addMedicareEvents(accountsAndTransfers, startDate, endDate),
@@ -397,10 +397,27 @@ export class Timeline {
     accountsAndTransfers: AccountsAndTransfers,
     startDate: Date,
     endDate: Date,
+    calculationOptions?: CalculationOptions,
   ): Promise<void> {
     const countBefore = this.events.length;
-    for (const account of accountsAndTransfers.accounts) {
-      this.generateTaxEvents(account, startDate, endDate);
+    // Tax events should be generated once per year (not per account).
+    // Use the explicitly configured taxAccountName from taxConfig.json,
+    // falling back to the first performsPulls/interest-paying account.
+    let taxAccount: Account | undefined;
+
+    if (calculationOptions?.taxAccountName) {
+      taxAccount = this.accountManager.getAccountByName(calculationOptions.taxAccountName);
+    }
+
+    if (!taxAccount) {
+      const interestPayNames = this.accountManager.getInterestPayAccountNames();
+      taxAccount = accountsAndTransfers.accounts.find(
+        (a) => a.performsPulls || interestPayNames.has(a.name),
+      );
+    }
+
+    if (taxAccount) {
+      this.generateTaxEvents(taxAccount, startDate, endDate);
     }
     this.log('tax-events-added', { count: this.events.length - countBefore });
     if (this.enableLogging) {
