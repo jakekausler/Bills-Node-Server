@@ -78,6 +78,8 @@ export class HealthcareManager {
       }
     }
 
+    this.log('config-resolved', { config_name: resolved.name, start_date: resolved.startDate, end_date: resolved.endDate ?? null });
+
     return resolved;
   }
 
@@ -89,7 +91,9 @@ export class HealthcareManager {
     const currentYear = date.getUTCFullYear();
     const yearsDiff = Math.max(0, currentYear - baseYear);
     const rate = config.deductibleInflationRate ?? 0.05; // Default 5% healthcare inflation
-    return Math.round(config.individualDeductible * Math.pow(1 + rate, yearsDiff));
+    const inflated = Math.round(config.individualDeductible * Math.pow(1 + rate, yearsDiff));
+    this.log('deductible-inflated', { config_name: config.name, base_year: baseYear, current_year: currentYear, base_deductible: config.individualDeductible, inflated_deductible: inflated });
+    return inflated;
   }
 
   /**
@@ -153,6 +157,7 @@ export class HealthcareManager {
 
     // If no matches, return null
     if (matchingConfigs.length === 0) {
+      this.log('no-plan-found', { person: personName, date: date.toISOString().split('T')[0] });
       return null;
     }
 
@@ -163,6 +168,7 @@ export class HealthcareManager {
       return dateB.getTime() - dateA.getTime();
     });
 
+    this.log('active-plan-selected', { person: personName, date: date.toISOString().split('T')[0], config_name: matchingConfigs[0].name });
     return matchingConfigs[0];
   }
 
@@ -234,6 +240,7 @@ export class HealthcareManager {
 
     // If we've moved to a new plan year, reset all tracking
     if (currentPlanYear !== tracker.planYear) {
+      this.log('plan-year-reset', { config_name: config.name, plan_year: currentPlanYear });
       tracker.planYear = currentPlanYear;
       tracker.individualDeductible.clear();
       tracker.individualOOP.clear();
@@ -257,6 +264,8 @@ export class HealthcareManager {
     config: HealthcareConfig,
   ): void {
     const tracker = this.getOrCreateTracker(config, date);
+
+    this.log('expense-recorded', { person: personName, amount: amountTowardDeductible + amountTowardOOP, toward_deductible: amountTowardDeductible, toward_oop: amountTowardOOP });
 
     // Update individual deductible (only if amount > 0)
     if (amountTowardDeductible > 0) {
@@ -302,8 +311,11 @@ export class HealthcareManager {
     const individualRemaining = Math.max(0, inflatedIndividualDeductible - individualSpent);
     const familyRemaining = Math.max(0, inflatedFamilyDeductible - familySpent);
 
+    const individualMet = individualSpent >= inflatedIndividualDeductible;
+    this.log('deductible-progress', { person: personName, spent: individualSpent, inflated_limit: inflatedIndividualDeductible, remaining: individualRemaining, met: individualMet });
+
     return {
-      individualMet: individualSpent >= inflatedIndividualDeductible,
+      individualMet,
       familyMet: familySpent >= inflatedFamilyDeductible,
       individualRemaining,
       familyRemaining,
@@ -342,6 +354,8 @@ export class HealthcareManager {
     const individualMet = individualSpent >= inflatedIndividualOOP;
     const familyMet = familySpent >= inflatedFamilyOOP;
 
+    this.log('oop-progress', { person: personName, spent: individualSpent, inflated_limit: inflatedIndividualOOP, remaining: individualRemaining, met: individualMet });
+
     return {
       individualMet,
       familyMet,
@@ -368,6 +382,7 @@ export class HealthcareManager {
 
     this.recordHealthcareExpense(personName, date, towardDeductible, towardOOP, config);
 
+    this.log('copay-calculated', { copay_amount: copay, bill_amount: billAmount, patient_cost: copay });
     return copay;
   }
 
@@ -423,12 +438,15 @@ export class HealthcareManager {
       if (oopMet) {
         // After OOP max: patient pays 0%
         patientPays = 0;
+        this.log('oop-max-reached', { config_name: config.name, oop_spent: oopProgress.individualRemaining === 0 ? this.getInflatedIndividualOOP(config, date) : (this.getInflatedIndividualOOP(config, date) - oopProgress.individualRemaining), oop_max: this.getInflatedIndividualOOP(config, date) });
       } else {
         // Between deductible and OOP max: patient pays coinsurance %
         patientPays = billAmount * (coinsurancePercent / 100);
         amountTowardOOP = expense.countsTowardOutOfPocket ? patientPays : 0;
       }
     }
+
+    this.log('deductible-calculated', { deductible_remaining: progress.individualRemaining, bill_amount: billAmount, coinsurance_pct: coinsurancePercent, patient_cost: patientPays });
 
     // Record the expense
     this.recordHealthcareExpense(personName, date, amountTowardDeductible, amountTowardOOP, config);
@@ -467,6 +485,7 @@ export class HealthcareManager {
 
     // Cache result for idempotent processing
     this.processedExpenses.set(expenseKey, patientCost);
+    this.log('patient-cost-cached', { expense_key: expenseKey, patient_cost: patientCost });
 
     return patientCost;
   }

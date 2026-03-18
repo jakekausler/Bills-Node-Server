@@ -84,6 +84,7 @@ export class RothConversionManager {
     simulation: string = 'default',
   ): ConversionResult[] {
     this.conversionsThisYear = [];
+    this.log('processing-started', { year, config_count: this.configs?.length ?? 0 });
     if (!this.configs || this.configs.length === 0) {
       return [];
     }
@@ -91,6 +92,7 @@ export class RothConversionManager {
     // Clear any conversion occurrences from a prior pass (segment reprocessing)
     // so that we don't double-count conversion income when calculating bracket space
     taxManager.clearTaxableOccurrences(RothConversionManager.CONVERSION_TAX_KEY, year);
+    this.log('prior-cleared', { year });
 
     // Filter and sort enabled configs by priority
     const enabledConfigs = this.configs.filter(c => c.enabled);
@@ -105,12 +107,21 @@ export class RothConversionManager {
       const endDate = endDateResult.date ? endDateResult.date.getUTCFullYear() : null;
 
       // Skip if current year is outside the conversion window
+      const inWindow = (startDate === null || year >= startDate) && (endDate === null || year <= endDate);
+      this.log('window-check', { year, start_year: startDate, end_year: endDate, in_window: inWindow });
       if (startDate !== null && year < startDate) continue;
       if (endDate !== null && year > endDate) continue;
 
       // Get source and destination accounts
       const sourceAccount = this.accountManager.getAccountByName(config.sourceAccount);
       const destAccount = this.accountManager.getAccountByName(config.destinationAccount);
+
+      this.log('account-lookup', {
+        source: config.sourceAccount,
+        destination: config.destinationAccount,
+        source_found: !!sourceAccount,
+        dest_found: !!destAccount,
+      });
 
       if (!sourceAccount || !destAccount) {
         continue;
@@ -140,8 +151,23 @@ export class RothConversionManager {
       const taxableIncome = Math.max(0, ordinaryIncome - standardDeduction);
       let remainingSpace = Math.max(0, targetBracketInfo.thresholdEnd - taxableIncome);
 
+      this.log('bracket-space-calculated', {
+        year,
+        ordinary_income: ordinaryIncome,
+        standard_deduction: standardDeduction,
+        taxable_income: taxableIncome,
+        target_bracket: config.targetBracketRate,
+        remaining_space: remainingSpace,
+      });
+
       if (remainingSpace <= 0) {
         // Already at or above target bracket
+        this.log('insufficient-space', {
+          year,
+          taxable_income: taxableIncome,
+          target_bracket: config.targetBracketRate,
+          reason: 'already at or above target bracket',
+        });
         continue;
       }
 
@@ -153,6 +179,11 @@ export class RothConversionManager {
 
       // Determine conversion amount: min of source balance and remaining bracket space
       let conversionAmount = Math.min(sourceBalance, remainingSpace);
+      this.log('conversion-amount-set', {
+        source_balance: sourceBalance,
+        bracket_space: remainingSpace,
+        conversion_amount: conversionAmount,
+      });
       let effectiveMarginalRate = config.targetBracketRate;
 
       // Task 6: Check ACA subsidy loss if in ACA period
@@ -228,6 +259,15 @@ export class RothConversionManager {
               // Annual subsidy loss = monthly difference × 12
               const annualSubsidyLoss = Math.max(0, (subsidyBefore - subsidyAfter) * 12);
 
+              this.log('aca-subsidy-checked', {
+                next_year: nextYear,
+                current_magi: currentMAGI,
+                subsidy_before: subsidyBefore,
+                subsidy_after: subsidyAfter,
+                annual_loss: annualSubsidyLoss,
+                effective_rate: conversionAmount > 0 ? annualSubsidyLoss / conversionAmount : 0,
+              });
+
               if (annualSubsidyLoss > 0 && conversionAmount > 0) {
                 // Effective marginal rate includes subsidy loss
                 const subsidyLossRate = annualSubsidyLoss / conversionAmount;
@@ -274,12 +314,26 @@ export class RothConversionManager {
         penaltyFreeYear: year + 5,
       });
 
+      this.log('lot-recorded', {
+        destination: destAccount.id,
+        amount: conversionAmount,
+        year,
+        penalty_free_year: year + 5,
+      });
+
       // Track this conversion for activity creation
       this.conversionsThisYear.push({
         sourceAccountId: sourceAccount.id,
         destinationAccountId: destAccount.id,
         amount: conversionAmount,
         year,
+      });
+
+      this.log('conversion-completed', {
+        year,
+        source: sourceAccount.id,
+        destination: destAccount.id,
+        amount: conversionAmount,
       });
 
       // Add taxable occurrence for the conversion using a dedicated key

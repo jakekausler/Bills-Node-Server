@@ -80,18 +80,30 @@ export class SegmentProcessor {
       throw new Error('Balance tracker not initialized');
     }
 
+    this.log('segment-started', {
+      startDate: dayjs.utc(segment.startDate).format('YYYY-MM-DD'),
+      endDate: dayjs.utc(segment.endDate).format('YYYY-MM-DD'),
+      eventCount: segment.events.length,
+    });
+
     // Check if segment result is cached (will return null if monteCarlo is true)
     if (!options.forceRecalculation && !options.monteCarlo) {
       const cachedResult = await this.cache.getSegmentResult(segment);
       if (cachedResult) {
+        this.log('cache-hit', {
+          startDate: dayjs.utc(segment.startDate).format('YYYY-MM-DD'),
+          endDate: dayjs.utc(segment.endDate).format('YYYY-MM-DD'),
+        });
         this.balanceTracker.applySegmentResult(cachedResult, segment.startDate);
 
         // Restore healthcare manager state from cached activities
         // This is critical for deductible/OOP tracking to work correctly across segment boundaries
         if (cachedResult.activitiesAdded && this.healthcareManager) {
+          let healthcareActivitiesReprocessed = 0;
           for (const [_accountId, activities] of cachedResult.activitiesAdded) {
             for (const activity of activities) {
               if (activity.isHealthcare && activity.healthcarePerson) {
+                healthcareActivitiesReprocessed++;
                 const config = this.healthcareManager.getActiveConfig(
                   activity.healthcarePerson,
                   new Date(activity.date)
@@ -108,6 +120,7 @@ export class SegmentProcessor {
               }
             }
           }
+          this.log('healthcare-state-restored', { activitiesReprocessed: healthcareActivitiesReprocessed });
         }
 
         // Record tagged spending from cached results for cross-segment period tracking
@@ -139,9 +152,11 @@ export class SegmentProcessor {
     // Use the calculation options start date (or today if null) as the reference date for deterministic behavior
     const referenceDate = options.startDate ?? new Date();
     const pushPullEventsAdded = this.pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
+    this.log('push-pull-executed', { eventsAdded: pushPullEventsAdded });
 
     // If a push or pull was added, reprocess the segment events
     if (pushPullEventsAdded) {
+      this.log('segment-reprocessed', { reason: 'push-pull-added' });
       this.spendingTrackerManager.restore();
       this.healthcareManager.restore();
       segmentResult = this.processSegmentEvents(segment, options);
@@ -171,6 +186,14 @@ export class SegmentProcessor {
       const account = this.accountManager.getAccountByName(accountName);
       if (account) {
         this.taxManager.addTaxableOccurrences(account.id, taxableOccurrences);
+        for (const occ of taxableOccurrences) {
+          this.log('taxable-occurrence-routed', {
+            accountName,
+            amount: occ.amount,
+            incomeType: occ.incomeType,
+            year: occ.year,
+          });
+        }
       } else {
         console.warn(`[SegmentProcessor] Account ${accountName} not found for adding taxable occurences`);
       }
@@ -270,6 +293,13 @@ export class SegmentProcessor {
         dayBalanceChanges.set(accountId, currentChange + change);
       }
       segmentResult.processedEventIds.add(event.id);
+    }
+    if (sortedEvents.length > 0) {
+      this.log('day-events-processed', {
+        date: dayjs.utc(sortedEvents[0].date).format('YYYY-MM-DD'),
+        eventCount: sortedEvents.length,
+        balanceChangesCount: dayBalanceChanges.size,
+      });
     }
     return dayBalanceChanges;
   }

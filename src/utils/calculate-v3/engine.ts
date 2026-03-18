@@ -73,13 +73,23 @@ export class Engine {
     // Start timing
     this.calculationBegin = Date.now();
 
+    this.log('calculation-started', {
+      simulation: options.simulation,
+      startDate: options.startDate?.toISOString() ?? null,
+      endDate: options.endDate.toISOString(),
+      monteCarlo: options.monteCarlo,
+      forceRecalculation: options.forceRecalculation,
+    });
+
     // Try to retrieve from cache (will return null if monteCarlo is true)
     if (!options.forceRecalculation && !options.monteCarlo) {
       const cachedResult = await this.getCachedResult(options);
       if (cachedResult) {
+        this.log('cache-check', { cacheHit: true });
         return cachedResult;
       }
     }
+    this.log('cache-check', { cacheHit: false });
 
     // Initialize all components
     await this.initializeCalculation(accountsAndTransfers, options, timeline);
@@ -104,6 +114,8 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Calculation completed in', Date.now() - this.calculationBegin, 'ms');
     }
+
+    this.log('calculation-completed', { durationMs: Date.now() - this.calculationBegin });
 
     // Write debug meta and close logger
     if (this.debugLogger) {
@@ -191,6 +203,11 @@ export class Engine {
       options.withdrawalStrategy = taxConfig.withdrawalStrategy || 'manual';
     }
 
+    this.log('tax-config-loaded', {
+      filingStatus: options.filingStatus,
+      withdrawalStrategy: options.withdrawalStrategy,
+    });
+
     // Set bracket inflation rate: use MC inflation if available, else default to 0.03
     if (!options.bracketInflationRate) {
       // If MC is enabled, try to extract inflation from MC config
@@ -222,6 +239,8 @@ export class Engine {
       this.timeline.applyMonteCarlo();
     }
     this.accountManager = this.timeline.getAccountManager();
+
+    this.log('timeline-created', { eventCount: this.timeline.getSegments().reduce((sum, s) => sum + s.events.length, 0) });
 
     // Initialize tax manager
     if (options.enableLogging) {
@@ -360,6 +379,8 @@ export class Engine {
       spendingTrackerManager,
       this.debugLogger,
     );
+
+    this.log('components-initialized');
   }
 
   private async performCalculations(

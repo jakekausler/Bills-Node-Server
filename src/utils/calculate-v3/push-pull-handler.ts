@@ -78,6 +78,23 @@ export class PushPullHandler {
         performsPulls,
       );
 
+      if (pushNeeded) {
+        this.log('push-needed', {
+          account: account.name,
+          balance: min,
+          maximum_balance: account.maximumBalance,
+          push_amount: min - (account.maximumBalance ?? 0),
+        });
+      }
+      if (pullNeeded) {
+        this.log('pull-needed', {
+          account: account.name,
+          balance: min,
+          minimum_balance: account.minimumBalance,
+          deficit: Math.abs(min - (account.minimumBalance ?? 0)),
+        });
+      }
+
       // If push or pull is needed, add the corresponding event
       if (pushNeeded && performsPushes) {
         if (this.addPushEvents(segment, account, min)) {
@@ -145,6 +162,12 @@ export class PushPullHandler {
     // Add the push event to the segment
     segment.events.push(pushEvent);
 
+    this.log('push-executed', {
+      from_account: account.name,
+      to_account: pushAccount.name,
+      amount: pushAmount,
+    });
+
     return true;
   }
 
@@ -175,8 +198,18 @@ export class PushPullHandler {
       const alreadyCommitted = committedPulls.get(pullableAccount.id) || 0;
       const availableAmount = Math.min(toPull, pullableAccountBalance - alreadyCommitted - (pullableAccount.minimumBalance ?? 0));
 
+      this.log('source-selected', {
+        source_account: pullableAccount.name,
+        available_balance: pullableAccountBalance - alreadyCommitted,
+        priority: pullableAccount.pullPriority,
+      });
+
       // If no amount is available from this account, try the next one
       if (availableAmount <= 0) {
+        this.log('pull-cascade', {
+          exhausted_account: pullableAccount.name,
+          remaining_deficit: toPull,
+        });
         continue;
       }
 
@@ -220,6 +253,21 @@ export class PushPullHandler {
       // Add the pull event to the segment
       segment.events.push(pullEvent);
 
+      this.log('pull-executed', {
+        from_account: pullableAccount.name,
+        to_account: account.name,
+        amount: availableAmount,
+        committed_total: alreadyCommitted + availableAmount,
+      });
+
+      // If there's still more to pull after this source, log the cascade
+      if (toPull > 0) {
+        this.log('pull-cascade', {
+          exhausted_account: pullableAccount.name,
+          remaining_deficit: toPull,
+        });
+      }
+
       // Roth 5-year lot penalty: if pulling from a Roth account with conversion lots
       // still within the 5-year holding period, add a 10% penalty on the penaltyable portion
       this.applyRothConversionPenalty(pullableAccount, availableAmount, segment.startDate, account);
@@ -227,6 +275,11 @@ export class PushPullHandler {
 
     // Track pull failure if we couldn't get enough funds
     if (toPull > 0) {
+      this.log('pull-failure', {
+        account: account.name,
+        requested: Math.abs(minBalance - (account.minimumBalance ?? 0)),
+        shortfall: toPull,
+      });
       this.pullFailures.push({
         date: segment.startDate,
         accountId: account.id,
@@ -254,7 +307,17 @@ export class PushPullHandler {
     if (!isRoth) return;
 
     // No penalty if account owner is age 59½ or older
-    if (sourceAccount.earlyWithdrawalDate && date >= sourceAccount.earlyWithdrawalDate) return;
+    const ageCheckPassed = !!(sourceAccount.earlyWithdrawalDate && date >= sourceAccount.earlyWithdrawalDate);
+    if (ageCheckPassed) {
+      this.log('roth-penalty-checked', {
+        account: sourceAccount.name,
+        withdrawal_amount: withdrawalAmount,
+        penaltyable_balance: 0,
+        penalty_amount: 0,
+        age_check_passed: true,
+      });
+      return;
+    }
 
     const currentYear = date.getUTCFullYear();
     const penaltyableBalance = this.rothConversionManager.getPenaltyableBalance(sourceAccount.id, currentYear);
@@ -267,6 +330,14 @@ export class PushPullHandler {
     if (penaltyablePortion <= 0) return;
 
     const penaltyAmount = penaltyablePortion * 0.10;
+
+    this.log('roth-penalty-checked', {
+      account: sourceAccount.name,
+      withdrawal_amount: withdrawalAmount,
+      penaltyable_balance: penaltyableBalance,
+      penalty_amount: penaltyAmount,
+      age_check_passed: false,
+    });
 
     // Add penalty as a taxable occurrence via the TaxManager
     // The penalty is charged to the destination account (the account receiving funds)

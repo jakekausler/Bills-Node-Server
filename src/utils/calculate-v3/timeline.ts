@@ -98,6 +98,7 @@ export class Timeline {
 
   applyMonteCarlo() {
     const mappings = this.monteCarloConfig?.variableMappings || {};
+    let eventsModified = 0;
 
     for (const event of this.events) {
       if (event.type === EventType.bill) {
@@ -105,6 +106,7 @@ export class Timeline {
         const varName = billEvent.originalBill.increaseByVariable;
         if (varName && mappings[varName]) {
           billEvent.amount = this.calculateBillAmountMonteCarlo(billEvent.originalBill, billEvent.date, mappings[varName]);
+          eventsModified++;
         }
       } else if (event.type === EventType.billTransfer) {
         const billTransferEvent = event as BillTransferEvent;
@@ -115,6 +117,7 @@ export class Timeline {
             billTransferEvent.date,
             mappings[varName],
           );
+          eventsModified++;
         }
       } else if (event.type === EventType.interest) {
         const interestEvent = event as InterestEvent;
@@ -124,9 +127,11 @@ export class Timeline {
             mappings[varName] as MonteCarloSampleType,
             interestEvent.date,
           ) ?? interestEvent.rate;
+          eventsModified++;
         }
       }
     }
+    this.log('mc-applied', { eventsModified });
   }
 
   getAccountManager(): AccountManager {
@@ -186,6 +191,7 @@ export class Timeline {
    * Excludes transfer activities since they're handled separately in addTransferEvents method
    */
   private async addActivityEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
+    const countBefore = this.events.length;
     for (const account of accountsAndTransfers.accounts) {
       for (const activity of account.activity) {
         if (activity.isTransfer) {
@@ -206,26 +212,31 @@ export class Timeline {
         }
       }
     }
+    this.log('activity-events-added', { count: this.events.length - countBefore });
     if (this.enableLogging) {
       console.log('  Finished adding activity events', Date.now() - this.calculationBegin, 'ms');
     }
   }
 
   private async addBillEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
+    const countBefore = this.events.length;
     for (const account of accountsAndTransfers.accounts) {
       for (const bill of account.bills) {
         this.generateBillEvents(account, bill, endDate);
       }
     }
+    this.log('bill-events-added', { count: this.events.length - countBefore });
     if (this.enableLogging) {
       console.log('  Finished adding bill events', Date.now() - this.calculationBegin, 'ms');
     }
   }
 
   private async addInterestEvents(accountsAndTransfers: AccountsAndTransfers, endDate: Date): Promise<void> {
+    const countBefore = this.events.length;
     for (const account of accountsAndTransfers.accounts) {
       this.generateInterestEvents(account, account.interests, endDate);
     }
+    this.log('interest-events-added', { count: this.events.length - countBefore });
     if (this.enableLogging) {
       console.log('  Finished adding interest events', Date.now() - this.calculationBegin, 'ms');
     }
@@ -328,9 +339,11 @@ export class Timeline {
     startDate: Date,
     endDate: Date,
   ): Promise<void> {
+    const countBefore = this.events.length;
     for (const account of accountsAndTransfers.accounts) {
       this.generateTaxEvents(account, startDate, endDate);
     }
+    this.log('tax-events-added', { count: this.events.length - countBefore });
     if (this.enableLogging) {
       console.log('  Finished adding tax events', Date.now() - this.calculationBegin, 'ms');
     }
@@ -341,7 +354,9 @@ export class Timeline {
     endDate: Date,
     calculationOptions: CalculationOptions,
   ): Promise<void> {
+    const countBefore = this.events.length;
     this.generateRothConversionEvents(startDate, endDate, calculationOptions);
+    this.log('roth-events-added', { count: this.events.length - countBefore });
     if (this.enableLogging) {
       console.log('  Finished adding Roth conversion events', Date.now() - this.calculationBegin, 'ms');
     }
@@ -352,6 +367,7 @@ export class Timeline {
     startDate: Date,
     endDate: Date,
   ): Promise<void> {
+    const countBefore = this.events.length;
     // Get all Social Securities (these have birth dates)
     const socialSecurities = this.accountManager.getSocialSecurities();
 
@@ -402,6 +418,7 @@ export class Timeline {
       );
     }
 
+    this.log('medicare-events-added', { count: this.events.length - countBefore });
     if (this.enableLogging) {
       console.log('  Finished adding Medicare events', Date.now() - this.calculationBegin, 'ms');
     }
@@ -472,6 +489,7 @@ export class Timeline {
   }
 
   private async addAcaEvents(startDate: Date, endDate: Date): Promise<void> {
+    const countBefore = this.events.length;
     const socialSecurities = this.accountManager.getSocialSecurities();
 
     // Load retirement date
@@ -532,6 +550,7 @@ export class Timeline {
       endDate,
     );
 
+    this.log('aca-events-added', { count: this.events.length - countBefore });
     if (this.enableLogging) {
       console.log('  Finished adding ACA events', Date.now() - this.calculationBegin, 'ms');
     }

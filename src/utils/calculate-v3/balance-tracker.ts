@@ -53,6 +53,8 @@ export class BalanceTracker {
       this.initializeFromScratch();
     }
 
+    this.log('balances-initialized', { accountCount: this.accounts.length, startDate: targetDate.toISOString() });
+
     // Create initial snapshot if none exists
     if (!snapshot) {
       await this.createSnapshot(targetDate);
@@ -98,6 +100,7 @@ export class BalanceTracker {
 
     const key = await this.cache.setBalanceSnapshot(date, snapshot);
     this.lastSnapshotDate = new Date(date);
+    this.log('snapshot-created', { date: date.toISOString(), accountCount: Object.keys(this.balances).length });
 
     return key;
   }
@@ -122,6 +125,10 @@ export class BalanceTracker {
     this.balances = { ...snapshot.balances };
     this.activityIndices = { ...snapshot.activityIndices };
     this.lastSnapshotDate = snapshot.date instanceof Date ? snapshot.date : new Date(snapshot.date);
+    this.log('snapshot-restored', {
+      snapshotDate: this.lastSnapshotDate.toISOString(),
+      accountCount: Object.keys(this.balances).length,
+    });
   }
 
   /**
@@ -168,6 +175,12 @@ export class BalanceTracker {
   }
 
   applySegmentResult(segmentResult: SegmentResult, date: Date): void {
+    let activitiesAddedCount = 0;
+    for (const [, activities] of segmentResult.activitiesAdded) {
+      activitiesAddedCount += activities.length;
+    }
+    this.log('segment-applied', { balanceChangesCount: segmentResult.balanceChanges.size, activitiesAddedCount });
+
     // Apply balance changes
     for (const [accountId, change] of segmentResult.balanceChanges) {
       this.updateBalance(accountId, change, date);
@@ -249,6 +262,7 @@ export class BalanceTracker {
       max = Math.max(max, balance);
     }
 
+    this.log('balance-range-calculated', { accountId, min, max });
     return { min, max };
   }
 }

@@ -1,1 +1,1655 @@
-[]
+[
+  {
+    "component": "aca-manager",
+    "event": "aca-person-premium",
+    "file": "src/utils/calculate-v3/aca-manager.ts",
+    "line": 144,
+    "fields": [
+      "age",
+      "year",
+      "premium"
+    ]
+  },
+  {
+    "component": "aca-manager",
+    "event": "benchmark-inflated",
+    "file": "src/utils/calculate-v3/aca-manager.ts",
+    "line": 129,
+    "fields": [
+      "year",
+      "latest_year",
+      "inflated_premium"
+    ]
+  },
+  {
+    "component": "aca-manager",
+    "event": "cobra-premium-calculated",
+    "file": "src/utils/calculate-v3/aca-manager.ts",
+    "line": 74,
+    "fields": [
+      "year",
+      "premium"
+    ]
+  },
+  {
+    "component": "aca-manager",
+    "event": "cobra-premium-calculated",
+    "file": "src/utils/calculate-v3/aca-manager.ts",
+    "line": 85,
+    "fields": [
+      "year",
+      "premium"
+    ]
+  },
+  {
+    "component": "aca-manager",
+    "event": "couple-premium-calculated",
+    "file": "src/utils/calculate-v3/aca-manager.ts",
+    "line": 166,
+    "fields": [
+      "age1",
+      "age2",
+      "year",
+      "premium1",
+      "premium2",
+      "total"
+    ]
+  },
+  {
+    "component": "aca-manager",
+    "event": "net-premium-calculated",
+    "file": "src/utils/calculate-v3/aca-manager.ts",
+    "line": 278,
+    "fields": [
+      "gross_premium",
+      "subsidy",
+      "net_premium"
+    ]
+  },
+  {
+    "component": "aca-manager",
+    "event": "person-skipped-medicare",
+    "file": "src/utils/calculate-v3/aca-manager.ts",
+    "line": 158,
+    "fields": [
+      "age",
+      "year",
+      "reason"
+    ]
+  },
+  {
+    "component": "aca-manager",
+    "event": "person-skipped-medicare",
+    "file": "src/utils/calculate-v3/aca-manager.ts",
+    "line": 161,
+    "fields": [
+      "age",
+      "year",
+      "reason"
+    ]
+  },
+  {
+    "component": "aca-manager",
+    "event": "subsidy-calculated",
+    "file": "src/utils/calculate-v3/aca-manager.ts",
+    "line": 243,
+    "fields": [
+      "magi",
+      "household_size",
+      "year",
+      "fpl",
+      "fpl_percent",
+      "subsidy"
+    ]
+  },
+  {
+    "component": "aca-manager",
+    "event": "subsidy-calculated",
+    "file": "src/utils/calculate-v3/aca-manager.ts",
+    "line": 255,
+    "fields": [
+      "magi",
+      "household_size",
+      "year",
+      "fpl",
+      "fpl_percent",
+      "subsidy"
+    ]
+  },
+  {
+    "component": "aca-manager",
+    "event": "subsidy-tier",
+    "file": "src/utils/calculate-v3/aca-manager.ts",
+    "line": 239,
+    "fields": [
+      "fpl_percent",
+      "tier",
+      "expected_contribution_pct"
+    ]
+  },
+  {
+    "component": "balance-tracker",
+    "event": "balance-range-calculated",
+    "file": "src/utils/calculate-v3/balance-tracker.ts",
+    "line": 265,
+    "fields": [
+      "accountId",
+      "min",
+      "max"
+    ]
+  },
+  {
+    "component": "balance-tracker",
+    "event": "balances-initialized",
+    "file": "src/utils/calculate-v3/balance-tracker.ts",
+    "line": 56,
+    "fields": [
+      "accountCount",
+      "startDate"
+    ]
+  },
+  {
+    "component": "balance-tracker",
+    "event": "segment-applied",
+    "file": "src/utils/calculate-v3/balance-tracker.ts",
+    "line": 182,
+    "fields": [
+      "balanceChangesCount",
+      "activitiesAddedCount"
+    ]
+  },
+  {
+    "component": "balance-tracker",
+    "event": "snapshot-created",
+    "file": "src/utils/calculate-v3/balance-tracker.ts",
+    "line": 103,
+    "fields": [
+      "date",
+      "accountCount"
+    ]
+  },
+  {
+    "component": "balance-tracker",
+    "event": "snapshot-restored",
+    "file": "src/utils/calculate-v3/balance-tracker.ts",
+    "line": 128,
+    "fields": [
+      "snapshotDate",
+      "accountCount"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "aca-premium-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 1465,
+    "fields": [
+      "person",
+      "monthlyPremium",
+      "priorMAGI",
+      "isCobraPeriod"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "activity-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 144,
+    "fields": [
+      "name",
+      "accountId",
+      "amount"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "bill-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 302,
+    "fields": [
+      "name",
+      "accountId",
+      "amount",
+      "isHealthcare"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "contribution-capped",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 1295,
+    "fields": [
+      "from",
+      "to",
+      "requestedAmount",
+      "cappedAmount"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "expense-ratio-applied",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 388,
+    "fields": [
+      "accountId",
+      "baseApr",
+      "expenseRatio",
+      "adjustedApr"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "healthcare-bill-routed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 153,
+    "fields": [
+      "name",
+      "person"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "healthcare-bill-routed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 281,
+    "fields": [
+      "name",
+      "person"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "healthcare-patient-cost",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 175,
+    "fields": [
+      "name",
+      "billAmount",
+      "patientCost",
+      "configName"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "healthcare-patient-cost",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 339,
+    "fields": [
+      "name",
+      "billAmount",
+      "patientCost",
+      "configName"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "hsa-reimbursement",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 223,
+    "fields": [
+      "hsaAccountId",
+      "reimbursementAmount",
+      "patientCost"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "interest-calculated",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 429,
+    "fields": [
+      "accountId",
+      "balance",
+      "apr",
+      "amount"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "loan-limit-applied",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 516,
+    "fields": [
+      "accountId",
+      "requestedAmount",
+      "limitedAmount"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "ltc-check-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 1548,
+    "fields": [
+      "person",
+      "netCost",
+      "accountId"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "medicare-premium-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 1335,
+    "fields": [
+      "person",
+      "totalCost",
+      "accountId"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "pension-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 728,
+    "fields": [
+      "name",
+      "accountId",
+      "amount"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "rmd-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 878,
+    "fields": [
+      "accountId",
+      "rmdAmount",
+      "priorYearBalance"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "roth-conversion-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 948,
+    "fields": [
+      "conversionsCount",
+      "totalAmount"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "spending-tracker-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 1029,
+    "fields": [
+      "categoryId",
+      "amount"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "ss-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 794,
+    "fields": [
+      "name",
+      "accountId",
+      "amount"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "tax-event-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 820,
+    "fields": [
+      "year",
+      "totalTax",
+      "autoCalculatedTax"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "transfer-processed",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 659,
+    "fields": [
+      "from",
+      "to",
+      "amount",
+      "name"
+    ]
+  },
+  {
+    "component": "calculator",
+    "event": "variable-amount-resolved",
+    "file": "src/utils/calculate-v3/calculator.ts",
+    "line": 497,
+    "fields": [
+      "resolution",
+      "amount"
+    ]
+  },
+  {
+    "component": "contribution-limit-manager",
+    "event": "base-limit-with-catchup",
+    "file": "src/utils/calculate-v3/contribution-limit-manager.ts",
+    "line": 157,
+    "fields": [
+      "limit_type",
+      "year",
+      "age",
+      "base_limit",
+      "catchup_eligible",
+      "total_limit"
+    ]
+  },
+  {
+    "component": "contribution-limit-manager",
+    "event": "base-limit-with-catchup",
+    "file": "src/utils/calculate-v3/contribution-limit-manager.ts",
+    "line": 173,
+    "fields": [
+      "limit_type",
+      "year",
+      "age",
+      "base_limit",
+      "catchup_eligible",
+      "total_limit"
+    ]
+  },
+  {
+    "component": "contribution-limit-manager",
+    "event": "base-limit-with-catchup",
+    "file": "src/utils/calculate-v3/contribution-limit-manager.ts",
+    "line": 186,
+    "fields": [
+      "limit_type",
+      "year",
+      "age",
+      "base_limit",
+      "catchup_eligible",
+      "total_limit"
+    ]
+  },
+  {
+    "component": "contribution-limit-manager",
+    "event": "base-limit-with-catchup",
+    "file": "src/utils/calculate-v3/contribution-limit-manager.ts",
+    "line": 193,
+    "fields": [
+      "limit_type",
+      "year",
+      "age",
+      "base_limit",
+      "catchup_eligible",
+      "total_limit"
+    ]
+  },
+  {
+    "component": "contribution-limit-manager",
+    "event": "base-limit-with-catchup",
+    "file": "src/utils/calculate-v3/contribution-limit-manager.ts",
+    "line": 200,
+    "fields": [
+      "limit_type",
+      "year",
+      "age",
+      "base_limit",
+      "catchup_eligible",
+      "total_limit"
+    ]
+  },
+  {
+    "component": "contribution-limit-manager",
+    "event": "contribution-recorded",
+    "file": "src/utils/calculate-v3/contribution-limit-manager.ts",
+    "line": 300,
+    "fields": [
+      "person",
+      "year",
+      "limit_type",
+      "amount",
+      "new_total"
+    ]
+  },
+  {
+    "component": "contribution-limit-manager",
+    "event": "historical-limit-loaded",
+    "file": "src/utils/calculate-v3/contribution-limit-manager.ts",
+    "line": 111,
+    "fields": [
+      "limit_type",
+      "year",
+      "limit"
+    ]
+  },
+  {
+    "component": "contribution-limit-manager",
+    "event": "limit-inflated",
+    "file": "src/utils/calculate-v3/contribution-limit-manager.ts",
+    "line": 125,
+    "fields": [
+      "limit_type",
+      "year",
+      "base_limit",
+      "inflated_limit"
+    ]
+  },
+  {
+    "component": "contribution-limit-manager",
+    "event": "remaining-limit-checked",
+    "file": "src/utils/calculate-v3/contribution-limit-manager.ts",
+    "line": 237,
+    "fields": [
+      "person",
+      "year",
+      "limit_type",
+      "total_limit",
+      "contributed",
+      "remaining"
+    ]
+  },
+  {
+    "component": "contribution-limit-manager",
+    "event": "remaining-limit-checked",
+    "file": "src/utils/calculate-v3/contribution-limit-manager.ts",
+    "line": 243,
+    "fields": [
+      "person",
+      "year",
+      "limit_type",
+      "total_limit",
+      "contributed",
+      "remaining"
+    ]
+  },
+  {
+    "component": "contribution-limit-manager",
+    "event": "remaining-limit-checked",
+    "file": "src/utils/calculate-v3/contribution-limit-manager.ts",
+    "line": 249,
+    "fields": [
+      "person",
+      "year",
+      "limit_type",
+      "total_limit",
+      "contributed",
+      "remaining"
+    ]
+  },
+  {
+    "component": "engine",
+    "event": "cache-check",
+    "file": "src/utils/calculate-v3/engine.ts",
+    "line": 88,
+    "fields": [
+      "cacheHit"
+    ]
+  },
+  {
+    "component": "engine",
+    "event": "cache-check",
+    "file": "src/utils/calculate-v3/engine.ts",
+    "line": 92,
+    "fields": [
+      "cacheHit"
+    ]
+  },
+  {
+    "component": "engine",
+    "event": "calculation-completed",
+    "file": "src/utils/calculate-v3/engine.ts",
+    "line": 118,
+    "fields": [
+      "durationMs"
+    ]
+  },
+  {
+    "component": "engine",
+    "event": "calculation-started",
+    "file": "src/utils/calculate-v3/engine.ts",
+    "line": 76,
+    "fields": [
+      "simulation",
+      "startDate",
+      "endDate",
+      "monteCarlo",
+      "forceRecalculation"
+    ]
+  },
+  {
+    "component": "engine",
+    "event": "components-initialized",
+    "file": "src/utils/calculate-v3/engine.ts",
+    "line": 383,
+    "fields": []
+  },
+  {
+    "component": "engine",
+    "event": "tax-config-loaded",
+    "file": "src/utils/calculate-v3/engine.ts",
+    "line": 206,
+    "fields": [
+      "filingStatus",
+      "withdrawalStrategy"
+    ]
+  },
+  {
+    "component": "engine",
+    "event": "timeline-created",
+    "file": "src/utils/calculate-v3/engine.ts",
+    "line": 243,
+    "fields": [
+      "eventCount"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "active-plan-selected",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 171,
+    "fields": [
+      "person",
+      "date",
+      "config_name"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "config-resolved",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 81,
+    "fields": [
+      "config_name",
+      "start_date",
+      "end_date"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "copay-calculated",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 385,
+    "fields": [
+      "copay_amount",
+      "bill_amount",
+      "patient_cost"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "deductible-calculated",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 449,
+    "fields": [
+      "deductible_remaining",
+      "bill_amount",
+      "coinsurance_pct",
+      "patient_cost"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "deductible-inflated",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 95,
+    "fields": [
+      "config_name",
+      "base_year",
+      "current_year",
+      "base_deductible",
+      "inflated_deductible"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "deductible-progress",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 315,
+    "fields": [
+      "person",
+      "spent",
+      "inflated_limit",
+      "remaining",
+      "met"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "expense-recorded",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 268,
+    "fields": [
+      "person",
+      "amount",
+      "toward_deductible",
+      "toward_oop"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "no-plan-found",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 160,
+    "fields": [
+      "person",
+      "date"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "oop-max-reached",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 441,
+    "fields": [
+      "config_name",
+      "oop_spent",
+      "oop_max"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "oop-progress",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 357,
+    "fields": [
+      "person",
+      "spent",
+      "inflated_limit",
+      "remaining",
+      "met"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "patient-cost-cached",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 488,
+    "fields": [
+      "expense_key",
+      "patient_cost"
+    ]
+  },
+  {
+    "component": "healthcare-manager",
+    "event": "plan-year-reset",
+    "file": "src/utils/calculate-v3/healthcare-manager.ts",
+    "line": 243,
+    "fields": [
+      "config_name",
+      "plan_year"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "age-band-determined",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 171,
+    "fields": [
+      "person",
+      "age",
+      "age_band"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "benefit-pool-used",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 366,
+    "fields": [
+      "person",
+      "cost",
+      "benefit_applied",
+      "pool_remaining"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "cost-factor-set",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 219,
+    "fields": [
+      "person",
+      "cost_factor"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "cost-factor-set",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 231,
+    "fields": [
+      "person",
+      "cost_factor"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "cost-factor-set",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 243,
+    "fields": [
+      "person",
+      "cost_factor"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "elimination-tracked",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 319,
+    "fields": [
+      "person",
+      "remaining_days"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "episode-started",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 226,
+    "fields": [
+      "person",
+      "state",
+      "episode_count"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "episode-started",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 238,
+    "fields": [
+      "person",
+      "state",
+      "episode_count"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "episode-started",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 250,
+    "fields": [
+      "person",
+      "state",
+      "episode_count"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "monthly-step",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 175,
+    "fields": [
+      "person",
+      "age",
+      "current_state",
+      "month"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "person-initialized",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 121,
+    "fields": [
+      "person",
+      "benefit_pool",
+      "daily_benefit_cap"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "state-transition",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 225,
+    "fields": [
+      "person",
+      "from_state",
+      "to_state",
+      "probability"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "state-transition",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 237,
+    "fields": [
+      "person",
+      "from_state",
+      "to_state",
+      "probability"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "state-transition",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 249,
+    "fields": [
+      "person",
+      "from_state",
+      "to_state",
+      "probability"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "state-transition",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 265,
+    "fields": [
+      "person",
+      "from_state",
+      "to_state",
+      "probability"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "state-transition",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 270,
+    "fields": [
+      "person",
+      "from_state",
+      "to_state",
+      "probability"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "state-transition",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 274,
+    "fields": [
+      "person",
+      "from_state",
+      "to_state",
+      "probability"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "state-transition",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 278,
+    "fields": [
+      "person",
+      "from_state",
+      "to_state",
+      "probability"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "state-transition",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 292,
+    "fields": [
+      "person",
+      "from_state",
+      "to_state",
+      "probability"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "state-transition",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 297,
+    "fields": [
+      "person",
+      "from_state",
+      "to_state",
+      "probability"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "state-transition",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 301,
+    "fields": [
+      "person",
+      "from_state",
+      "to_state",
+      "probability"
+    ]
+  },
+  {
+    "component": "ltc-manager",
+    "event": "state-transition",
+    "file": "src/utils/calculate-v3/ltc-manager.ts",
+    "line": 310,
+    "fields": [
+      "person",
+      "from_state",
+      "to_state",
+      "probability"
+    ]
+  },
+  {
+    "component": "medicare-manager",
+    "event": "change-ratio-used",
+    "file": "src/utils/calculate-v3/medicare-manager.ts",
+    "line": 113,
+    "fields": [
+      "year",
+      "ratio",
+      "value"
+    ]
+  },
+  {
+    "component": "medicare-manager",
+    "event": "fallback-inflation",
+    "file": "src/utils/calculate-v3/medicare-manager.ts",
+    "line": 118,
+    "fields": [
+      "year",
+      "inflation_rate",
+      "value"
+    ]
+  },
+  {
+    "component": "medicare-manager",
+    "event": "irmaa-bracket-matched",
+    "file": "src/utils/calculate-v3/medicare-manager.ts",
+    "line": 179,
+    "fields": [
+      "magi",
+      "filing_status",
+      "year",
+      "tier",
+      "part_b_surcharge",
+      "part_d_surcharge"
+    ]
+  },
+  {
+    "component": "medicare-manager",
+    "event": "part-b-premium",
+    "file": "src/utils/calculate-v3/medicare-manager.ts",
+    "line": 205,
+    "fields": [
+      "year",
+      "premium"
+    ]
+  },
+  {
+    "component": "medicare-manager",
+    "event": "part-d-premium",
+    "file": "src/utils/calculate-v3/medicare-manager.ts",
+    "line": 215,
+    "fields": [
+      "year",
+      "premium"
+    ]
+  },
+  {
+    "component": "medicare-manager",
+    "event": "value-projected",
+    "file": "src/utils/calculate-v3/medicare-manager.ts",
+    "line": 123,
+    "fields": [
+      "field",
+      "year",
+      "latest_year",
+      "projected_value"
+    ]
+  },
+  {
+    "component": "push-pull-handler",
+    "event": "pull-cascade",
+    "file": "src/utils/calculate-v3/push-pull-handler.ts",
+    "line": 209,
+    "fields": [
+      "exhausted_account",
+      "remaining_deficit"
+    ]
+  },
+  {
+    "component": "push-pull-handler",
+    "event": "pull-cascade",
+    "file": "src/utils/calculate-v3/push-pull-handler.ts",
+    "line": 265,
+    "fields": [
+      "exhausted_account",
+      "remaining_deficit"
+    ]
+  },
+  {
+    "component": "push-pull-handler",
+    "event": "pull-executed",
+    "file": "src/utils/calculate-v3/push-pull-handler.ts",
+    "line": 256,
+    "fields": [
+      "from_account",
+      "to_account",
+      "amount",
+      "committed_total"
+    ]
+  },
+  {
+    "component": "push-pull-handler",
+    "event": "pull-failure",
+    "file": "src/utils/calculate-v3/push-pull-handler.ts",
+    "line": 278,
+    "fields": [
+      "account",
+      "requested",
+      "shortfall"
+    ]
+  },
+  {
+    "component": "push-pull-handler",
+    "event": "pull-needed",
+    "file": "src/utils/calculate-v3/push-pull-handler.ts",
+    "line": 90,
+    "fields": [
+      "account",
+      "balance",
+      "minimum_balance",
+      "deficit"
+    ]
+  },
+  {
+    "component": "push-pull-handler",
+    "event": "push-executed",
+    "file": "src/utils/calculate-v3/push-pull-handler.ts",
+    "line": 165,
+    "fields": [
+      "from_account",
+      "to_account",
+      "amount"
+    ]
+  },
+  {
+    "component": "push-pull-handler",
+    "event": "push-needed",
+    "file": "src/utils/calculate-v3/push-pull-handler.ts",
+    "line": 82,
+    "fields": [
+      "account",
+      "balance",
+      "maximum_balance",
+      "push_amount"
+    ]
+  },
+  {
+    "component": "push-pull-handler",
+    "event": "roth-penalty-checked",
+    "file": "src/utils/calculate-v3/push-pull-handler.ts",
+    "line": 312,
+    "fields": [
+      "account",
+      "withdrawal_amount",
+      "penaltyable_balance",
+      "penalty_amount",
+      "age_check_passed"
+    ]
+  },
+  {
+    "component": "push-pull-handler",
+    "event": "roth-penalty-checked",
+    "file": "src/utils/calculate-v3/push-pull-handler.ts",
+    "line": 334,
+    "fields": [
+      "account",
+      "withdrawal_amount",
+      "penaltyable_balance",
+      "penalty_amount",
+      "age_check_passed"
+    ]
+  },
+  {
+    "component": "push-pull-handler",
+    "event": "source-selected",
+    "file": "src/utils/calculate-v3/push-pull-handler.ts",
+    "line": 201,
+    "fields": [
+      "source_account",
+      "available_balance",
+      "priority"
+    ]
+  },
+  {
+    "component": "retirement-manager",
+    "event": "aime-calculated",
+    "file": "src/utils/calculate-v3/retirement-manager.ts",
+    "line": 271,
+    "fields": [
+      "name",
+      "aime"
+    ]
+  },
+  {
+    "component": "retirement-manager",
+    "event": "fra-determined",
+    "file": "src/utils/calculate-v3/retirement-manager.ts",
+    "line": 399,
+    "fields": [
+      "birth_year",
+      "fra_years",
+      "fra_months"
+    ]
+  },
+  {
+    "component": "retirement-manager",
+    "event": "indexed-earnings",
+    "file": "src/utils/calculate-v3/retirement-manager.ts",
+    "line": 282,
+    "fields": [
+      "year",
+      "raw_earnings",
+      "indexed_earnings"
+    ]
+  },
+  {
+    "component": "retirement-manager",
+    "event": "indexed-earnings",
+    "file": "src/utils/calculate-v3/retirement-manager.ts",
+    "line": 287,
+    "fields": [
+      "year",
+      "raw_earnings",
+      "indexed_earnings"
+    ]
+  },
+  {
+    "component": "retirement-manager",
+    "event": "pension-initialized",
+    "file": "src/utils/calculate-v3/retirement-manager.ts",
+    "line": 145,
+    "fields": [
+      "name",
+      "year_count"
+    ]
+  },
+  {
+    "component": "retirement-manager",
+    "event": "pension-monthly-calculated",
+    "file": "src/utils/calculate-v3/retirement-manager.ts",
+    "line": 225,
+    "fields": [
+      "name",
+      "monthly_pay",
+      "avg_compensation",
+      "years_worked"
+    ]
+  },
+  {
+    "component": "retirement-manager",
+    "event": "pia-computed",
+    "file": "src/utils/calculate-v3/retirement-manager.ts",
+    "line": 362,
+    "fields": [
+      "name",
+      "aime",
+      "bend1",
+      "bend2",
+      "pia"
+    ]
+  },
+  {
+    "component": "retirement-manager",
+    "event": "spousal-benefit-checked",
+    "file": "src/utils/calculate-v3/retirement-manager.ts",
+    "line": 214,
+    "fields": [
+      "name",
+      "own_benefit",
+      "spousal_benefit",
+      "result"
+    ]
+  },
+  {
+    "component": "retirement-manager",
+    "event": "ss-initialized",
+    "file": "src/utils/calculate-v3/retirement-manager.ts",
+    "line": 125,
+    "fields": [
+      "name",
+      "year_count"
+    ]
+  },
+  {
+    "component": "retirement-manager",
+    "event": "ss-monthly-calculated",
+    "file": "src/utils/calculate-v3/retirement-manager.ts",
+    "line": 202,
+    "fields": [
+      "name",
+      "monthly_pay",
+      "collection_age",
+      "factor"
+    ]
+  },
+  {
+    "component": "retirement-manager",
+    "event": "wage-base-capped",
+    "file": "src/utils/calculate-v3/retirement-manager.ts",
+    "line": 173,
+    "fields": [
+      "year",
+      "total_income",
+      "wage_base_cap",
+      "capped_income"
+    ]
+  },
+  {
+    "component": "roth-conversion-manager",
+    "event": "aca-subsidy-checked",
+    "file": "src/utils/calculate-v3/roth-conversion-manager.ts",
+    "line": 262,
+    "fields": [
+      "next_year",
+      "current_magi",
+      "subsidy_before",
+      "subsidy_after",
+      "annual_loss",
+      "effective_rate"
+    ]
+  },
+  {
+    "component": "roth-conversion-manager",
+    "event": "account-lookup",
+    "file": "src/utils/calculate-v3/roth-conversion-manager.ts",
+    "line": 119,
+    "fields": [
+      "source",
+      "destination",
+      "source_found",
+      "dest_found"
+    ]
+  },
+  {
+    "component": "roth-conversion-manager",
+    "event": "bracket-space-calculated",
+    "file": "src/utils/calculate-v3/roth-conversion-manager.ts",
+    "line": 154,
+    "fields": [
+      "year",
+      "ordinary_income",
+      "standard_deduction",
+      "taxable_income",
+      "target_bracket",
+      "remaining_space"
+    ]
+  },
+  {
+    "component": "roth-conversion-manager",
+    "event": "conversion-amount-set",
+    "file": "src/utils/calculate-v3/roth-conversion-manager.ts",
+    "line": 182,
+    "fields": [
+      "source_balance",
+      "bracket_space",
+      "conversion_amount"
+    ]
+  },
+  {
+    "component": "roth-conversion-manager",
+    "event": "conversion-completed",
+    "file": "src/utils/calculate-v3/roth-conversion-manager.ts",
+    "line": 332,
+    "fields": [
+      "year",
+      "source",
+      "destination",
+      "amount"
+    ]
+  },
+  {
+    "component": "roth-conversion-manager",
+    "event": "insufficient-space",
+    "file": "src/utils/calculate-v3/roth-conversion-manager.ts",
+    "line": 165,
+    "fields": [
+      "year",
+      "taxable_income",
+      "target_bracket",
+      "reason"
+    ]
+  },
+  {
+    "component": "roth-conversion-manager",
+    "event": "lot-recorded",
+    "file": "src/utils/calculate-v3/roth-conversion-manager.ts",
+    "line": 317,
+    "fields": [
+      "destination",
+      "amount",
+      "year",
+      "penalty_free_year"
+    ]
+  },
+  {
+    "component": "roth-conversion-manager",
+    "event": "prior-cleared",
+    "file": "src/utils/calculate-v3/roth-conversion-manager.ts",
+    "line": 95,
+    "fields": [
+      "year"
+    ]
+  },
+  {
+    "component": "roth-conversion-manager",
+    "event": "processing-started",
+    "file": "src/utils/calculate-v3/roth-conversion-manager.ts",
+    "line": 87,
+    "fields": [
+      "year",
+      "config_count"
+    ]
+  },
+  {
+    "component": "roth-conversion-manager",
+    "event": "window-check",
+    "file": "src/utils/calculate-v3/roth-conversion-manager.ts",
+    "line": 111,
+    "fields": [
+      "year",
+      "start_year",
+      "end_year",
+      "in_window"
+    ]
+  },
+  {
+    "component": "segment-processor",
+    "event": "cache-hit",
+    "file": "src/utils/calculate-v3/segment-processor.ts",
+    "line": 93,
+    "fields": [
+      "startDate",
+      "endDate"
+    ]
+  },
+  {
+    "component": "segment-processor",
+    "event": "day-events-processed",
+    "file": "src/utils/calculate-v3/segment-processor.ts",
+    "line": 298,
+    "fields": [
+      "date",
+      "eventCount",
+      "balanceChangesCount"
+    ]
+  },
+  {
+    "component": "segment-processor",
+    "event": "healthcare-state-restored",
+    "file": "src/utils/calculate-v3/segment-processor.ts",
+    "line": 123,
+    "fields": [
+      "activitiesReprocessed"
+    ]
+  },
+  {
+    "component": "segment-processor",
+    "event": "push-pull-executed",
+    "file": "src/utils/calculate-v3/segment-processor.ts",
+    "line": 155,
+    "fields": [
+      "eventsAdded"
+    ]
+  },
+  {
+    "component": "segment-processor",
+    "event": "segment-reprocessed",
+    "file": "src/utils/calculate-v3/segment-processor.ts",
+    "line": 159,
+    "fields": [
+      "reason"
+    ]
+  },
+  {
+    "component": "segment-processor",
+    "event": "segment-started",
+    "file": "src/utils/calculate-v3/segment-processor.ts",
+    "line": 83,
+    "fields": [
+      "startDate",
+      "endDate",
+      "eventCount"
+    ]
+  },
+  {
+    "component": "segment-processor",
+    "event": "taxable-occurrence-routed",
+    "file": "src/utils/calculate-v3/segment-processor.ts",
+    "line": 190,
+    "fields": [
+      "accountName",
+      "amount",
+      "incomeType",
+      "year"
+    ]
+  },
+  {
+    "component": "tax-manager",
+    "event": "annual-tax-calculated",
+    "file": "src/utils/calculate-v3/tax-manager.ts",
+    "line": 115,
+    "fields": [
+      "year",
+      "taxable_income",
+      "total_tax",
+      "effective_rate"
+    ]
+  },
+  {
+    "component": "tax-manager",
+    "event": "cache-invalidated",
+    "file": "src/utils/calculate-v3/tax-manager.ts",
+    "line": 134,
+    "fields": [
+      "account",
+      "year"
+    ]
+  },
+  {
+    "component": "tax-manager",
+    "event": "income-aggregated",
+    "file": "src/utils/calculate-v3/tax-manager.ts",
+    "line": 97,
+    "fields": [
+      "year",
+      "ordinary_income",
+      "ss_income",
+      "penalty_total"
+    ]
+  },
+  {
+    "component": "tax-manager",
+    "event": "occurrence-added",
+    "file": "src/utils/calculate-v3/tax-manager.ts",
+    "line": 41,
+    "fields": [
+      "account",
+      "year",
+      "amount",
+      "income_type"
+    ]
+  },
+  {
+    "component": "tax-manager",
+    "event": "ss-taxation-computed",
+    "file": "src/utils/calculate-v3/tax-manager.ts",
+    "line": 112,
+    "fields": [
+      "year",
+      "ss_income",
+      "provisional_income",
+      "taxable_ss",
+      "tier"
+    ]
+  },
+  {
+    "component": "timeline",
+    "event": "aca-events-added",
+    "file": "src/utils/calculate-v3/timeline.ts",
+    "line": 553,
+    "fields": [
+      "count"
+    ]
+  },
+  {
+    "component": "timeline",
+    "event": "activity-events-added",
+    "file": "src/utils/calculate-v3/timeline.ts",
+    "line": 215,
+    "fields": [
+      "count"
+    ]
+  },
+  {
+    "component": "timeline",
+    "event": "bill-events-added",
+    "file": "src/utils/calculate-v3/timeline.ts",
+    "line": 228,
+    "fields": [
+      "count"
+    ]
+  },
+  {
+    "component": "timeline",
+    "event": "interest-events-added",
+    "file": "src/utils/calculate-v3/timeline.ts",
+    "line": 239,
+    "fields": [
+      "count"
+    ]
+  },
+  {
+    "component": "timeline",
+    "event": "mc-applied",
+    "file": "src/utils/calculate-v3/timeline.ts",
+    "line": 134,
+    "fields": [
+      "eventsModified"
+    ]
+  },
+  {
+    "component": "timeline",
+    "event": "medicare-events-added",
+    "file": "src/utils/calculate-v3/timeline.ts",
+    "line": 421,
+    "fields": [
+      "count"
+    ]
+  },
+  {
+    "component": "timeline",
+    "event": "roth-events-added",
+    "file": "src/utils/calculate-v3/timeline.ts",
+    "line": 359,
+    "fields": [
+      "count"
+    ]
+  },
+  {
+    "component": "timeline",
+    "event": "tax-events-added",
+    "file": "src/utils/calculate-v3/timeline.ts",
+    "line": 346,
+    "fields": [
+      "count"
+    ]
+  }
+]

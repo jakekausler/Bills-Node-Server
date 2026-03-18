@@ -118,6 +118,7 @@ export class LTCManager {
         benefitPoolRemaining: benefitPool,
         costFactor: 1.0,
       });
+      this.log('person-initialized', { person: config.personName, benefit_pool: benefitPool, daily_benefit_cap: dailyBenefitCap });
     });
   }
 
@@ -167,8 +168,11 @@ export class LTCManager {
 
     const ageBand = getAgeBand(ageInYears);
     if (!ageBand) return; // Under 65, no LTC modeling
+    this.log('age-band-determined', { person: personName, age: ageInYears, age_band: ageBand });
     const transitions = this.transitionData[ageBand]?.[gender];
     if (!transitions) return;
+
+    this.log('monthly-step', { person: personName, age: ageInYears, current_state: state.currentState, month: monthIndex });
 
     // Initialize cost factor on transition to LTC (not on every month)
     if (!this.costFactors.has(personName)) {
@@ -212,26 +216,38 @@ export class LTCManager {
         // Initialize cost factor on first LTC entry
         if (this.costFactors.get(personName) === 1.0) {
           this.costFactors.set(personName, this.initializeCostFactor(random));
+          this.log('cost-factor-set', { person: personName, cost_factor: this.costFactors.get(personName) });
         }
+        const prevState = state.currentState;
         state.currentState = 'homeCare';
         state.currentEpisodeStartMonth = monthIndex;
         state.eliminationDaysRemaining = config?.eliminationDays ?? 90;
+        this.log('state-transition', { person: personName, from_state: prevState, to_state: 'homeCare', probability: cumHC });
+        this.log('episode-started', { person: personName, state: 'homeCare', episode_count: state.episodeCount + 1 });
       } else if (rand < cumAL) {
         // Initialize cost factor on first LTC entry
         if (this.costFactors.get(personName) === 1.0) {
           this.costFactors.set(personName, this.initializeCostFactor(random));
+          this.log('cost-factor-set', { person: personName, cost_factor: this.costFactors.get(personName) });
         }
+        const prevState = state.currentState;
         state.currentState = 'assistedLiving';
         state.currentEpisodeStartMonth = monthIndex;
         state.eliminationDaysRemaining = config?.eliminationDays ?? 90;
+        this.log('state-transition', { person: personName, from_state: prevState, to_state: 'assistedLiving', probability: cumAL - cumHC });
+        this.log('episode-started', { person: personName, state: 'assistedLiving', episode_count: state.episodeCount + 1 });
       } else if (rand < cumNH) {
         // Initialize cost factor on first LTC entry
         if (this.costFactors.get(personName) === 1.0) {
           this.costFactors.set(personName, this.initializeCostFactor(random));
+          this.log('cost-factor-set', { person: personName, cost_factor: this.costFactors.get(personName) });
         }
+        const prevState = state.currentState;
         state.currentState = 'nursingHome';
         state.currentEpisodeStartMonth = monthIndex;
         state.eliminationDaysRemaining = config?.eliminationDays ?? 90;
+        this.log('state-transition', { person: personName, from_state: prevState, to_state: 'nursingHome', probability: cumNH - cumAL });
+        this.log('episode-started', { person: personName, state: 'nursingHome', episode_count: state.episodeCount + 1 });
       }
     } else if (state.currentState === 'homeCare') {
       // From home care: can recover to healthy, progress to AL/NH, or die
@@ -246,16 +262,20 @@ export class LTCManager {
       const cumNH = cumAL + probNH;
 
       if (rand < cumHealthy) {
+        this.log('state-transition', { person: personName, from_state: 'homeCare', to_state: 'healthy', probability: probHealthy });
         state.currentState = 'healthy';
         state.episodeCount++;
         state.currentEpisodeStartMonth = null;
       } else if (rand < cumAL) {
+        this.log('state-transition', { person: personName, from_state: 'homeCare', to_state: 'assistedLiving', probability: probAL });
         state.currentState = 'assistedLiving';
         // Same episode continues, elimination continues counting down
       } else if (rand < cumNH) {
+        this.log('state-transition', { person: personName, from_state: 'homeCare', to_state: 'nursingHome', probability: probNH });
         state.currentState = 'nursingHome';
         // Same episode continues
       } else {
+        this.log('state-transition', { person: personName, from_state: 'homeCare', to_state: 'deceased', probability: probDeceased });
         state.currentState = 'deceased';
       }
     } else if (state.currentState === 'assistedLiving') {
@@ -269,13 +289,16 @@ export class LTCManager {
       const cumNH = cumHealthy + probNH;
 
       if (rand < cumHealthy) {
+        this.log('state-transition', { person: personName, from_state: 'assistedLiving', to_state: 'healthy', probability: probHealthy });
         state.currentState = 'healthy';
         state.episodeCount++;
         state.currentEpisodeStartMonth = null;
       } else if (rand < cumNH) {
+        this.log('state-transition', { person: personName, from_state: 'assistedLiving', to_state: 'nursingHome', probability: probNH });
         state.currentState = 'nursingHome';
         // Same episode continues
       } else {
+        this.log('state-transition', { person: personName, from_state: 'assistedLiving', to_state: 'deceased', probability: probDeceased });
         state.currentState = 'deceased';
       }
     } else if (state.currentState === 'nursingHome') {
@@ -284,6 +307,7 @@ export class LTCManager {
       const probDeceased = probs.deceased;
 
       if (rand < probDeceased) {
+        this.log('state-transition', { person: personName, from_state: 'nursingHome', to_state: 'deceased', probability: probDeceased });
         state.currentState = 'deceased';
       }
       // else remain in nursing home
@@ -292,6 +316,7 @@ export class LTCManager {
     // Decrement elimination period
     if (state.eliminationDaysRemaining > 0) {
       state.eliminationDaysRemaining -= 30;
+      this.log('elimination-tracked', { person: personName, remaining_days: state.eliminationDaysRemaining });
     }
   }
 
@@ -338,6 +363,7 @@ export class LTCManager {
     // Insurance pays up to cap, deducted from pool
     const benefit = Math.min(monthlyCost, monthlyBenefitCap, state.benefitPoolRemaining);
     state.benefitPoolRemaining -= benefit;
+    this.log('benefit-pool-used', { person: personName, cost: monthlyCost, benefit_applied: benefit, pool_remaining: state.benefitPoolRemaining });
 
     return benefit;
   }

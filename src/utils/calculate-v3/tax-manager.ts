@@ -38,6 +38,7 @@ export class TaxManager {
       yearMap.set(accountId, []);
     }
     yearMap.get(accountId)?.push(event);
+    this.log('occurrence-added', { account: accountId, year: event.year, amount: event.amount, income_type: event.incomeType });
   }
 
   // Get all taxable events for an account in a specific year
@@ -93,8 +94,25 @@ export class TaxManager {
       }
     }
 
+    this.log('income-aggregated', { year, ordinary_income: ordinaryIncome, ss_income: ssIncome, penalty_total: penaltyTotal });
+
     const result = computeAnnualFederalTax(ordinaryIncome, ssIncome, filingStatus, year, bracketInflationRate);
     const totalTax = result.tax + penaltyTotal;
+
+    // Determine SS taxation tier
+    const provisionalIncome = ordinaryIncome + ssIncome * 0.5;
+    let ssTier: string;
+    if (result.taxableSS === 0) {
+      ssTier = '0%';
+    } else if (result.taxableSS <= ssIncome * 0.5) {
+      ssTier = '50%';
+    } else {
+      ssTier = '85%';
+    }
+    this.log('ss-taxation-computed', { year, ss_income: ssIncome, provisional_income: provisionalIncome, taxable_ss: result.taxableSS, tier: ssTier });
+
+    const effectiveRate = (ordinaryIncome + ssIncome) > 0 ? totalTax / (ordinaryIncome + ssIncome) : 0;
+    this.log('annual-tax-calculated', { year, taxable_income: result.taxableIncome, total_tax: totalTax, effective_rate: effectiveRate });
 
     // Cache the result
     this.taxCache.set(year, totalTax);
@@ -113,6 +131,7 @@ export class TaxManager {
     }
     // Invalidate cache for this year
     this.taxCache.delete(year);
+    this.log('cache-invalidated', { account: accountId, year });
   }
 
   // Clear all taxable events for all accounts in a specific year

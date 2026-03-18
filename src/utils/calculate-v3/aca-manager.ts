@@ -70,7 +70,9 @@ export class AcaManager {
 
     // Inflate forward from 2026 at 5% healthcare CPI
     if (year <= 2026) {
-      return Math.round(cobraPremium * 100) / 100;
+      const premium = Math.round(cobraPremium * 100) / 100;
+      this.log('cobra-premium-calculated', { year, premium });
+      return premium;
     }
 
     let inflatedPremium = cobraPremium;
@@ -79,7 +81,9 @@ export class AcaManager {
       inflatedPremium *= 1 + inflationRate;
     }
 
-    return Math.round(inflatedPremium * 100) / 100;
+    const premium = Math.round(inflatedPremium * 100) / 100;
+    this.log('cobra-premium-calculated', { year, premium });
+    return premium;
   }
 
   /**
@@ -122,6 +126,7 @@ export class AcaManager {
         const inflationRate = this.getHealthcareInflationRate(y);
         benchmarkForYear *= 1 + inflationRate;
       }
+      this.log('benchmark-inflated', { year, latest_year: latestBenchmarkYear, inflated_premium: Math.round(benchmarkForYear * 100) / 100 });
     }
 
     // Get age curve factors
@@ -135,7 +140,9 @@ export class AcaManager {
     const ageAdjustedFactor = ageFactor / baseFactor;
     const premiumForAge = benchmarkForYear * ageAdjustedFactor;
 
-    return Math.round(premiumForAge * 100) / 100;
+    const premium = Math.round(premiumForAge * 100) / 100;
+    this.log('aca-person-premium', { age, year, premium });
+    return premium;
   }
 
   /**
@@ -147,9 +154,17 @@ export class AcaManager {
    * @returns Combined monthly ACA premium for couple
    */
   getAcaCoupleGrossPremium(age1: number, age2: number, year: number): number {
+    if (age1 >= 65) {
+      this.log('person-skipped-medicare', { age: age1, year, reason: 'on Medicare' });
+    }
+    if (age2 >= 65) {
+      this.log('person-skipped-medicare', { age: age2, year, reason: 'on Medicare' });
+    }
     const premium1 = age1 < 65 ? this.getAcaPremiumForPerson(age1, year) : 0;
     const premium2 = age2 < 65 ? this.getAcaPremiumForPerson(age2, year) : 0;
-    return Math.round((premium1 + premium2) * 100) / 100;
+    const total = Math.round((premium1 + premium2) * 100) / 100;
+    this.log('couple-premium-calculated', { age1, age2, year, premium1, premium2, total });
+    return total;
   }
 
   /**
@@ -190,31 +205,42 @@ export class AcaManager {
 
     // Determine expected contribution percentage based on FPL bracket
     let expectedContributionPct = 0;
+    let subsidyTier = '';
 
     if (fplPercent <= 150) {
       expectedContributionPct = 0;
+      subsidyTier = '0-150% FPL';
     } else if (fplPercent <= 200) {
       // Linear interpolation: 0% → 2%
       expectedContributionPct = ((fplPercent - 150) / 50) * 0.02;
+      subsidyTier = '150-200% FPL';
     } else if (fplPercent <= 250) {
       // Linear interpolation: 2% → 4%
       expectedContributionPct = 0.02 + ((fplPercent - 200) / 50) * 0.02;
+      subsidyTier = '200-250% FPL';
     } else if (fplPercent <= 300) {
       // Linear interpolation: 4% → 6%
       expectedContributionPct = 0.04 + ((fplPercent - 250) / 50) * 0.02;
+      subsidyTier = '250-300% FPL';
     } else if (fplPercent <= 400) {
       // Linear interpolation: 6% → 8.5%
       expectedContributionPct = 0.06 + ((fplPercent - 300) / 100) * 0.025;
+      subsidyTier = '300-400% FPL';
     } else if (year >= 2026) {
       // Cliff: 2026+ if > 400% FPL, no subsidy
       expectedContributionPct = 100; // No subsidy
+      subsidyTier = '>400% FPL (cliff)';
     } else {
       // Through 2025: 8.5% cap at > 400% FPL
       expectedContributionPct = 0.085;
+      subsidyTier = '>400% FPL (IRA cap)';
     }
+
+    this.log('subsidy-tier', { fpl_percent: Math.round(fplPercent * 100) / 100, tier: subsidyTier, expected_contribution_pct: expectedContributionPct });
 
     // If cliff applies, no subsidy
     if (expectedContributionPct >= 100) {
+      this.log('subsidy-calculated', { magi: householdMAGI, household_size: householdSize, year, fpl: householdFPL, fpl_percent: Math.round(fplPercent * 100) / 100, subsidy: 0 });
       return 0;
     }
 
@@ -225,7 +251,9 @@ export class AcaManager {
     const monthlySubsidy = Math.max(0, grossMonthlyPremium - expectedAnnualContribution / 12);
 
     // Cap subsidy at gross premium
-    return Math.min(monthlySubsidy, grossMonthlyPremium);
+    const subsidy = Math.min(monthlySubsidy, grossMonthlyPremium);
+    this.log('subsidy-calculated', { magi: householdMAGI, household_size: householdSize, year, fpl: householdFPL, fpl_percent: Math.round(fplPercent * 100) / 100, subsidy });
+    return subsidy;
   }
 
   /**
@@ -246,7 +274,9 @@ export class AcaManager {
   ): number {
     const grossPremium = this.getAcaCoupleGrossPremium(age1, age2, year);
     const subsidy = this.calculateMonthlySubsidy(householdMAGI, householdSize, year, grossPremium);
-    return Math.max(0, grossPremium - subsidy);
+    const netPremium = Math.max(0, grossPremium - subsidy);
+    this.log('net-premium-calculated', { gross_premium: grossPremium, subsidy, net_premium: netPremium });
+    return netPremium;
   }
 
   /**

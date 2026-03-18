@@ -141,6 +141,7 @@ export class Calculator {
     const balanceChange = activity.amount as number;
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + balanceChange);
+    this.log('activity-processed', { name: activity.name, accountId, amount: balanceChange });
     return new Map([[accountId, balanceChange]]);
   }
 
@@ -149,6 +150,7 @@ export class Calculator {
    */
   private processHealthcareActivity(event: ActivityEvent, segmentResult: SegmentResult): Map<string, number> {
     const activity = event.originalActivity;
+    this.log('healthcare-bill-routed', { name: activity.name, person: activity.healthcarePerson || '' });
     const config = this.healthcareManager.getActiveConfig(activity.healthcarePerson || '', event.date);
 
     if (!config) {
@@ -170,6 +172,7 @@ export class Calculator {
 
     // Calculate patient cost
     const patientCost = this.healthcareManager.calculatePatientCost(activity, config, event.date);
+    this.log('healthcare-patient-cost', { name: activity.name, billAmount: activity.amount, patientCost, configName: config.name });
 
     // Create the healthcare expense activity with actual patient cost
     const healthcareActivity = new ConsolidatedActivity({
@@ -216,6 +219,8 @@ export class Calculator {
       if (reimbursementAmount <= 0.01) {
         return; // No reimbursement possible
       }
+
+      this.log('hsa-reimbursement', { hsaAccountId, reimbursementAmount, patientCost });
 
       // Find accounts for activity names
       const hsaAccount = this.balanceTracker.findAccountById(hsaAccountId);
@@ -273,6 +278,7 @@ export class Calculator {
 
     // Route healthcare bills to healthcare processor
     if (bill.isHealthcare) {
+      this.log('healthcare-bill-routed', { name: bill.name, person: bill.healthcarePerson || '' });
       return this.processHealthcareBill(event, segmentResult, simulation);
     }
 
@@ -293,6 +299,7 @@ export class Calculator {
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
+    this.log('bill-processed', { name: bill.name, accountId, amount: Number(amount), isHealthcare: false });
     return new Map([[accountId, Number(amount)]]);
   }
 
@@ -329,6 +336,7 @@ export class Calculator {
 
     // Calculate patient cost using the inflated event amount
     const patientCost = this.healthcareManager.calculatePatientCost(bill, config, event.date, event.amount as number);
+    this.log('healthcare-patient-cost', { name: bill.name, billAmount: event.amount, patientCost, configName: config.name });
 
     // Create consolidated activity for the bill
     const billActivity = new ConsolidatedActivity(
@@ -374,7 +382,11 @@ export class Calculator {
 
     // Apply expense ratio (fund fees reduce the effective return)
     // Only apply to positive balances (investment gains), not to debt
-    if (currentBalance > 0) {
+    if (currentBalance > 0 && (account.expenseRatio ?? 0) > 0) {
+      const baseApr = apr;
+      apr = apr - (account.expenseRatio ?? 0);
+      this.log('expense-ratio-applied', { accountId, baseApr, expenseRatio: account.expenseRatio, adjustedApr: apr });
+    } else if (currentBalance > 0) {
       apr = apr - (account.expenseRatio ?? 0);
     }
 
@@ -413,6 +425,8 @@ export class Calculator {
       }
       segmentResult.taxableOccurrences.get(account.interestPayAccount)?.push(taxableOccurrence);
     }
+
+    this.log('interest-calculated', { accountId, balance: currentBalance, apr, amount: interestAmount });
 
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
@@ -480,6 +494,7 @@ export class Calculator {
           default:
             throw new Error(`Invalid amount: ${original.amount}`);
         }
+        this.log('variable-amount-resolved', { resolution: original.amount, amount: internalAmount });
       }
     }
 
@@ -494,8 +509,12 @@ export class Calculator {
       // This limit only applies to bills, not activities
       if (original instanceof Bill && (toAccount.type === 'Loan' || toAccount.type === 'Credit')) {
         const maxTransfer = Math.abs(toAccountBalance);
-        internalAmount = Math.min(Math.abs(internalAmount), maxTransfer);
+        const requestedAmount = Math.abs(internalAmount);
+        internalAmount = Math.min(requestedAmount, maxTransfer);
         internalAmount = internalAmount > 0 ? internalAmount : 0; // Ensure non-negative
+        if (requestedAmount > maxTransfer) {
+          this.log('loan-limit-applied', { accountId: toAccountId, requestedAmount, limitedAmount: internalAmount });
+        }
       }
 
       // Handle "from" account limits for non-Loan/Credit accounts transferring to Savings/Investment
@@ -637,6 +656,8 @@ export class Calculator {
     segmentResult.balanceChanges.set(fromAccountId, fromCurrentChange - internalAmount);
     segmentResult.balanceChanges.set(toAccountId, toCurrentChange + internalAmount);
 
+    this.log('transfer-processed', { from: fromAccountId, to: toAccountId, amount: internalAmount, name: original.name });
+
     return new Map([
       [fromAccountId, -internalAmount],
       [toAccountId, internalAmount],
@@ -704,6 +725,8 @@ export class Calculator {
       incomeType: 'ordinary' as IncomeType,
     });
 
+    this.log('pension-processed', { name: pension.name, accountId, amount });
+
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
@@ -768,6 +791,8 @@ export class Calculator {
       incomeType: 'socialSecurity' as IncomeType,
     });
 
+    this.log('ss-processed', { name: socialSecurity.name, accountId, amount });
+
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
@@ -791,6 +816,8 @@ export class Calculator {
     if (amount === 0) {
       return new Map();
     }
+
+    this.log('tax-event-processed', { year: event.date.getUTCFullYear() - 1, totalTax: -amount, autoCalculatedTax: -amount });
 
     // Create the tax activity
     const taxActivity = new ConsolidatedActivity({
@@ -847,6 +874,8 @@ export class Calculator {
     if (rmdAmount <= 0) {
       return new Map();
     }
+
+    this.log('rmd-processed', { accountId: account.id, rmdAmount, priorYearBalance: balance });
 
     // Create the RMD From Activity
     const rmdFromActivity = new ConsolidatedActivity({
@@ -915,6 +944,11 @@ export class Calculator {
       this.bracketInflationRate,
       this.simulation,
     );
+
+    this.log('roth-conversion-processed', {
+      conversionsCount: conversions.length,
+      totalAmount: conversions.reduce((sum: number, c: ConversionResult) => sum + c.amount, 0),
+    });
 
     // Create transfer activities for each conversion that happened
     for (const conversion of conversions) {
@@ -992,6 +1026,7 @@ export class Calculator {
   }
 
   processSpendingTrackerEvent(event: SpendingTrackerEvent, segmentResult: SegmentResult): Map<string, number> {
+    this.log('spending-tracker-processed', { categoryId: event.categoryId, amount: 0 });
     // 1. Get accumulated spending from manager
     let totalSpent = this.spendingTrackerManager.getPeriodSpending(event.categoryId);
 
@@ -1256,6 +1291,10 @@ export class Calculator {
 
     const cappedAmount = Math.min(amount, remaining);
 
+    if (cappedAmount < amount) {
+      this.log('contribution-capped', { from: event.fromAccountId, to: event.toAccountId, requestedAmount: amount, cappedAmount });
+    }
+
     // Record the contribution
     if (cappedAmount > 0) {
       this.contributionLimitManager.recordContribution(
@@ -1292,6 +1331,8 @@ export class Calculator {
       medicareFilingStatus,
       year,
     );
+
+    this.log('medicare-premium-processed', { person: event.personName, totalCost: monthlyMedicareCost, accountId });
 
     // Find the paying account
     const payingAccount = this.balanceTracker.findAccountById(accountId);
@@ -1421,6 +1462,8 @@ export class Calculator {
       year,
     );
 
+    this.log('aca-premium-processed', { person: event.personName, monthlyPremium, priorMAGI, isCobraPeriod: event.isCobraPeriod });
+
     // Find the paying account
     const payingAccount = this.balanceTracker.findAccountById(accountId);
     if (!payingAccount) {
@@ -1491,7 +1534,7 @@ export class Calculator {
 
     // Calculate net monthly cost (gross - insurance benefit)
     // Only charge LTC costs if age >= 65
-    let netMonthlyCost: number = 0;
+    let netMonthlyCost = 0;
     if (event.ownerAge >= 65) {
       if (random) {
         // MC mode: use actual state cost from Markov chain
@@ -1501,6 +1544,8 @@ export class Calculator {
         netMonthlyCost = this.ltcManager.getExpectedMonthlyCost(event.ownerAge, event.gender, event.year);
       }
     }
+
+    this.log('ltc-check-processed', { person: personName, netCost: netMonthlyCost, accountId });
 
     // Find the paying account
     const payingAccount = this.balanceTracker.findAccountById(accountId);

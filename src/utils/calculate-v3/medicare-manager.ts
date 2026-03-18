@@ -110,14 +110,18 @@ export class MedicareManager {
       const ratio = changeRatios[y.toString()];
       if (ratio) {
         projectedValue *= ratio;
+        this.log('change-ratio-used', { year: y, ratio, value: projectedValue });
       } else {
         // Fall back to healthcare CPI
         const inflationRate = this.getHealthcareInflationRate(y);
         projectedValue *= 1 + inflationRate;
+        this.log('fallback-inflation', { year: y, inflation_rate: inflationRate, value: projectedValue });
       }
     }
 
-    return Math.round(projectedValue * 100) / 100;
+    const result = Math.round(projectedValue * 100) / 100;
+    this.log('value-projected', { field: dataField, year, latest_year: latestYear, projected_value: result });
+    return result;
   }
 
   /**
@@ -172,6 +176,15 @@ export class MedicareManager {
       return { partBSurcharge: 0, partDSurcharge: 0 };
     }
 
+    this.log('irmaa-bracket-matched', {
+      magi,
+      filing_status: filingStatus,
+      year,
+      tier: matchedBracket.tier,
+      part_b_surcharge: matchedBracket.partBPremium,
+      part_d_surcharge: matchedBracket.partDSurcharge,
+    });
+
     // Get base bracket (tier 0) to calculate surcharge
     const baseBracket = yearBrackets[0];
     const basePremium = baseBracket.partBPremium || 0;
@@ -188,7 +201,9 @@ export class MedicareManager {
    * Uses historical data with change ratios for future projection.
    */
   getPartBPremium(year: number): number {
-    return this.getMedicareValue('partBPremium', year, 174.7);
+    const premium = this.getMedicareValue('partBPremium', year, 174.7);
+    this.log('part-b-premium', { year, premium });
+    return premium;
   }
 
   /**
@@ -196,7 +211,9 @@ export class MedicareManager {
    * Uses historical data with change ratios for future projection.
    */
   getPartDBasePremium(year: number): number {
-    return this.getMedicareValue('partDBasePremium', year, 36);
+    const premium = this.getMedicareValue('partDBasePremium', year, 36);
+    this.log('part-d-premium', { year, premium });
+    return premium;
   }
 
   /**

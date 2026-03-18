@@ -122,6 +122,7 @@ export class RetirementManager {
       socialSecurity.paycheckNames.forEach((paycheckName) => {
         this.validIncomeNamesToSocialSecurity.set(paycheckName, socialSecurity);
       });
+      this.log('ss-initialized', { name: socialSecurity.name, year_count: this.socialSecurityAnnualIncomes.get(socialSecurity.name)?.size ?? 0 });
     });
   }
 
@@ -141,6 +142,7 @@ export class RetirementManager {
       pension.paycheckNames.forEach((paycheckName) => {
         this.validIncomeNamesToPension.set(paycheckName, pension);
       });
+      this.log('pension-initialized', { name: pension.name, year_count: this.pensionAnnualIncomes.get(pension.name)?.size ?? 0 });
     });
   }
 
@@ -167,6 +169,9 @@ export class RetirementManager {
     // Apply the Social Security taxable wage base cap
     const wageBaseCap = getWageBaseCap(year);
     const cappedIncome = Math.min(totalIncome, wageBaseCap);
+    if (totalIncome > wageBaseCap) {
+      this.log('wage-base-capped', { year, total_income: totalIncome, wage_base_cap: wageBaseCap, capped_income: cappedIncome });
+    }
     this.socialSecurityAnnualIncomes.get(name)?.set(year, cappedIncome);
   }
 
@@ -194,6 +199,8 @@ export class RetirementManager {
     const factorForCollectionAge = this.factorForCollectionAge(socialSecurity.collectionAge, birthYear);
     let monthlyPay = pia * factorForCollectionAge;
 
+    this.log('ss-monthly-calculated', { name: socialSecurity.name, monthly_pay: monthlyPay, collection_age: socialSecurity.collectionAge, factor: factorForCollectionAge });
+
     // Apply spousal benefit if spouse exists and their benefit has been calculated
     // TODO #26: Store raw PIA for more accurate spousal benefit calculation (currently using adjusted monthly pay as approximation)
     if (socialSecurity.spouseName) {
@@ -202,7 +209,9 @@ export class RetirementManager {
         // Spousal benefit = 50% of spouse's monthly pay (approximates 50% of PIA with claiming age adjustments)
         const spousalBenefit = spouseMonthlyPay * 0.5;
         // Lower-earning spouse gets the higher of their own benefit or spousal benefit
+        const ownBenefit = monthlyPay;
         monthlyPay = Math.max(monthlyPay, spousalBenefit);
+        this.log('spousal-benefit-checked', { name: socialSecurity.name, own_benefit: ownBenefit, spousal_benefit: spousalBenefit, result: monthlyPay });
       }
     }
 
@@ -213,6 +222,7 @@ export class RetirementManager {
     const highestCompensationAverage = this.getHighestCompensationAverage(pension);
     const monthlyPay =
       (highestCompensationAverage * pension.accrualFactor * pension.yearsWorked * pension.reductionFactor) / 12;
+    this.log('pension-monthly-calculated', { name: pension.name, monthly_pay: monthlyPay, avg_compensation: highestCompensationAverage, years_worked: pension.yearsWorked });
     this.pensionMonthlyPay.set(pension.name, monthlyPay);
     if (startYear !== undefined) {
       this.pensionFirstPaymentYear.set(pension.name, startYear);
@@ -257,7 +267,9 @@ export class RetirementManager {
     while (indexedAnnualIncomes.length < 35) {
       indexedAnnualIncomes.push(0);
     }
-    return indexedAnnualIncomes.reduce((sum, curr) => sum + curr, 0) / 35 / 12;
+    const aime = indexedAnnualIncomes.reduce((sum, curr) => sum + curr, 0) / 35 / 12;
+    this.log('aime-calculated', { name: socialSecurity.name, aime });
+    return aime;
   }
 
   private getIndexedAnnualIncomes(yearTurn60: number, yearlyIncomes: { year: number; amount: number }[]) {
@@ -267,10 +279,12 @@ export class RetirementManager {
       if (year > yearTurn60) {
         // For years after the year the person turns 60, we use the raw income
         indexedAnnualIncomes.push(amount);
+        this.log('indexed-earnings', { year, raw_earnings: amount, indexed_earnings: amount });
       } else {
         // For years before the year the person turns 60, we base the indexed income on the average wage index for the year the person turns 60
         const indexedEarnings = (amount * averageWageIndex[yearTurn60]) / averageWageIndex[year];
         indexedAnnualIncomes.push(indexedEarnings);
+        this.log('indexed-earnings', { year, raw_earnings: amount, indexed_earnings: indexedEarnings });
       }
     });
     return indexedAnnualIncomes;
@@ -339,11 +353,14 @@ export class RetirementManager {
     const bendPoints = this.getBendPoints(yearTurns62);
     const firstBendPoint = bendPoints[yearTurns62].first;
     const secondBendPoint = bendPoints[yearTurns62].second;
+    const originalAime = aime;
     const firstAmount = Math.min(aime, firstBendPoint);
     aime -= firstAmount;
     const secondAmount = Math.min(aime, secondBendPoint);
     aime -= secondAmount;
-    return firstAmount * 0.9 + secondAmount * 0.32 + aime * 0.15;
+    const pia = firstAmount * 0.9 + secondAmount * 0.32 + aime * 0.15;
+    this.log('pia-computed', { name: 'ss', aime: originalAime, bend1: firstBendPoint, bend2: secondBendPoint, pia });
+    return pia;
   }
 
   /**
@@ -377,6 +394,9 @@ export class RetirementManager {
     }
 
     const fra = this.getFullRetirementAge(birthYear);
+    const fraYears = Math.floor(fra);
+    const fraMonths = Math.round((fra - fraYears) * 12);
+    this.log('fra-determined', { birth_year: birthYear, fra_years: fraYears, fra_months: fraMonths });
     const monthsFromFRA = Math.round((collectionAge - fra) * 12);
 
     if (monthsFromFRA === 0) {

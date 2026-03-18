@@ -98,15 +98,18 @@ export class ContributionLimitManager {
     const historicRates = getHistoricRates();
     const yearStr = String(year);
 
+    let limit: number | undefined;
     if (limitType === '401k' && historicRates.contributionLimits?.['401k']) {
-      const limit = historicRates.contributionLimits['401k'][yearStr];
-      return limit !== undefined ? limit : null;
+      limit = historicRates.contributionLimits['401k'][yearStr];
     } else if (limitType === 'ira' && historicRates.contributionLimits?.['ira']) {
-      const limit = historicRates.contributionLimits['ira'][yearStr];
-      return limit !== undefined ? limit : null;
+      limit = historicRates.contributionLimits['ira'][yearStr];
     } else if (limitType === 'hsa' && historicRates.contributionLimits?.['hsa']) {
-      const limit = historicRates.contributionLimits['hsa'][yearStr];
-      return limit !== undefined ? limit : null;
+      limit = historicRates.contributionLimits['hsa'][yearStr];
+    }
+
+    if (limit !== undefined) {
+      this.log('historical-limit-loaded', { limit_type: limitType, year, limit });
+      return limit;
     }
 
     return null;
@@ -115,10 +118,12 @@ export class ContributionLimitManager {
   /**
    * Inflate a base limit from 2024 to a given year
    */
-  private inflateLimitToYear(baseLimit: number, targetYear: number): number {
+  private inflateLimitToYear(baseLimit: number, targetYear: number, limitType?: string): number {
     const yearsDiff = targetYear - 2024;
     if (yearsDiff <= 0) return baseLimit;
-    return Math.round(baseLimit * Math.pow(1 + ANNUAL_INFLATION_RATE, yearsDiff));
+    const inflated = Math.round(baseLimit * Math.pow(1 + ANNUAL_INFLATION_RATE, yearsDiff));
+    this.log('limit-inflated', { limit_type: limitType ?? 'unknown', year: targetYear, base_limit: baseLimit, inflated_limit: inflated });
+    return inflated;
   }
 
   /**
@@ -142,13 +147,14 @@ export class ContributionLimitManager {
       // Add catch-up for current year
       let totalLimit = compoundedBase;
       if (limitType === '401k' && ageAtYear >= 50) {
-        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['401k'], year);
+        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['401k'], year, '401k-catchup');
       } else if (limitType === 'ira' && ageAtYear >= 50) {
-        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['ira'], year);
+        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['ira'], year, 'ira-catchup');
       } else if (limitType === 'hsa' && ageAtYear >= 55) {
-        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['hsa'], year);
+        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['hsa'], year, 'hsa-catchup');
       }
 
+      this.log('base-limit-with-catchup', { limit_type: limitType, year, age: ageAtYear, base_limit: compoundedBase, catchup_eligible: totalLimit > compoundedBase, total_limit: totalLimit });
       return totalLimit;
     }
 
@@ -158,12 +164,13 @@ export class ContributionLimitManager {
       let baseLimit = historicalLimit;
       // Add catch-up if applicable (historical limits are base limits only)
       if (limitType === '401k' && ageAtYear >= 50) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['401k'], year);
+        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['401k'], year, '401k-catchup');
       } else if (limitType === 'ira' && ageAtYear >= 50) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['ira'], year);
+        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['ira'], year, 'ira-catchup');
       } else if (limitType === 'hsa' && ageAtYear >= 55) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['hsa'], year);
+        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['hsa'], year, 'hsa-catchup');
       }
+      this.log('base-limit-with-catchup', { limit_type: limitType, year, age: ageAtYear, base_limit: historicalLimit, catchup_eligible: baseLimit > historicalLimit, total_limit: baseLimit });
       return baseLimit;
     }
 
@@ -171,20 +178,26 @@ export class ContributionLimitManager {
     let baseLimit = 0;
 
     if (limitType === '401k') {
-      baseLimit = this.inflateLimitToYear(BASE_LIMITS_2024['401k'], year);
+      baseLimit = this.inflateLimitToYear(BASE_LIMITS_2024['401k'], year, '401k');
+      const baseBefore = baseLimit;
       if (ageAtYear >= 50) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['401k'], year);
+        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['401k'], year, '401k-catchup');
       }
+      this.log('base-limit-with-catchup', { limit_type: limitType, year, age: ageAtYear, base_limit: baseBefore, catchup_eligible: ageAtYear >= 50, total_limit: baseLimit });
     } else if (limitType === 'ira') {
-      baseLimit = this.inflateLimitToYear(BASE_LIMITS_2024['ira'], year);
+      baseLimit = this.inflateLimitToYear(BASE_LIMITS_2024['ira'], year, 'ira');
+      const baseBefore = baseLimit;
       if (ageAtYear >= 50) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['ira'], year);
+        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['ira'], year, 'ira-catchup');
       }
+      this.log('base-limit-with-catchup', { limit_type: limitType, year, age: ageAtYear, base_limit: baseBefore, catchup_eligible: ageAtYear >= 50, total_limit: baseLimit });
     } else if (limitType === 'hsa') {
-      baseLimit = this.inflateLimitToYear(BASE_LIMITS_2024['hsa_individual'], year);
+      baseLimit = this.inflateLimitToYear(BASE_LIMITS_2024['hsa_individual'], year, 'hsa');
+      const baseBefore = baseLimit;
       if (ageAtYear >= 55) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['hsa'], year);
+        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['hsa'], year, 'hsa-catchup');
       }
+      this.log('base-limit-with-catchup', { limit_type: limitType, year, age: ageAtYear, base_limit: baseBefore, catchup_eligible: ageAtYear >= 55, total_limit: baseLimit });
     }
 
     return baseLimit;
@@ -221,16 +234,20 @@ export class ContributionLimitManager {
 
     const yearMap = this.contributionsByPerson.get(personKey);
     if (!yearMap || !yearMap.has(year)) {
+      this.log('remaining-limit-checked', { person: personKey, year, limit_type: limitType, total_limit: totalLimit, contributed: 0, remaining: totalLimit });
       return totalLimit;
     }
 
     const yearContributions = yearMap.get(year);
     if (!yearContributions || !yearContributions.has(limitType)) {
+      this.log('remaining-limit-checked', { person: personKey, year, limit_type: limitType, total_limit: totalLimit, contributed: 0, remaining: totalLimit });
       return totalLimit;
     }
 
     const alreadyContributed = yearContributions.get(limitType) || 0;
-    return Math.max(0, totalLimit - alreadyContributed);
+    const remaining = Math.max(0, totalLimit - alreadyContributed);
+    this.log('remaining-limit-checked', { person: personKey, year, limit_type: limitType, total_limit: totalLimit, contributed: alreadyContributed, remaining });
+    return remaining;
   }
 
   /**
@@ -278,6 +295,8 @@ export class ContributionLimitManager {
 
     const yearContributions = yearMap.get(year)!;
     const currentAmount = yearContributions.get(limitType) || 0;
-    yearContributions.set(limitType, currentAmount + amount);
+    const newTotal = currentAmount + amount;
+    yearContributions.set(limitType, newTotal);
+    this.log('contribution-recorded', { person: personKey, year, limit_type: limitType, amount, new_total: newTotal });
   }
 }
