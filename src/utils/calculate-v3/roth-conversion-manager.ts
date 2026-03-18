@@ -230,7 +230,16 @@ export class RothConversionManager {
           if (retireYear !== null && age65Year !== null && birthDate1 !== null && birthDate2 !== null) {
             // Conversion in December of year N affects MAGI for year N, which affects ACA subsidy in year N+1
             const nextYear = year + 1;
-            const inAcaPeriodNextYear = nextYear >= retireYear && nextYear < age65Year;
+
+            // COBRA covers the first 18 months after retirement; ACA only starts after COBRA ends.
+            // During COBRA years, premiums are fixed-cost with no income-based subsidy, so the
+            // ACA subsidy check should not apply.
+            const retireDateObj = retireDateResult instanceof Date ? retireDateResult : null;
+            const cobraEndDate = retireDateObj ? dayjs.utc(retireDateObj).add(18, 'month') : null;
+            const nextYearStart = dayjs.utc(new Date(Date.UTC(nextYear, 0, 1)));
+            const afterCobra = cobraEndDate ? nextYearStart.isAfter(cobraEndDate) || nextYearStart.isSame(cobraEndDate) : true;
+
+            const inAcaPeriodNextYear = nextYear >= retireYear && nextYear < age65Year && afterCobra;
 
             if (inAcaPeriodNextYear) {
               // Get current year's income (MAGI for next year ACA subsidy calculation)
