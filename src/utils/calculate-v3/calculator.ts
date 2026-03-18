@@ -1663,7 +1663,7 @@ export class Calculator {
         isTransfer: false,
         category: 'Insurance.LTC',
         flag: true,
-        flagColor: 'purple',
+        flagColor: 'violet',
       });
 
       if (!segmentResult.activitiesAdded.has(accountId)) {
