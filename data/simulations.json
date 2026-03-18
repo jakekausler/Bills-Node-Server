@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Default",
+    "enabled": true,
+    "selected": true
+  },
+  {
+    "name": "Conservative",
+    "enabled": true,
+    "selected": false
+  }
+]

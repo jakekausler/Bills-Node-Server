@@ -1,0 +1,28 @@
+{
+  "configs": [
+    {
+      "name": "Employer Health Plan",
+      "coveredPersons": [
+        "Alice",
+        "Bob"
+      ],
+      "startDate": "2020-01-01",
+      "startDateIsVariable": false,
+      "startDateVariable": null,
+      "endDate": null,
+      "endDateIsVariable": true,
+      "endDateVariable": "RETIRE_DATE",
+      "individualDeductible": 1500,
+      "individualOutOfPocketMax": 8000,
+      "familyDeductible": 3000,
+      "familyOutOfPocketMax": 16000,
+      "hsaAccountId": null,
+      "hsaReimbursementEnabled": false,
+      "resetMonth": 0,
+      "resetDay": 1,
+      "id": "hc-employer-001",
+      "deductibleInflationRate": 0.05,
+      "deductibleInflationVariable": "HEALTHCARE_INFLATION"
+    }
+  ]
+}

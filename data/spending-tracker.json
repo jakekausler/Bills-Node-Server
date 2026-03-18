@@ -1,0 +1,86 @@
+{
+  "categories": [
+    {
+      "id": "1a1dfe3e-9b0f-48c8-80e2-7fc1a2b31471",
+      "name": "Shared Spending",
+      "threshold": 2000,
+      "thresholdIsVariable": true,
+      "thresholdVariable": "SHARED_SPENDING",
+      "interval": "monthly",
+      "intervalStart": "1",
+      "accountId": "48543ddb-ea3c-4ab9-9230-178a4f4fadfc",
+      "carryOver": true,
+      "carryUnder": false,
+      "increaseBy": 0.03,
+      "increaseByIsVariable": true,
+      "increaseByVariable": "INFLATION",
+      "increaseByDate": "01/01",
+      "thresholdChanges": [
+        {
+          "date": "2028-03-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "newThreshold": 2500,
+          "newThresholdIsVariable": false,
+          "newThresholdVariable": null,
+          "resetCarry": false
+        }
+      ],
+      "initializeDate": "2025-01-01"
+    },
+    {
+      "id": "0479cdd5-1632-4a1d-aaac-a816582e3a46",
+      "name": "Alice Spending",
+      "threshold": 500,
+      "thresholdIsVariable": true,
+      "thresholdVariable": "ALICE_SPENDING",
+      "interval": "monthly",
+      "intervalStart": "1",
+      "accountId": "252d7f60-17c3-4032-a401-d4e740514be6",
+      "carryOver": false,
+      "carryUnder": false,
+      "increaseBy": 0.03,
+      "increaseByIsVariable": true,
+      "increaseByVariable": "INFLATION",
+      "increaseByDate": "01/01",
+      "thresholdChanges": [],
+      "initializeDate": "2025-01-01"
+    },
+    {
+      "id": "2e2d2ec0-721d-4393-b21e-c104021a28ef",
+      "name": "Vacation",
+      "threshold": 6000,
+      "thresholdIsVariable": true,
+      "thresholdVariable": "VACATION_SPENDING",
+      "interval": "yearly",
+      "intervalStart": "01/01",
+      "accountId": "48543ddb-ea3c-4ab9-9230-178a4f4fadfc",
+      "carryOver": true,
+      "carryUnder": false,
+      "increaseBy": 0.03,
+      "increaseByIsVariable": true,
+      "increaseByVariable": "INFLATION",
+      "increaseByDate": "01/01",
+      "thresholdChanges": [],
+      "initializeDate": "2025-01-01"
+    },
+    {
+      "id": "c134340b-f425-4498-9544-4d2060447aa3",
+      "name": "Emergency",
+      "threshold": 3000,
+      "thresholdIsVariable": true,
+      "thresholdVariable": "EMERGENCY_SPENDING",
+      "interval": "yearly",
+      "intervalStart": "01/01",
+      "accountId": "48543ddb-ea3c-4ab9-9230-178a4f4fadfc",
+      "carryOver": true,
+      "carryUnder": true,
+      "increaseBy": 0,
+      "increaseByIsVariable": false,
+      "increaseByVariable": null,
+      "increaseByDate": "01/01",
+      "thresholdChanges": [],
+      "initializeDate": "2025-01-01"
+    }
+  ]
+}
