@@ -277,6 +277,7 @@ export class Engine {
       spendingTrackerCategories,
       options.simulation,
       actualStartDate,
+      this.debugLogger,
     );
 
     // Pre-set lastProcessedPeriodEnd so that recordSegmentActivities filters out
