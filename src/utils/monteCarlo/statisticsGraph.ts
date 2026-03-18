@@ -1,13 +1,8 @@
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { SimulationResult, FilteredAccount, FilteredActivity } from './types';
-import { isSame } from '../date/date';
+import { FilteredAccount, FilteredActivity } from './types';
 import { loadData } from '../io/accountsAndTransfers';
 import { MC_RESULTS_DIR } from './paths';
-
-dayjs.extend(utc);
 
 export interface PercentileGraphData {
   type: 'percentile';
@@ -52,7 +47,9 @@ interface SimulationYearlyData {
 }
 
 /**
- * Calculates the minimum daily balance across all accounts for each year in a simulation
+ * Calculates the minimum balance per account per year, then sums across accounts.
+ * This matches Graph View's approach: sum(min per account per year) rather than
+ * min(sum across accounts per day), ensuring consistent values between views.
  * @param accounts - Array of filtered accounts
  * @param separateAccounts - If true, also return per-account yearly minimums
  */
@@ -63,81 +60,42 @@ export function calculateYearlyMinBalances(
   combined: YearlyMinBalances;
   perAccount?: YearlyAccountBalances;
 } {
-  const yearlyMinBalances: YearlyMinBalances = {};
   const yearlyAccountBalances: YearlyAccountBalances = {};
 
-  // Create a map to track current balance for each account
-  const accountBalances: Record<string, number> = {};
-  accounts.forEach((acc) => {
-    accountBalances[acc.id] = 0;
-  });
+  // For each account, track its per-year minimum balance independently
+  for (const acc of accounts) {
+    // Track current balance for this account
+    let currentBalance = 0;
 
-  // Create a consolidated list of all activities across all accounts, sorted by date
-  const allActivities: (FilteredActivity & { accountId: string; parsedDate: Date })[] = [];
+    for (const activity of acc.consolidatedActivity) {
+      const date = new Date(activity.date);
+      const year = date.getUTCFullYear();
+      currentBalance = activity.balance;
 
-  accounts.forEach((acc) => {
-    acc.consolidatedActivity.forEach((activity) => {
-      allActivities.push({
-        ...activity,
-        accountId: acc.id,
-        parsedDate: new Date(activity.date),
-      });
-    });
-  });
-
-  // Sort activities by date
-  allActivities.sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
-
-  // Process activities day by day
-  let currentDate = allActivities[0]?.parsedDate;
-  if (!currentDate) return { combined: yearlyMinBalances };
-
-  const endDate = allActivities[allActivities.length - 1]?.parsedDate;
-  if (!endDate) return { combined: yearlyMinBalances };
-
-  let activityIndex = 0;
-
-  while (currentDate.getTime() <= endDate.getTime()) {
-    const currentYear = currentDate.getUTCFullYear();
-
-    // Process all activities for this date
-    while (activityIndex < allActivities.length && isSame(allActivities[activityIndex].parsedDate, currentDate)) {
-      const activity = allActivities[activityIndex];
-      accountBalances[activity.accountId] = activity.balance;
-      activityIndex++;
-    }
-
-    // Calculate total balance across all accounts for this date
-    const totalBalance = Object.values(accountBalances).reduce((sum, balance) => sum + balance, 0);
-
-    // Update yearly minimum for combined balances
-    if (yearlyMinBalances[currentYear] === undefined) {
-      yearlyMinBalances[currentYear] = totalBalance;
-    } else {
-      yearlyMinBalances[currentYear] = Math.min(yearlyMinBalances[currentYear], totalBalance);
-    }
-
-    // Update yearly minimum for individual accounts if requested
-    if (separateAccounts) {
-      if (!yearlyAccountBalances[currentYear]) {
-        yearlyAccountBalances[currentYear] = {};
+      // Initialize year entry if needed
+      if (!yearlyAccountBalances[year]) {
+        yearlyAccountBalances[year] = {};
       }
 
-      accounts.forEach((acc) => {
-        const accountBalance = accountBalances[acc.id];
-        if (yearlyAccountBalances[currentYear][acc.id] === undefined) {
-          yearlyAccountBalances[currentYear][acc.id] = accountBalance;
-        } else {
-          yearlyAccountBalances[currentYear][acc.id] = Math.min(
-            yearlyAccountBalances[currentYear][acc.id],
-            accountBalance,
-          );
-        }
-      });
+      // Update per-account yearly minimum
+      if (yearlyAccountBalances[year][acc.id] === undefined) {
+        yearlyAccountBalances[year][acc.id] = currentBalance;
+      } else {
+        yearlyAccountBalances[year][acc.id] = Math.min(
+          yearlyAccountBalances[year][acc.id],
+          currentBalance,
+        );
+      }
     }
+  }
 
-    // Move to next day
-    currentDate = dayjs.utc(currentDate).add(1, 'day').toDate();
+  // Combined = sum of per-account minimums for each year
+  const yearlyMinBalances: YearlyMinBalances = {};
+  for (const yearStr of Object.keys(yearlyAccountBalances)) {
+    const year = parseInt(yearStr);
+    yearlyMinBalances[year] = accounts.reduce((sum, acc) => {
+      return sum + (yearlyAccountBalances[year][acc.id] ?? 0);
+    }, 0);
   }
 
   return {
@@ -248,8 +206,9 @@ async function runDeterministicCalculation(
       },
     );
 
-    // Convert to filtered accounts format
-    const filteredAccounts: FilteredAccount[] = results.accounts.map(
+    // Filter out hidden accounts to match Graph View behavior, then convert to filtered format
+    const visibleAccounts = results.accounts.filter(acc => !acc.hidden);
+    const filteredAccounts: FilteredAccount[] = visibleAccounts.map(
       (account): FilteredAccount => ({
         name: account.name,
         id: account.id,

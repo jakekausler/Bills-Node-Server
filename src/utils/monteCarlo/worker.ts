@@ -183,8 +183,9 @@ async function runSingleSimulation(
       debugLogger, // debug logger for selected sims
     );
 
-    // Filter and format results for balance calculation
-    const filteredAccounts: FilteredAccount[] = results.accounts.map(
+    // Filter out hidden accounts to match Graph View behavior, then format for balance calculation
+    const visibleAccounts = results.accounts.filter(acc => !acc.hidden);
+    const filteredAccounts: FilteredAccount[] = visibleAccounts.map(
       (account): FilteredAccount => ({
         name: account.name,
         id: account.id,
@@ -203,9 +204,9 @@ async function runSingleSimulation(
       }),
     );
 
-    // Capture account names on first simulation
+    // Capture account names on first simulation (visible accounts only)
     if (simulationNumber === 1 && accountNames.length === 0) {
-      accountNames = results.accounts.map(acc => ({ id: acc.id, name: acc.name }));
+      accountNames = visibleAccounts.map(acc => ({ id: acc.id, name: acc.name }));
     }
 
     // Calculate yearly minimum balances
