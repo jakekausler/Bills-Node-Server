@@ -9,6 +9,7 @@ import { loadDateOrVariable } from '../simulation/loadVariableValue';
 import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
 import type { DebugLogger } from './debug-logger';
+import type { SegmentResult } from './types';
 
 interface ConversionLot {
   year: number;
@@ -85,6 +86,7 @@ export class RothConversionManager {
     filingStatus: FilingStatus = 'mfj',
     inflationRate: number = 0.03,
     simulation: string = 'default',
+    segmentResult?: SegmentResult,
   ): ConversionResult[] {
     this.conversionsThisYear = [];
     this.currentDate = `${year}-12-31`;
@@ -100,7 +102,7 @@ export class RothConversionManager {
 
     // Filter and sort enabled configs by priority
     const enabledConfigs = this.configs.filter(c => c.enabled);
-    const sortedConfigs = this.sortConfigsByPriority(enabledConfigs, balanceTracker);
+    const sortedConfigs = this.sortConfigsByPriority(enabledConfigs, balanceTracker, segmentResult);
 
     for (const config of sortedConfigs) {
       // Load start/end dates from variables
@@ -175,8 +177,8 @@ export class RothConversionManager {
         continue;
       }
 
-      // Check source account has funds
-      const sourceBalance = balanceTracker.getAccountBalance(sourceAccount.id);
+      // Check source account has funds (use effective balance to account for in-flight segment changes)
+      const sourceBalance = balanceTracker.getEffectiveBalance(sourceAccount.id, segmentResult);
       if (sourceBalance <= 0) {
         continue;
       }
@@ -402,6 +404,7 @@ export class RothConversionManager {
   private sortConfigsByPriority(
     configs: RothConversionConfig[],
     balanceTracker: BalanceTracker,
+    segmentResult?: SegmentResult,
   ): RothConversionConfig[] {
     return configs.sort((a, b) => {
       const accountA = this.accountManager.getAccountByName(a.sourceAccount);
@@ -411,8 +414,8 @@ export class RothConversionManager {
         return 0;
       }
 
-      const balA = balanceTracker.getAccountBalance(accountA.id);
-      const balB = balanceTracker.getAccountBalance(accountB.id);
+      const balA = balanceTracker.getEffectiveBalance(accountA.id, segmentResult);
+      const balB = balanceTracker.getEffectiveBalance(accountB.id, segmentResult);
 
       // Use the first config's priority for sorting (assumes all same priority)
       const priority = configs[0]?.priority ?? 'largerFirst';

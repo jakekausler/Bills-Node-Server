@@ -37,6 +37,7 @@ import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecur
 import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
 import { computePeriodBoundaries } from './period-utils';
 import { loadVariable } from '../simulation/variable';
+import { getPersonGender } from '../io/persons';
 import type { DebugLogger } from './debug-logger';
 
 export class Timeline {
@@ -224,8 +225,8 @@ export class Timeline {
       timeline.addRothConversionEvents(startDate, endDate, calculationOptions),
       timeline.addSpendingTrackerEvents(spendingTrackerCategories, startDate, endDate),
       timeline.addMedicareEvents(accountsAndTransfers, startDate, endDate),
-      timeline.addAcaEvents(startDate, endDate),
-      timeline.addLTCEvents(startDate, endDate),
+      timeline.addAcaEvents(startDate, endDate, calculationOptions),
+      timeline.addLTCEvents(startDate, endDate, calculationOptions),
     ]);
 
     // Sort and optimize timeline
@@ -500,17 +501,18 @@ export class Timeline {
     }
   }
 
-  private async addLTCEvents(startDate: Date, endDate: Date): Promise<void> {
+  private async addLTCEvents(startDate: Date, endDate: Date, calculationOptions: CalculationOptions): Promise<void> {
     // LTC events are generated per-person from insurance purchase age onward (default 60)
     // Markov chain only steps when age >= 65, but premiums start at purchase age
-    // Load LTC config (we'll keep it simple for now and generate events for Jake and Kendall)
     const socialSecurities = this.accountManager.getSocialSecurities();
 
-    // Find Jake's account for all LTC payments
-    const jakeAccount = this.accountManager.getAccountByName('Jake');
-    if (!jakeAccount) {
+    // Find payment account using configured tax account name
+    const paymentAccount = calculationOptions.taxAccountName
+      ? this.accountManager.getAccountByName(calculationOptions.taxAccountName)
+      : undefined;
+    if (!paymentAccount) {
       if (this.enableLogging) {
-        console.log('  Jake account not found, skipping LTC events');
+        console.log(`  Payment account (${calculationOptions.taxAccountName ?? 'undefined'}) not found, skipping LTC events`);
       }
       return;
     }
@@ -535,8 +537,7 @@ export class Timeline {
         // Extract person name by removing " Social Security" suffix
         const personName = socialSecurity.name.replace(' Social Security', '');
 
-        // For now, determine gender from the person name (Jake = male, Kendall = female)
-        const gender = personName === 'Jake' ? 'male' : 'female';
+        const gender = getPersonGender(personName);
 
         // Start events from the earlier of age 60 (purchase age) or age 65 (Markov chain start)
         // but use age 60 as earliest since premiums start then
@@ -547,7 +548,7 @@ export class Timeline {
           gender,
           eventStartDate,
           endDate,
-          jakeAccount.id,
+          paymentAccount.id,
           birthDate,
           startDate,
           monthIndex,
@@ -564,7 +565,7 @@ export class Timeline {
     }
   }
 
-  private async addAcaEvents(startDate: Date, endDate: Date): Promise<void> {
+  private async addAcaEvents(startDate: Date, endDate: Date, calculationOptions: CalculationOptions): Promise<void> {
     const countBefore = this.events.length;
     const socialSecurities = this.accountManager.getSocialSecurities();
 
@@ -578,11 +579,13 @@ export class Timeline {
     }
     const retireDate = new Date(retireDateResult as string);
 
-    // Find Jake's account for all healthcare payments
-    const jakeAccount = this.accountManager.getAccountByName('Jake');
-    if (!jakeAccount) {
+    // Find payment account using configured tax account name
+    const paymentAccount = calculationOptions.taxAccountName
+      ? this.accountManager.getAccountByName(calculationOptions.taxAccountName)
+      : undefined;
+    if (!paymentAccount) {
       if (this.enableLogging) {
-        console.log('  Jake account not found, skipping ACA events');
+        console.log(`  Payment account (${calculationOptions.taxAccountName ?? 'undefined'}) not found, skipping ACA events`);
       }
       return;
     }
@@ -619,7 +622,7 @@ export class Timeline {
       'Household',
       retireDate,
       laterAge65Date,
-      jakeAccount.id,
+      paymentAccount.id,
       birthDates[0],
       birthDates[1],
       startDate,

@@ -225,6 +225,19 @@ export class BalanceTracker {
   }
 
   /**
+   * Gets the effective balance for an account, accounting for in-flight
+   * segment changes that haven't been applied yet.
+   * This is critical for events like Roth conversions that run at the end
+   * of a segment — the base balance is stale (set before the segment started),
+   * so we must add any pending balance changes from the current segment.
+   */
+  getEffectiveBalance(accountId: string, segmentResult?: SegmentResult): number {
+    const base = this.balances[accountId] || 0;
+    const change = segmentResult?.balanceChanges?.get(accountId) || 0;
+    return base + change;
+  }
+
+  /**
    * Gets the account by id
    */
   findAccountById(accountId: string): Account | undefined {

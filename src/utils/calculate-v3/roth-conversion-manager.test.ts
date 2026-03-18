@@ -153,6 +153,11 @@ describe('RothConversionManager', () => {
           if (id === 'checking-id') return 50000; // Liquid assets
           return 0;
         }),
+        getEffectiveBalance: vi.fn((id: string) => {
+          if (id === 'jake-401k-id') return 200000;
+          if (id === 'checking-id') return 50000;
+          return 0;
+        }),
       } as any;
 
       // Set income to $80K (leaving ~$121K space in 22% bracket)
@@ -180,6 +185,11 @@ describe('RothConversionManager', () => {
         getAccountBalance: vi.fn((id: string) => {
           if (id === 'jake-401k-id') return 200000;
           if (id === 'checking-id') return 5000; // Low liquid balance is OK
+          return 0;
+        }),
+        getEffectiveBalance: vi.fn((id: string) => {
+          if (id === 'jake-401k-id') return 200000;
+          if (id === 'checking-id') return 5000;
           return 0;
         }),
       } as any;
@@ -251,6 +261,12 @@ describe('RothConversionManager', () => {
           if (id === 'checking-id') return 100000; // Enough liquid
           return 0;
         }),
+        getEffectiveBalance: vi.fn((id: string) => {
+          if (id === 'jake-401k-id') return 100000;
+          if (id === 'kendall-401k-id') return 200000;
+          if (id === 'checking-id') return 100000;
+          return 0;
+        }),
       } as any;
 
       taxManager.addTaxableOccurrence('kendall-401k-id', {
@@ -273,6 +289,7 @@ describe('RothConversionManager', () => {
       const year = 2050; // Outside RETIRE_DATE (2025) to JAKE_SOCIAL_SECURITY_START_DATE (2035)
       const mockBalanceTracker = {
         getAccountBalance: vi.fn(() => 200000),
+        getEffectiveBalance: vi.fn(() => 200000),
       } as any;
 
       manager.processConversions(year, taxManager, mockBalanceTracker, 'mfj', 0.03, 'default');
@@ -287,7 +304,12 @@ describe('RothConversionManager', () => {
       const mockBalanceTracker = {
         getAccountBalance: vi.fn((id: string) => {
           if (id === 'jake-401k-id') return 200000;
-          if (id === 'checking-id') return 50000; // Liquid assets
+          if (id === 'checking-id') return 50000;
+          return 0;
+        }),
+        getEffectiveBalance: vi.fn((id: string) => {
+          if (id === 'jake-401k-id') return 200000;
+          if (id === 'checking-id') return 50000;
           return 0;
         }),
       } as any;
@@ -316,6 +338,11 @@ describe('RothConversionManager', () => {
           if (id === 'checking-id') return 50000;
           return 0;
         }),
+        getEffectiveBalance: vi.fn((id: string) => {
+          if (id === 'jake-401k-id') return 100000;
+          if (id === 'checking-id') return 50000;
+          return 0;
+        }),
       } as any;
 
       taxManager.addTaxableOccurrence('jake-401k-id', {
@@ -336,6 +363,11 @@ describe('RothConversionManager', () => {
       const year = 2026;
       const mockBalanceTracker = {
         getAccountBalance: vi.fn((id: string) => {
+          if (id === 'jake-401k-id') return 100000;
+          if (id === 'checking-id') return 50000;
+          return 0;
+        }),
+        getEffectiveBalance: vi.fn((id: string) => {
           if (id === 'jake-401k-id') return 100000;
           if (id === 'checking-id') return 50000;
           return 0;
@@ -366,6 +398,11 @@ describe('RothConversionManager', () => {
           if (id === 'checking-id') return 50000;
           return 0;
         }),
+        getEffectiveBalance: vi.fn((id: string) => {
+          if (id === 'jake-401k-id') return 0; // Empty
+          if (id === 'checking-id') return 50000;
+          return 0;
+        }),
       } as any;
 
       manager.processConversions(year, taxManager, mockBalanceTracker, 'mfj', 0.03, 'default');
@@ -380,6 +417,11 @@ describe('RothConversionManager', () => {
       const year = 2026;
       const mockBalanceTracker = {
         getAccountBalance: vi.fn((id: string) => {
+          if (id === 'jake-401k-id') return 100000;
+          if (id === 'checking-id') return 50000;
+          return 0;
+        }),
+        getEffectiveBalance: vi.fn((id: string) => {
           if (id === 'jake-401k-id') return 100000;
           if (id === 'checking-id') return 50000;
           return 0;

@@ -991,6 +991,7 @@ export class Calculator {
       this.filingStatus,
       this.bracketInflationRate,
       this.simulation,
+      segmentResult,
     );
 
     this.log('roth-conversion-processed', {

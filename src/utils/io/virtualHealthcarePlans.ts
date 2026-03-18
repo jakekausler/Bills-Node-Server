@@ -3,6 +3,7 @@ import { loadPensionsAndSocialSecurity } from './retirement';
 import { loadHealthcareConfigs } from './healthcareConfigs';
 import { loadVariable } from '../simulation/variable';
 import { AcaManager } from '../calculate-v3/aca-manager';
+import { getPersonNames } from './persons';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
@@ -84,7 +85,7 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
         const virtualAcaPlan: HealthcareConfig = {
           id: 'virtual-aca-silver',
           name: 'ACA Silver Plan (Virtual)',
-          coveredPersons: ['Jake', 'Kendall'],
+          coveredPersons: getPersonNames(),
           startDate: retireDate.toISOString().split('T')[0] as any,
           startDateIsVariable: false,
           endDate: laterAge65Date.toISOString().split('T')[0] as any,
@@ -128,7 +129,7 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
       const virtualMedicarePlan: HealthcareConfig = {
         id: 'virtual-medicare',
         name: 'Medicare Plan (Virtual)',
-        coveredPersons: ['Jake', 'Kendall'],
+        coveredPersons: getPersonNames(),
         startDate: earlierAge65Date.toISOString().split('T')[0] as any,
         startDateIsVariable: false,
         endDate: null,
