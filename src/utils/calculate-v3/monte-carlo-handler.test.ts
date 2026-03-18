@@ -34,6 +34,26 @@ const mockHistoricRates = {
   healthcareCpi: [4, 5, 6, 5.5, 4.5],
   raise: [3, 5, 2, 4, 3.5],
   limitIncrease401k: [5, 6, 7, 5.5],
+  yearKeyed: Object.fromEntries(
+    Array.from({ length: 97 }, (_, i) => {
+      const year = 1928 + i;
+      return [String(year), {
+        highYield: 3 + (year % 4),
+        lowYield: 0.5 + (year % 3) * 0.3,
+        inflation: 2 + (year % 5),
+        healthcareCpi: 4 + (year % 3),
+        raise: 2 + (year % 4),
+        limitIncrease401k: 5 + (year % 3),
+        stock: 5 + (year % 16),
+        bond: 1 + (year % 6),
+        ssCola: 1 + (year % 5),
+        ssWageBaseRatio: 1.0 + (year % 10) * 0.01,
+        k401Ratio: 1.0 + (year % 8) * 0.015,
+        iraRatio: 1.0 + (year % 7) * 0.012,
+        hsaRatio: 1.0 + (year % 6) * 0.01,
+      }];
+    }),
+  ),
 };
 
 const mockPortfolioMakeup = {
@@ -273,6 +293,7 @@ describe('MonteCarloHandler', () => {
       const emptyRates = {
         ...mockHistoricRates,
         savings: { highYield: [], lowYield: [] },
+        yearKeyed: {},  // Clear yearKeyed to force fallback to drawRandomSample
       };
       mockReadFile.mockResolvedValueOnce(JSON.stringify(emptyRates));
       mockReadFile.mockResolvedValueOnce(JSON.stringify(mockPortfolioMakeup));
@@ -414,7 +435,9 @@ describe('MonteCarloHandler', () => {
         },
       };
 
-      vi.mocked(vi.dynamicImportSettled('fs/promises')).readFile = vi.fn((filePath: string) => {
+      const { readFile } = await import('fs/promises');
+      const mockReadFile = readFile as ReturnType<typeof vi.fn>;
+      mockReadFile.mockImplementation((filePath: string) => {
         if (filePath.endsWith('historicRates.json')) {
           return Promise.resolve(JSON.stringify(mockRates));
         }
@@ -469,7 +492,9 @@ describe('MonteCarloHandler', () => {
       const mockRates = JSON.parse(JSON.stringify(mockHistoricRates));
       mockRates.yearKeyed = { '2024': {} }; // No ratio data
 
-      vi.mocked(vi.dynamicImportSettled('fs/promises')).readFile = vi.fn((filePath: string) => {
+      const { readFile } = await import('fs/promises');
+      const mockReadFile = readFile as ReturnType<typeof vi.fn>;
+      mockReadFile.mockImplementation((filePath: string) => {
         if (filePath.endsWith('historicRates.json')) {
           return Promise.resolve(JSON.stringify(mockRates));
         }
@@ -615,6 +640,48 @@ describe('MonteCarloHandler', () => {
         const composition = mockPortfolioGlidePath[year.toString()];
         expect(composition.bond).toBe(bond);
       }
+    });
+  });
+
+  describe('drawn years tracking', () => {
+    it('should record drawn historical years during construction', async () => {
+      const handler = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 12345);
+      const drawnYears = handler.getDrawnYears();
+      // 2024, 2025, 2026 = 3 years
+      expect(drawnYears).toHaveLength(3);
+    });
+
+    it('should be reproducible with same seed', async () => {
+      const handler1 = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 12345);
+      const handler2 = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 12345);
+      expect(handler1.getDrawnYears()).toEqual(handler2.getDrawnYears());
+    });
+
+    it('different seeds produce different drawn years', async () => {
+      const handler1 = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 12345);
+      const handler2 = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 99999);
+      expect(handler1.getDrawnYears()).not.toEqual(handler2.getDrawnYears());
+    });
+
+    it('should return a defensive copy', async () => {
+      const handler = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 12345);
+      const years1 = handler.getDrawnYears();
+      const years2 = handler.getDrawnYears();
+      expect(years1).toEqual(years2);
+      expect(years1).not.toBe(years2); // different array references
+    });
+
+    it('should have one drawn year per simulation year', async () => {
+      const handler = await createHandler(new Date(2024, 0, 1), new Date(2030, 11, 31), 42);
+      // 2024 through 2030 = 7 years
+      expect(handler.getDrawnYears()).toHaveLength(7);
+    });
+
+    it('should have empty drawn years when no seed (still records)', async () => {
+      const handler = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31));
+      const drawnYears = handler.getDrawnYears();
+      // Still records even without seed
+      expect(drawnYears).toHaveLength(3);
     });
   });
 });

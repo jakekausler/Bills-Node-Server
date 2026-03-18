@@ -229,6 +229,7 @@ async function runSingleSimulation(
 
     // Extract inflation samples and compute cumulative inflation
     const inflationHandler = await MonteCarloHandler.getInstance(startDate, endDate, seed);
+    const drawnYears = inflationHandler.getDrawnYears();
     const inflationByYear = inflationHandler.getInflationByYear();
 
     const startYear = startDate.getUTCFullYear();
@@ -249,6 +250,7 @@ async function runSingleSimulation(
       yearlyAccountBalances: balanceData.perAccount,
       cumulativeInflation,
       fundingFailureYear,
+      drawnYears,
     };
 
     // Write to temporary file - store aggregated data only

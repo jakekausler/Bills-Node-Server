@@ -30,6 +30,7 @@ export class MonteCarloHandler {
   private yearKeyedData: Record<string, Record<string, number>> = {};
   private availableYears: number[] = [];
   private random: () => number = Math.random;
+  private drawnYears: number[] = [];
 
   public static async getInstance(startDate: Date, endDate: Date, seed?: number): Promise<MonteCarloHandler> {
     const handler = new MonteCarloHandler();
@@ -74,6 +75,7 @@ export class MonteCarloHandler {
     for (let year = startYear; year <= endYear; year++) {
       // Draw one random historical year for correlated sampling across all types
       const randomYear = this.availableYears[Math.floor(this.random() * this.availableYears.length)];
+      this.drawnYears.push(randomYear);
       const yearData = this.yearKeyedData[String(randomYear)] || {};
 
       // Build samples for this year from the drawn historical year
@@ -160,6 +162,10 @@ export class MonteCarloHandler {
   //   );
   //   fs.writeFile(segmentSamplesPath, JSON.stringify(this.segmentSamples, null, 2));
   // }
+
+  public getDrawnYears(): number[] {
+    return [...this.drawnYears];
+  }
 
   public getSample(type: MonteCarloSampleType, date: Date): number {
     const segmentKey = `${date.getUTCFullYear()}-${date.getUTCMonth() + 1}`;
