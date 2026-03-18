@@ -62124,7 +62124,7 @@
       "earlyWithdrawlPenalty": 0.1,
       "earlyWithdrawlDate": "2053-01-15",
       "interestPayAccount": null,
-      "usesRMD": true,
+      "usesRMD": false,
       "accountOwnerDOB": "1994-11-16",
       "rmdAccount": "Kendall",
       "minimumBalance": null,
