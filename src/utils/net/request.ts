@@ -163,10 +163,16 @@ export async function getData<T>(
   const isTransfer = getIsTransfer(request, fullDefaults.defaultIsTransfer);
   const skip = getSkip(request, fullDefaults.defaultSkip);
   const combineGraphAccounts = getCombineGraphAccounts(request, fullDefaults.defaultCombineGraphAccounts);
+  const debugLogger = (request as any)._debugLogger ?? null;
   const accountsAndTransfers = await loadData(
     options.overrideStartDateForCalculations || startDate,
     endDate,
     simulation,
+    {},
+    {
+      debugLogger,
+      forceRecalculation: !!debugLogger,
+    },
   );
   const { socialSecurities, pensions } = loadPensionsAndSocialSecurity(simulation);
   const asActivity = getAsActivity(request, fullDefaults.defaultAsActivity);

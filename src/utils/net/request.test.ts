@@ -211,6 +211,11 @@ describe('Request Utility', () => {
         new Date('2022-01-01'), // overrideStartDateForCalculations
         expect.any(Date), // endDate
         'TestSim',
+        {},
+        {
+          debugLogger: null,
+          forceRecalculation: false,
+        },
       );
       expect(mockLoadPensionsAndSocialSecurity).toHaveBeenCalledWith('TestSim');
     });

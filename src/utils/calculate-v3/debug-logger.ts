@@ -33,7 +33,7 @@ export class DebugLogger {
       return;
     }
 
-    const entry = { ...data, at: new Date().toISOString() };
+    const entry = { sim, ...data, at: new Date().toISOString() };
     const line = JSON.stringify(entry) + '\n';
 
     let buffer = this.buffers.get(sim);
