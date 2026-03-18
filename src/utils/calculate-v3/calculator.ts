@@ -58,6 +58,7 @@ export class Calculator {
   private bracketInflationRate: number;
   protected monteCarloConfig: any; // From parent, for PRNG access
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
   constructor(
     balanceTracker: BalanceTracker,
@@ -73,6 +74,7 @@ export class Calculator {
     filingStatus: FilingStatus = 'mfj',
     bracketInflationRate: number = 0.03,
     debugLogger?: DebugLogger | null,
+    simNumber: number = 0,
   ) {
     this.balanceTracker = balanceTracker;
     this.taxManager = taxManager;
@@ -87,14 +89,15 @@ export class Calculator {
     this.filingStatus = filingStatus;
     this.bracketInflationRate = bracketInflationRate;
     this.debugLogger = debugLogger ?? null;
-    this.contributionLimitManager = new ContributionLimitManager(debugLogger);
-    this.rothConversionManager = new RothConversionManager(accountManager, acaManager, debugLogger);
+    this.simNumber = simNumber;
+    this.contributionLimitManager = new ContributionLimitManager(debugLogger, simNumber);
+    this.rothConversionManager = new RothConversionManager(accountManager, acaManager, debugLogger, simNumber);
     this.rothConversionManager.setBalanceTracker(balanceTracker);
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'calculator', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'calculator', event, ...data });
   }
 
   /**

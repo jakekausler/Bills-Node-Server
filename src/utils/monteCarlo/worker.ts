@@ -9,6 +9,7 @@ import { calculateAllActivity, getLastPullFailures } from '../calculate-v3/engin
 import { generateMonteCarloStatisticsGraph, calculateYearlyMinBalances } from './statisticsGraph';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 import { MonteCarloHandler } from '../calculate-v3/monte-carlo-handler';
+import { DebugLogger } from '../calculate-v3/debug-logger';
 
 const data = workerData as WorkerData;
 let accountNames: Array<{ id: string; name: string }> = [];
@@ -154,6 +155,12 @@ async function runSingleSimulation(
   seed: number,
 ): Promise<void> {
   try {
+    // Create debug logger for this sim if it's in the debugSims list
+    let debugLogger: DebugLogger | null = null;
+    if (data.debugLogDir && data.debugSims && data.debugSims.includes(simulationNumber)) {
+      debugLogger = new DebugLogger({ dir: data.debugLogDir, debugSims: data.debugSims });
+    }
+
     const results = await calculateAllActivity(
       accountsAndTransfers,
       startDate,
@@ -167,6 +174,7 @@ async function runSingleSimulation(
       {}, // config
       timeline, // timeline
       seed, // seed for seeded PRNG
+      debugLogger, // debug logger for selected sims
     );
 
     // Filter and format results for balance calculation

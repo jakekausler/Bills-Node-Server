@@ -15,6 +15,7 @@ export class MonteCarloSimulationRunner {
   private activeWorker: Worker | null = null;
   private activeJobId: string | null = null;
   private pendingQueue: SimulationJob[] = [];
+  private debugConfigs: Map<string, { debugLogDir?: string; debugSims?: number[] }> = new Map();
 
   private constructor() {
     // Ensure directories exist
@@ -153,6 +154,8 @@ export class MonteCarloSimulationRunner {
     startDate: Date,
     endDate: Date,
     seed?: number,
+    debugLogDir?: string,
+    debugSims?: number[],
   ): string {
     const id = uuidv4();
     // Generate a random seed if not provided
@@ -175,6 +178,10 @@ export class MonteCarloSimulationRunner {
 
     this.jobs.set(id, job);
 
+    if (debugLogDir || debugSims) {
+      this.debugConfigs.set(id, { debugLogDir, debugSims });
+    }
+
     if (this.activeWorker) {
       this.pendingQueue.push(job);
     } else {
@@ -185,6 +192,7 @@ export class MonteCarloSimulationRunner {
   }
 
   private startWorker(job: SimulationJob): void {
+    const debugConfig = this.debugConfigs.get(job.id);
     const wd: WorkerData = {
       totalSimulations: job.totalSimulations,
       batchSize: job.batchSize,
@@ -196,6 +204,8 @@ export class MonteCarloSimulationRunner {
       resultsDir: MC_RESULTS_DIR,
       graphsDir: MC_GRAPHS_DIR,
       seed: job.seed,
+      debugLogDir: debugConfig?.debugLogDir,
+      debugSims: debugConfig?.debugSims,
     };
 
     const workerPath = join(__dirname, 'worker.ts');
@@ -360,9 +370,11 @@ export async function startMonteCarloSimulation(
   startDate: Date,
   endDate: Date,
   seed?: number,
+  debugLogDir?: string,
+  debugSims?: number[],
 ): Promise<string> {
   const runner = await MonteCarloSimulationRunner.getInstance();
-  return runner.startSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate, seed);
+  return runner.startSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate, seed, debugLogDir, debugSims);
 }
 
 export async function getSimulationProgress(id: string): Promise<SimulationProgress | null> {

@@ -11,6 +11,7 @@ import {
 import { SimulationProgress } from '../../utils/monteCarlo/types';
 import { PercentileGraphData } from '../../utils/monteCarlo/statisticsGraph';
 import { MC_GRAPHS_DIR, MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
+import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -18,6 +19,8 @@ interface MonteCarloRequestData {
   totalSimulations?: number;
   batchSize?: number;
   seed?: number; // Optional seed for reproducibility
+  debug?: boolean; // Enable debug logging for selected sims
+  debugSims?: number[]; // Which simulation numbers to log (default: [1,2,3])
 }
 
 /**
@@ -39,9 +42,19 @@ export async function startSimulation(req: Request): Promise<{ id: string }> {
   const batchSize = data?.batchSize || 5;
   const seed = data?.seed; // Optional seed for reproducibility
 
-  const id = await startMonteCarloSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate, seed);
+  // Debug logging: create a shared DebugLogger directory if requested
+  let debugLogDir: string | undefined;
+  let debugSims: number[] | undefined;
+  if (data?.debug) {
+    debugSims = data.debugSims ?? [1, 2, 3];
+    const logger = new DebugLogger({ debugSims });
+    debugLogDir = logger.getDir();
+    logger.close(); // Just need the directory; workers will write to it
+  }
 
-  return { id };
+  const id = await startMonteCarloSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate, seed, debugLogDir, debugSims);
+
+  return { id, ...(debugLogDir ? { debugLogDir } : {}) };
 }
 
 /**

@@ -27,16 +27,18 @@ export class HealthcareManager {
   private processedExpenses: Map<string, number> = new Map();
   private checkpointProcessedExpenses: Map<string, number> = new Map();
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
-  constructor(healthcareConfigs: HealthcareConfig[], simulation: string = 'Default', debugLogger?: DebugLogger | null) {
+  constructor(healthcareConfigs: HealthcareConfig[], simulation: string = 'Default', debugLogger?: DebugLogger | null, simNumber: number = 0) {
     // Resolve date variables for each config
     this.configs = healthcareConfigs.map(config => this.resolveConfigDates(config, simulation));
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'healthcare', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'healthcare', event, ...data });
   }
 
   /**

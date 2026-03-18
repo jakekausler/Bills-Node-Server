@@ -64,15 +64,17 @@ export class MedicareManager {
     90: 0.5,
   };
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
-  constructor(debugLogger?: DebugLogger | null) {
+  constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     // Constructor is minimal; historicRates and IRMAA brackets loaded on-demand
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'medicare', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'medicare', event, ...data });
   }
 
   /**

@@ -64,10 +64,12 @@ export class SpendingTrackerManager {
   private categoryStates: Map<string, CategoryState> = new Map();
   private startDate: Date;
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
-  constructor(categories: SpendingTrackerCategory[], simulation: string, startDate: Date, debugLogger?: DebugLogger | null) {
+  constructor(categories: SpendingTrackerCategory[], simulation: string, startDate: Date, debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.startDate = startDate;
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
 
     for (const category of categories) {
       // Resolve threshold
@@ -149,7 +151,7 @@ export class SpendingTrackerManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'spending-tracker', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'spending-tracker', event, ...data });
   }
 
   /**

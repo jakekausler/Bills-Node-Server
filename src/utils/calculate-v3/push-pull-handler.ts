@@ -22,6 +22,7 @@ export class PushPullHandler {
   private rothConversionManager: RothConversionManager | null;
   private taxManager: TaxManager | null;
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
   constructor(
     accountManager: AccountManager,
@@ -30,6 +31,7 @@ export class PushPullHandler {
     rothConversionManager?: RothConversionManager,
     taxManager?: TaxManager,
     debugLogger?: DebugLogger | null,
+    simNumber: number = 0,
   ) {
     this.accountManager = accountManager;
     this.balanceTracker = balanceTracker;
@@ -37,11 +39,12 @@ export class PushPullHandler {
     this.rothConversionManager = rothConversionManager || null;
     this.taxManager = taxManager || null;
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'push-pull', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'push-pull', event, ...data });
   }
 
   /**

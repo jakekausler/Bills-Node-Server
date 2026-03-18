@@ -73,18 +73,20 @@ export class LTCManager {
   private baseYear = 2024;
   private healthcareInflationRate = 0.05;
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
-  constructor(debugLogger?: DebugLogger | null) {
+  constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.transitionData = this.loadTransitionData();
     this.configs = this.loadConfigs();
     this.personStates = new Map();
     this.initializePersonStates();
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'ltc', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'ltc', event, ...data });
   }
 
   private loadTransitionData(): LTCTransitionData {

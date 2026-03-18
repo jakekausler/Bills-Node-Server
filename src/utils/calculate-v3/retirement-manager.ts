@@ -91,11 +91,13 @@ export class RetirementManager {
   private rmdTable: RMDTableType;
 
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
-  constructor(socialSecurities: SocialSecurity[], pensions: Pension[], debugLogger?: DebugLogger | null) {
+  constructor(socialSecurities: SocialSecurity[], pensions: Pension[], debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.socialSecurities = socialSecurities;
     this.pensions = pensions;
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
     this.initializeSocialSecurity();
     this.initializePension();
     this.rmdTable = this.loadRMDTable();
@@ -103,7 +105,7 @@ export class RetirementManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'retirement', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'retirement', event, ...data });
   }
 
   private initializeSocialSecurity() {

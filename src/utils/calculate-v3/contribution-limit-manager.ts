@@ -55,14 +55,16 @@ export class ContributionLimitManager {
   // Cache of computed base limits (without catch-up) for MC ratio compounding
   private cachedBaseLimits: Map<string, number> = new Map();
   private debugLogger: DebugLogger | null = null;
+  private simNumber: number;
 
-  constructor(debugLogger?: DebugLogger | null) {
+  constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'contribution-limit', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'contribution-limit', event, ...data });
   }
 
   /**

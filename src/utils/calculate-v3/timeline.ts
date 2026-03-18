@@ -47,6 +47,7 @@ export class Timeline {
   private monteCarloConfig: MonteCarloConfig | null;
   private simulation: string;
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
   constructor(
     accountManager: AccountManager,
@@ -55,6 +56,7 @@ export class Timeline {
     monteCarloConfig: MonteCarloConfig | null = null,
     simulation: string = 'Default',
     debugLogger?: DebugLogger | null,
+    simNumber: number = 0,
   ) {
     this.accountManager = accountManager;
     this.events = [];
@@ -65,11 +67,12 @@ export class Timeline {
     this.monteCarloConfig = monteCarloConfig;
     this.simulation = simulation;
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'timeline', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'timeline', event, ...data });
   }
 
   /**
@@ -83,6 +86,7 @@ export class Timeline {
       monteCarloConfig,
       this.simulation,
       this.debugLogger,
+      this.simNumber,
     );
 
     // Clone events and sort them
@@ -149,7 +153,7 @@ export class Timeline {
     spendingTrackerCategories: SpendingTrackerCategory[] = [],
   ): Promise<Timeline> {
     const accountManager = new AccountManager(accountsAndTransfers.accounts, calculationOptions);
-    const timeline = new Timeline(accountManager, calculationBegin, enableLogging, monteCarloConfig, calculationOptions.simulation, calculationOptions.debugLogger);
+    const timeline = new Timeline(accountManager, calculationBegin, enableLogging, monteCarloConfig, calculationOptions.simulation, calculationOptions.debugLogger, calculationOptions.simulationNumber ?? 0);
 
     // Parallelize all independent add* method calls
     await Promise.all([

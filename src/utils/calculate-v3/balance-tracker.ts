@@ -22,8 +22,9 @@ export class BalanceTracker {
   private lastSnapshotDate: Date | null = null;
   private snapshotInterval: number = 30; // days
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
-  constructor(accounts: Account[], cache: CacheManager, startDate: Date | null = null, debugLogger?: DebugLogger | null) {
+  constructor(accounts: Account[], cache: CacheManager, startDate: Date | null = null, debugLogger?: DebugLogger | null, simNumber: number = 0) {
     // Deep clone accounts to avoid mutations affecting other parallel calculations
     this.accounts = accounts.map((account) => new Account(account.serialize()));
     this.cache = cache;
@@ -31,11 +32,12 @@ export class BalanceTracker {
     // Build index map for O(1) account lookups
     this.accountMap = new Map(this.accounts.map((acc) => [acc.id, acc]));
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'balance-tracker', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'balance-tracker', event, ...data });
   }
 
   async initializeBalances(

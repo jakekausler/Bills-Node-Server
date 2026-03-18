@@ -96,6 +96,40 @@ function deriveComponentFromFile(filePath: string): string {
   return base;
 }
 
+/**
+ * Scan a source file for a `private log(...)` helper method and extract the
+ * `component:` string literal from its body.  Returns undefined if not found.
+ */
+function extractComponentFromLogHelper(
+  sourceFile: import("ts-morph").SourceFile
+): string | undefined {
+  for (const cls of sourceFile.getClasses()) {
+    for (const method of cls.getMethods()) {
+      if (method.getName() !== "log") continue;
+      // Look for this.debugLogger.log(sim, { component: "xxx", ... })
+      const body = method.getBody();
+      if (!body) continue;
+      for (const desc of body.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+        if (!isThisDebugLoggerLog(desc)) continue;
+        const args = desc.getArguments();
+        if (args.length < 2) continue;
+        const obj = args[1];
+        if (!Node.isObjectLiteralExpression(obj)) continue;
+        for (const prop of obj.getProperties()) {
+          if (
+            Node.isPropertyAssignment(prop) &&
+            prop.getName() === "component"
+          ) {
+            const val = extractStringLiteral(prop.getInitializerOrThrow());
+            if (val) return val;
+          }
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
 function scan(): LogEntry[] {
   const project = new Project({ tsConfigFilePath: undefined });
 
@@ -113,6 +147,9 @@ function scan(): LogEntry[] {
 
     const relativePath = path.relative(ROOT, filePath);
 
+    // Try to extract the real component name from the private log() helper
+    const helperComponent = extractComponentFromLogHelper(sourceFile);
+
     sourceFile.forEachDescendant((node) => {
       if (!Node.isCallExpression(node)) return;
       const call = node as CallExpression;
@@ -126,7 +163,7 @@ function scan(): LogEntry[] {
             const fields =
               args.length >= 2 ? extractObjectKeys(args[1]) : [];
             entries.push({
-              component: deriveComponentFromFile(filePath),
+              component: helperComponent ?? deriveComponentFromFile(filePath),
               event,
               file: relativePath,
               line: call.getStartLineNumber(),

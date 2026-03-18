@@ -42,17 +42,19 @@ export class RothConversionManager {
   private acaManager: AcaManager | null = null;
   private conversionsThisYear: ConversionResult[] = [];
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
-  constructor(accountManager: AccountManager, acaManager?: AcaManager, debugLogger?: DebugLogger | null) {
+  constructor(accountManager: AccountManager, acaManager?: AcaManager, debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.accountManager = accountManager;
     this.acaManager = acaManager || null;
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
     this.loadConfig();
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'roth-conversion', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'roth-conversion', event, ...data });
   }
 
   private loadConfig(): void {

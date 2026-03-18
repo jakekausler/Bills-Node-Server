@@ -10,9 +10,9 @@ export class DebugLogger {
   private debugSims: Set<number>;
   private buffers: Map<number, string[]>;
 
-  constructor(options?: { debugSims?: number[] }) {
+  constructor(options?: { debugSims?: number[]; dir?: string }) {
     this.sessionId = randomUUID();
-    this.dir = join('/tmp', `debug-${this.sessionId}`);
+    this.dir = options?.dir ?? join('/tmp', `debug-${this.sessionId}`);
     mkdirSync(this.dir, { recursive: true });
 
     const sims = options?.debugSims ?? [0, 1, 2];

@@ -49,6 +49,7 @@ export class Engine {
   private calculationBegin: number;
   private monteCarloConfig: MonteCarloConfig | null = null;
   private debugLogger: DebugLogger | null;
+  private simNumber: number = 0;
 
   constructor(simulation: string, config: Partial<CalculationConfig> = {}, monteCarlo: boolean = false, debugLogger?: DebugLogger | null) {
     this.simulation = simulation;
@@ -59,7 +60,7 @@ export class Engine {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'engine', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'engine', event, ...data });
   }
 
   async calculate(
@@ -69,6 +70,9 @@ export class Engine {
   ): Promise<AccountsAndTransfers> {
     // Set this as the last engine for access to pull failures
     lastEngine = this;
+
+    // Thread simulation number for debug logging
+    this.simNumber = options.simulationNumber ?? 0;
 
     // Start timing
     this.calculationBegin = Date.now();
@@ -246,7 +250,7 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Initializing tax manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.taxManager = new TaxManager(this.debugLogger);
+    this.taxManager = new TaxManager(this.debugLogger, this.simNumber);
 
     // Initialize retirement manager
     if (options.enableLogging) {
@@ -256,6 +260,7 @@ export class Engine {
       this.accountManager.getSocialSecurities(),
       this.accountManager.getPensions(),
       this.debugLogger,
+      this.simNumber,
     );
 
     // Initialize healthcare manager
@@ -268,25 +273,25 @@ export class Engine {
     // Eventually sample deductible/OOP max using MC-sampled change ratios (acaOOPMax, medicareDeductible)
     // instead of fixed historical averages. This would make healthcare costs vary per simulation.
 
-    this.healthcareManager = new HealthcareManager(healthcareConfigs, this.simulation, this.debugLogger);
+    this.healthcareManager = new HealthcareManager(healthcareConfigs, this.simulation, this.debugLogger, this.simNumber);
 
     // Initialize Medicare manager
     if (options.enableLogging) {
       console.log('Initializing Medicare manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.medicareManager = new MedicareManager(this.debugLogger);
+    this.medicareManager = new MedicareManager(this.debugLogger, this.simNumber);
 
     // Initialize ACA manager
     if (options.enableLogging) {
       console.log('Initializing ACA manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.acaManager = new AcaManager(this.debugLogger);
+    this.acaManager = new AcaManager(this.debugLogger, this.simNumber);
 
     // Initialize LTC manager
     if (options.enableLogging) {
       console.log('Initializing LTC manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.ltcManager = new LTCManager(this.debugLogger);
+    this.ltcManager = new LTCManager(this.debugLogger, this.simNumber);
 
     // Initialize spending tracker manager
     if (options.enableLogging) {
@@ -297,6 +302,7 @@ export class Engine {
       options.simulation,
       actualStartDate,
       this.debugLogger,
+      this.simNumber,
     );
 
     // Pre-set lastProcessedPeriodEnd so that recordSegmentActivities filters out
@@ -323,7 +329,7 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Initializing balance tracker...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.balanceTracker = new BalanceTracker(accountsAndTransfers.accounts, this.cache, actualStartDate, this.debugLogger);
+    this.balanceTracker = new BalanceTracker(accountsAndTransfers.accounts, this.cache, actualStartDate, this.debugLogger, this.simNumber);
 
     // Initialize calculator
     if (options.enableLogging) {
@@ -343,6 +349,7 @@ export class Engine {
       (options.filingStatus as FilingStatus) || 'mfj',
       options.bracketInflationRate || 0.03,
       this.debugLogger,
+      this.simNumber,
     );
 
     // Set Monte Carlo config if available
@@ -361,6 +368,7 @@ export class Engine {
       this.calculator.getRothConversionManager(),
       this.taxManager,
       this.debugLogger,
+      this.simNumber,
     );
 
     // Initialize segment processor
@@ -378,6 +386,7 @@ export class Engine {
       this.healthcareManager,
       spendingTrackerManager,
       this.debugLogger,
+      this.simNumber,
     );
 
     this.log('components-initialized');

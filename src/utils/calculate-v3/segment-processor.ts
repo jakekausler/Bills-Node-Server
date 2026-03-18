@@ -45,6 +45,7 @@ export class SegmentProcessor {
   private healthcareManager: HealthcareManager;
   private spendingTrackerManager: SpendingTrackerManager;
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
   constructor(
     cache: CacheManager,
@@ -57,6 +58,7 @@ export class SegmentProcessor {
     healthcareManager: HealthcareManager,
     spendingTrackerManager: SpendingTrackerManager,
     debugLogger?: DebugLogger | null,
+    simNumber: number = 0,
   ) {
     this.cache = cache;
     this.balanceTracker = balanceTracker;
@@ -68,11 +70,12 @@ export class SegmentProcessor {
     this.healthcareManager = healthcareManager;
     this.spendingTrackerManager = spendingTrackerManager;
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'segment', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'segment', event, ...data });
   }
 
   async processSegment(segment: Segment, options: CalculationOptions): Promise<void> {

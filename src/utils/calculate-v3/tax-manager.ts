@@ -8,16 +8,18 @@ export class TaxManager {
   // Cache of computed tax amounts per year
   private taxCache: Map<number, number>;
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
 
-  constructor(debugLogger?: DebugLogger | null) {
+  constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.taxableOccurrences = new Map<number, Map<string, TaxableOccurrence[]>>();
     this.taxCache = new Map<number, number>();
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'tax', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'tax', event, ...data });
   }
 
   // Add multiple taxable occurences for an account
