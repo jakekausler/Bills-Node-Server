@@ -106,6 +106,8 @@ const mockTimeline = {
   getSegments: vi.fn().mockReturnValue(mockSegments),
   getAccountManager: vi.fn().mockReturnValue(mockAccountManager),
   applyMonteCarlo: vi.fn(),
+  applyGlidePath: vi.fn(),
+  setPortfolioMakeup: vi.fn(),
   clone: vi.fn(),
 };
 

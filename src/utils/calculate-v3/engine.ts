@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { PortfolioMakeupOverTime } from './types';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { CalculationConfig, CalculationOptions, FilingStatus, MonteCarloConfig } from './types';
 import { CacheManager, initializeCache } from './cache';
@@ -95,47 +96,49 @@ export class Engine {
     }
     this.log('cache-check', { cacheHit: false });
 
-    // Initialize all components
-    await this.initializeCalculation(accountsAndTransfers, options, timeline);
+    try {
+      // Initialize all components
+      await this.initializeCalculation(accountsAndTransfers, options, timeline);
 
-    // Perform the calculation
-    const results = await this.performCalculations(accountsAndTransfers, options);
+      // Perform the calculation
+      const results = await this.performCalculations(accountsAndTransfers, options);
 
-    // Format the results
-    if (options.enableLogging) {
-      console.log('Formatting results...', Date.now() - this.calculationBegin, 'ms');
-    }
-    const formattedResults = this.formatResults(results);
-
-    // Store the results in cache (will skip if monteCarlo is true)
-    if (!options.monteCarlo) {
+      // Format the results
       if (options.enableLogging) {
-        console.log('Caching results...', Date.now() - this.calculationBegin, 'ms');
+        console.log('Formatting results...', Date.now() - this.calculationBegin, 'ms');
       }
-      await this.cacheResult(formattedResults, options);
+      const formattedResults = this.formatResults(results);
+
+      // Store the results in cache (will skip if monteCarlo is true)
+      if (!options.monteCarlo) {
+        if (options.enableLogging) {
+          console.log('Caching results...', Date.now() - this.calculationBegin, 'ms');
+        }
+        await this.cacheResult(formattedResults, options);
+      }
+
+      if (options.enableLogging) {
+        console.log('Calculation completed in', Date.now() - this.calculationBegin, 'ms');
+      }
+
+      this.log('calculation-completed', { durationMs: Date.now() - this.calculationBegin });
+
+      return formattedResults;
+    } finally {
+      // Always flush debug logs, even if calculation threw an error
+      if (this.debugLogger) {
+        this.debugLogger.writeMeta({
+          simulation: options.simulation,
+          monteCarlo: options.monteCarlo,
+          simulationNumber: options.simulationNumber,
+          totalSimulations: options.totalSimulations,
+          startDate: options.startDate?.toISOString() ?? null,
+          endDate: options.endDate.toISOString(),
+          durationMs: Date.now() - this.calculationBegin,
+        });
+        this.debugLogger.close();
+      }
     }
-
-    if (options.enableLogging) {
-      console.log('Calculation completed in', Date.now() - this.calculationBegin, 'ms');
-    }
-
-    this.log('calculation-completed', { durationMs: Date.now() - this.calculationBegin });
-
-    // Write debug meta and close logger
-    if (this.debugLogger) {
-      this.debugLogger.writeMeta({
-        simulation: options.simulation,
-        monteCarlo: options.monteCarlo,
-        simulationNumber: options.simulationNumber,
-        totalSimulations: options.totalSimulations,
-        startDate: options.startDate?.toISOString() ?? null,
-        endDate: options.endDate.toISOString(),
-        durationMs: Date.now() - this.calculationBegin,
-      });
-      this.debugLogger.close();
-    }
-
-    return formattedResults;
   }
 
   private mergeConfig(config: Partial<CalculationConfig>): CalculationConfig {
@@ -239,8 +242,20 @@ export class Engine {
     } else {
       this.timeline = timeline.clone(actualStartDate, options.endDate, this.monteCarloConfig);
     }
+    // Load portfolio glide path data
+    const portfolioMakeupPath = join(process.cwd(), 'data', 'portfolioMakeupOverTime.json');
+    let portfolioMakeup: PortfolioMakeupOverTime | null = null;
+    if (existsSync(portfolioMakeupPath)) {
+      portfolioMakeup = JSON.parse(readFileSync(portfolioMakeupPath, 'utf-8'));
+      this.timeline.setPortfolioMakeup(portfolioMakeup);
+    }
+
     if (options.monteCarlo) {
       this.timeline.applyMonteCarlo();
+    } else if (portfolioMakeup) {
+      // In deterministic mode, apply the portfolio glide path to blend
+      // INVESTMENT_RATE interest events using per-asset-class return variables
+      this.timeline.applyGlidePath();
     }
     this.accountManager = this.timeline.getAccountManager();
 

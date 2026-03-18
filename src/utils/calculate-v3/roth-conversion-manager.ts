@@ -275,22 +275,56 @@ export class RothConversionManager {
                 const subsidyLossRate = annualSubsidyLoss / conversionAmount;
                 effectiveMarginalRate = config.targetBracketRate + subsidyLossRate;
 
-                // If combined rate exceeds target + 5%, reduce conversion or skip
-                if (effectiveMarginalRate > config.targetBracketRate + 0.05) {
-                  // Reduce conversion to bring rate within threshold
-                  const maxConversionForRate = annualSubsidyLoss > 0
-                    ? (config.targetBracketRate * conversionAmount + 0.05 * conversionAmount) /
-                      (config.targetBracketRate + (annualSubsidyLoss / conversionAmount))
-                    : conversionAmount;
+                // If combined rate exceeds target + 5%, binary search for max acceptable conversion
+                const rateThreshold = config.targetBracketRate + 0.05;
+                if (effectiveMarginalRate > rateThreshold) {
+                  // Binary search: find largest conversion where effective rate <= threshold
+                  let lo = 0;
+                  let hi = conversionAmount;
+                  let bestAmount = 0;
 
-                  conversionAmount = Math.min(conversionAmount, Math.max(0, maxConversionForRate));
+                  for (let iter = 0; iter < 20; iter++) {
+                    const mid = (lo + hi) / 2;
+                    if (mid < 100) {
+                      // Too small to matter
+                      hi = mid;
+                      continue;
+                    }
+
+                    const midSubsidyAfter = this.acaManager!.calculateMonthlySubsidy(
+                      currentMAGI + mid,
+                      2,
+                      nextYear,
+                      grossPremiumNextYear
+                    );
+                    const midAnnualLoss = Math.max(0, (subsidyBefore - midSubsidyAfter) * 12);
+                    const midEffectiveRate = config.targetBracketRate + (midAnnualLoss / mid);
+
+                    if (midEffectiveRate <= rateThreshold) {
+                      bestAmount = mid;
+                      lo = mid;
+                    } else {
+                      hi = mid;
+                    }
+                  }
+
+                  this.log('aca-reduction-search', {
+                    original_amount: conversionAmount,
+                    reduced_amount: bestAmount,
+                    threshold: rateThreshold,
+                  });
+
+                  conversionAmount = Math.floor(bestAmount);
 
                   // If conversion reduced to near-zero, skip this year
                   if (conversionAmount < 100) {
+                    this.log('aca-conversion-skipped', {
+                      year,
+                      reason: 'subsidy loss makes conversion not worthwhile',
+                      effective_rate: effectiveMarginalRate,
+                    });
                     continue;
                   }
-
-                  // conversionAmount has been reduced to keep effective rate reasonable
                 }
               }
             }

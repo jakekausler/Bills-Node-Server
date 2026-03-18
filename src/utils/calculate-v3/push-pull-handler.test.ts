@@ -465,6 +465,72 @@ describe('PushPullHandler', () => {
       }
     });
 
+    it('should order taxable → tax-deferred → Roth post-59.5 (full 3-way)', () => {
+      const futureDate = new Date(Date.UTC(2030, 0, 1));
+      const referenceDate = new Date(Date.UTC(2025, 0, 1));
+
+      const taxable = makeAccount({
+        id: 'taxable',
+        name: 'Brokerage',
+        type: 'Investment',
+        performsPulls: true,
+        pullPriority: 10,
+      });
+
+      const preTax = makeAccount({
+        id: 'pretax',
+        name: 'Traditional 401k',
+        type: 'Investment',
+        usesRMD: true,
+        earlyWithdrawalPenalty: 0,
+        performsPulls: true,
+        pullPriority: 10,
+      });
+
+      const roth = makeAccount({
+        id: 'roth',
+        name: 'Roth IRA',
+        type: 'Investment',
+        earlyWithdrawalPenalty: 0,
+        performsPulls: true,
+        pullPriority: 10,
+      });
+
+      // Need to pull 12000 total — each source has 5000 available
+      // so we'll cascade through all three in priority order
+      vi.mocked(mockAccountManager.getAccountById).mockReturnValue(
+        makeAccount({ id: 'account-1', performsPulls: true, minimumBalance: 2000 }),
+      );
+      vi.mocked(mockAccountManager.getPullableAccounts).mockReturnValue([roth, preTax, taxable]);
+      vi.mocked(mockBalanceTracker.getAccountBalance)
+        .mockImplementation((id) => {
+          if (id === 'taxable') return 5000;
+          if (id === 'pretax') return 5000;
+          if (id === 'roth') return 5000;
+          return 0;
+        });
+
+      pushPullHandler = new PushPullHandler(mockAccountManager, mockBalanceTracker, 'taxOptimized');
+
+      const segment = makeSegment({
+        startDate: futureDate,
+        affectedAccountIds: ['account-1'],
+      });
+      const segmentResult = makeSegmentResult({
+        balanceMinimums: new Map([['account-1', -10000]]),
+      });
+
+      pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
+
+      const pullEvents = segment.events.filter((e) => e.type === 'activityTransfer');
+      expect(pullEvents.length).toBe(3);
+
+      // Order: taxable (priority 10) → pre-tax (priority 40) → Roth (priority 50)
+      expect(pullEvents[0].fromAccountId).toBe('taxable');
+      expect(pullEvents[1].fromAccountId).toBe('pretax');
+      expect(pullEvents[2].fromAccountId).toBe('roth');
+    });
+
     it('should respect pullPriority as tiebreaker within same tax tier', () => {
       const futureDate = new Date(Date.UTC(2030, 0, 1));
       const referenceDate = new Date(Date.UTC(2025, 0, 1));

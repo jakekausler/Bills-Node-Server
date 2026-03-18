@@ -26,7 +26,7 @@ interface MonteCarloRequestData {
 /**
  * Start a new Monte Carlo simulation
  */
-export async function startSimulation(req: Request): Promise<{ id: string }> {
+export async function startSimulation(req: Request): Promise<{ id: string; debugLogDir?: string }> {
   // Validate required historical data files exist
   const dataDir = join(process.cwd(), 'data');
   if (!existsSync(join(dataDir, 'historicRates.json'))) {
@@ -50,6 +50,7 @@ export async function startSimulation(req: Request): Promise<{ id: string }> {
     const logger = new DebugLogger({ debugSims });
     debugLogDir = logger.getDir();
     logger.close(); // Just need the directory; workers will write to it
+    console.log(`🔍 [MC] Debug enabled: dir=${debugLogDir}, sims=${JSON.stringify(debugSims)}`);
   }
 
   const id = await startMonteCarloSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate, seed, debugLogDir, debugSims);

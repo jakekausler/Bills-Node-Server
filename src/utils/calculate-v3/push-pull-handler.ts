@@ -204,7 +204,9 @@ export class PushPullHandler {
       this.log('source-selected', {
         source_account: pullableAccount.name,
         available_balance: pullableAccountBalance - alreadyCommitted,
-        priority: pullableAccount.pullPriority,
+        manual_priority: pullableAccount.pullPriority,
+        tax_aware_priority: this.withdrawalStrategy === 'taxOptimized' ? this.getTaxAwarePriority(pullableAccount, segment.startDate) : null,
+        strategy: this.withdrawalStrategy,
       });
 
       // If no amount is available from this account, try the next one
@@ -371,6 +373,7 @@ export class PushPullHandler {
       })[0] ?? undefined;
     }
 
+    // Manual strategy: use pullPriority only
     return pullable.sort((a, b) => a.pullPriority - b.pullPriority)[0] ?? undefined;
   }
 

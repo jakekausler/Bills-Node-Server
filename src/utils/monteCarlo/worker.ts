@@ -20,6 +20,11 @@ let accountNames: Array<{ id: string; name: string }> = [];
  */
 async function runWorkerSimulations(): Promise<void> {
   try {
+    // Log debug configuration if present
+    if (data.debugLogDir || data.debugSims) {
+      console.log(`🔍 [Worker] Debug config: dir=${data.debugLogDir}, sims=${JSON.stringify(data.debugSims)}`);
+    }
+
     // Ensure directories exist
     if (!existsSync(data.tempDir)) {
       mkdirSync(data.tempDir, { recursive: true });
@@ -159,6 +164,7 @@ async function runSingleSimulation(
     let debugLogger: DebugLogger | null = null;
     if (data.debugLogDir && data.debugSims && data.debugSims.includes(simulationNumber)) {
       debugLogger = new DebugLogger({ dir: data.debugLogDir, debugSims: data.debugSims });
+      console.log(`🔍 [Worker] Created debug logger for sim ${simulationNumber} → ${data.debugLogDir}`);
     }
 
     const results = await calculateAllActivity(

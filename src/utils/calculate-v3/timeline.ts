@@ -12,6 +12,7 @@ import {
   MonteCarloConfig,
   MonteCarloSampleType,
   PensionEvent,
+  PortfolioMakeupOverTime,
   RMDEvent,
   Segment,
   SocialSecurityEvent,
@@ -25,6 +26,7 @@ import {
   AcaPremiumEvent,
   LTCCheckEvent,
 } from './types';
+import { getPortfolioComposition, computeBlendedReturn } from './portfolio-utils';
 import { Account } from '../../data/account/account';
 import { Bill } from '../../data/bill/bill';
 import { Interest } from '../../data/interest/interest';
@@ -48,6 +50,7 @@ export class Timeline {
   private simulation: string;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private portfolioMakeup: PortfolioMakeupOverTime | null = null;
 
   constructor(
     accountManager: AccountManager,
@@ -88,6 +91,9 @@ export class Timeline {
       this.debugLogger,
       this.simNumber,
     );
+
+    // Propagate portfolio makeup data
+    clonedTimeline.portfolioMakeup = this.portfolioMakeup;
 
     // Clone events and sort them
     clonedTimeline.events = this.events.map((event) => Timeline.cloneEvent(event));
@@ -136,6 +142,54 @@ export class Timeline {
       }
     }
     this.log('mc-applied', { eventsModified });
+  }
+
+  setPortfolioMakeup(makeup: PortfolioMakeupOverTime | null): void {
+    this.portfolioMakeup = makeup;
+  }
+
+  /**
+   * Adjust INVESTMENT_RATE interest events for deterministic mode using the
+   * portfolio glide path.  For each such event we look up the asset-class
+   * allocation for that year and compute a blended return from the per-class
+   * variables (STOCK_RETURN, BOND_RETURN, CASH_RETURN).
+   */
+  applyGlidePath(): void {
+    if (!this.portfolioMakeup) return;
+
+    // Resolve deterministic asset-class return variables
+    let stockReturn: number;
+    let bondReturn: number;
+    let cashReturn: number;
+    try {
+      stockReturn = Number(loadVariable('STOCK_RETURN', this.simulation));
+      bondReturn = Number(loadVariable('BOND_RETURN', this.simulation));
+      cashReturn = Number(loadVariable('CASH_RETURN', this.simulation));
+    } catch {
+      // Variables not defined in this simulation — skip glide-path adjustment
+      this.log('glide-path-skipped', { reason: 'missing asset-class return variables' });
+      return;
+    }
+
+    // If any variable resolved to NaN, skip glide-path adjustment
+    if (isNaN(stockReturn) || isNaN(bondReturn) || isNaN(cashReturn)) {
+      this.log('glide-path-skipped', { reason: 'asset-class return variables are NaN' });
+      return;
+    }
+
+    let eventsModified = 0;
+    for (const event of this.events) {
+      if (event.type === EventType.interest) {
+        const interestEvent = event as InterestEvent;
+        if (interestEvent.originalInterest.aprVariable === 'INVESTMENT_RATE') {
+          const composition = getPortfolioComposition(this.portfolioMakeup, interestEvent.date);
+          const blended = computeBlendedReturn(composition, stockReturn, bondReturn, cashReturn);
+          interestEvent.rate = blended;
+          eventsModified++;
+        }
+      }
+    }
+    this.log('glide-path-applied', { eventsModified, stockReturn, bondReturn, cashReturn });
   }
 
   getAccountManager(): AccountManager {

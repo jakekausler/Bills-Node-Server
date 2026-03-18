@@ -4,10 +4,10 @@ import {
   MonteCarloSampleType,
   HistoricRates,
   ProxyDefinition,
-  PortfolioComposition,
   PortfolioMakeupOverTime,
 } from './types';
 import { formatDate } from '../date/date';
+import { getPortfolioComposition } from './portfolio-utils';
 
 /**
  * Mulberry32 seeded PRNG — fast and deterministic
@@ -216,39 +216,11 @@ export class MonteCarloHandler {
     return proxyReturn;
   }
 
-  private getPortfolioComposition(date: Date): PortfolioComposition {
+  private getPortfolioComposition(date: Date) {
     if (!this.portfolioMakeup) {
       throw new Error('Portfolio makeup data not loaded');
     }
-
-    const year = date.getUTCFullYear();
-    const yearStr = year.toString();
-
-    if (this.portfolioMakeup[yearStr]) {
-      return this.portfolioMakeup[yearStr];
-    }
-
-    const years = Object.keys(this.portfolioMakeup)
-      .map(Number)
-      .sort((a, b) => a - b);
-
-    if (year < years[0]) {
-      return this.portfolioMakeup[years[0].toString()];
-    }
-
-    if (year > years[years.length - 1]) {
-      return this.portfolioMakeup[years[years.length - 1].toString()];
-    }
-
-    let prevYear = years[0];
-    for (const y of years) {
-      if (y > year) {
-        break;
-      }
-      prevYear = y;
-    }
-
-    return this.portfolioMakeup[prevYear.toString()];
+    return getPortfolioComposition(this.portfolioMakeup, date);
   }
 
 
