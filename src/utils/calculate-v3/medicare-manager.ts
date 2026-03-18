@@ -65,6 +65,7 @@ export class MedicareManager {
   };
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     // Constructor is minimal; historicRates and IRMAA brackets loaded on-demand
@@ -74,7 +75,12 @@ export class MedicareManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'medicare', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'medicare', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
+  }
+
+  /** Set the current simulation date for debug log entries */
+  setCurrentDate(date: string): void {
+    this.currentDate = date;
   }
 
   /**

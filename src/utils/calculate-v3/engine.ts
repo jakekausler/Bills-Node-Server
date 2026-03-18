@@ -51,6 +51,7 @@ export class Engine {
   private monteCarloConfig: MonteCarloConfig | null = null;
   private debugLogger: DebugLogger | null;
   private simNumber: number = 0;
+  private currentDate: string = '';
 
   constructor(simulation: string, config: Partial<CalculationConfig> = {}, monteCarlo: boolean = false, debugLogger?: DebugLogger | null) {
     this.simulation = simulation;
@@ -61,7 +62,7 @@ export class Engine {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'engine', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'engine', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
   }
 
   async calculate(

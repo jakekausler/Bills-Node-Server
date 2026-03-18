@@ -33,7 +33,8 @@ export class DebugLogger {
       return;
     }
 
-    const entry = { sim, ...data, at: new Date().toISOString() };
+    // Ensure ts field is present (simulation date for filtering)
+    const entry = { sim, ...data, at: new Date().toISOString() } as Record<string, unknown>;
     const line = JSON.stringify(entry) + '\n';
 
     let buffer = this.buffers.get(sim);

@@ -103,7 +103,7 @@ export function computeAnnualFederalTax(
   filingStatus: FilingStatus,
   year: number,
   inflationRate: number = 0.03,
-): { tax: number; effectiveRate: number; marginalRate: number; taxableIncome: number; taxableSS: number; standardDeduction: number } {
+): { tax: number; effectiveRate: number; marginalRate: number; taxableIncome: number; taxableSS: number; standardDeduction: number; ssThresholds: { tier1: number; tier2: number } } {
   const yearData = getBracketDataForYear(year, filingStatus, inflationRate);
   const brackets = yearData.brackets[filingStatus];
   const standardDeduction = yearData.standardDeduction[filingStatus];
@@ -132,7 +132,7 @@ export function computeAnnualFederalTax(
     }
   }
 
-  return { tax, effectiveRate, marginalRate, taxableIncome, taxableSS, standardDeduction };
+  return { tax, effectiveRate, marginalRate, taxableIncome, taxableSS, standardDeduction, ssThresholds };
 }
 
 // Export for testing

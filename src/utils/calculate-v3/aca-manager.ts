@@ -37,6 +37,7 @@ export class AcaManager {
   private readonly DEFAULT_HEALTHCARE_INFLATION = 0.05; // 5% default
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     // Constructor is minimal; historicRates loaded on-demand
@@ -46,7 +47,12 @@ export class AcaManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'aca', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'aca', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
+  }
+
+  /** Set the current simulation date for debug log entries */
+  setCurrentDate(date: string): void {
+    this.currentDate = date;
   }
 
   /**

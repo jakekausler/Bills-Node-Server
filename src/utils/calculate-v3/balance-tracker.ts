@@ -23,6 +23,7 @@ export class BalanceTracker {
   private snapshotInterval: number = 30; // days
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(accounts: Account[], cache: CacheManager, startDate: Date | null = null, debugLogger?: DebugLogger | null, simNumber: number = 0) {
     // Deep clone accounts to avoid mutations affecting other parallel calculations
@@ -37,7 +38,12 @@ export class BalanceTracker {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'balance-tracker', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'balance-tracker', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
+  }
+
+  /** Set the current simulation date for debug log entries */
+  setCurrentDate(date: string): void {
+    this.currentDate = date;
   }
 
   async initializeBalances(

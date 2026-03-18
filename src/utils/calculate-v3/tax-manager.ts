@@ -9,6 +9,7 @@ export class TaxManager {
   private taxCache: Map<number, number>;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.taxableOccurrences = new Map<number, Map<string, TaxableOccurrence[]>>();
@@ -19,7 +20,12 @@ export class TaxManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'tax', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'tax', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
+  }
+
+  /** Set the current simulation date for debug log entries */
+  setCurrentDate(date: string): void {
+    this.currentDate = date;
   }
 
   // Add multiple taxable occurences for an account
@@ -101,12 +107,12 @@ export class TaxManager {
     const result = computeAnnualFederalTax(ordinaryIncome, ssIncome, filingStatus, year, bracketInflationRate);
     const totalTax = result.tax + penaltyTotal;
 
-    // Determine SS taxation tier
+    // Determine SS taxation tier based on provisional income vs thresholds
     const provisionalIncome = ordinaryIncome + ssIncome * 0.5;
     let ssTier: string;
-    if (result.taxableSS === 0) {
+    if (provisionalIncome <= result.ssThresholds.tier1) {
       ssTier = '0%';
-    } else if (result.taxableSS <= ssIncome * 0.5) {
+    } else if (provisionalIncome <= result.ssThresholds.tier2) {
       ssTier = '50%';
     } else {
       ssTier = '85%';

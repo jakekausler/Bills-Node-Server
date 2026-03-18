@@ -59,6 +59,7 @@ export class Calculator {
   protected monteCarloConfig: any; // From parent, for PRNG access
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(
     balanceTracker: BalanceTracker,
@@ -97,7 +98,21 @@ export class Calculator {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'calculator', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'calculator', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
+  }
+
+  /** Set the current simulation date for debug log entries and propagate to child managers */
+  setCurrentDate(date: string): void {
+    this.currentDate = date;
+    this.taxManager.setCurrentDate(date);
+    this.retirementManager.setCurrentDate(date);
+    this.healthcareManager.setCurrentDate(date);
+    this.medicareManager.setCurrentDate(date);
+    this.ltcManager.setCurrentDate(date);
+    this.acaManager.setCurrentDate(date);
+    this.contributionLimitManager.setCurrentDate(date);
+    this.spendingTrackerManager.setCurrentDate(date);
+    this.balanceTracker.setCurrentDate(date);
   }
 
   /**
@@ -287,6 +302,36 @@ export class Calculator {
 
     const accountId = event.accountId;
     let amount = event.amount;
+
+    // Apply contribution limits for bills on retirement/HSA accounts
+    if (typeof amount === 'number' && amount > 0) {
+      const account = this.balanceTracker.findAccountById(accountId);
+      if (account?.contributionLimitType) {
+        const limitType = account.contributionLimitType as '401k' | 'ira' | 'hsa';
+        const year = event.date.getUTCFullYear();
+        const remaining = this.contributionLimitManager.getRemainingLimit(
+          account.accountOwnerDOB,
+          year,
+          limitType,
+        );
+
+        if (remaining !== Infinity) {
+          const cappedAmount = Math.min(amount, remaining);
+          if (cappedAmount < amount) {
+            this.log('contribution-capped', { accountId, requestedAmount: amount, cappedAmount, limitType });
+          }
+          if (cappedAmount > 0) {
+            this.contributionLimitManager.recordContribution(
+              account.accountOwnerDOB,
+              year,
+              limitType,
+              cappedAmount,
+            );
+          }
+          amount = cappedAmount;
+        }
+      }
+    }
 
     // Create consolidated activity for the bill
     const billActivity = new ConsolidatedActivity(

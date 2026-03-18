@@ -46,6 +46,7 @@ export class SegmentProcessor {
   private spendingTrackerManager: SpendingTrackerManager;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(
     cache: CacheManager,
@@ -75,7 +76,7 @@ export class SegmentProcessor {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'segment', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'segment', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
   }
 
   async processSegment(segment: Segment, options: CalculationOptions): Promise<void> {
@@ -275,6 +276,12 @@ export class SegmentProcessor {
     options: CalculationOptions,
     segmentResult: SegmentResult,
   ): Map<string, number> {
+    // Set the current date for debug logging on this processor and the calculator
+    if (events.length > 0) {
+      this.currentDate = dayjs.utc(events[0].date).format('YYYY-MM-DD');
+      this.calculator.setCurrentDate(this.currentDate);
+    }
+
     // Sort events by priority, then by name for consistent ordering
     const sortedEvents = [...events].sort((a, b) => {
       // Primary sort by priority

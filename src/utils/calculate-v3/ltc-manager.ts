@@ -74,6 +74,7 @@ export class LTCManager {
   private healthcareInflationRate = 0.05;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.transitionData = this.loadTransitionData();
@@ -86,7 +87,12 @@ export class LTCManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'ltc', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'ltc', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
+  }
+
+  /** Set the current simulation date for debug log entries */
+  setCurrentDate(date: string): void {
+    this.currentDate = date;
   }
 
   private loadTransitionData(): LTCTransitionData {

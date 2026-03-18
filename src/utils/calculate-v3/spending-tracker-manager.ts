@@ -65,6 +65,7 @@ export class SpendingTrackerManager {
   private startDate: Date;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(categories: SpendingTrackerCategory[], simulation: string, startDate: Date, debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.startDate = startDate;
@@ -151,7 +152,12 @@ export class SpendingTrackerManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'spending-tracker', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'spending-tracker', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
+  }
+
+  /** Set the current simulation date for debug log entries */
+  setCurrentDate(date: string): void {
+    this.currentDate = date;
   }
 
   /**

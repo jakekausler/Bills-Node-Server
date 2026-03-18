@@ -23,6 +23,7 @@ export class PushPullHandler {
   private taxManager: TaxManager | null;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(
     accountManager: AccountManager,
@@ -44,13 +45,14 @@ export class PushPullHandler {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'push-pull', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'push-pull', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
   }
 
   /**
    * Handles account push/pull events
    */
   handleAccountPushPulls(segmentResult: SegmentResult, segment: Segment, referenceDate: Date): boolean {
+    this.currentDate = formatDate(segment.startDate);
     let pushPullEventAdded = false;
     // Track cumulative amounts already committed from each source account
     // so that multiple pull requests in the same segment don't overdraw

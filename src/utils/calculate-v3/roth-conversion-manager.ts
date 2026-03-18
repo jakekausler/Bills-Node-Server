@@ -43,6 +43,7 @@ export class RothConversionManager {
   private conversionsThisYear: ConversionResult[] = [];
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(accountManager: AccountManager, acaManager?: AcaManager, debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.accountManager = accountManager;
@@ -54,7 +55,7 @@ export class RothConversionManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'roth-conversion', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'roth-conversion', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
   }
 
   private loadConfig(): void {
@@ -86,6 +87,7 @@ export class RothConversionManager {
     simulation: string = 'default',
   ): ConversionResult[] {
     this.conversionsThisYear = [];
+    this.currentDate = `${year}-12-31`;
     this.log('processing-started', { year, config_count: this.configs?.length ?? 0 });
     if (!this.configs || this.configs.length === 0) {
       return [];

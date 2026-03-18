@@ -50,6 +50,7 @@ export class Timeline {
   private simulation: string;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
   private portfolioMakeup: PortfolioMakeupOverTime | null = null;
 
   constructor(
@@ -75,7 +76,7 @@ export class Timeline {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'timeline', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'timeline', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
   }
 
   /**

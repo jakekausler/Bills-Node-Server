@@ -147,6 +147,7 @@ function makeMockCalculator(overrides: Partial<any> = {}) {
     processTaxEvent: vi.fn().mockReturnValue(new Map([['acct-1', -300]])),
     processRMDEvent: vi.fn().mockReturnValue(new Map()),
     processSpendingTrackerEvent: vi.fn().mockReturnValue(new Map()),
+    setCurrentDate: vi.fn(),
     ...overrides,
   };
 }

@@ -56,6 +56,7 @@ export class ContributionLimitManager {
   private cachedBaseLimits: Map<string, number> = new Map();
   private debugLogger: DebugLogger | null = null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.debugLogger = debugLogger ?? null;
@@ -64,7 +65,12 @@ export class ContributionLimitManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'contribution-limit', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'contribution-limit', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
+  }
+
+  /** Set the current simulation date for debug log entries */
+  setCurrentDate(date: string): void {
+    this.currentDate = date;
   }
 
   /**

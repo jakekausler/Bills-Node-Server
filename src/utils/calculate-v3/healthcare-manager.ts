@@ -28,6 +28,7 @@ export class HealthcareManager {
   private checkpointProcessedExpenses: Map<string, number> = new Map();
   private debugLogger: DebugLogger | null;
   private simNumber: number;
+  private currentDate: string = '';
 
   constructor(healthcareConfigs: HealthcareConfig[], simulation: string = 'Default', debugLogger?: DebugLogger | null, simNumber: number = 0) {
     // Resolve date variables for each config
@@ -38,7 +39,12 @@ export class HealthcareManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(this.simNumber, { component: 'healthcare', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'healthcare', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
+  }
+
+  /** Set the current simulation date for debug log entries */
+  setCurrentDate(date: string): void {
+    this.currentDate = date;
   }
 
   /**
@@ -135,6 +141,7 @@ export class HealthcareManager {
    * Find the active healthcare config for a person at a given date
    */
   getActiveConfig(personName: string, date: Date): HealthcareConfig | null {
+    this.currentDate = date.toISOString().split('T')[0];
     // Filter configs that match the person and date range
     const matchingConfigs = this.configs.filter((config) => {
       // Check if this person is covered by this config
@@ -460,6 +467,7 @@ export class HealthcareManager {
    * Calculate the actual patient cost for a healthcare expense
    */
   calculatePatientCost(expense: Bill | Activity, config: HealthcareConfig, date: Date, overrideAmount?: number): number {
+    this.currentDate = date.toISOString().split('T')[0];
     // Check if already processed (idempotent protection against segment reprocessing)
     const expenseKey = this.getExpenseKey(expense, date);
     if (this.processedExpenses.has(expenseKey)) {
