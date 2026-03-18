@@ -1,8 +1,8 @@
 [
   {
-    "personName": "Jake",
-    "gender": "male",
-    "birthDateVariable": "JAKE_BIRTH_DATE",
+    "personName": "Alice",
+    "gender": "female",
+    "birthDateVariable": "ALICE_BIRTH_DATE",
     "hasInsurance": true,
     "insurancePurchaseAge": 60,
     "annualPremium": 3500,
@@ -13,9 +13,9 @@
     "eliminationDays": 90
   },
   {
-    "personName": "Kendall",
-    "gender": "female",
-    "birthDateVariable": "KENDALL_BIRTH_DATE",
+    "personName": "Bob",
+    "gender": "male",
+    "birthDateVariable": "BOB_BIRTH_DATE",
     "hasInsurance": true,
     "insurancePurchaseAge": 60,
     "annualPremium": 3500,

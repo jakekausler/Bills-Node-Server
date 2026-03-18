@@ -1,10 +1,12 @@
 {
-  "INFLATION": "Inflation",
-  "HEALTHCARE_INFLATION": "HealthcareInflation",
-  "RAISE_RATE": "Raise",
-  "HIGH_YIELD_SAVINGS_RATE": "HYSA",
-  "LOW_YIELD_SAVINGS_RATE": "LYSA",
-  "INVESTMENT_RATE": "Portfolio",
-  "401K_LIMIT_INCREASE_RATE": "401k_limit_increase_rate",
-  "SS_COLA_RATE": "SS_COLA"
+  "accounts": [
+    "Checking",
+    "HYSA",
+    "Brokerage",
+    "Alice 401(k)",
+    "Bob 401(k)",
+    "Alice Roth IRA",
+    "Bob Roth IRA",
+    "HSA"
+  ]
 }
