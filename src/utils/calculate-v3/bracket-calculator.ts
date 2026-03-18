@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import type { DebugLogger } from './debug-logger';
 
 export type FilingStatus = 'single' | 'mfj' | 'mfs' | 'hoh';
 

@@ -16,6 +16,7 @@ import { RothConversionManager, ConversionResult } from './roth-conversion-manag
 import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import type { DebugLogger } from './debug-logger';
 import {
   ActivityEvent,
   ActivityTransferEvent,
@@ -56,6 +57,7 @@ export class Calculator {
   private filingStatus: FilingStatus;
   private bracketInflationRate: number;
   protected monteCarloConfig: any; // From parent, for PRNG access
+  private debugLogger: DebugLogger | null;
 
   constructor(
     balanceTracker: BalanceTracker,
@@ -70,6 +72,7 @@ export class Calculator {
     acaManager: AcaManager,
     filingStatus: FilingStatus = 'mfj',
     bracketInflationRate: number = 0.03,
+    debugLogger?: DebugLogger | null,
   ) {
     this.balanceTracker = balanceTracker;
     this.taxManager = taxManager;
@@ -83,9 +86,15 @@ export class Calculator {
     this.spendingTrackerManager = spendingTrackerManager;
     this.filingStatus = filingStatus;
     this.bracketInflationRate = bracketInflationRate;
-    this.contributionLimitManager = new ContributionLimitManager();
-    this.rothConversionManager = new RothConversionManager(accountManager, acaManager);
+    this.debugLogger = debugLogger ?? null;
+    this.contributionLimitManager = new ContributionLimitManager(debugLogger);
+    this.rothConversionManager = new RothConversionManager(accountManager, acaManager, debugLogger);
     this.rothConversionManager.setBalanceTracker(balanceTracker);
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'calculator', event, ...data });
   }
 
   /**

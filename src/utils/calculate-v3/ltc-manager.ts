@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import type { DebugLogger } from './debug-logger';
 
 // ===== Type Definitions =====
 
@@ -71,12 +72,19 @@ export class LTCManager {
   private baseCosts = { homeCare: 6300, assistedLiving: 5350, nursingHome: 9700 };
   private baseYear = 2024;
   private healthcareInflationRate = 0.05;
+  private debugLogger: DebugLogger | null;
 
-  constructor() {
+  constructor(debugLogger?: DebugLogger | null) {
     this.transitionData = this.loadTransitionData();
     this.configs = this.loadConfigs();
     this.personStates = new Map();
     this.initializePersonStates();
+    this.debugLogger = debugLogger ?? null;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'ltc', event, ...data });
   }
 
   private loadTransitionData(): LTCTransitionData {

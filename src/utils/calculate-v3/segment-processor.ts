@@ -32,6 +32,7 @@ import { TaxManager } from './tax-manager';
 import { AccountManager } from './account-manager';
 import { HealthcareManager } from './healthcare-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
+import type { DebugLogger } from './debug-logger';
 
 export class SegmentProcessor {
   private cache: CacheManager;
@@ -43,6 +44,7 @@ export class SegmentProcessor {
   private accountManager: AccountManager;
   private healthcareManager: HealthcareManager;
   private spendingTrackerManager: SpendingTrackerManager;
+  private debugLogger: DebugLogger | null;
 
   constructor(
     cache: CacheManager,
@@ -54,6 +56,7 @@ export class SegmentProcessor {
     accountManager: AccountManager,
     healthcareManager: HealthcareManager,
     spendingTrackerManager: SpendingTrackerManager,
+    debugLogger?: DebugLogger | null,
   ) {
     this.cache = cache;
     this.balanceTracker = balanceTracker;
@@ -64,6 +67,12 @@ export class SegmentProcessor {
     this.accountManager = accountManager;
     this.healthcareManager = healthcareManager;
     this.spendingTrackerManager = spendingTrackerManager;
+    this.debugLogger = debugLogger ?? null;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'segment', event, ...data });
   }
 
   async processSegment(segment: Segment, options: CalculationOptions): Promise<void> {

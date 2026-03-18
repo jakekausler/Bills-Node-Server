@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { HistoricRates } from './types';
 import { load } from '../io/io';
+import type { DebugLogger } from './debug-logger';
 
 dayjs.extend(utc);
 
@@ -34,9 +35,16 @@ export function clearAcaCache() {
 
 export class AcaManager {
   private readonly DEFAULT_HEALTHCARE_INFLATION = 0.05; // 5% default
+  private debugLogger: DebugLogger | null;
 
-  constructor() {
+  constructor(debugLogger?: DebugLogger | null) {
     // Constructor is minimal; historicRates loaded on-demand
+    this.debugLogger = debugLogger ?? null;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'aca', event, ...data });
   }
 
   /**

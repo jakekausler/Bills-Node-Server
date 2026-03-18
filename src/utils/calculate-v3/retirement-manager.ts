@@ -5,6 +5,7 @@ import { HistoricRates } from './types';
 import { loadAverageWageIndex } from '../io/averageWageIndex';
 import { loadBendPoints } from '../io/bendPoints';
 import { load } from '../io/io';
+import type { DebugLogger } from './debug-logger';
 
 // Module-level caches for expensive disk I/O operations
 let cachedWageIndex: Record<number, number> | null = null;
@@ -89,12 +90,20 @@ export class RetirementManager {
   // RMD table
   private rmdTable: RMDTableType;
 
-  constructor(socialSecurities: SocialSecurity[], pensions: Pension[]) {
+  private debugLogger: DebugLogger | null;
+
+  constructor(socialSecurities: SocialSecurity[], pensions: Pension[], debugLogger?: DebugLogger | null) {
     this.socialSecurities = socialSecurities;
     this.pensions = pensions;
+    this.debugLogger = debugLogger ?? null;
     this.initializeSocialSecurity();
     this.initializePension();
     this.rmdTable = this.loadRMDTable();
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'retirement', event, ...data });
   }
 
   private initializeSocialSecurity() {

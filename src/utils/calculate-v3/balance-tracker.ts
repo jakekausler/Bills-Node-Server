@@ -6,6 +6,7 @@ import utc from 'dayjs/plugin/utc';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { minDate } from '../io/minDate';
 import { isSame } from '../date/date';
+import type { DebugLogger } from './debug-logger';
 
 dayjs.extend(utc);
 
@@ -20,14 +21,21 @@ export class BalanceTracker {
   private activityIndices: Record<string, number> = {};
   private lastSnapshotDate: Date | null = null;
   private snapshotInterval: number = 30; // days
+  private debugLogger: DebugLogger | null;
 
-  constructor(accounts: Account[], cache: CacheManager, startDate: Date | null = null) {
+  constructor(accounts: Account[], cache: CacheManager, startDate: Date | null = null, debugLogger?: DebugLogger | null) {
     // Deep clone accounts to avoid mutations affecting other parallel calculations
     this.accounts = accounts.map((account) => new Account(account.serialize()));
     this.cache = cache;
     this.startDate = startDate;
     // Build index map for O(1) account lookups
     this.accountMap = new Map(this.accounts.map((acc) => [acc.id, acc]));
+    this.debugLogger = debugLogger ?? null;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'balance-tracker', event, ...data });
   }
 
   async initializeBalances(

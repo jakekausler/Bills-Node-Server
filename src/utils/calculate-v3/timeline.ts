@@ -35,6 +35,7 @@ import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecur
 import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
 import { computePeriodBoundaries } from './period-utils';
 import { loadVariable } from '../simulation/variable';
+import type { DebugLogger } from './debug-logger';
 
 export class Timeline {
   private accountManager: AccountManager;
@@ -45,6 +46,7 @@ export class Timeline {
   private enableLogging: boolean;
   private monteCarloConfig: MonteCarloConfig | null;
   private simulation: string;
+  private debugLogger: DebugLogger | null;
 
   constructor(
     accountManager: AccountManager,
@@ -52,6 +54,7 @@ export class Timeline {
     enableLogging: boolean,
     monteCarloConfig: MonteCarloConfig | null = null,
     simulation: string = 'Default',
+    debugLogger?: DebugLogger | null,
   ) {
     this.accountManager = accountManager;
     this.events = [];
@@ -61,6 +64,12 @@ export class Timeline {
     this.enableLogging = enableLogging;
     this.monteCarloConfig = monteCarloConfig;
     this.simulation = simulation;
+    this.debugLogger = debugLogger ?? null;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'timeline', event, ...data });
   }
 
   /**
@@ -73,6 +82,7 @@ export class Timeline {
       this.enableLogging,
       monteCarloConfig,
       this.simulation,
+      this.debugLogger,
     );
 
     // Clone events and sort them
@@ -134,7 +144,7 @@ export class Timeline {
     spendingTrackerCategories: SpendingTrackerCategory[] = [],
   ): Promise<Timeline> {
     const accountManager = new AccountManager(accountsAndTransfers.accounts, calculationOptions);
-    const timeline = new Timeline(accountManager, calculationBegin, enableLogging, monteCarloConfig, calculationOptions.simulation);
+    const timeline = new Timeline(accountManager, calculationBegin, enableLogging, monteCarloConfig, calculationOptions.simulation, calculationOptions.debugLogger);
 
     // Parallelize all independent add* method calls
     await Promise.all([

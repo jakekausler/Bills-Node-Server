@@ -3,6 +3,7 @@ import { Bill } from '../../data/bill/bill';
 import { Activity } from '../../data/activity/activity';
 import { parseDate } from '../../utils/date/date';
 import { loadDateOrVariable } from '../../utils/simulation/loadVariableValue';
+import type { DebugLogger } from './debug-logger';
 
 type YearTracker = {
   planYear: number;
@@ -25,10 +26,17 @@ export class HealthcareManager {
   // Cache for idempotent processing - stores expense ID + date -> calculated patientCost
   private processedExpenses: Map<string, number> = new Map();
   private checkpointProcessedExpenses: Map<string, number> = new Map();
+  private debugLogger: DebugLogger | null;
 
-  constructor(healthcareConfigs: HealthcareConfig[], simulation: string = 'Default') {
+  constructor(healthcareConfigs: HealthcareConfig[], simulation: string = 'Default', debugLogger?: DebugLogger | null) {
     // Resolve date variables for each config
     this.configs = healthcareConfigs.map(config => this.resolveConfigDates(config, simulation));
+    this.debugLogger = debugLogger ?? null;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'healthcare', event, ...data });
   }
 
   /**

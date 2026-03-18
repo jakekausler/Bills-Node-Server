@@ -58,6 +58,7 @@ import { loadHealthcareConfigs, saveHealthcareConfigs } from './utils/io/healthc
 import { loadAllHealthcareConfigs } from './utils/io/virtualHealthcarePlans';
 import { v4 as uuidv4 } from 'uuid';
 import { clearDataCache } from './utils/io/dataCache';
+import { DebugLogger } from './utils/calculate-v3/debug-logger';
 import { CacheManager } from './utils/calculate-v3/cache';
 import { clearRetirementCache } from './utils/calculate-v3/retirement-manager';
 import { clearAcaCache } from './utils/calculate-v3/aca-manager';
@@ -172,6 +173,16 @@ app
 
 // Account graph routes
 app.get('/api/accounts/graph', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  if (req.query.debug === 'true') {
+    const logger = new DebugLogger();
+    // Store logger on request for downstream access
+    (req as any)._debugLogger = logger;
+    const result = await getGraphForAccounts(req);
+    res.setHeader('X-Debug-Log', logger.getDir());
+    logger.close();
+    res.json(result);
+    return;
+  }
   res.json(await getGraphForAccounts(req));
 }));
 

@@ -1,5 +1,6 @@
 import { HistoricRates } from './types';
 import { load } from '../io/io';
+import type { DebugLogger } from './debug-logger';
 
 /**
  * IRMAA (Income-Related Monthly Adjustment Amount) bracket definition
@@ -62,9 +63,16 @@ export class MedicareManager {
     85: 0.45,
     90: 0.5,
   };
+  private debugLogger: DebugLogger | null;
 
-  constructor() {
+  constructor(debugLogger?: DebugLogger | null) {
     // Constructor is minimal; historicRates and IRMAA brackets loaded on-demand
+    this.debugLogger = debugLogger ?? null;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'medicare', event, ...data });
   }
 
   /**

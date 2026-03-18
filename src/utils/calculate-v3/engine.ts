@@ -23,6 +23,7 @@ import { MonteCarloHandler } from './monte-carlo-handler';
 import { computePeriodBoundaries } from './period-utils';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import type { DebugLogger } from './debug-logger';
 
 dayjs.extend(utc);
 
@@ -47,11 +48,18 @@ export class Engine {
   private ltcManager: LTCManager;
   private calculationBegin: number;
   private monteCarloConfig: MonteCarloConfig | null = null;
+  private debugLogger: DebugLogger | null;
 
-  constructor(simulation: string, config: Partial<CalculationConfig> = {}, monteCarlo: boolean = false) {
+  constructor(simulation: string, config: Partial<CalculationConfig> = {}, monteCarlo: boolean = false, debugLogger?: DebugLogger | null) {
     this.simulation = simulation;
     this.config = this.mergeConfig(config);
     this.cache = initializeCache(this.config, simulation, monteCarlo);
+    this.debugLogger = debugLogger ?? null;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'engine', event, ...data });
   }
 
   async calculate(
@@ -96,6 +104,21 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Calculation completed in', Date.now() - this.calculationBegin, 'ms');
     }
+
+    // Write debug meta and close logger
+    if (this.debugLogger) {
+      this.debugLogger.writeMeta({
+        simulation: options.simulation,
+        monteCarlo: options.monteCarlo,
+        simulationNumber: options.simulationNumber,
+        totalSimulations: options.totalSimulations,
+        startDate: options.startDate?.toISOString() ?? null,
+        endDate: options.endDate.toISOString(),
+        durationMs: Date.now() - this.calculationBegin,
+      });
+      this.debugLogger.close();
+    }
+
     return formattedResults;
   }
 
@@ -204,7 +227,7 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Initializing tax manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.taxManager = new TaxManager();
+    this.taxManager = new TaxManager(this.debugLogger);
 
     // Initialize retirement manager
     if (options.enableLogging) {
@@ -213,6 +236,7 @@ export class Engine {
     this.retirementManager = new RetirementManager(
       this.accountManager.getSocialSecurities(),
       this.accountManager.getPensions(),
+      this.debugLogger,
     );
 
     // Initialize healthcare manager
@@ -225,25 +249,25 @@ export class Engine {
     // Eventually sample deductible/OOP max using MC-sampled change ratios (acaOOPMax, medicareDeductible)
     // instead of fixed historical averages. This would make healthcare costs vary per simulation.
 
-    this.healthcareManager = new HealthcareManager(healthcareConfigs, this.simulation);
+    this.healthcareManager = new HealthcareManager(healthcareConfigs, this.simulation, this.debugLogger);
 
     // Initialize Medicare manager
     if (options.enableLogging) {
       console.log('Initializing Medicare manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.medicareManager = new MedicareManager();
+    this.medicareManager = new MedicareManager(this.debugLogger);
 
     // Initialize ACA manager
     if (options.enableLogging) {
       console.log('Initializing ACA manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.acaManager = new AcaManager();
+    this.acaManager = new AcaManager(this.debugLogger);
 
     // Initialize LTC manager
     if (options.enableLogging) {
       console.log('Initializing LTC manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.ltcManager = new LTCManager();
+    this.ltcManager = new LTCManager(this.debugLogger);
 
     // Initialize spending tracker manager
     if (options.enableLogging) {
@@ -279,7 +303,7 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Initializing balance tracker...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.balanceTracker = new BalanceTracker(accountsAndTransfers.accounts, this.cache, actualStartDate);
+    this.balanceTracker = new BalanceTracker(accountsAndTransfers.accounts, this.cache, actualStartDate, this.debugLogger);
 
     // Initialize calculator
     if (options.enableLogging) {
@@ -298,6 +322,7 @@ export class Engine {
       this.acaManager,
       (options.filingStatus as FilingStatus) || 'mfj',
       options.bracketInflationRate || 0.03,
+      this.debugLogger,
     );
 
     // Set Monte Carlo config if available
@@ -315,6 +340,7 @@ export class Engine {
       options.withdrawalStrategy,
       this.calculator.getRothConversionManager(),
       this.taxManager,
+      this.debugLogger,
     );
 
     // Initialize segment processor
@@ -331,6 +357,7 @@ export class Engine {
       this.accountManager,
       this.healthcareManager,
       spendingTrackerManager,
+      this.debugLogger,
     );
   }
 
@@ -408,8 +435,9 @@ export async function calculateAllActivity(
   config: Partial<CalculationConfig> = {},
   timeline?: Timeline,
   seed?: number,
+  debugLogger?: DebugLogger | null,
 ): Promise<AccountsAndTransfers> {
-  const engine = new Engine(simulation, config, monteCarlo);
+  const engine = new Engine(simulation, config, monteCarlo, debugLogger);
 
   const options: CalculationOptions = {
     startDate,
@@ -422,6 +450,7 @@ export async function calculateAllActivity(
     enableLogging,
     config,
     seed,
+    debugLogger: debugLogger ?? null,
   };
 
   const result = await engine.calculate(accountsAndTransfers, options, timeline);

@@ -7,6 +7,7 @@ import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
 import { DateString } from '../date/types';
 import { FilingStatus } from './bracket-calculator';
+import type { DebugLogger } from './debug-logger';
 
 export type IncomeType = 'ordinary' | 'retirement' | 'socialSecurity' | 'interest' | 'penalty';
 
@@ -29,6 +30,7 @@ export type CalculationOptions = {
   enableLogging: boolean;
   config: Partial<CalculationConfig>;
   seed?: number; // Optional seed for reproducible Monte Carlo
+  debugLogger?: DebugLogger | null; // Optional debug logger for detailed calculation tracing
   filingStatus?: FilingStatus;
   bracketInflationRate?: number;
   withdrawalStrategy?: 'manual' | 'taxOptimized'; // Account withdrawal strategy

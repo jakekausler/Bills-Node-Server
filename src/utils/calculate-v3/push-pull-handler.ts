@@ -6,6 +6,7 @@ import { Activity } from '../../data/activity/activity';
 import { BalanceTracker } from './balance-tracker';
 import { RothConversionManager } from './roth-conversion-manager';
 import { TaxManager } from './tax-manager';
+import type { DebugLogger } from './debug-logger';
 
 export interface PullFailure {
   date: Date;
@@ -20,6 +21,7 @@ export class PushPullHandler {
   private withdrawalStrategy: 'manual' | 'taxOptimized' = 'manual';
   private rothConversionManager: RothConversionManager | null;
   private taxManager: TaxManager | null;
+  private debugLogger: DebugLogger | null;
 
   constructor(
     accountManager: AccountManager,
@@ -27,12 +29,19 @@ export class PushPullHandler {
     withdrawalStrategy?: 'manual' | 'taxOptimized',
     rothConversionManager?: RothConversionManager,
     taxManager?: TaxManager,
+    debugLogger?: DebugLogger | null,
   ) {
     this.accountManager = accountManager;
     this.balanceTracker = balanceTracker;
     this.withdrawalStrategy = withdrawalStrategy || 'manual';
     this.rothConversionManager = rothConversionManager || null;
     this.taxManager = taxManager || null;
+    this.debugLogger = debugLogger ?? null;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'push-pull', event, ...data });
   }
 
   /**
@@ -230,7 +239,7 @@ export class PushPullHandler {
 
   /**
    * Apply 10% penalty for Roth conversion lots still within the 5-year holding period.
-   * Withdrawals of conversion amounts within 5 years incur a 10% penalty regardless of age.
+   * Withdrawals of conversion amounts within 5 years incur a 10% penalty only if under age 59½.
    */
   private applyRothConversionPenalty(
     sourceAccount: Account,
@@ -243,6 +252,9 @@ export class PushPullHandler {
     // Only applies to Roth accounts
     const isRoth = sourceAccount.name.toLowerCase().includes('roth');
     if (!isRoth) return;
+
+    // No penalty if account owner is age 59½ or older
+    if (sourceAccount.earlyWithdrawalDate && date >= sourceAccount.earlyWithdrawalDate) return;
 
     const currentYear = date.getUTCFullYear();
     const penaltyableBalance = this.rothConversionManager.getPenaltyableBalance(sourceAccount.id, currentYear);

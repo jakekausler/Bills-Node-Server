@@ -1,15 +1,23 @@
 import { TaxableOccurrence, FilingStatus } from './types';
 import { computeAnnualFederalTax } from './bracket-calculator';
+import type { DebugLogger } from './debug-logger';
 
 export class TaxManager {
   // Map of years to account ids to taxable events
   private taxableOccurrences: Map<number, Map<string, TaxableOccurrence[]>>;
   // Cache of computed tax amounts per year
   private taxCache: Map<number, number>;
+  private debugLogger: DebugLogger | null;
 
-  constructor() {
+  constructor(debugLogger?: DebugLogger | null) {
     this.taxableOccurrences = new Map<number, Map<string, TaxableOccurrence[]>>();
     this.taxCache = new Map<number, number>();
+    this.debugLogger = debugLogger ?? null;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'tax', event, ...data });
   }
 
   // Add multiple taxable occurences for an account

@@ -8,6 +8,7 @@ import { FilingStatus, getBracketDataForYear } from './bracket-calculator';
 import { loadDateOrVariable } from '../simulation/loadVariableValue';
 import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
+import type { DebugLogger } from './debug-logger';
 
 interface ConversionLot {
   year: number;
@@ -40,11 +41,18 @@ export class RothConversionManager {
   private accountManager: AccountManager;
   private acaManager: AcaManager | null = null;
   private conversionsThisYear: ConversionResult[] = [];
+  private debugLogger: DebugLogger | null;
 
-  constructor(accountManager: AccountManager, acaManager?: AcaManager) {
+  constructor(accountManager: AccountManager, acaManager?: AcaManager, debugLogger?: DebugLogger | null) {
     this.accountManager = accountManager;
     this.acaManager = acaManager || null;
+    this.debugLogger = debugLogger ?? null;
     this.loadConfig();
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'roth-conversion', event, ...data });
   }
 
   private loadConfig(): void {

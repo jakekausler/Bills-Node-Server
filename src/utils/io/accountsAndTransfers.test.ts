@@ -231,6 +231,9 @@ describe('accountsAndTransfers', () => {
         false,
         false,
         {},
+        undefined,
+        undefined,
+        undefined,
       );
     });
 
@@ -255,6 +258,9 @@ describe('accountsAndTransfers', () => {
         expect.anything(),
         expect.anything(),
         expect.anything(),
+        undefined,
+        undefined,
+        undefined,
       );
     });
 
@@ -279,6 +285,9 @@ describe('accountsAndTransfers', () => {
         expect.anything(),
         expect.anything(),
         expect.anything(),
+        undefined,
+        undefined,
+        undefined,
       );
     });
 
@@ -303,6 +312,9 @@ describe('accountsAndTransfers', () => {
         false,
         false,
         {},
+        undefined,
+        undefined,
+        undefined,
       );
     });
 
@@ -327,6 +339,9 @@ describe('accountsAndTransfers', () => {
         true,
         false,
         {},
+        undefined,
+        undefined,
+        undefined,
       );
     });
 
@@ -368,6 +383,9 @@ describe('accountsAndTransfers', () => {
         false,
         false,
         calcConfig,
+        undefined,
+        undefined,
+        undefined,
       );
     });
 

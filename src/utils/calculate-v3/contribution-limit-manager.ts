@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { HistoricRates } from './types';
 import { load } from '../io/io';
+import type { DebugLogger } from './debug-logger';
 
 dayjs.extend(utc);
 
@@ -53,6 +54,16 @@ export class ContributionLimitManager {
   private contributionsByPerson: Map<string, Map<number, Map<string, number>>> = new Map();
   // Cache of computed base limits (without catch-up) for MC ratio compounding
   private cachedBaseLimits: Map<string, number> = new Map();
+  private debugLogger: DebugLogger | null = null;
+
+  constructor(debugLogger?: DebugLogger | null) {
+    this.debugLogger = debugLogger ?? null;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(0, { component: 'contribution-limit', event, ...data });
+  }
 
   /**
    * Creates a person key from DOB for tracking contributions per person

@@ -7,6 +7,7 @@ import { resetCache } from './cache';
 import { DATA_CACHE, MAX_CACHE_SIZE, clearDataCache } from './dataCache';
 import { calculateAllActivity } from '../calculate-v3/engine';
 import { CalculationConfig } from '../calculate-v3/types';
+import type { DebugLogger } from '../calculate-v3/debug-logger';
 
 export const FILE_NAME = 'data';
 
@@ -37,6 +38,7 @@ export async function loadData(
     totalSimulations?: number;
     forceRecalculation?: boolean;
     enableLogging?: boolean;
+    debugLogger?: DebugLogger | null;
   } = {},
 ): Promise<AccountsAndTransfers> {
   const cacheKey = `${simulation}-${startDate.toISOString()}-${endDate.toISOString()}`;
@@ -57,6 +59,9 @@ export async function loadData(
     options.forceRecalculation ?? false,
     options.enableLogging ?? false,
     calculationConfig,
+    undefined, // timeline
+    undefined, // seed
+    options.debugLogger,
   );
   if (!skipCache) {
     if (DATA_CACHE.size >= MAX_CACHE_SIZE) {
