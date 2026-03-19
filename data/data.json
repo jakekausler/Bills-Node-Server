@@ -6,6 +6,29 @@
       "interests": [],
       "activity": [
         {
+          "id": "8b891d56-f70c-4fb8-a80f-86fd370c49d7",
+          "name": "Opening Balance",
+          "category": "Ignore.Balance Adjustment",
+          "flag": false,
+          "flagColor": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": 15000,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-01-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "isHealthcare": false,
+          "healthcarePerson": null,
+          "copayAmount": null,
+          "coinsurancePercent": null,
+          "countsTowardDeductible": true,
+          "countsTowardOutOfPocket": true,
+          "spendingCategory": null
+        },
+        {
           "id": "a883d393-ceff-4c21-b6a2-f89311ee6b6d",
           "name": "Alice ER Visit",
           "category": "Health.Doctor",
@@ -695,7 +718,31 @@
           "applicableDate": "2025-01-01"
         }
       ],
-      "activity": [],
+      "activity": [
+        {
+          "id": "301de06e-dc90-403f-8b01-917033b6a5e7",
+          "name": "Opening Balance",
+          "category": "Ignore.Balance Adjustment",
+          "flag": false,
+          "flagColor": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": 50000,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-01-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "isHealthcare": false,
+          "healthcarePerson": null,
+          "copayAmount": null,
+          "coinsurancePercent": null,
+          "countsTowardDeductible": true,
+          "countsTowardOutOfPocket": true,
+          "spendingCategory": null
+        }
+      ],
       "bills": [],
       "hidden": false,
       "type": "Savings",
@@ -735,7 +782,31 @@
           "applicableDate": "2025-01-01"
         }
       ],
-      "activity": [],
+      "activity": [
+        {
+          "id": "d7b1b761-520e-4a87-842b-c966e60b750e",
+          "name": "Opening Balance",
+          "category": "Ignore.Balance Adjustment",
+          "flag": false,
+          "flagColor": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": 450000,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-01-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "isHealthcare": false,
+          "healthcarePerson": null,
+          "copayAmount": null,
+          "coinsurancePercent": null,
+          "countsTowardDeductible": true,
+          "countsTowardOutOfPocket": true,
+          "spendingCategory": null
+        }
+      ],
       "bills": [
         {
           "id": "5e14adc1-907d-4be9-be26-41df0cde70dc",
@@ -812,7 +883,31 @@
           "applicableDate": "2025-01-01"
         }
       ],
-      "activity": [],
+      "activity": [
+        {
+          "id": "acd04829-8ae5-4416-ae05-b47bb443cb58",
+          "name": "Opening Balance",
+          "category": "Ignore.Balance Adjustment",
+          "flag": false,
+          "flagColor": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": 180000,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-01-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "isHealthcare": false,
+          "healthcarePerson": null,
+          "copayAmount": null,
+          "coinsurancePercent": null,
+          "countsTowardDeductible": true,
+          "countsTowardOutOfPocket": true,
+          "spendingCategory": null
+        }
+      ],
       "bills": [
         {
           "id": "a2e4da4e-fd7f-4a36-be98-49eccfd84bea",
@@ -889,7 +984,31 @@
           "applicableDate": "2025-01-01"
         }
       ],
-      "activity": [],
+      "activity": [
+        {
+          "id": "12e1dbcf-b1d4-4f8f-b41e-4ce1d93b6961",
+          "name": "Opening Balance",
+          "category": "Ignore.Balance Adjustment",
+          "flag": false,
+          "flagColor": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": 40000,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-01-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "isHealthcare": false,
+          "healthcarePerson": null,
+          "copayAmount": null,
+          "coinsurancePercent": null,
+          "countsTowardDeductible": true,
+          "countsTowardOutOfPocket": true,
+          "spendingCategory": null
+        }
+      ],
       "bills": [],
       "hidden": false,
       "type": "Investment",
@@ -929,7 +1048,31 @@
           "applicableDate": "2025-01-01"
         }
       ],
-      "activity": [],
+      "activity": [
+        {
+          "id": "edef977d-d31b-456d-b91e-dbef05687832",
+          "name": "Opening Balance",
+          "category": "Ignore.Balance Adjustment",
+          "flag": false,
+          "flagColor": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": 25000,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-01-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "isHealthcare": false,
+          "healthcarePerson": null,
+          "copayAmount": null,
+          "coinsurancePercent": null,
+          "countsTowardDeductible": true,
+          "countsTowardOutOfPocket": true,
+          "spendingCategory": null
+        }
+      ],
       "bills": [],
       "hidden": false,
       "type": "Investment",
@@ -969,7 +1112,31 @@
           "applicableDate": "2025-01-01"
         }
       ],
-      "activity": [],
+      "activity": [
+        {
+          "id": "48e6dd7a-091a-4c21-868a-2224ea4f1d12",
+          "name": "Opening Balance",
+          "category": "Ignore.Balance Adjustment",
+          "flag": false,
+          "flagColor": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": 12000,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-01-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "isHealthcare": false,
+          "healthcarePerson": null,
+          "copayAmount": null,
+          "coinsurancePercent": null,
+          "countsTowardDeductible": true,
+          "countsTowardOutOfPocket": true,
+          "spendingCategory": null
+        }
+      ],
       "bills": [],
       "hidden": false,
       "type": "HSA",
@@ -1009,7 +1176,31 @@
           "applicableDate": "2025-01-01"
         }
       ],
-      "activity": [],
+      "activity": [
+        {
+          "id": "cd4ce61a-a3ad-4b10-9c1c-1dce0fea1b7e",
+          "name": "Opening Balance",
+          "category": "Ignore.Balance Adjustment",
+          "flag": false,
+          "flagColor": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": 200000,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-01-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "isHealthcare": false,
+          "healthcarePerson": null,
+          "copayAmount": null,
+          "coinsurancePercent": null,
+          "countsTowardDeductible": true,
+          "countsTowardOutOfPocket": true,
+          "spendingCategory": null
+        }
+      ],
       "bills": [],
       "hidden": false,
       "type": "Investment",
@@ -1040,7 +1231,31 @@
       "id": "252d7f60-17c3-4032-a401-d4e740514be6",
       "name": "Alice Credit Card",
       "interests": [],
-      "activity": [],
+      "activity": [
+        {
+          "id": "7c830456-1221-4195-91b1-1344adda2bd8",
+          "name": "Opening Balance",
+          "category": "Ignore.Balance Adjustment",
+          "flag": false,
+          "flagColor": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": 0,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-01-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "isHealthcare": false,
+          "healthcarePerson": null,
+          "copayAmount": null,
+          "coinsurancePercent": null,
+          "countsTowardDeductible": true,
+          "countsTowardOutOfPocket": true,
+          "spendingCategory": null
+        }
+      ],
       "bills": [
         {
           "id": "710cb495-7d1b-4a6b-9aaa-27f1a87164dd",
@@ -1180,7 +1395,31 @@
       "id": "9d4c01bf-d9d5-4b9f-8826-0879d297575f",
       "name": "Shared Credit Card",
       "interests": [],
-      "activity": [],
+      "activity": [
+        {
+          "id": "159a9e5b-29b6-43d8-a1cc-fd2a772c95f0",
+          "name": "Opening Balance",
+          "category": "Ignore.Balance Adjustment",
+          "flag": false,
+          "flagColor": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": 0,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-01-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "isHealthcare": false,
+          "healthcarePerson": null,
+          "copayAmount": null,
+          "coinsurancePercent": null,
+          "countsTowardDeductible": true,
+          "countsTowardOutOfPocket": true,
+          "spendingCategory": null
+        }
+      ],
       "bills": [
         {
           "id": "e93b0065-e970-421c-9dec-1769ecda4177",
@@ -1329,7 +1568,31 @@
           "aprVariable": null
         }
       ],
-      "activity": [],
+      "activity": [
+        {
+          "id": "cb25ecb6-2f24-43e4-9417-b981bf559dbb",
+          "name": "Opening Balance",
+          "category": "Ignore.Balance Adjustment",
+          "flag": false,
+          "flagColor": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null,
+          "amount": -280000,
+          "amountIsVariable": false,
+          "amountVariable": null,
+          "date": "2025-01-01",
+          "dateIsVariable": false,
+          "dateVariable": null,
+          "isHealthcare": false,
+          "healthcarePerson": null,
+          "copayAmount": null,
+          "coinsurancePercent": null,
+          "countsTowardDeductible": true,
+          "countsTowardOutOfPocket": true,
+          "spendingCategory": null
+        }
+      ],
       "bills": [],
       "hidden": false,
       "type": "Loan",
