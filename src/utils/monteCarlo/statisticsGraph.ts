@@ -15,6 +15,7 @@ export interface PercentileGraphData {
   worstYear?: { year: number; medianMinBalance: number; realMedianMinBalance: number }; // Year with lowest median balance
   finalYear?: { median: number; p5: number; p25: number; p75: number; p95: number; realMedian: number; realP5: number; realP25: number; realP75: number; realP95: number }; // Stats for last year
   seed?: number; // Base seed used for the simulation
+  accountNames?: Array<{ id: string; name: string }>; // Available accounts for per-account filtering
 }
 
 export interface PercentileDataset {
@@ -474,6 +475,7 @@ export async function computePercentileGraph(
     worstYear,
     finalYear,
     seed: metadata.seed,
+    accountNames: metadata.accountNames,
   };
 }
 
