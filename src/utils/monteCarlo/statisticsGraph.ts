@@ -12,8 +12,8 @@ export interface PercentileGraphData {
   failedSimulations?: number; // #9: Count of failed simulations
   totalSimulations?: number; // #9: Total simulations run
   medianFailureYear?: number | null; // #9: Median year of failure for failed sims
-  worstYear?: { year: number; medianMinBalance: number }; // Year with lowest median balance
-  finalYear?: { median: number; p5: number; p25: number; p75: number; p95: number }; // Stats for last year
+  worstYear?: { year: number; medianMinBalance: number; realMedianMinBalance: number }; // Year with lowest median balance
+  finalYear?: { median: number; p5: number; p25: number; p75: number; p95: number; realMedian: number; realP5: number; realP25: number; realP75: number; realP95: number }; // Stats for last year
   seed?: number; // Base seed used for the simulation
 }
 
@@ -422,7 +422,7 @@ export async function computePercentileGraph(
   }
 
   // Compute worstYear: year with lowest median across simulations
-  let worstYear: { year: number; medianMinBalance: number } | undefined;
+  let worstYear: { year: number; medianMinBalance: number; realMedianMinBalance: number } | undefined;
   {
     let lowestMedian = Infinity;
     for (const year of sortedYears) {
@@ -431,23 +431,35 @@ export async function computePercentileGraph(
       const median = calculatePercentile(yearValues, 50);
       if (median < lowestMedian) {
         lowestMedian = median;
-        worstYear = { year, medianMinBalance: median };
+        const medianInflation = getMedianCumulativeInflationForYear(simulationData, year);
+        worstYear = { year, medianMinBalance: median, realMedianMinBalance: median / medianInflation };
       }
     }
   }
 
   // Compute finalYear stats for the last year
-  let finalYear: { median: number; p5: number; p25: number; p75: number; p95: number } | undefined;
+  let finalYear: { median: number; p5: number; p25: number; p75: number; p95: number; realMedian: number; realP5: number; realP25: number; realP75: number; realP95: number } | undefined;
   if (sortedYears.length > 0) {
     const lastYear = sortedYears[sortedYears.length - 1];
     const lastYearValues = getValuesForYear(lastYear);
     lastYearValues.sort((a, b) => a - b);
+    const median = calculatePercentile(lastYearValues, 50);
+    const p5 = calculatePercentile(lastYearValues, 5);
+    const p25 = calculatePercentile(lastYearValues, 25);
+    const p75 = calculatePercentile(lastYearValues, 75);
+    const p95 = calculatePercentile(lastYearValues, 95);
+    const finalInflation = getMedianCumulativeInflationForYear(simulationData, lastYear);
     finalYear = {
-      median: calculatePercentile(lastYearValues, 50),
-      p5: calculatePercentile(lastYearValues, 5),
-      p25: calculatePercentile(lastYearValues, 25),
-      p75: calculatePercentile(lastYearValues, 75),
-      p95: calculatePercentile(lastYearValues, 95),
+      median,
+      p5,
+      p25,
+      p75,
+      p95,
+      realMedian: median / finalInflation,
+      realP5: p5 / finalInflation,
+      realP25: p25 / finalInflation,
+      realP75: p75 / finalInflation,
+      realP95: p95 / finalInflation,
     };
   }
 
