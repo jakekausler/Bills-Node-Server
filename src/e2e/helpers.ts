@@ -186,6 +186,32 @@ export function getYTDIncome(
     .reduce((sum, a) => sum + a.amount, 0);
 }
 
+/**
+ * Get YTD taxable income as tracked by the engine's tax manager.
+ * Only includes pension, Social Security, and interest — NOT paychecks,
+ * which are post-tax take-home amounts not tracked in the tax manager.
+ */
+export function getYTDTaxableIncome(
+  accountName: string,
+  year: number,
+  throughMonth: number,
+  simulation: Simulation = 'default',
+): number {
+  const startDate = `${year}-01-01`;
+  const lastDay = new Date(year, throughMonth, 0).getDate();
+  const endDate = `${year}-${String(throughMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  const activities = getActivitiesInDateRange(accountName, startDate, endDate, simulation);
+  return activities
+    .filter(
+      (a) =>
+        a.amount > 0 &&
+        (a.name.includes('Pension') ||
+          a.name.includes('Social Security') ||
+          a.name.includes('Interest')),
+    )
+    .reduce((sum, a) => sum + a.amount, 0);
+}
+
 export function getYTDContributions(
   accountName: string,
   year: number,

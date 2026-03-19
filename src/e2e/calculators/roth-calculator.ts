@@ -105,9 +105,14 @@ export function calculateBracketSpace(
   }
 
   const thresholdEnd = targetBracket.max ?? Number.MAX_SAFE_INTEGER;
-  const taxableIncome = Math.max(0, ytdOrdinaryIncome - standardDeduction);
 
-  return Math.max(0, thresholdEnd - taxableIncome);
+  // The total conversion that keeps all income within the target bracket is:
+  //   (ytdOrdinaryIncome + totalConversion - standardDeduction) <= thresholdEnd
+  //   totalConversion <= thresholdEnd + standardDeduction - ytdOrdinaryIncome
+  // This accounts for the standard deduction shielding conversion income itself,
+  // which allows more total conversion than the naive formula
+  //   (thresholdEnd - max(0, ytdOrdinaryIncome - standardDeduction)).
+  return Math.max(0, thresholdEnd + standardDeduction - ytdOrdinaryIncome);
 }
 
 /**

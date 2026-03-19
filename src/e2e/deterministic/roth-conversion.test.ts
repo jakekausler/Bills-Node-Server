@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
   getMonthEndBalance,
-  getYTDIncome,
+  getYTDTaxableIncome,
   getRothConversions,
 } from '../helpers';
 import {
@@ -47,7 +47,7 @@ describe('Roth Conversions', () => {
       if (conversions.length === 0) return; // no conversions this year
 
       // Aggregate YTD ordinary income through November (before Dec conversion)
-      const ytdIncome = getYTDIncome('Checking', year, 11);
+      const ytdIncome = getYTDTaxableIncome('Checking', year, 11);
 
       // Calculate bracket space
       const bracketSpace = calculateBracketSpace(
@@ -88,7 +88,7 @@ describe('Roth Conversions', () => {
       const conversions = getRothConversions(year);
       if (conversions.length === 0) return;
 
-      const ytdIncome = getYTDIncome('Checking', year, 11);
+      const ytdIncome = getYTDTaxableIncome('Checking', year, 11);
 
       const bracketSpace = calculateBracketSpace(
         ytdIncome,
@@ -137,7 +137,7 @@ describe('Roth Conversions', () => {
       const conversions = getRothConversions(year);
       if (conversions.length === 0) return;
 
-      const ytdIncome = getYTDIncome('Checking', year, 11);
+      const ytdIncome = getYTDTaxableIncome('Checking', year, 11);
 
       const bracketSpace = calculateBracketSpace(
         ytdIncome,
@@ -179,7 +179,7 @@ describe('Roth Conversions', () => {
     });
 
     it('bracket space calculation should use inflation-adjusted brackets', () => {
-      const ytdIncome = getYTDIncome('Checking', year, 11);
+      const ytdIncome = getYTDTaxableIncome('Checking', year, 11);
 
       const bracketSpace = calculateBracketSpace(
         ytdIncome,
@@ -215,7 +215,7 @@ describe('Roth Conversions', () => {
       const conversions = getRothConversions(year);
       if (conversions.length === 0) return;
 
-      const ytdIncome = getYTDIncome('Checking', year, 11);
+      const ytdIncome = getYTDTaxableIncome('Checking', year, 11);
 
       const bracketSpace = calculateBracketSpace(
         ytdIncome,
@@ -243,7 +243,7 @@ describe('Roth Conversions', () => {
       const conversions = getRothConversions(year);
       if (conversions.length === 0) return;
 
-      const ytdIncome = getYTDIncome('Checking', year, 11);
+      const ytdIncome = getYTDTaxableIncome('Checking', year, 11);
 
       const bracketSpace = calculateBracketSpace(
         ytdIncome,
