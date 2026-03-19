@@ -756,7 +756,7 @@
           "isTransfer": false,
           "from": null,
           "to": null,
-          "amount": 450000,
+          "amount": 1500000,
           "amountIsVariable": false,
           "amountVariable": null,
           "date": "2025-01-01",
@@ -831,7 +831,7 @@
       "pushEnd": null,
       "pushAccount": null,
       "defaultShowInGraph": false,
-      "balance": 450000,
+      "balance": 1500000,
       "contributionLimitType": "401k"
     },
     {
@@ -857,7 +857,7 @@
           "isTransfer": false,
           "from": null,
           "to": null,
-          "amount": 180000,
+          "amount": 800000,
           "amountIsVariable": false,
           "amountVariable": null,
           "date": "2025-01-01",
@@ -932,7 +932,7 @@
       "pushEnd": null,
       "pushAccount": null,
       "defaultShowInGraph": false,
-      "balance": 180000,
+      "balance": 800000,
       "contributionLimitType": "401k"
     },
     {
