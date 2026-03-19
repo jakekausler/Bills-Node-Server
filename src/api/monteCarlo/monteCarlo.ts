@@ -28,6 +28,13 @@ export function invalidateGraphCache(simulationId: string): void {
   }
 }
 
+/**
+ * Clear all cached MC graph data (used by /api/cache/clear)
+ */
+export function clearAllGraphCache(): void {
+  graphCache.clear();
+}
+
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface MonteCarloRequestData {

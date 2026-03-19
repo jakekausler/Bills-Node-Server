@@ -43,6 +43,7 @@ import {
   getSimulationResults,
   getSimulationResultByNumber,
   deleteSimulation,
+  clearAllGraphCache,
 } from './api/monteCarlo/monteCarlo';
 import { getHealthcareProgress } from './api/healthcare/progress';
 import { getHealthcareExpenses } from './api/healthcare/expenses';
@@ -714,6 +715,7 @@ app.post('/api/cache/clear', verifyToken, (_req: Request, res: Response) => {
   clearAcaCache();
   clearMedicareCache();
   clearContributionLimitCache();
+  clearAllGraphCache();
   res.json({ success: true });
 });
 
