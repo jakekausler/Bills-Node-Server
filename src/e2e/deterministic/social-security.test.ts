@@ -47,6 +47,7 @@ const BOB_BIRTH_YEAR = 1973; // 1973-06-20
 const BOB_SS_START = '2040-06-20'; // claiming at exactly 67 (FRA)
 const RAISE_RATE = 0.03;
 const ALICE_PAYCHECK_BIWEEKLY = 4200; // $4,200 every 2 weeks
+const BOB_PAYCHECK_BIWEEKLY = 2800; // $2,800 every 2 weeks
 const RETIRE_DATE = '2028-07-01';
 
 // ---------------------------------------------------------------------------
@@ -116,9 +117,38 @@ function buildBobEarnings(): Record<number, number> {
     earnings[bobSSConfig.priorAnnualNetIncomeYears[i]] =
       bobSSConfig.priorAnnualNetIncomes[i];
   }
-  // Bob also has paychecks during simulation — similar approach
-  // For simplicity, we include prior incomes only and note that simulation
-  // earnings will be included by the engine. We use a tolerance to accommodate.
+
+  // Simulation-period earnings from biweekly paychecks with annual raises
+  // Bob Paycheck: $2,800 biweekly from 2025-01-10, 3% raise on 01/01, ends 2028-07-01
+  let currentAmount = BOB_PAYCHECK_BIWEEKLY;
+  for (let year = 2025; year <= 2028; year++) {
+    if (year > 2025) {
+      currentAmount *= 1 + RAISE_RATE;
+    }
+    const startDate = year === 2025 ? new Date(2025, 0, 10) : new Date(year, 0, 1);
+    const endDate =
+      year === 2028
+        ? new Date(2028, 6, 1) // July 1 retirement
+        : new Date(year, 11, 31);
+
+    let payDate = new Date(2025, 0, 10); // first pay date
+    while (payDate < startDate) {
+      payDate.setDate(payDate.getDate() + 14);
+    }
+
+    let yearTotal = 0;
+    while (payDate <= endDate) {
+      const payYear = payDate.getFullYear();
+      if (payYear === year) {
+        yearTotal += currentAmount;
+      }
+      payDate.setDate(payDate.getDate() + 14);
+    }
+    if (yearTotal > 0) {
+      earnings[year] = (earnings[year] || 0) + yearTotal;
+    }
+  }
+
   return earnings;
 }
 
