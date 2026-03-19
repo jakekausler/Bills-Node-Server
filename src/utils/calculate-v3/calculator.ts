@@ -25,6 +25,7 @@ import {
   FilingStatus,
   IncomeType,
   InterestEvent,
+  MonteCarloSampleType,
   PensionEvent,
   RMDEvent,
   SegmentResult,
@@ -143,6 +144,19 @@ export class Calculator {
    */
   setMonteCarloConfig(config: any): void {
     this.monteCarloConfig = config;
+  }
+
+  /**
+   * Get the MC change ratio for a contribution limit type at a given date.
+   * Returns undefined if MC is not enabled (deterministic mode uses fixed inflation).
+   */
+  private getMCLimitChangeRatio(limitType: '401k' | 'ira' | 'hsa', date: Date): number | undefined {
+    if (!this.monteCarloConfig?.handler) return undefined;
+    const sampleType =
+      limitType === '401k' ? MonteCarloSampleType.K401_LIMIT_CHANGE :
+      limitType === 'ira' ? MonteCarloSampleType.IRA_LIMIT_CHANGE :
+      MonteCarloSampleType.HSA_LIMIT_CHANGE;
+    return this.monteCarloConfig.handler.getSample(sampleType, date);
   }
 
   /***************************************
@@ -336,10 +350,12 @@ export class Calculator {
           // employee + employer contributions. Historical data has been added to historicRates.json.
           const limitType = account.contributionLimitType as '401k' | 'ira' | 'hsa';
           const year = event.date.getUTCFullYear();
+          const mcRatio = this.getMCLimitChangeRatio(limitType, event.date);
           const remaining = this.contributionLimitManager.getRemainingLimit(
             account.accountOwnerDOB,
             year,
             limitType,
+            mcRatio,
           );
 
           if (remaining !== Infinity) {
@@ -1368,10 +1384,12 @@ export class Calculator {
 
     const limitType = toAccount.contributionLimitType as '401k' | 'ira' | 'hsa';
     const year = date.getUTCFullYear();
+    const mcRatio = this.getMCLimitChangeRatio(limitType, date);
     const remaining = this.contributionLimitManager.getRemainingLimit(
       toAccount.accountOwnerDOB,
       year,
       limitType,
+      mcRatio,
     );
 
     if (remaining === Infinity) {
