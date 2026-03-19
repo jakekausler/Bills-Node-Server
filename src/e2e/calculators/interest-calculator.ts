@@ -7,6 +7,60 @@
  */
 
 /**
+ * Compute blended annual return from portfolio glide path allocation.
+ *
+ * Uses the most recent waypoint year that is <= the given date's year.
+ * Clamps to the earliest/latest waypoint when outside the range.
+ *
+ * @param date - Current date as YYYY-MM-DD
+ * @param glidePathData - Portfolio makeup keyed by year string, e.g. { "2025": { stock: 0.8, bond: 0.15, ... } }
+ * @param assetReturns - Per-asset annual returns, e.g. { stock: 0.10, bond: 0.04, cash: 0.02 }
+ * @returns Blended annual return
+ */
+export function computeBlendedReturn(
+  date: string,
+  glidePathData: Record<string, Record<string, number>>,
+  assetReturns: Record<string, number>,
+): number {
+  const year = parseInt(date.substring(0, 4), 10);
+  const waypointYears = Object.keys(glidePathData)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  // Find the most recent waypoint year <= the given year
+  let selectedYear: number;
+  if (year <= waypointYears[0]) {
+    selectedYear = waypointYears[0];
+  } else if (year >= waypointYears[waypointYears.length - 1]) {
+    selectedYear = waypointYears[waypointYears.length - 1];
+  } else {
+    selectedYear = waypointYears[0];
+    for (const wy of waypointYears) {
+      if (wy > year) break;
+      selectedYear = wy;
+    }
+  }
+
+  const composition = glidePathData[selectedYear.toString()];
+
+  // Compute weighted sum of returns across all asset classes
+  let blended = 0;
+  for (const [assetClass, weight] of Object.entries(composition)) {
+    if (assetReturns[assetClass] !== undefined) {
+      blended += weight * assetReturns[assetClass];
+    } else {
+      // For unknown asset classes (preferred, convertible, other), use
+      // the average of stock and bond returns as a proxy (matches engine)
+      const stockReturn = assetReturns['stock'] ?? 0;
+      const bondReturn = assetReturns['bond'] ?? 0;
+      blended += weight * ((stockReturn + bondReturn) / 2);
+    }
+  }
+
+  return blended;
+}
+
+/**
  * Map a compounding frequency string to periods per year.
  *
  * Supports simple keywords ("day", "daily", "week", "weekly", "month",

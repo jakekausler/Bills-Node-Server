@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { getActivitiesInMonth, getMonthEndBalance } from '../helpers';
-import { calculateInterest } from '../calculators/interest-calculator';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { getActivitiesInMonth } from '../helpers';
+import { calculateInterest, computeBlendedReturn } from '../calculators/interest-calculator';
 
 /**
  * Interest E2E tests — verify the engine's compounding, expense-ratio
@@ -17,39 +19,49 @@ import { calculateInterest } from '../calculators/interest-calculator';
  *   Mortgage:       6.5% fixed, monthly, interestAppliesToPositiveBalance=false
  */
 
-const INVESTMENT_RATE = 0.07;
+// Portfolio glide path data for blended return computation
+const glidePathData: Record<string, Record<string, number>> = JSON.parse(
+  readFileSync(join(__dirname, '../../../data/portfolioMakeupOverTime.json'), 'utf-8'),
+);
+
+// Per-asset-class deterministic returns from variables.csv (Default simulation)
+const assetReturns: Record<string, number> = { stock: 0.10, bond: 0.04, cash: 0.02 };
+
 const HIGH_YIELD_SAVINGS_RATE = 0.045;
 
 interface AccountInterestConfig {
   name: string;
-  apr: number;
+  /** If true, rate comes from glide path blending; otherwise use fixedApr */
+  usesGlidePath: boolean;
+  fixedApr: number;
   expenseRatio: number;
   frequency: string;
   interestAppliesToPositiveBalance: boolean;
 }
 
 const INTEREST_ACCOUNTS: AccountInterestConfig[] = [
-  { name: 'HYSA', apr: HIGH_YIELD_SAVINGS_RATE, expenseRatio: 0, frequency: 'month', interestAppliesToPositiveBalance: true },
-  { name: 'Alice 401(k)', apr: INVESTMENT_RATE, expenseRatio: 0.0008, frequency: 'month', interestAppliesToPositiveBalance: true },
-  { name: 'Bob 401(k)', apr: INVESTMENT_RATE, expenseRatio: 0.0008, frequency: 'month', interestAppliesToPositiveBalance: true },
-  { name: 'Alice Roth IRA', apr: INVESTMENT_RATE, expenseRatio: 0, frequency: 'month', interestAppliesToPositiveBalance: true },
-  { name: 'Bob Roth IRA', apr: INVESTMENT_RATE, expenseRatio: 0, frequency: 'month', interestAppliesToPositiveBalance: true },
-  { name: 'HSA', apr: HIGH_YIELD_SAVINGS_RATE, expenseRatio: 0, frequency: 'month', interestAppliesToPositiveBalance: true },
-  { name: 'Brokerage', apr: INVESTMENT_RATE, expenseRatio: 0.0015, frequency: 'month', interestAppliesToPositiveBalance: true },
-  { name: 'Mortgage', apr: 0.065, expenseRatio: 0, frequency: 'month', interestAppliesToPositiveBalance: false },
+  { name: 'HYSA', usesGlidePath: false, fixedApr: HIGH_YIELD_SAVINGS_RATE, expenseRatio: 0, frequency: 'month', interestAppliesToPositiveBalance: true },
+  { name: 'Alice 401(k)', usesGlidePath: true, fixedApr: 0, expenseRatio: 0.0008, frequency: 'month', interestAppliesToPositiveBalance: true },
+  { name: 'Bob 401(k)', usesGlidePath: true, fixedApr: 0, expenseRatio: 0.0008, frequency: 'month', interestAppliesToPositiveBalance: true },
+  { name: 'Alice Roth IRA', usesGlidePath: true, fixedApr: 0, expenseRatio: 0, frequency: 'month', interestAppliesToPositiveBalance: true },
+  { name: 'Bob Roth IRA', usesGlidePath: true, fixedApr: 0, expenseRatio: 0, frequency: 'month', interestAppliesToPositiveBalance: true },
+  { name: 'HSA', usesGlidePath: false, fixedApr: HIGH_YIELD_SAVINGS_RATE, expenseRatio: 0, frequency: 'month', interestAppliesToPositiveBalance: true },
+  { name: 'Brokerage', usesGlidePath: true, fixedApr: 0, expenseRatio: 0.0015, frequency: 'month', interestAppliesToPositiveBalance: true },
+  { name: 'Mortgage', usesGlidePath: false, fixedApr: 0.065, expenseRatio: 0, frequency: 'month', interestAppliesToPositiveBalance: false },
 ];
 
 const TEST_MONTHS = ['2025-01', '2025-06', '2028-07', '2035-12', '2055-12'];
 
 /**
- * Get the year-month string for the month prior to the given year-month.
+ * Get the effective annual rate for an account at a given date.
+ * Accounts with aprVariable === 'INVESTMENT_RATE' use the glide path;
+ * others use their fixed rate.
  */
-function priorMonth(yearMonth: string): string {
-  const [y, m] = yearMonth.split('-').map(Number);
-  if (m === 1) {
-    return `${y - 1}-12`;
+function getEffectiveRate(account: AccountInterestConfig, date: string): number {
+  if (account.usesGlidePath) {
+    return computeBlendedReturn(date, glidePathData, assetReturns);
   }
-  return `${y}-${String(m - 1).padStart(2, '0')}`;
+  return account.fixedApr;
 }
 
 /**
@@ -61,6 +73,20 @@ function sumInterestInMonth(accountName: string, yearMonth: string): number {
   return activities
     .filter((a) => a.name === 'Interest')
     .reduce((sum, a) => sum + a.amount, 0);
+}
+
+/**
+ * Get the balance just before the first Interest event fires in a given month.
+ * This is the balance the engine uses to compute interest.
+ * Calculated as: (interest activity's balance) - (interest activity's amount).
+ *
+ * Returns null if no interest activity exists in that month.
+ */
+function getPreInterestBalance(accountName: string, yearMonth: string): number | null {
+  const activities = getActivitiesInMonth(accountName, yearMonth);
+  const interestActivity = activities.find((a) => a.name === 'Interest');
+  if (!interestActivity) return null;
+  return interestActivity.balance - interestActivity.amount;
 }
 
 /**
@@ -84,10 +110,11 @@ describe('Interest Compounding', () => {
   });
 
   describe('mortgage produces negative interest (adds to debt)', () => {
-    it('Mortgage interest should be negative in 2025-01', () => {
+    it('Mortgage interest should be 0 in 2025-01 (interest fires before opening balance)', () => {
       const total = sumInterestInMonth('Mortgage', '2025-01');
-      // Mortgage balance is negative (debt), so interest should be negative
-      expect(total).toBeLessThan(0);
+      // First month: interest event fires before the opening balance event,
+      // so balance is 0 and interest is 0.
+      expect(total).toBe(0);
     });
 
     it('Mortgage interest should be negative in 2025-06', () => {
@@ -118,13 +145,17 @@ describe('Interest Compounding', () => {
               return;
             }
 
-            // Get balance at end of prior month (the balance interest is computed on)
-            const prior = priorMonth(yearMonth);
-            const priorBalance = getMonthEndBalance(account.name, prior);
+            // Get the balance at the moment interest fires (before interest is applied)
+            const preInterestBalance = getPreInterestBalance(account.name, yearMonth);
+            expect(preInterestBalance).not.toBeNull();
+
+            // Compute the effective rate (glide path blended or fixed)
+            const dateForRate = `${yearMonth}-01`;
+            const effectiveRate = getEffectiveRate(account, dateForRate);
 
             const expected = calculateInterest(
-              priorBalance,
-              account.apr,
+              preInterestBalance!,
+              effectiveRate,
               account.expenseRatio,
               account.frequency,
               account.interestAppliesToPositiveBalance,
@@ -138,12 +169,13 @@ describe('Interest Compounding', () => {
   });
 
   describe('expense ratio reduces effective return', () => {
-    it('Alice 401(k) interest should be less than same balance at full 7%', () => {
-      const priorBalance = getMonthEndBalance('Alice 401(k)', '2025-05');
-      if (priorBalance <= 0) return;
+    it('Alice 401(k) interest should be less than same balance at full blended rate', () => {
+      const preInterestBalance = getPreInterestBalance('Alice 401(k)', '2025-06');
+      if (!preInterestBalance || preInterestBalance <= 0) return;
 
-      const withExpenseRatio = calculateInterest(priorBalance, INVESTMENT_RATE, 0.0008, 'month', true);
-      const withoutExpenseRatio = calculateInterest(priorBalance, INVESTMENT_RATE, 0, 'month', true);
+      const blendedRate = computeBlendedReturn('2025-06-01', glidePathData, assetReturns);
+      const withExpenseRatio = calculateInterest(preInterestBalance, blendedRate, 0.0008, 'month', true);
+      const withoutExpenseRatio = calculateInterest(preInterestBalance, blendedRate, 0, 'month', true);
 
       expect(withExpenseRatio).toBeLessThan(withoutExpenseRatio);
 
@@ -157,8 +189,9 @@ describe('Interest Compounding', () => {
     it('Brokerage 0.15% expense ratio reduces return more than 401(k) 0.08%', () => {
       // For the same balance and rate, higher expense ratio = less interest
       const testBalance = 100000;
-      const brokerage = calculateInterest(testBalance, INVESTMENT_RATE, 0.0015, 'month', true);
-      const fourOhOne = calculateInterest(testBalance, INVESTMENT_RATE, 0.0008, 'month', true);
+      const blendedRate = computeBlendedReturn('2025-06-01', glidePathData, assetReturns);
+      const brokerage = calculateInterest(testBalance, blendedRate, 0.0015, 'month', true);
+      const fourOhOne = calculateInterest(testBalance, blendedRate, 0.0008, 'month', true);
       expect(brokerage).toBeLessThan(fourOhOne);
     });
   });
