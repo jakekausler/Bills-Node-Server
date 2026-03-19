@@ -1,4 +1,4 @@
-import { writeFileSync, readFileSync, unlinkSync, existsSync, mkdirSync, readdirSync } from 'fs';
+import { readFileSync, unlinkSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { Worker } from 'worker_threads';
 import { randomInt } from 'crypto';
@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { SimulationJob, SimulationProgress, WorkerData, WorkerMessage } from './types';
 import { formatDate } from '../date/date';
-import { generateMonteCarloStatisticsGraph } from './statisticsGraph';
 import { MC_TEMP_DIR, MC_RESULTS_DIR, MC_GRAPHS_DIR } from './paths';
 
 export class MonteCarloSimulationRunner {
@@ -87,6 +86,7 @@ export class MonteCarloSimulationRunner {
             if (ageInDays > 7) {
               console.log(`🗑️ Deleting expired simulation ${id} (${Math.floor(ageInDays)} days old)`);
               unlinkSync(resultFilePath);
+              // Clean up legacy graph file if it exists
               const graphFilePath = join(MC_GRAPHS_DIR, `${id}.json`);
               if (existsSync(graphFilePath)) {
                 unlinkSync(graphFilePath);
@@ -94,27 +94,14 @@ export class MonteCarloSimulationRunner {
               continue;
             }
 
-            // Check if graph file exists
+            // Clean up legacy graph file if it exists (graphs are now computed on-demand)
             const graphFilePath = join(MC_GRAPHS_DIR, `${id}.json`);
-            if (!existsSync(graphFilePath)) {
-              console.log(`📈 Regenerating missing graph for simulation ${id}...`);
-              try {
-                const graphData = await generateMonteCarloStatisticsGraph(id, {
-                  percentiles: [0, 5, 25, 50, 75, 95, 100],
-                  includeDeterministic: true,
-                  combineAccounts: true,
-                });
-                writeFileSync(graphFilePath, JSON.stringify(graphData, null, 2));
-                console.log(`✅ Graph regenerated for simulation ${id}`);
-              } catch (error) {
-                console.error(`❌ Failed to regenerate graph for simulation ${id}:`, error);
-                // Delete result if graph generation fails
-                unlinkSync(resultFilePath);
-                continue;
-              }
+            if (existsSync(graphFilePath)) {
+              unlinkSync(graphFilePath);
+              console.log(`🗑️ Removed legacy graph file for simulation ${id}`);
             }
 
-            // Both files exist and not expired - add to in-memory map
+            // Results file exists and not expired - add to in-memory map
             const job: SimulationJob = {
               id,
               accountsAndTransfers: {} as AccountsAndTransfers,

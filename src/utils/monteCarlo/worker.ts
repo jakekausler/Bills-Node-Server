@@ -2,11 +2,11 @@ import { parentPort, workerData } from 'worker_threads';
 import { writeFileSync, mkdirSync, existsSync, readFileSync, unlinkSync, createWriteStream } from 'fs';
 import { join } from 'path';
 import { getAccountsAndTransfers } from '../io/accountsAndTransfers';
-import { WorkerData, WorkerMessage, SimulationResult, FilteredActivity, FilteredAccount, AggregatedSimulationResult } from './types';
+import { WorkerData, WorkerMessage, FilteredActivity, FilteredAccount, AggregatedSimulationResult } from './types';
 import { Timeline } from '../calculate-v3/timeline';
 import { minDate } from '../io/minDate';
 import { calculateAllActivity, getLastPullFailures } from '../calculate-v3/engine';
-import { generateMonteCarloStatisticsGraph, calculateYearlyMinBalances } from './statisticsGraph';
+import { calculateYearlyMinBalances } from './statisticsGraph';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 import { MonteCarloHandler } from '../calculate-v3/monte-carlo-handler';
 import { DebugLogger } from '../calculate-v3/debug-logger';
@@ -31,9 +31,6 @@ async function runWorkerSimulations(): Promise<void> {
     }
     if (!existsSync(data.resultsDir)) {
       mkdirSync(data.resultsDir, { recursive: true });
-    }
-    if (!existsSync(data.graphsDir)) {
-      mkdirSync(data.graphsDir, { recursive: true });
     }
 
     const startDate = new Date(data.startDate);
@@ -120,8 +117,7 @@ async function runWorkerSimulations(): Promise<void> {
     // Combine temp files into final result
     await combineTempFiles(tempFiles, startDate, endDate, accountNames);
 
-    // Generate and save graph
-    await generateAndSaveGraph();
+    // Graph is now computed on-demand by the API endpoint — no pre-generation needed
 
     // Send complete message
     if (parentPort) {
@@ -355,34 +351,6 @@ async function combineTempFiles(
   } catch (error) {
     console.error('❌ [Worker] Error combining temp files:', error);
     throw error;
-  }
-}
-
-/**
- * Generate and save graph for the simulation
- */
-async function generateAndSaveGraph(): Promise<void> {
-  try {
-    console.log(`📈 [Worker] Generating graph for simulation ${data.simulationId}...`);
-
-    const graphData = await generateMonteCarloStatisticsGraph(data.simulationId, {
-      percentiles: [0, 5, 25, 50, 75, 95, 100],
-      includeDeterministic: true,
-      combineAccounts: true,
-    });
-
-    const graphFilePath = join(data.graphsDir, `${data.simulationId}.json`);
-    writeFileSync(graphFilePath, JSON.stringify(graphData, null, 2));
-
-    console.log(
-      `✅ [Worker] Graph saved for simulation ${data.simulationId} at ${graphFilePath}`,
-    );
-  } catch (error) {
-    console.error(
-      `❌ [Worker] Failed to generate graph for simulation ${data.simulationId}:`,
-      error,
-    );
-    // Don't throw - graph generation failure shouldn't fail the entire simulation
   }
 }
 

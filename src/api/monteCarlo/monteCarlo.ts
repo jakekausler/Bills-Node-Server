@@ -9,9 +9,24 @@ import {
   MonteCarloSimulationRunner,
 } from '../../utils/monteCarlo';
 import { SimulationProgress } from '../../utils/monteCarlo/types';
-import { PercentileGraphData } from '../../utils/monteCarlo/statisticsGraph';
-import { MC_GRAPHS_DIR, MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
+import { PercentileGraphData, computePercentileGraph } from '../../utils/monteCarlo/statisticsGraph';
+import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
+
+// In-memory cache for computed percentile graphs
+// Key: `{simulationId}:{accountId || 'combined'}`
+const graphCache = new Map<string, PercentileGraphData>();
+
+/**
+ * Invalidate all cached graph data for a given simulation
+ */
+export function invalidateGraphCache(simulationId: string): void {
+  for (const key of graphCache.keys()) {
+    if (key.startsWith(`${simulationId}:`)) {
+      graphCache.delete(key);
+    }
+  }
+}
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -90,11 +105,14 @@ export async function getAllSimulations(_req: Request): Promise<SimulationProgre
 }
 
 /**
- * Get the graph data for a completed Monte Carlo simulation
+ * Get the graph data for a completed Monte Carlo simulation.
+ * Computes percentiles on-demand from raw results with in-memory caching.
+ * Supports ?account={accountId} for per-account percentile data.
+ * Returns both nominal (data) and real (realValues) in each dataset.
  */
 export async function getSimulationGraph(req: Request): Promise<PercentileGraphData> {
   const { id } = req.params;
-  const real = req.query.real === 'true'; // Check for real dollar (inflation-adjusted) request
+  const accountId = req.query.account as string | undefined;
 
   if (!id) {
     throw new Error('Simulation ID is required');
@@ -108,31 +126,20 @@ export async function getSimulationGraph(req: Request): Promise<PercentileGraphD
     throw new Error(`Simulation with ID ${id} is not yet completed`);
   }
 
-  // Load graph data from saved file
-  const graphFilePath = join(MC_GRAPHS_DIR, `${id}.json`);
-
-  if (!existsSync(graphFilePath)) {
-    throw new Error(`Graph file not found for simulation ${id}. Graph may not have been generated yet.`);
+  // Check cache
+  const cacheKey = `${id}:${accountId || 'combined'}`;
+  const cached = graphCache.get(cacheKey);
+  if (cached) {
+    return cached;
   }
 
+  // Compute on-demand
   try {
-    const graphData = JSON.parse(readFileSync(graphFilePath, 'utf8')) as PercentileGraphData;
-
-    // If real dollar requested, replace data with realValues
-    if (real) {
-      const deflatedDatasets = graphData.datasets.map((dataset) => ({
-        ...dataset,
-        data: dataset.realValues || dataset.data, // Use realValues if available, fall back to nominal
-      }));
-      return {
-        ...graphData,
-        datasets: deflatedDatasets,
-      };
-    }
-
+    const graphData = await computePercentileGraph(id, accountId);
+    graphCache.set(cacheKey, graphData);
     return graphData;
   } catch (error) {
-    throw new Error(`Failed to load graph data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(`Failed to compute graph data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -144,6 +151,9 @@ export async function deleteSimulation(req: Request): Promise<{ success: boolean
   if (!id || !UUID_REGEX.test(id)) {
     throw new Error('Invalid simulation ID');
   }
+
+  // Invalidate cached graph data for this simulation
+  invalidateGraphCache(id);
 
   const runner = await MonteCarloSimulationRunner.getInstance();
   const deleted = await runner.cancelOrDelete(id);

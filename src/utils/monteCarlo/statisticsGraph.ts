@@ -12,6 +12,9 @@ export interface PercentileGraphData {
   failedSimulations?: number; // #9: Count of failed simulations
   totalSimulations?: number; // #9: Total simulations run
   medianFailureYear?: number | null; // #9: Median year of failure for failed sims
+  worstYear?: { year: number; medianMinBalance: number }; // Year with lowest median balance
+  finalYear?: { median: number; p5: number; p25: number; p75: number; p95: number }; // Stats for last year
+  seed?: number; // Base seed used for the simulation
 }
 
 export interface PercentileDataset {
@@ -236,28 +239,48 @@ async function runDeterministicCalculation(
 }
 
 /**
- * Generates Monte Carlo statistics graph data showing percentile lines for minimum yearly balances
- * @param simulationId - ID of the completed simulation
- * @param options - Configuration options for the graph generation
- * @returns Graph data formatted for Chart.js consumption
+ * Loads metadata (including seed) from the results file
  */
-export async function generateMonteCarloStatisticsGraph(
+function loadResultsMetadata(simulationId: string): { seed?: number; accountNames?: Array<{ id: string; name: string }> } {
+  const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
+  try {
+    const resultsData = readFileSync(resultsPath, 'utf8');
+    const fileData = JSON.parse(resultsData);
+    return {
+      seed: fileData.metadata?.seed,
+      accountNames: fileData.metadata?.accountNames,
+    };
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Computes Monte Carlo percentile graph data on-demand from raw results.
+ * Supports per-account computation via optional accountId parameter.
+ *
+ * @param simulationId - ID of the completed simulation
+ * @param accountId - Optional account ID; when provided, computes percentiles for that account only
+ * @returns Graph data formatted for Chart.js consumption with both nominal and real values
+ */
+export async function computePercentileGraph(
   simulationId: string,
-  options: MonteCarloGraphOptions = {},
+  accountId?: string,
 ): Promise<PercentileGraphData> {
-  // Destructure options with defaults
-  const {
-    percentiles = [0, 50, 100],
-    includeDeterministic = true,
-    combineAccounts = true,
-  } = options;
+  const PERCENTILES = [0, 5, 25, 40, 50, 60, 75, 95, 100];
+
+  // Determine if we need per-account data
+  const needsPerAccount = !!accountId;
 
   // Process all simulations to get yearly data
-  const simulationData = processAllSimulations(simulationId, !combineAccounts);
+  const simulationData = processAllSimulations(simulationId, needsPerAccount);
 
   if (simulationData.length === 0) {
     throw new Error('No simulation data found');
   }
+
+  // Load metadata for seed and account names
+  const metadata = loadResultsMetadata(simulationId);
 
   // #9: Compute funded ratio and failure statistics
   const totalSims = simulationData.length;
@@ -282,16 +305,13 @@ export async function generateMonteCarloStatisticsGraph(
     });
   });
 
-  // Run deterministic calculation if requested
-  let deterministicData: { combined: YearlyMinBalances; perAccount?: YearlyAccountBalances } | null = null;
-  if (includeDeterministic) {
-    deterministicData = await runDeterministicCalculation(simulationId, !combineAccounts);
-    if (deterministicData) {
-      // Add years from deterministic calculation to ensure we have all years
-      Object.keys(deterministicData.combined).forEach((year) => {
-        allYears.add(parseInt(year));
-      });
-    }
+  // Run deterministic calculation
+  const deterministicData = await runDeterministicCalculation(simulationId, needsPerAccount);
+  if (deterministicData) {
+    // Add years from deterministic calculation
+    Object.keys(deterministicData.combined).forEach((year) => {
+      allYears.add(parseInt(year));
+    });
   }
 
   const sortedYears = Array.from(allYears).sort();
@@ -300,175 +320,135 @@ export async function generateMonteCarloStatisticsGraph(
   // Create datasets
   const datasets: PercentileDataset[] = [];
 
-  if (combineAccounts) {
-    // Create datasets for each percentile (combined accounts)
-    percentiles.forEach((percentile) => {
-      const data: number[] = [];
-      const realValues: number[] = [];
-
-      // For each year, collect all simulation values and calculate percentile
-      sortedYears.forEach((year) => {
-        const yearValues: number[] = [];
-
-        simulationData.forEach((sim) => {
-          const yearValue = sim.yearlyMinBalances[year];
-          if (yearValue !== undefined) {
-            yearValues.push(yearValue);
-          }
-        });
-
-        // Sort values and calculate percentile
-        yearValues.sort((a, b) => a - b);
-        const percentileValue = calculatePercentile(yearValues, percentile);
-        data.push(percentileValue);
-
-        // Calculate real (inflation-adjusted) value
-        const medianInflation = getMedianCumulativeInflationForYear(simulationData, year);
-        realValues.push(percentileValue / medianInflation);
-      });
-
-      datasets.push({
-        label: `${percentile}${getOrdinalSuffix(percentile)} Percentile`,
-        data,
-        percentile,
-        realValues,
-      });
-    });
-  } else {
-    // Create datasets for each account and percentile combination
-    // First, get all unique account IDs and names from the simulation data
-    const accountMap: Map<string, string> = new Map(); // id -> name
-
-    // Get account names from metadata
-    try {
-      const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
-      const resultsData = readFileSync(resultsPath, 'utf8');
-      const fileData = JSON.parse(resultsData);
-
-      if (fileData.metadata && fileData.metadata.accountNames) {
-        fileData.metadata.accountNames.forEach((account: { id: string; name: string }) => {
-          accountMap.set(account.id, account.name);
-        });
-      }
-    } catch (error) {
-      // Fallback to using account IDs from yearly balance data
+  // Helper to get values for a given year from all simulations
+  const getValuesForYear = (year: number): number[] => {
+    const yearValues: number[] = [];
+    if (accountId) {
+      // Per-account mode
       simulationData.forEach((sim) => {
-        if (sim.yearlyAccountBalances) {
-          Object.keys(sim.yearlyAccountBalances).forEach((year) => {
-            Object.keys(sim.yearlyAccountBalances![parseInt(year)]).forEach((accountId) => {
-              if (!accountMap.has(accountId)) {
-                accountMap.set(accountId, accountId);
-              }
-            });
-          });
+        if (sim.yearlyAccountBalances && sim.yearlyAccountBalances[year]) {
+          const val = sim.yearlyAccountBalances[year][accountId];
+          if (val !== undefined) {
+            yearValues.push(val);
+          }
+        }
+      });
+    } else {
+      // Combined mode
+      simulationData.forEach((sim) => {
+        const val = sim.yearlyMinBalances[year];
+        if (val !== undefined) {
+          yearValues.push(val);
         }
       });
     }
+    return yearValues;
+  };
 
-    // Create datasets for each account-percentile combination
-    accountMap.forEach((accountName, accountId) => {
-      percentiles.forEach((percentile) => {
-        const data: number[] = [];
-        const realValues: number[] = [];
+  // Look up account name if per-account
+  let accountName: string | undefined;
+  if (accountId && metadata.accountNames) {
+    const found = metadata.accountNames.find(a => a.id === accountId);
+    if (found) {
+      accountName = found.name;
+    }
+  }
 
-        // For each year, collect all simulation values for this account and calculate percentile
-        sortedYears.forEach((year) => {
-          const yearValues: number[] = [];
+  // Build percentile datasets
+  PERCENTILES.forEach((percentile) => {
+    const data: number[] = [];
+    const realValues: number[] = [];
 
-          simulationData.forEach((sim) => {
-            if (sim.yearlyAccountBalances && sim.yearlyAccountBalances[year]) {
-              const yearValue = sim.yearlyAccountBalances[year][accountId];
-              if (yearValue !== undefined) {
-                yearValues.push(yearValue);
-              }
-            }
-          });
+    sortedYears.forEach((year) => {
+      const yearValues = getValuesForYear(year);
+      yearValues.sort((a, b) => a - b);
+      const percentileValue = calculatePercentile(yearValues, percentile);
+      data.push(percentileValue);
 
-          // Sort values and calculate percentile
-          yearValues.sort((a, b) => a - b);
-          const percentileValue = calculatePercentile(yearValues, percentile);
-          data.push(percentileValue);
+      // Calculate real (inflation-adjusted) value
+      const medianInflation = getMedianCumulativeInflationForYear(simulationData, year);
+      realValues.push(percentileValue / medianInflation);
+    });
 
-          // Calculate real (inflation-adjusted) value
+    const label = accountId && accountName
+      ? `${accountName} - ${percentile}${getOrdinalSuffix(percentile)} Percentile`
+      : `${percentile}${getOrdinalSuffix(percentile)} Percentile`;
+
+    datasets.push({
+      label,
+      data,
+      percentile,
+      realValues,
+      ...(accountId ? { accountId, accountName } : {}),
+    });
+  });
+
+  // Add deterministic line
+  if (deterministicData) {
+    if (accountId) {
+      // Per-account deterministic
+      if (deterministicData.perAccount) {
+        const detData = sortedYears.map((year) => deterministicData.perAccount![year]?.[accountId] ?? 0);
+        const realValues = sortedYears.map((year) => {
+          const nominalValue = deterministicData.perAccount![year]?.[accountId] ?? 0;
           const medianInflation = getMedianCumulativeInflationForYear(simulationData, year);
-          realValues.push(percentileValue / medianInflation);
+          return nominalValue / medianInflation;
         });
 
         datasets.push({
-          label: `${accountName} - ${percentile}${getOrdinalSuffix(percentile)} Percentile`,
-          data,
-          percentile,
-          accountId,
-          accountName,
+          label: accountName ? `${accountName} - Deterministic` : 'Deterministic',
+          data: detData,
+          isDeterministic: true,
           realValues,
+          ...(accountId ? { accountId, accountName } : {}),
         });
-      });
-    });
-  }
-
-  // Add deterministic line if we have the data
-  if (deterministicData) {
-    if (combineAccounts) {
-      // Single deterministic line for combined accounts
+      }
+    } else {
+      // Combined deterministic
+      const detData = sortedYears.map((year) => deterministicData.combined[year] ?? 0);
       const realValues = sortedYears.map((year) => {
-        const nominalValue = deterministicData!.combined[year] ?? 0;
+        const nominalValue = deterministicData.combined[year] ?? 0;
         const medianInflation = getMedianCumulativeInflationForYear(simulationData, year);
         return nominalValue / medianInflation;
       });
 
-      const deterministicDataset: PercentileDataset = {
+      datasets.push({
         label: 'Deterministic',
-        data: sortedYears.map((year) => deterministicData!.combined[year] ?? 0),
+        data: detData,
         isDeterministic: true,
         realValues,
-      };
-      datasets.push(deterministicDataset);
-    } else {
-      // Deterministic line for each account
-      if (deterministicData.perAccount) {
-        const accountMap: Map<string, string> = new Map();
+      });
+    }
+  }
 
-        // Get account names from metadata
-        try {
-          const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
-          const resultsData = readFileSync(resultsPath, 'utf8');
-          const fileData = JSON.parse(resultsData);
-
-          if (fileData.metadata && fileData.metadata.accountNames) {
-            fileData.metadata.accountNames.forEach((account: { id: string; name: string }) => {
-              accountMap.set(account.id, account.name);
-            });
-          }
-        } catch (error) {
-          // Fallback to using account IDs from yearly balance data
-          Object.keys(deterministicData.perAccount).forEach((year) => {
-            Object.keys(deterministicData!.perAccount![parseInt(year)]).forEach((accountId) => {
-              if (!accountMap.has(accountId)) {
-                accountMap.set(accountId, accountId);
-              }
-            });
-          });
-        }
-
-        accountMap.forEach((accountName, accountId) => {
-          const realValues = sortedYears.map((year) => {
-            const nominalValue = deterministicData!.perAccount![year]?.[accountId] ?? 0;
-            const medianInflation = getMedianCumulativeInflationForYear(simulationData, year);
-            return nominalValue / medianInflation;
-          });
-
-          const deterministicDataset: PercentileDataset = {
-            label: `${accountName} - Deterministic`,
-            data: sortedYears.map((year) => deterministicData!.perAccount![year]?.[accountId] ?? 0),
-            isDeterministic: true,
-            accountId,
-            accountName,
-            realValues,
-          };
-          datasets.push(deterministicDataset);
-        });
+  // Compute worstYear: year with lowest median across simulations
+  let worstYear: { year: number; medianMinBalance: number } | undefined;
+  {
+    let lowestMedian = Infinity;
+    for (const year of sortedYears) {
+      const yearValues = getValuesForYear(year);
+      yearValues.sort((a, b) => a - b);
+      const median = calculatePercentile(yearValues, 50);
+      if (median < lowestMedian) {
+        lowestMedian = median;
+        worstYear = { year, medianMinBalance: median };
       }
     }
+  }
+
+  // Compute finalYear stats for the last year
+  let finalYear: { median: number; p5: number; p25: number; p75: number; p95: number } | undefined;
+  if (sortedYears.length > 0) {
+    const lastYear = sortedYears[sortedYears.length - 1];
+    const lastYearValues = getValuesForYear(lastYear);
+    lastYearValues.sort((a, b) => a - b);
+    finalYear = {
+      median: calculatePercentile(lastYearValues, 50),
+      p5: calculatePercentile(lastYearValues, 5),
+      p25: calculatePercentile(lastYearValues, 25),
+      p75: calculatePercentile(lastYearValues, 75),
+      p95: calculatePercentile(lastYearValues, 95),
+    };
   }
 
   return {
@@ -479,7 +459,21 @@ export async function generateMonteCarloStatisticsGraph(
     failedSimulations: failedSims,
     totalSimulations: totalSims,
     medianFailureYear,
+    worstYear,
+    finalYear,
+    seed: metadata.seed,
   };
+}
+
+/**
+ * @deprecated Use computePercentileGraph instead. Kept for backward compatibility.
+ */
+export async function generateMonteCarloStatisticsGraph(
+  simulationId: string,
+  options: MonteCarloGraphOptions = {},
+): Promise<PercentileGraphData> {
+  // Delegate to the new on-demand function (combined mode only)
+  return computePercentileGraph(simulationId);
 }
 
 /**

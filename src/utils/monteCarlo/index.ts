@@ -7,7 +7,8 @@ export {
 } from './simulationRunner';
 
 export {
-  generateMonteCarloStatisticsGraph
+  generateMonteCarloStatisticsGraph,
+  computePercentileGraph
 } from './statisticsGraph';
 
 export {
