@@ -163,9 +163,11 @@ describe('Contribution Limits', () => {
     });
 
     it('HSA contributions should stop at retirement', () => {
-      const ytdJune = getYTDContributions('HSA', 2028, 6);
+      const ytdJuly = getYTDContributions('HSA', 2028, 7);
       const ytdDec = getYTDContributions('HSA', 2028, 12);
-      expect(ytdDec).toBeCloseTo(ytdJune, -2);
+      // Bill end date is inclusive (<=), so the July 1 contribution IS included.
+      // YTD through December should equal YTD through July (7 months × $170 = $1,190).
+      expect(ytdDec).toBeCloseTo(ytdJuly, -2);
     });
 
     it('no 401(k) contributions should appear after 2028', () => {
