@@ -4,6 +4,18 @@ import { FilteredAccount, FilteredActivity } from './types';
 import { loadData } from '../io/accountsAndTransfers';
 import { MC_RESULTS_DIR } from './paths';
 
+// Module-level cache for deterministic results, keyed by `{startDate}:{endDate}:{simulation}`
+// The deterministic result is the same regardless of which account is selected,
+// so we cache it separately to avoid re-running the ~17s engine on every account switch.
+const detCache = new Map<string, { combined: YearlyMinBalances; perAccount?: YearlyAccountBalances }>();
+
+/**
+ * Clear the deterministic results cache (called by /api/cache/clear)
+ */
+export function clearDetCache(): void {
+  detCache.clear();
+}
+
 export interface PercentileGraphData {
   type: 'percentile';
   labels: string[]; // Years as strings
@@ -198,7 +210,19 @@ async function runDeterministicCalculation(
     const startDate = new Date(fileData.metadata.startDate);
     const endDate = new Date(fileData.metadata.endDate);
 
-    // Run deterministic calculation
+    // Check detCache — the deterministic result is the same for all accounts,
+    // so we always request perAccount data and cache the full result.
+    const detCacheKey = `${fileData.metadata.startDate}:${fileData.metadata.endDate}:Default`;
+    const cachedDet = detCache.get(detCacheKey);
+    if (cachedDet) {
+      // Return from cache, filtering perAccount based on caller's needs
+      return {
+        combined: cachedDet.combined,
+        perAccount: separateAccounts ? cachedDet.perAccount : undefined,
+      };
+    }
+
+    // Run deterministic calculation (uses engine's built-in cache)
     const results = await loadData(
       startDate,
       endDate,
@@ -206,7 +230,6 @@ async function runDeterministicCalculation(
       {},
       {
         monteCarlo: false,
-        forceRecalculation: true,  // Force fresh calculation to match MC results
       },
     );
 
@@ -231,8 +254,17 @@ async function runDeterministicCalculation(
       }),
     );
 
-    // Calculate yearly minimum balances for deterministic result
-    return calculateYearlyMinBalances(filteredAccounts, separateAccounts);
+    // Always compute with perAccount so we can cache the full result
+    const detResult = calculateYearlyMinBalances(filteredAccounts, true);
+
+    // Cache the full result (always with perAccount)
+    detCache.set(detCacheKey, detResult);
+
+    // Return filtered based on caller's needs
+    return {
+      combined: detResult.combined,
+      perAccount: separateAccounts ? detResult.perAccount : undefined,
+    };
   } catch (error) {
     console.error('Failed to run deterministic calculation:', error);
     return null;

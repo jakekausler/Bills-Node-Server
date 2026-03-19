@@ -9,7 +9,7 @@ import {
   MonteCarloSimulationRunner,
 } from '../../utils/monteCarlo';
 import { SimulationProgress } from '../../utils/monteCarlo/types';
-import { PercentileGraphData, computePercentileGraph } from '../../utils/monteCarlo/statisticsGraph';
+import { PercentileGraphData, computePercentileGraph, clearDetCache } from '../../utils/monteCarlo/statisticsGraph';
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 
@@ -33,6 +33,7 @@ export function invalidateGraphCache(simulationId: string): void {
  */
 export function clearAllGraphCache(): void {
   graphCache.clear();
+  clearDetCache();
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
