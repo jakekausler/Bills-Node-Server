@@ -123,6 +123,22 @@ export class Calculator {
   }
 
   /**
+   * Save a checkpoint of contribution limit tracking state.
+   * Used for push/pull reprocessing to restore state if segment needs to be recomputed.
+   */
+  checkpoint(): void {
+    this.contributionLimitManager.checkpoint();
+  }
+
+  /**
+   * Restore contribution limit tracking state from the last checkpoint.
+   * Used when segment is reprocessed after push/pull handling.
+   */
+  restore(): void {
+    this.contributionLimitManager.restore();
+  }
+
+  /**
    * Set Monte Carlo configuration (for accessing seeded PRNG)
    */
   setMonteCarloConfig(config: any): void {
@@ -304,31 +320,45 @@ export class Calculator {
     let amount = event.amount;
 
     // Apply contribution limits for bills on retirement/HSA accounts
+    // TODO: When paycheck feature is implemented (#36), employer contributions will be
+    // tracked separately with proper employer match formulas. For now, we detect
+    // employer contributions by name containing "Employer" and skip the 402(g) limit.
+    // Employer contributions should be checked against the 415(c) total addition limit
+    // ($70,000 in 2025) which includes both employee and employer contributions.
     if (typeof amount === 'number' && amount > 0) {
       const account = this.balanceTracker.findAccountById(accountId);
       if (account?.contributionLimitType) {
-        const limitType = account.contributionLimitType as '401k' | 'ira' | 'hsa';
-        const year = event.date.getUTCFullYear();
-        const remaining = this.contributionLimitManager.getRemainingLimit(
-          account.accountOwnerDOB,
-          year,
-          limitType,
-        );
+        const isEmployerContribution = bill.name.toLowerCase().includes('employer');
 
-        if (remaining !== Infinity) {
-          const cappedAmount = Math.min(amount, remaining);
-          if (cappedAmount < amount) {
-            this.log('contribution-capped', { accountId, requestedAmount: amount, cappedAmount, limitType });
+        if (!isEmployerContribution) {
+          // TODO: Use historical catchUpLimits from historicRates.json instead of hardcoded
+          // CATCHUP_LIMITS_2024. Also add 415(c) totalAdditionLimit checking for combined
+          // employee + employer contributions. Historical data has been added to historicRates.json.
+          const limitType = account.contributionLimitType as '401k' | 'ira' | 'hsa';
+          const year = event.date.getUTCFullYear();
+          const remaining = this.contributionLimitManager.getRemainingLimit(
+            account.accountOwnerDOB,
+            year,
+            limitType,
+          );
+
+          if (remaining !== Infinity) {
+            const cappedAmount = Math.min(amount, remaining);
+            if (cappedAmount < amount) {
+              this.log('contribution-capped', { accountId, requestedAmount: amount, cappedAmount, limitType });
+            }
+            if (cappedAmount > 0) {
+              this.contributionLimitManager.recordContribution(
+                account.accountOwnerDOB,
+                year,
+                limitType,
+                cappedAmount,
+              );
+            }
+            amount = cappedAmount;
           }
-          if (cappedAmount > 0) {
-            this.contributionLimitManager.recordContribution(
-              account.accountOwnerDOB,
-              year,
-              limitType,
-              cappedAmount,
-            );
-          }
-          amount = cappedAmount;
+        } else {
+          this.log('employer-contribution-skip-402g', { accountId, amount, billName: bill.name });
         }
       }
     }
@@ -1316,6 +1346,17 @@ export class Calculator {
 
     const toAccount = this.balanceTracker.findAccountById(event.toAccountId);
     if (!toAccount || !toAccount.contributionLimitType) {
+      return amount;
+    }
+
+    // TODO: When paycheck feature is implemented (#36), employer contributions will be
+    // tracked separately with proper employer match formulas. For now, we detect
+    // employer contributions by name containing "Employer" and skip the 402(g) limit.
+    // Employer contributions should be checked against the 415(c) total addition limit
+    // ($70,000 in 2025) which includes both employee and employer contributions.
+    const isEmployerContribution = event.originalBill.name.toLowerCase().includes('employer');
+    if (isEmployerContribution) {
+      this.log('employer-contribution-skip-402g', { to: event.toAccountId, amount, billName: event.originalBill.name });
       return amount;
     }
 

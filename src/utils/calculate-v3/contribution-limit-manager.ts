@@ -57,6 +57,7 @@ export class ContributionLimitManager {
   private debugLogger: DebugLogger | null = null;
   private simNumber: number;
   private currentDate: string = '';
+  private checkpointData: string | null = null;
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.debugLogger = debugLogger ?? null;
@@ -124,6 +125,45 @@ export class ContributionLimitManager {
   }
 
   /**
+   * Get the historical catch-up limit for a given year and limit type.
+   * Uses catchUpLimits from historicRates.json when available.
+   * If the year is beyond available data, inflates from the latest known year at 2.5%/year.
+   * Falls back to CATCHUP_LIMITS_2024 + inflation if no historical data exists.
+   */
+  private getHistoricalCatchUpLimit(limitType: ContributionLimitType, year: number): number {
+    const historicRates = getHistoricRates();
+    const catchUpData = historicRates.catchUpLimits?.[limitType];
+
+    if (!catchUpData) {
+      // No historical data available, fall back to hardcoded + inflation
+      const fallback = CATCHUP_LIMITS_2024[limitType] ?? 0;
+      return this.inflateLimitToYear(fallback, year, `${limitType}-catchup`);
+    }
+
+    const yearStr = String(year);
+    if (catchUpData[yearStr] !== undefined) {
+      return catchUpData[yearStr];
+    }
+
+    // Year is beyond available data; find the latest year and inflate forward
+    const availableYears = Object.keys(catchUpData).map(Number).sort((a, b) => a - b);
+    if (availableYears.length === 0) {
+      const fallback = CATCHUP_LIMITS_2024[limitType] ?? 0;
+      return this.inflateLimitToYear(fallback, year, `${limitType}-catchup`);
+    }
+
+    const latestYear = availableYears[availableYears.length - 1];
+    const latestValue = catchUpData[String(latestYear)];
+    const yearsForward = year - latestYear;
+    if (yearsForward <= 0) {
+      // Year is before available data, use earliest
+      return catchUpData[String(availableYears[0])] ?? 0;
+    }
+
+    return Math.round(latestValue * Math.pow(1 + ANNUAL_INFLATION_RATE, yearsForward));
+  }
+
+  /**
    * Inflate a base limit from 2024 to a given year
    */
   private inflateLimitToYear(baseLimit: number, targetYear: number, limitType?: string): number {
@@ -152,14 +192,14 @@ export class ContributionLimitManager {
 
       const compoundedBase = Math.round(prevBaseLimit * mcChangeRatio);
 
-      // Add catch-up for current year
+      // Add catch-up for current year (using historical catch-up data when available)
       let totalLimit = compoundedBase;
       if (limitType === '401k' && ageAtYear >= 50) {
-        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['401k'], year, '401k-catchup');
+        totalLimit += this.getHistoricalCatchUpLimit('401k', year);
       } else if (limitType === 'ira' && ageAtYear >= 50) {
-        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['ira'], year, 'ira-catchup');
+        totalLimit += this.getHistoricalCatchUpLimit('ira', year);
       } else if (limitType === 'hsa' && ageAtYear >= 55) {
-        totalLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['hsa'], year, 'hsa-catchup');
+        totalLimit += this.getHistoricalCatchUpLimit('hsa', year);
       }
 
       this.log('base-limit-with-catchup', { limit_type: limitType, year, age: ageAtYear, base_limit: compoundedBase, catchup_eligible: totalLimit > compoundedBase, total_limit: totalLimit });
@@ -172,11 +212,11 @@ export class ContributionLimitManager {
       let baseLimit = historicalLimit;
       // Add catch-up if applicable (historical limits are base limits only)
       if (limitType === '401k' && ageAtYear >= 50) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['401k'], year, '401k-catchup');
+        baseLimit += this.getHistoricalCatchUpLimit('401k', year);
       } else if (limitType === 'ira' && ageAtYear >= 50) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['ira'], year, 'ira-catchup');
+        baseLimit += this.getHistoricalCatchUpLimit('ira', year);
       } else if (limitType === 'hsa' && ageAtYear >= 55) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['hsa'], year, 'hsa-catchup');
+        baseLimit += this.getHistoricalCatchUpLimit('hsa', year);
       }
       this.log('base-limit-with-catchup', { limit_type: limitType, year, age: ageAtYear, base_limit: historicalLimit, catchup_eligible: baseLimit > historicalLimit, total_limit: baseLimit });
       return baseLimit;
@@ -189,21 +229,21 @@ export class ContributionLimitManager {
       baseLimit = this.inflateLimitToYear(BASE_LIMITS_2024['401k'], year, '401k');
       const baseBefore = baseLimit;
       if (ageAtYear >= 50) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['401k'], year, '401k-catchup');
+        baseLimit += this.getHistoricalCatchUpLimit('401k', year);
       }
       this.log('base-limit-with-catchup', { limit_type: limitType, year, age: ageAtYear, base_limit: baseBefore, catchup_eligible: ageAtYear >= 50, total_limit: baseLimit });
     } else if (limitType === 'ira') {
       baseLimit = this.inflateLimitToYear(BASE_LIMITS_2024['ira'], year, 'ira');
       const baseBefore = baseLimit;
       if (ageAtYear >= 50) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['ira'], year, 'ira-catchup');
+        baseLimit += this.getHistoricalCatchUpLimit('ira', year);
       }
       this.log('base-limit-with-catchup', { limit_type: limitType, year, age: ageAtYear, base_limit: baseBefore, catchup_eligible: ageAtYear >= 50, total_limit: baseLimit });
     } else if (limitType === 'hsa') {
       baseLimit = this.inflateLimitToYear(BASE_LIMITS_2024['hsa_individual'], year, 'hsa');
       const baseBefore = baseLimit;
       if (ageAtYear >= 55) {
-        baseLimit += this.inflateLimitToYear(CATCHUP_LIMITS_2024['hsa'], year, 'hsa-catchup');
+        baseLimit += this.getHistoricalCatchUpLimit('hsa', year);
       }
       this.log('base-limit-with-catchup', { limit_type: limitType, year, age: ageAtYear, base_limit: baseBefore, catchup_eligible: ageAtYear >= 55, total_limit: baseLimit });
     }
@@ -306,5 +346,46 @@ export class ContributionLimitManager {
     const newTotal = currentAmount + amount;
     yearContributions.set(limitType, newTotal);
     this.log('contribution-recorded', { person: personKey, year, limit_type: limitType, amount, new_total: newTotal });
+  }
+
+  /**
+   * Save a checkpoint of contribution tracking state.
+   * Used for push/pull reprocessing to restore state if segment needs to be recomputed.
+   */
+  checkpoint(): void {
+    // Deep-clone the nested Maps via JSON serialization
+    const obj: Record<string, Record<number, Record<string, number>>> = {};
+    for (const [personKey, yearMap] of this.contributionsByPerson) {
+      obj[personKey] = {};
+      for (const [year, limitMap] of yearMap) {
+        obj[personKey][year] = {};
+        for (const [limitType, amount] of limitMap) {
+          obj[personKey][year][limitType] = amount;
+        }
+      }
+    }
+    this.checkpointData = JSON.stringify(obj);
+  }
+
+  /**
+   * Restore contribution tracking state from the last checkpoint.
+   * Used when segment is reprocessed after push/pull handling.
+   */
+  restore(): void {
+    if (this.checkpointData) {
+      const obj = JSON.parse(this.checkpointData) as Record<string, Record<string, Record<string, number>>>;
+      this.contributionsByPerson = new Map();
+      for (const personKey of Object.keys(obj)) {
+        const yearMap = new Map<number, Map<string, number>>();
+        for (const yearStr of Object.keys(obj[personKey])) {
+          const limitMap = new Map<string, number>();
+          for (const limitType of Object.keys(obj[personKey][yearStr])) {
+            limitMap.set(limitType, obj[personKey][yearStr][limitType]);
+          }
+          yearMap.set(Number(yearStr), limitMap);
+        }
+        this.contributionsByPerson.set(personKey, yearMap);
+      }
+    }
   }
 }

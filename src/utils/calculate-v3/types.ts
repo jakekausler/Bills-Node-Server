@@ -356,6 +356,13 @@ export interface HistoricRates {
     partDBasePremium?: Record<string, number>;
     medigapPlanG?: Record<string, number>;
   };
+  totalAdditionLimit415c?: Record<string, number>;
+  catchUpLimits?: {
+    '401k'?: Record<string, number>;
+    'ira'?: Record<string, number>;
+    'hsa'?: Record<string, number>;
+  };
+  hsaFamilyLimits?: Record<string, number>;
   changeRatios?: {
     ssWageBase?: Record<string, number>;
     '401k'?: Record<string, number>;

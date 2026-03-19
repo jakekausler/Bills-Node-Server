@@ -145,9 +145,10 @@ export class SegmentProcessor {
       }
     }
 
-    // Save spending tracker and healthcare manager state BEFORE processing any events in this segment
+    // Save spending tracker, healthcare manager, and contribution limit state BEFORE processing any events in this segment
     this.spendingTrackerManager.checkpoint();
     this.healthcareManager.checkpoint();
+    this.calculator.checkpoint();
 
     // Process events in the segment
     let segmentResult = this.processSegmentEvents(segment, options);
@@ -163,6 +164,7 @@ export class SegmentProcessor {
       this.log('segment-reprocessed', { reason: 'push-pull-added' });
       this.spendingTrackerManager.restore();
       this.healthcareManager.restore();
+      this.calculator.restore();
       segmentResult = this.processSegmentEvents(segment, options);
     }
 
