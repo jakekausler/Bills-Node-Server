@@ -271,7 +271,7 @@ export function getTaxPayments(
     const taxActivities = account.consolidatedActivity.filter(
       (a) =>
         normalizeDate(a.date).startsWith(`${year}`) &&
-        a.name.toLowerCase().includes('tax') &&
+        a.name === 'Auto Calculated Tax' &&
         a.amount < 0,
     );
     for (const a of taxActivities) {
