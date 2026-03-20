@@ -512,6 +512,17 @@ export async function computePercentileGraph(
 }
 
 /**
+ * Public wrapper for deterministic calculation, used by worstCases.ts.
+ * Returns cached or freshly computed yearly min balances (combined + per-account).
+ */
+export async function runDeterministicForWorstCases(
+  simulationId: string,
+  separateAccounts: boolean = false,
+): Promise<{ combined: YearlyMinBalances; perAccount?: YearlyAccountBalances } | null> {
+  return runDeterministicCalculation(simulationId, separateAccounts);
+}
+
+/**
  * @deprecated Use computePercentileGraph instead. Kept for backward compatibility.
  */
 export async function generateMonteCarloStatisticsGraph(

@@ -11,6 +11,7 @@ import {
 import { SimulationProgress } from '../../utils/monteCarlo/types';
 import { PercentileGraphData, computePercentileGraph, clearDetCache } from '../../utils/monteCarlo/statisticsGraph';
 import { FailureHistogramResult, computeFailureHistogram } from '../../utils/monteCarlo/failureHistogram';
+import { WorstCasesResult, computeWorstCases } from '../../utils/monteCarlo/worstCases';
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 
@@ -20,6 +21,10 @@ const graphCache = new Map<string, PercentileGraphData>();
 
 // In-memory cache for computed failure histograms
 const histogramCache = new Map<string, FailureHistogramResult>();
+
+// In-memory cache for computed worst-case simulations
+// Key: `{simulationId}:{percentile}:{accountId || 'combined'}`
+const worstCasesCache = new Map<string, WorstCasesResult>();
 
 /**
  * Invalidate all cached graph data for a given simulation
@@ -31,6 +36,11 @@ export function invalidateGraphCache(simulationId: string): void {
     }
   }
   histogramCache.delete(simulationId);
+  for (const key of worstCasesCache.keys()) {
+    if (key.startsWith(`${simulationId}:`)) {
+      worstCasesCache.delete(key);
+    }
+  }
 }
 
 /**
@@ -39,6 +49,7 @@ export function invalidateGraphCache(simulationId: string): void {
 export function clearAllGraphCache(): void {
   graphCache.clear();
   histogramCache.clear();
+  worstCasesCache.clear();
   clearDetCache();
 }
 
@@ -211,6 +222,48 @@ export async function deleteSimulation(req: Request): Promise<{ success: boolean
   }
 
   return { success: true };
+}
+
+/**
+ * Get worst-case simulations for a completed Monte Carlo simulation.
+ * Selects bottom N% of simulations ranked by worst (minimum) balance across all years.
+ * Supports ?percentile (1-50, default 5) and ?account (account ID) params.
+ */
+export async function getWorstCases(req: Request): Promise<WorstCasesResult> {
+  const { id } = req.params;
+  const accountId = req.query.account as string | undefined;
+  const percentile = req.query.percentile ? parseInt(req.query.percentile as string, 10) : 5;
+
+  if (!id) {
+    throw new Error('Simulation ID is required');
+  }
+
+  if (!UUID_REGEX.test(id)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
+  if (!(await isSimulationComplete(id))) {
+    throw new Error(`Simulation with ID ${id} is not yet completed`);
+  }
+
+  // Clamp percentile for cache key consistency
+  const clampedPercentile = Math.max(1, Math.min(50, isNaN(percentile) ? 5 : percentile));
+
+  // Check cache
+  const cacheKey = `${id}:${clampedPercentile}:${accountId || 'combined'}`;
+  const cached = worstCasesCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Compute on-demand
+  try {
+    const result = await computeWorstCases(id, clampedPercentile, accountId);
+    worstCasesCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    throw new Error(`Failed to compute worst cases for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
