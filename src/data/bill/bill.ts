@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { loadDateOrVariable, loadNumberOrVariable } from '../../utils/simulation/loadVariableValue';
 import { BillData } from './types';
+import { PaycheckProfile } from './paycheck-types';
 import { v4 as uuidv4 } from 'uuid';
 import { Account } from '../account/account';
 import { AccountsAndTransfers } from '../account/types';
@@ -64,6 +65,11 @@ export class Bill {
   // Spending category
   spendingCategory: string | null;
 
+  // Paycheck properties
+  paycheckProfile: PaycheckProfile | null;
+  taxDeductible: boolean;
+  studentLoanInterest: boolean;
+
   /**
    * Creates a new Bill instance
    * @param data - Bill data object
@@ -80,6 +86,7 @@ export class Bill {
     this.initializeAmountProperties(data, simulation);
     this.initializeHealthcareProperties(data);
     this.spendingCategory = data.spendingCategory ?? null;
+    this.initializePaycheckProperties(data);
   }
 
   /**
@@ -219,6 +226,16 @@ export class Bill {
   }
 
   /**
+   * Initializes paycheck-related properties
+   * @private
+   */
+  private initializePaycheckProperties(data: BillData): void {
+    this.paycheckProfile = data.paycheckProfile ?? null;
+    this.taxDeductible = data.taxDeductible ?? false;
+    this.studentLoanInterest = data.studentLoanInterest ?? false;
+  }
+
+  /**
    * Parses an increase date string into day and month components
    * @param increaseByDate - Date string in MM/DD format
    * @returns Object with day and month (0-indexed)
@@ -276,6 +293,11 @@ export class Bill {
 
       // Spending category
       spendingCategory: this.spendingCategory,
+
+      // Paycheck fields
+      paycheckProfile: this.paycheckProfile,
+      taxDeductible: this.taxDeductible,
+      studentLoanInterest: this.studentLoanInterest,
     };
   }
 
@@ -319,6 +341,10 @@ export class Bill {
 
         // Spending category
         spendingCategory: this.spendingCategory,
+
+        // Paycheck fields - will be populated with details at activity time
+        paycheckDetails: undefined,
+        isPaycheckActivity: this.paycheckProfile ? true : false,
       },
       simulation,
     );

@@ -1,6 +1,7 @@
 import { formatDate } from '../../utils/date/date';
 import { loadDateOrVariable, loadNumberOrVariable } from '../../utils/simulation/loadVariableValue';
 import { ActivityData } from './types';
+import { PaycheckDetails } from '../bill/paycheck-types';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -38,6 +39,10 @@ export class Activity {
 
   // Spending category
   spendingCategory: string | null;
+
+  // Paycheck properties
+  paycheckDetails: PaycheckDetails | null;
+  isPaycheckActivity: boolean;
 
   /**
    * Creates a new Activity instance
@@ -89,6 +94,10 @@ export class Activity {
 
     // Spending category
     this.spendingCategory = data.spendingCategory ?? null;
+
+    // Paycheck properties
+    this.paycheckDetails = data.paycheckDetails ?? null;
+    this.isPaycheckActivity = data.isPaycheckActivity ?? false;
   }
 
   /**
@@ -122,6 +131,10 @@ export class Activity {
 
       // Spending category
       spendingCategory: this.spendingCategory,
+
+      // Paycheck fields
+      paycheckDetails: this.paycheckDetails,
+      isPaycheckActivity: this.isPaycheckActivity,
     };
   }
 }

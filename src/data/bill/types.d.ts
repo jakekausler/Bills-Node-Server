@@ -1,4 +1,5 @@
 import { DateString } from '../../utils/date/types';
+import { PaycheckProfile } from './paycheck-types';
 
 export type BillData = {
   id: string;
@@ -39,6 +40,11 @@ export type BillData = {
 
   // Spending category
   spendingCategory?: string | null;
+
+  // Paycheck fields
+  paycheckProfile?: PaycheckProfile | null;
+  taxDeductible?: boolean;
+  studentLoanInterest?: boolean;
 };
 
 export type CalendarBill = BillData & {
