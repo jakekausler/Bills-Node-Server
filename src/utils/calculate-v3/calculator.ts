@@ -199,9 +199,9 @@ export class Calculator {
     if (this.flowAggregator) {
       const year = event.date.getUTCFullYear();
       if (balanceChange > 0) {
-        this.flowAggregator.recordIncome(year, activity.name, balanceChange);
+        this.flowAggregator.recordIncome(year, activity.category || 'Income', balanceChange);
       } else if (balanceChange < 0) {
-        this.flowAggregator.recordExpense(year, activity.category || 'Uncategorized', Math.abs(balanceChange));
+        this.flowAggregator.recordExpense(year, (activity.category || 'Uncategorized').split('.')[0], Math.abs(balanceChange));
       }
     }
 
@@ -425,9 +425,9 @@ export class Calculator {
       const numAmount = Number(amount);
       const year = event.date.getUTCFullYear();
       if (numAmount > 0) {
-        this.flowAggregator.recordIncome(year, bill.name, numAmount);
+        this.flowAggregator.recordIncome(year, bill.category || 'Income', numAmount);
       } else if (numAmount < 0) {
-        this.flowAggregator.recordExpense(year, bill.category || 'Uncategorized', Math.abs(numAmount));
+        this.flowAggregator.recordExpense(year, (bill.category || 'Uncategorized').split('.')[0], Math.abs(numAmount));
       }
     }
 
@@ -812,7 +812,7 @@ export class Calculator {
       const year = event.date.getUTCFullYear();
       if (toAccount.type === 'Loan') {
         // Loan payments are debt servicing with no separate bill event — record as expense
-        this.flowAggregator.recordExpense(year, original.category || 'Debt Payment', Math.abs(internalAmount));
+        this.flowAggregator.recordExpense(year, (original.category || 'Debt Payment').split('.')[0], Math.abs(internalAmount));
       }
       // Credit card payments are NOT recorded — the underlying bills were already recorded as expenses
       // Transfers to savings/investment/checking are neutral (internal movement) — skip
@@ -889,7 +889,7 @@ export class Calculator {
 
     // Record pension income flow
     if (this.flowAggregator && amount > 0) {
-      this.flowAggregator.recordIncome(event.date.getUTCFullYear(), pension.name, amount);
+      this.flowAggregator.recordIncome(event.date.getUTCFullYear(), 'Income.Pension', amount);
     }
 
     // Update balance in segment result
@@ -960,7 +960,7 @@ export class Calculator {
 
     // Record SS income flow
     if (this.flowAggregator && amount > 0) {
-      this.flowAggregator.recordIncome(event.date.getUTCFullYear(), socialSecurity.name, amount);
+      this.flowAggregator.recordIncome(event.date.getUTCFullYear(), 'Income.Social Security', amount);
     }
 
     // Update balance in segment result

@@ -5,14 +5,19 @@ import { YearlyFlowSummary } from '../calculate-v3/flow-aggregator';
 
 const FAN_PERCENTILES = [0, 5, 25, 40, 50, 60, 75, 95, 100] as const;
 
+/** Per-percentile arrays (one value per year) */
+export type FanBand = Record<string, number[]>;
+
 export interface IncomeExpenseResult {
   labels: string[];
   breakdown: {
     income: Record<string, number[]>;
     expenses: Record<string, number[]>;
   };
-  incomeFan: Record<string, number[]>;
-  expenseFan: Record<string, number[]>;
+  /** Keyed by income category (plus "Total"), each value is FanBand with p0..p100 arrays */
+  incomeFan: Record<string, FanBand>;
+  /** Keyed by expense category (plus "Total"), each value is FanBand with p0..p100 arrays */
+  expenseFan: Record<string, FanBand>;
   summary: {
     medianNetCashFlow: number[];
     p5NetCashFlow: number[];
@@ -23,8 +28,8 @@ export interface IncomeExpenseResult {
     income: Record<string, number[]>;
     expenses: Record<string, number[]>;
   };
-  realIncomeFan: Record<string, number[]>;
-  realExpenseFan: Record<string, number[]>;
+  realIncomeFan: Record<string, FanBand>;
+  realExpenseFan: Record<string, FanBand>;
   realSummary: {
     medianNetCashFlow: number[];
     p5NetCashFlow: number[];
@@ -217,31 +222,66 @@ export async function computeIncomeExpense(
     }
   }
 
-  // --- Fan charts ---
-  const incomeFan: Record<string, number[]> = {};
-  const expenseFan: Record<string, number[]> = {};
-  for (const p of FAN_PERCENTILES) {
-    incomeFan[`p${p}`] = [];
-    expenseFan[`p${p}`] = [];
+  // --- Fan charts (per-category + Total) ---
+  const createEmptyFanBand = (): FanBand => {
+    const band: FanBand = {};
+    for (const p of FAN_PERCENTILES) band[`p${p}`] = [];
+    return band;
+  };
+
+  const incomeFan: Record<string, FanBand> = { Total: createEmptyFanBand() };
+  const expenseFan: Record<string, FanBand> = { Total: createEmptyFanBand() };
+
+  // Initialize per-category fan bands
+  for (const source of allIncomeSources) {
+    incomeFan[source] = createEmptyFanBand();
+  }
+  for (const cat of allExpenseCategories) {
+    expenseFan[cat] = createEmptyFanBand();
   }
 
   for (const year of sortedYears) {
     const yearStr = year.toString();
-    const incomeValues: number[] = [];
-    const expenseValues: number[] = [];
 
+    // Total income/expense fan
+    const totalIncomeValues: number[] = [];
+    const totalExpenseValues: number[] = [];
     for (const sim of results) {
       const flow = sim.yearlyFlows?.[yearStr];
-      incomeValues.push(flow?.totalIncome ?? 0);
-      expenseValues.push(flow?.totalExpenses ?? 0);
+      totalIncomeValues.push(flow?.totalIncome ?? 0);
+      totalExpenseValues.push(flow?.totalExpenses ?? 0);
+    }
+    totalIncomeValues.sort((a, b) => a - b);
+    totalExpenseValues.sort((a, b) => a - b);
+    for (const p of FAN_PERCENTILES) {
+      incomeFan['Total'][`p${p}`].push(calculatePercentile(totalIncomeValues, p));
+      expenseFan['Total'][`p${p}`].push(calculatePercentile(totalExpenseValues, p));
     }
 
-    incomeValues.sort((a, b) => a - b);
-    expenseValues.sort((a, b) => a - b);
+    // Per-category income fan
+    for (const source of allIncomeSources) {
+      const values: number[] = [];
+      for (const sim of results) {
+        const flow = sim.yearlyFlows?.[yearStr];
+        values.push(flow?.income[source] ?? 0);
+      }
+      values.sort((a, b) => a - b);
+      for (const p of FAN_PERCENTILES) {
+        incomeFan[source][`p${p}`].push(calculatePercentile(values, p));
+      }
+    }
 
-    for (const p of FAN_PERCENTILES) {
-      incomeFan[`p${p}`].push(calculatePercentile(incomeValues, p));
-      expenseFan[`p${p}`].push(calculatePercentile(expenseValues, p));
+    // Per-category expense fan
+    for (const cat of allExpenseCategories) {
+      const values: number[] = [];
+      for (let simIdx = 0; simIdx < results.length; simIdx++) {
+        const expenses = getFlatExpenses(simIdx, yearStr);
+        values.push(expenses[cat] ?? 0);
+      }
+      values.sort((a, b) => a - b);
+      for (const p of FAN_PERCENTILES) {
+        expenseFan[cat][`p${p}`].push(calculatePercentile(values, p));
+      }
     }
   }
 
@@ -309,8 +349,16 @@ export async function computeIncomeExpense(
     expenses: deflateRecord(breakdown.expenses),
   };
 
-  const realIncomeFan = deflateRecord(incomeFan);
-  const realExpenseFan = deflateRecord(expenseFan);
+  const deflateFanRecord = (fanRec: Record<string, FanBand>): Record<string, FanBand> => {
+    const result: Record<string, FanBand> = {};
+    for (const [cat, band] of Object.entries(fanRec)) {
+      result[cat] = deflateRecord(band);
+    }
+    return result;
+  };
+
+  const realIncomeFan = deflateFanRecord(incomeFan);
+  const realExpenseFan = deflateFanRecord(expenseFan);
 
   // Real cumulative net cash flow
   const realCumulativeNetValues: number[] = [];

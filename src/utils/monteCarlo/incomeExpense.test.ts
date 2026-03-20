@@ -129,13 +129,16 @@ describe('computeIncomeExpense', () => {
     const result = await computeIncomeExpense(VALID_UUID);
 
     const pKeys = ['p0', 'p5', 'p25', 'p40', 'p50', 'p60', 'p75', 'p95', 'p100'];
+    const totalIncomeFan = result.incomeFan['Total'];
     for (let yearIdx = 0; yearIdx < result.labels.length; yearIdx++) {
       for (let i = 0; i < pKeys.length - 1; i++) {
-        expect(result.incomeFan[pKeys[i]][yearIdx]).toBeLessThanOrEqual(
-          result.incomeFan[pKeys[i + 1]][yearIdx],
+        expect(totalIncomeFan[pKeys[i]][yearIdx]).toBeLessThanOrEqual(
+          totalIncomeFan[pKeys[i + 1]][yearIdx],
         );
       }
     }
+    // Per-category fan should also exist
+    expect(result.incomeFan['Salary']).toBeDefined();
   });
 
   it('expense fan percentiles are in correct order', async () => {
@@ -149,13 +152,16 @@ describe('computeIncomeExpense', () => {
     const result = await computeIncomeExpense(VALID_UUID);
 
     const pKeys = ['p0', 'p5', 'p25', 'p40', 'p50', 'p60', 'p75', 'p95', 'p100'];
+    const totalExpenseFan = result.expenseFan['Total'];
     for (let yearIdx = 0; yearIdx < result.labels.length; yearIdx++) {
       for (let i = 0; i < pKeys.length - 1; i++) {
-        expect(result.expenseFan[pKeys[i]][yearIdx]).toBeLessThanOrEqual(
-          result.expenseFan[pKeys[i + 1]][yearIdx],
+        expect(totalExpenseFan[pKeys[i]][yearIdx]).toBeLessThanOrEqual(
+          totalExpenseFan[pKeys[i + 1]][yearIdx],
         );
       }
     }
+    // Per-category fan should also exist
+    expect(result.expenseFan['Housing']).toBeDefined();
   });
 
   it('real values are deflated correctly', async () => {
@@ -177,10 +183,10 @@ describe('computeIncomeExpense', () => {
     expect(result.realBreakdown.income['Salary'][0]).toBeCloseTo(100000);
     // Year 2027: inflation=1.1, real = 110000/1.1 = 100000
     expect(result.realBreakdown.income['Salary'][1]).toBeCloseTo(100000);
-    // Real income fan p50 for 2027 = 110000/1.1 = 100000
-    expect(result.realIncomeFan['p50'][1]).toBeCloseTo(100000);
-    // Real expense fan p50 for 2027 = 55000/1.1 = 50000
-    expect(result.realExpenseFan['p50'][1]).toBeCloseTo(50000);
+    // Real income fan Total p50 for 2027 = 110000/1.1 = 100000
+    expect(result.realIncomeFan['Total']['p50'][1]).toBeCloseTo(100000);
+    // Real expense fan Total p50 for 2027 = 55000/1.1 = 50000
+    expect(result.realExpenseFan['Total']['p50'][1]).toBeCloseTo(50000);
   });
 
   it('missing yearlyFlows throws error', async () => {
@@ -318,7 +324,7 @@ describe('computeIncomeExpense', () => {
     // For 2028 income: sim1=84000, sim2=0. Median of [0, 84000] with linear interp = 42000
     expect(result.breakdown.income['Salary'][2]).toBe(42000);
 
-    // For 2028 fan p50 totalIncome: sim1=84000, sim2=0. Median = 42000
-    expect(result.incomeFan['p50'][2]).toBe(42000);
+    // For 2028 fan Total p50 totalIncome: sim1=84000, sim2=0. Median = 42000
+    expect(result.incomeFan['Total']['p50'][2]).toBe(42000);
   });
 });
