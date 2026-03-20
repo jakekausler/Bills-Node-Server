@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { computeFailureHistogram } from './failureHistogram';
 
-vi.mock('fs', () => ({
-  readFileSync: vi.fn(),
+vi.mock('fs/promises', () => ({
+  readFile: vi.fn(),
 }));
 
-import { readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 
-const mockReadFileSync = vi.mocked(readFileSync);
+const mockReadFile = vi.mocked(readFile);
 
 function buildResultsFile(failureYears: (number | null)[]) {
   return JSON.stringify({
@@ -25,10 +25,10 @@ beforeEach(() => {
 });
 
 describe('computeFailureHistogram', () => {
-  it('returns empty histogram and null years when no simulations fail', () => {
-    mockReadFileSync.mockReturnValue(buildResultsFile([null, null, null, null, null]));
+  it('returns empty histogram and null years when no simulations fail', async () => {
+    mockReadFile.mockResolvedValue(buildResultsFile([null, null, null, null, null]));
 
-    const result = computeFailureHistogram('test-id');
+    const result = await computeFailureHistogram('test-id');
 
     expect(result.histogram).toEqual([]);
     expect(result.summary).toEqual({
@@ -40,11 +40,11 @@ describe('computeFailureHistogram', () => {
     });
   });
 
-  it('computes correct histogram and summary when some simulations fail', () => {
+  it('computes correct histogram and summary when some simulations fail', async () => {
     // 3 failures: 2030, 2030, 2035; 2 successes
-    mockReadFileSync.mockReturnValue(buildResultsFile([2030, null, 2030, 2035, null]));
+    mockReadFile.mockResolvedValue(buildResultsFile([2030, null, 2030, 2035, null]));
 
-    const result = computeFailureHistogram('test-id');
+    const result = await computeFailureHistogram('test-id');
 
     expect(result.histogram).toEqual([
       { year: '2030', count: 2 },
@@ -59,10 +59,10 @@ describe('computeFailureHistogram', () => {
     });
   });
 
-  it('computes correct histogram and summary when all simulations fail', () => {
-    mockReadFileSync.mockReturnValue(buildResultsFile([2028, 2032, 2030, 2030]));
+  it('computes correct histogram and summary when all simulations fail', async () => {
+    mockReadFile.mockResolvedValue(buildResultsFile([2028, 2032, 2030, 2030]));
 
-    const result = computeFailureHistogram('test-id');
+    const result = await computeFailureHistogram('test-id');
 
     expect(result.histogram).toEqual([
       { year: '2028', count: 1 },
@@ -78,19 +78,19 @@ describe('computeFailureHistogram', () => {
     });
   });
 
-  it('computes correct median for even number of failures with different years', () => {
-    mockReadFileSync.mockReturnValue(buildResultsFile([2030, 2040]));
+  it('computes correct median for even number of failures with different years', async () => {
+    mockReadFile.mockResolvedValue(buildResultsFile([2030, 2040]));
 
-    const result = computeFailureHistogram('test-id');
+    const result = await computeFailureHistogram('test-id');
 
     expect(result.summary.medianFailureYear).toBe(2035); // avg(2030, 2040) = 2035
     expect(result.summary.failedSimulations).toBe(2);
   });
 
-  it('handles single failure', () => {
-    mockReadFileSync.mockReturnValue(buildResultsFile([null, null, 2045, null]));
+  it('handles single failure', async () => {
+    mockReadFile.mockResolvedValue(buildResultsFile([null, null, 2045, null]));
 
-    const result = computeFailureHistogram('test-id');
+    const result = await computeFailureHistogram('test-id');
 
     expect(result.histogram).toEqual([{ year: '2045', count: 1 }]);
     expect(result.summary).toEqual({
@@ -99,6 +99,24 @@ describe('computeFailureHistogram', () => {
       medianFailureYear: 2045,
       earliestFailureYear: 2045,
       latestFailureYear: 2045,
+    });
+  });
+
+  it('returns totalSimulations:0, empty histogram, and null years for empty results (0 simulations)', async () => {
+    mockReadFile.mockResolvedValue(JSON.stringify({
+      metadata: { startDate: '2026-01-01', endDate: '2060-12-31', seed: 42 },
+      results: [],
+    }));
+
+    const result = await computeFailureHistogram('test-id');
+
+    expect(result.histogram).toEqual([]);
+    expect(result.summary).toEqual({
+      totalSimulations: 0,
+      failedSimulations: 0,
+      medianFailureYear: null,
+      earliestFailureYear: null,
+      latestFailureYear: null,
     });
   });
 });

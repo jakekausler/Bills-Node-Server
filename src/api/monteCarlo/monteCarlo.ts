@@ -195,7 +195,7 @@ export async function getFailureHistogram(req: Request): Promise<FailureHistogra
 
   // Compute on-demand
   try {
-    const result = computeFailureHistogram(id);
+    const result = await computeFailureHistogram(id);
     histogramCache.set(id, result);
     return result;
   } catch (error) {

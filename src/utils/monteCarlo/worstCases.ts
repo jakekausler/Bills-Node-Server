@@ -39,8 +39,8 @@ export async function computeWorstCases(
   percentile: number = 5,
   accountId?: string,
 ): Promise<WorstCasesResult> {
-  // Clamp percentile to [1, 50]
-  percentile = Math.max(1, Math.min(50, percentile));
+  // Clamp percentile to [1, 50], defaulting NaN to 5
+  percentile = Math.max(1, Math.min(50, isNaN(percentile) ? 5 : percentile));
 
   const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
   const fileData = JSON.parse(readFileSync(resultsPath, 'utf8'));
@@ -58,6 +58,7 @@ export async function computeWorstCases(
       allYears.add(parseInt(yearStr));
     }
   }
+  // Note: years derived from yearlyMinBalances; yearlyAccountBalances should always have the same years
   const sortedYears = Array.from(allYears).sort((a, b) => a - b);
   const labels = sortedYears.map((y) => y.toString());
 
@@ -104,6 +105,7 @@ export async function computeWorstCases(
       const bal = getBalance(sim, year);
       data.push(bal);
 
+      // Default inflation multiplier of 1 means no adjustment (data unavailable for this year)
       const inflation = sim.cumulativeInflation?.[year] ?? 1;
       realData.push(bal / inflation);
     }

@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { MC_RESULTS_DIR } from './paths';
 
@@ -18,9 +18,9 @@ export interface FailureHistogramResult {
  * Each simulation may have a `fundingFailureYear` (number | null).
  * We group non-null failure years by year and compute summary statistics.
  */
-export function computeFailureHistogram(simulationId: string): FailureHistogramResult {
+export async function computeFailureHistogram(simulationId: string): Promise<FailureHistogramResult> {
   const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
-  const fileData = JSON.parse(readFileSync(resultsPath, 'utf8'));
+  const fileData = JSON.parse(await readFile(resultsPath, 'utf8'));
   const results: Array<{ fundingFailureYear?: number | null }> = fileData.results ?? [];
 
   const totalSimulations = results.length;

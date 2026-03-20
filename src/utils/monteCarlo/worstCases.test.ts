@@ -242,6 +242,51 @@ describe('computeWorstCases', () => {
     expect(result.deterministic.realData[1]).toBeCloseTo(115000 / 1.05);
   });
 
+  it('returns empty simulations array for empty results (0 simulations)', async () => {
+    mockReadFileSync.mockReturnValue(JSON.stringify({
+      metadata: { startDate: '2026-01-01', endDate: '2030-12-31', seed: 42 },
+      results: [],
+    }));
+
+    const result = await computeWorstCases('test-id', 5);
+
+    expect(result.labels).toEqual([]);
+    expect(result.simulations).toEqual([]);
+    expect(result.deterministic).toEqual({ data: [], realData: [] });
+  });
+
+  it('uses perAccount deterministic data when accountId is provided', async () => {
+    const results = [
+      makeSim(1, { 2026: 100000, 2027: 90000 }, {
+        yearlyAccount: {
+          2026: { 'acc-1': 60000, 'acc-2': 40000 },
+          2027: { 'acc-1': 50000, 'acc-2': 40000 },
+        },
+        inflation: { 2026: 1.0, 2027: 1.05 },
+      }),
+    ];
+    mockReadFileSync.mockReturnValue(
+      buildResultsFile(results, [
+        { id: 'acc-1', name: 'Checking' },
+        { id: 'acc-2', name: 'Savings' },
+      ]),
+    );
+    mockRunDeterministic.mockResolvedValue({
+      combined: { 2026: 120000, 2027: 115000 },
+      perAccount: {
+        2026: { 'acc-1': 70000, 'acc-2': 50000 },
+        2027: { 'acc-1': 65000, 'acc-2': 50000 },
+      },
+    });
+
+    const result = await computeWorstCases('test-id', 50, 'acc-1');
+
+    // Deterministic data should come from perAccount, not combined
+    expect(result.deterministic.data).toEqual([70000, 65000]);
+    expect(result.deterministic.realData[0]).toBeCloseTo(70000); // /1.0
+    expect(result.deterministic.realData[1]).toBeCloseTo(65000 / 1.05);
+  });
+
   it('returns correct labels as year strings', async () => {
     const results = [
       makeSim(1, { 2026: 100000, 2027: 90000, 2028: 80000 }),
