@@ -100,6 +100,7 @@ const mockAccountManager = {
   getPensions: vi.fn().mockReturnValue([]),
   getInterestPayAccountNames: vi.fn().mockReturnValue(new Set()),
   getAccountByName: vi.fn().mockReturnValue(null),
+  getAllAccounts: vi.fn().mockReturnValue([]),
 };
 
 const mockTimeline = {

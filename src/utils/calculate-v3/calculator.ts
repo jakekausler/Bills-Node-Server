@@ -17,6 +17,7 @@ import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import type { DebugLogger } from './debug-logger';
+import type { FlowAggregator } from './flow-aggregator';
 import {
   ActivityEvent,
   ActivityTransferEvent,
@@ -61,6 +62,7 @@ export class Calculator {
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
+  private flowAggregator: FlowAggregator | null;
 
   constructor(
     balanceTracker: BalanceTracker,
@@ -77,6 +79,7 @@ export class Calculator {
     bracketInflationRate: number = 0.03,
     debugLogger?: DebugLogger | null,
     simNumber: number = 0,
+    flowAggregator?: FlowAggregator | null,
   ) {
     this.balanceTracker = balanceTracker;
     this.taxManager = taxManager;
@@ -92,6 +95,7 @@ export class Calculator {
     this.bracketInflationRate = bracketInflationRate;
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
+    this.flowAggregator = flowAggregator ?? null;
     this.contributionLimitManager = new ContributionLimitManager(debugLogger, simNumber);
     this.rothConversionManager = new RothConversionManager(accountManager, acaManager, debugLogger, simNumber);
     this.rothConversionManager.setBalanceTracker(balanceTracker);
@@ -190,6 +194,17 @@ export class Calculator {
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + balanceChange);
     this.log('activity-processed', { name: activity.name, accountId, amount: balanceChange });
+
+    // Record flow
+    if (this.flowAggregator) {
+      const year = event.date.getUTCFullYear();
+      if (balanceChange > 0) {
+        this.flowAggregator.recordIncome(year, activity.name, balanceChange);
+      } else if (balanceChange < 0) {
+        this.flowAggregator.recordExpense(year, activity.category || 'Uncategorized', Math.abs(balanceChange));
+      }
+    }
+
     return new Map([[accountId, balanceChange]]);
   }
 
@@ -234,6 +249,11 @@ export class Calculator {
     }
     segmentResult.activitiesAdded.get(event.accountId)?.push(healthcareActivity);
 
+    // Record healthcare out-of-pocket flow
+    if (this.flowAggregator && patientCost > 0) {
+      this.flowAggregator.recordHealthcare(event.date.getUTCFullYear(), 'outOfPocket', patientCost);
+    }
+
     // Generate HSA reimbursement if enabled
     if (config.hsaReimbursementEnabled && config.hsaAccountId) {
       this.generateHSAReimbursement(config.hsaAccountId, event.accountId, patientCost, event.date, segmentResult, activity.name);
@@ -269,6 +289,11 @@ export class Calculator {
       }
 
       this.log('hsa-reimbursement', { hsaAccountId, reimbursementAmount, patientCost });
+
+      // Record HSA reimbursement flow (pass positive amount; aggregator negates)
+      if (this.flowAggregator) {
+        this.flowAggregator.recordHealthcare(date.getUTCFullYear(), 'hsaReimbursements', reimbursementAmount);
+      }
 
       // Find accounts for activity names
       const hsaAccount = this.balanceTracker.findAccountById(hsaAccountId);
@@ -394,6 +419,18 @@ export class Calculator {
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
     this.log('bill-processed', { name: bill.name, accountId, amount: Number(amount), isHealthcare: false });
+
+    // Record flow
+    if (this.flowAggregator) {
+      const numAmount = Number(amount);
+      const year = event.date.getUTCFullYear();
+      if (numAmount > 0) {
+        this.flowAggregator.recordIncome(year, bill.name, numAmount);
+      } else if (numAmount < 0) {
+        this.flowAggregator.recordExpense(year, bill.category || 'Uncategorized', Math.abs(numAmount));
+      }
+    }
+
     return new Map([[accountId, Number(amount)]]);
   }
 
@@ -442,6 +479,11 @@ export class Calculator {
       segmentResult.activitiesAdded.set(event.accountId, []);
     }
     segmentResult.activitiesAdded.get(event.accountId)?.push(billActivity);
+
+    // Record healthcare out-of-pocket flow
+    if (this.flowAggregator && patientCost > 0) {
+      this.flowAggregator.recordHealthcare(event.date.getUTCFullYear(), 'outOfPocket', patientCost);
+    }
 
     // Generate HSA reimbursement if enabled
     if (config.hsaReimbursementEnabled && config.hsaAccountId) {
@@ -521,6 +563,9 @@ export class Calculator {
     }
 
     this.log('interest-calculated', { accountId, balance: currentBalance, apr, amount: interestAmount });
+
+    // Record interest flow
+    this.flowAggregator?.recordInterest(event.date.getUTCFullYear(), interestAmount);
 
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
@@ -752,6 +797,16 @@ export class Calculator {
 
     this.log('transfer-processed', { from: fromAccountId, to: toAccountId, amount: internalAmount, name: original.name });
 
+    // Record transfer flow: classify by destination type
+    if (this.flowAggregator && toAccount) {
+      const year = event.date.getUTCFullYear();
+      if (toAccount.type === 'Loan' || toAccount.type === 'Credit') {
+        // Transfers to loans/credit are expenses (debt payments)
+        this.flowAggregator.recordExpense(year, original.category || 'Debt Payment', Math.abs(internalAmount));
+      }
+      // Transfers to savings/investment/checking are neutral (internal movement) — skip
+    }
+
     return new Map([
       [fromAccountId, -internalAmount],
       [toAccountId, internalAmount],
@@ -821,6 +876,9 @@ export class Calculator {
 
     this.log('pension-processed', { name: pension.name, accountId, amount });
 
+    // Record pension income flow
+    this.flowAggregator?.recordIncome(event.date.getUTCFullYear(), pension.name, amount);
+
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
@@ -887,6 +945,9 @@ export class Calculator {
 
     this.log('ss-processed', { name: socialSecurity.name, accountId, amount });
 
+    // Record SS income flow
+    this.flowAggregator?.recordIncome(event.date.getUTCFullYear(), socialSecurity.name, amount);
+
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + Number(amount));
@@ -912,6 +973,22 @@ export class Calculator {
     }
 
     this.log('tax-event-processed', { year: event.date.getUTCFullYear() - 1, totalTax: -amount, autoCalculatedTax: -amount });
+
+    // Record tax flow with federal/penalty breakdown
+    if (this.flowAggregator) {
+      const taxYear = event.date.getUTCFullYear() - 1;
+      const totalTax = -amount; // amount is negative, totalTax is positive
+      // Extract penalty from occurrences to separate federal vs penalty
+      const occurrences = this.taxManager.getAllOccurrencesForYear(taxYear);
+      let penaltyTotal = 0;
+      for (const occ of occurrences) {
+        if (occ.incomeType === 'penalty') {
+          penaltyTotal += occ.amount;
+        }
+      }
+      const federal = totalTax - penaltyTotal;
+      this.flowAggregator.recordTax(taxYear, federal, penaltyTotal);
+    }
 
     // Create the tax activity
     const taxActivity = new ConsolidatedActivity({
@@ -970,6 +1047,9 @@ export class Calculator {
     }
 
     this.log('rmd-processed', { accountId: account.id, rmdAmount, priorYearBalance: balance });
+
+    // Record RMD transfer flow
+    this.flowAggregator?.recordTransfer(event.date.getUTCFullYear(), 'rmdDistributions', rmdAmount);
 
     // Create the RMD From Activity
     const rmdFromActivity = new ConsolidatedActivity({
@@ -1040,10 +1120,17 @@ export class Calculator {
       segmentResult,
     );
 
+    const totalConversionAmount = conversions.reduce((sum: number, c: ConversionResult) => sum + c.amount, 0);
+
     this.log('roth-conversion-processed', {
       conversionsCount: conversions.length,
-      totalAmount: conversions.reduce((sum: number, c: ConversionResult) => sum + c.amount, 0),
+      totalAmount: totalConversionAmount,
     });
+
+    // Record Roth conversion transfer flow
+    if (this.flowAggregator && totalConversionAmount > 0) {
+      this.flowAggregator.recordTransfer(event.year, 'rothConversions', totalConversionAmount);
+    }
 
     // Create transfer activities for each conversion that happened
     for (const conversion of conversions) {
@@ -1261,6 +1348,11 @@ export class Calculator {
     const currentChange = segmentResult.balanceChanges.get(event.accountId) || 0;
     segmentResult.balanceChanges.set(event.accountId, currentChange + (-remainder));
 
+    // Record spending tracker expense flow
+    if (this.flowAggregator && remainder > 0) {
+      this.flowAggregator.recordExpense(event.date.getUTCFullYear(), event.categoryName, remainder);
+    }
+
     return new Map([[event.accountId, -remainder]]);
   }
 
@@ -1442,6 +1534,9 @@ export class Calculator {
 
     this.log('medicare-premium-processed', { person: event.personName, totalCost: monthlyMedicareCost, accountId });
 
+    // Record Medicare healthcare flow
+    this.flowAggregator?.recordHealthcare(year, 'medicare', monthlyMedicareCost);
+
     // Find the paying account
     const payingAccount = this.balanceTracker.findAccountById(accountId);
     if (!payingAccount) {
@@ -1509,6 +1604,11 @@ export class Calculator {
       totalHospitalCost += 400; // Average copay per day
     }
 
+    // Record hospital healthcare flow
+    if (this.flowAggregator && totalHospitalCost > 0) {
+      this.flowAggregator.recordHealthcare(year, 'hospital', totalHospitalCost);
+    }
+
     // Create activity for hospital expenses
     const hospitalActivity = new ConsolidatedActivity({
       id: `HOSPITAL-${event.personName}-${formatDate(event.date)}`,
@@ -1571,6 +1671,11 @@ export class Calculator {
     );
 
     this.log('aca-premium-processed', { person: event.personName, monthlyPremium, priorMAGI, isCobraPeriod: event.isCobraPeriod });
+
+    // Record ACA/COBRA healthcare flow
+    if (this.flowAggregator && monthlyPremium > 0) {
+      this.flowAggregator.recordHealthcare(year, event.isCobraPeriod ? 'cobra' : 'aca', monthlyPremium);
+    }
 
     // Find the paying account
     const payingAccount = this.balanceTracker.findAccountById(accountId);
@@ -1655,6 +1760,11 @@ export class Calculator {
 
     this.log('ltc-check-processed', { person: personName, netCost: netMonthlyCost, accountId });
 
+    // Record LTC care cost flow
+    if (this.flowAggregator && netMonthlyCost > 0) {
+      this.flowAggregator.recordHealthcare(event.year, 'ltcCare', netMonthlyCost);
+    }
+
     // Find the paying account
     const payingAccount = this.balanceTracker.findAccountById(accountId);
     if (!payingAccount) {
@@ -1708,6 +1818,9 @@ export class Calculator {
       const yearsSincePurchase = event.ownerAge - (config.insurancePurchaseAge ?? 60);
       const premiumInflationRate = config.premiumInflationRate ?? 0.05;
       const annualPremium = (config.annualPremium ?? 3500) * Math.pow(1 + premiumInflationRate, yearsSincePurchase);
+
+      // Record LTC insurance premium flow
+      this.flowAggregator?.recordHealthcare(event.year, 'ltcInsurance', annualPremium);
 
       const premiumActivity = new ConsolidatedActivity({
         id: `LTC-PREMIUM-${personName}-${event.year}`,

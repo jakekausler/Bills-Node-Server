@@ -7,6 +7,7 @@ import { BalanceTracker } from './balance-tracker';
 import { RothConversionManager } from './roth-conversion-manager';
 import { TaxManager } from './tax-manager';
 import type { DebugLogger } from './debug-logger';
+import type { FlowAggregator } from './flow-aggregator';
 
 export interface PullFailure {
   date: Date;
@@ -24,6 +25,7 @@ export class PushPullHandler {
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
+  private flowAggregator: FlowAggregator | null;
 
   constructor(
     accountManager: AccountManager,
@@ -33,6 +35,7 @@ export class PushPullHandler {
     taxManager?: TaxManager,
     debugLogger?: DebugLogger | null,
     simNumber: number = 0,
+    flowAggregator?: FlowAggregator | null,
   ) {
     this.accountManager = accountManager;
     this.balanceTracker = balanceTracker;
@@ -41,6 +44,7 @@ export class PushPullHandler {
     this.taxManager = taxManager || null;
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
+    this.flowAggregator = flowAggregator ?? null;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
@@ -173,6 +177,9 @@ export class PushPullHandler {
       amount: pushAmount,
     });
 
+    // Record auto-push transfer flow
+    this.flowAggregator?.recordTransfer(segment.startDate.getUTCFullYear(), 'autoPushes', pushAmount);
+
     return true;
   }
 
@@ -266,6 +273,9 @@ export class PushPullHandler {
         amount: availableAmount,
         committed_total: alreadyCommitted + availableAmount,
       });
+
+      // Record auto-pull transfer flow
+      this.flowAggregator?.recordTransfer(segment.startDate.getUTCFullYear(), 'autoPulls', availableAmount);
 
       // If there's still more to pull after this source, log the cascade
       if (toPull > 0) {

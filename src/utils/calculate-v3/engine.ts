@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { PortfolioMakeupOverTime } from './types';
+import { Account } from '../../data/account/account';
 import { AccountsAndTransfers } from '../../data/account/types';
 import { CalculationConfig, CalculationOptions, FilingStatus, MonteCarloConfig } from './types';
 import { CacheManager, initializeCache } from './cache';
@@ -25,6 +26,7 @@ import { computePeriodBoundaries } from './period-utils';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import type { DebugLogger } from './debug-logger';
+import { FlowAggregator } from './flow-aggregator';
 
 dayjs.extend(utc);
 
@@ -52,6 +54,7 @@ export class Engine {
   private debugLogger: DebugLogger | null;
   private simNumber: number = 0;
   private currentDate: string = '';
+  private flowAggregator: FlowAggregator | null = null;
 
   constructor(simulation: string, config: Partial<CalculationConfig> = {}, monteCarlo: boolean = false, debugLogger?: DebugLogger | null) {
     this.simulation = simulation;
@@ -346,6 +349,13 @@ export class Engine {
       }
     }
 
+    // Create FlowAggregator for MC mode only (no overhead for deterministic)
+    if (options.monteCarlo) {
+      this.flowAggregator = new FlowAggregator();
+    } else {
+      this.flowAggregator = null;
+    }
+
     // Initialize balance tracker - use actual start date for processing all historical data
     if (options.enableLogging) {
       console.log('Initializing balance tracker...', Date.now() - this.calculationBegin, 'ms');
@@ -371,6 +381,7 @@ export class Engine {
       options.bracketInflationRate || 0.03,
       this.debugLogger,
       this.simNumber,
+      this.flowAggregator,
     );
 
     // Set Monte Carlo config if available
@@ -390,6 +401,7 @@ export class Engine {
       this.taxManager,
       this.debugLogger,
       this.simNumber,
+      this.flowAggregator,
     );
 
     // Initialize segment processor
@@ -413,6 +425,37 @@ export class Engine {
     this.log('components-initialized');
   }
 
+  /**
+   * Determine whether an account is a "portfolio" account for flow aggregation.
+   * Portfolio accounts: accounts with interest rates, usesRMD, or contribution limits.
+   * Excluded: checking (performsPulls && !usesRMD), credit cards, loans.
+   */
+  private isPortfolioAccount(account: Account): boolean {
+    // Exclude credit cards and loans
+    if (account.type === 'Credit' || account.type === 'Loan') return false;
+    // Exclude checking accounts (performsPulls but not retirement)
+    if (account.performsPulls && !account.usesRMD) return false;
+    // Include if has interest, uses RMD, or has contribution limits
+    if (account.interests && account.interests.length > 0) return true;
+    if (account.usesRMD) return true;
+    if (account.contributionLimitType) return true;
+    return false;
+  }
+
+  /**
+   * Compute sum of portfolio account balances for the flow aggregator.
+   */
+  private getPortfolioBalance(): number {
+    const allAccounts = this.accountManager.getAllAccounts();
+    let total = 0;
+    for (const account of allAccounts) {
+      if (this.isPortfolioAccount(account)) {
+        total += this.balanceTracker.getAccountBalance(account.id);
+      }
+    }
+    return total;
+  }
+
   private async performCalculations(
     accountsAndTransfers: AccountsAndTransfers,
     options: CalculationOptions,
@@ -429,10 +472,31 @@ export class Engine {
     // Initialize accounts with starting balances
     await this.balanceTracker.initializeBalances(accountsAndTransfers, options.forceRecalculation);
 
+    // Track year boundaries for flow aggregator balance recording
+    let lastYear = segments.length > 0 ? segments[0].startDate.getUTCFullYear() : 0;
+    if (this.flowAggregator && segments.length > 0) {
+      this.flowAggregator.setStartingBalance(lastYear, this.getPortfolioBalance());
+    }
+
     // Process segments in order
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
+
+      // Check for year boundary before processing segment
+      const segmentYear = segment.startDate.getUTCFullYear();
+      if (this.flowAggregator && segmentYear > lastYear) {
+        // Set ending balance for the previous year and starting balance for the new year
+        this.flowAggregator.setEndingBalance(lastYear, this.getPortfolioBalance());
+        this.flowAggregator.setStartingBalance(segmentYear, this.getPortfolioBalance());
+        lastYear = segmentYear;
+      }
+
       await this.segmentProcessor.processSegment(segment, options);
+    }
+
+    // Set ending balance for the final year
+    if (this.flowAggregator && segments.length > 0) {
+      this.flowAggregator.setEndingBalance(lastYear, this.getPortfolioBalance());
     }
 
     // Clamp activities to the specified date range
@@ -468,6 +532,13 @@ export class Engine {
    */
   getPullFailures() {
     return this.pushPullHandler ? this.pushPullHandler.getPullFailures() : [];
+  }
+
+  /**
+   * Get the FlowAggregator instance (for MC worker to extract data after calculation)
+   */
+  getFlowAggregator(): FlowAggregator | null {
+    return this.flowAggregator;
   }
 }
 
