@@ -182,8 +182,12 @@ export class SegmentProcessor {
     // Add relevant activities to retirement incomes
     for (const [_accountId, activities] of segmentResult.activitiesAdded) {
       activities.forEach((activity) => {
-        // Add the income to the retirement manager if it is a valid income name
-        this.retirementManager.tryAddToAnnualIncomes(activity.name, activity.date, activity.amount as number);
+        // Skip paycheck activities — they're already handled in calculator.ts via grossPay
+        // to avoid double-counting AIME wages (net pay + gross pay)
+        if (!(activity as any).isPaycheckActivity) {
+          // Add the income to the retirement manager if it is a valid income name
+          this.retirementManager.tryAddToAnnualIncomes(activity.name, activity.date, activity.amount as number);
+        }
       });
     }
 

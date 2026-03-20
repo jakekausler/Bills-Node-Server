@@ -12,6 +12,8 @@ import { LTCManager } from './ltc-manager';
 import { AcaManager } from './aca-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { ContributionLimitManager } from './contribution-limit-manager';
+import { PaycheckStateTracker } from './paycheck-state-tracker';
+import { PaycheckProcessor } from './paycheck-processor';
 import { RothConversionManager, ConversionResult } from './roth-conversion-manager';
 import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
@@ -56,6 +58,8 @@ export class Calculator {
   private acaManager: AcaManager;
   private spendingTrackerManager: SpendingTrackerManager;
   private contributionLimitManager: ContributionLimitManager;
+  private paycheckStateTracker: PaycheckStateTracker;
+  private paycheckProcessor: PaycheckProcessor;
   private rothConversionManager: RothConversionManager;
   private filingStatus: FilingStatus;
   private bracketInflationRate: number;
@@ -99,6 +103,13 @@ export class Calculator {
     this.simNumber = simNumber;
     this.flowAggregator = flowAggregator ?? null;
     this.contributionLimitManager = new ContributionLimitManager(debugLogger, simNumber);
+    this.paycheckStateTracker = new PaycheckStateTracker(debugLogger, simNumber);
+    this.paycheckProcessor = new PaycheckProcessor(
+      this.paycheckStateTracker,
+      this.contributionLimitManager,
+      debugLogger,
+      simNumber,
+    );
     this.rothConversionManager = new RothConversionManager(accountManager, acaManager, debugLogger, simNumber);
     this.rothConversionManager.setBalanceTracker(balanceTracker);
   }
@@ -118,6 +129,8 @@ export class Calculator {
     this.ltcManager.setCurrentDate(date);
     this.acaManager.setCurrentDate(date);
     this.contributionLimitManager.setCurrentDate(date);
+    this.paycheckStateTracker.setCurrentDate(date);
+    this.paycheckProcessor.setCurrentDate(date);
     this.spendingTrackerManager.setCurrentDate(date);
     this.balanceTracker.setCurrentDate(date);
   }
@@ -130,19 +143,21 @@ export class Calculator {
   }
 
   /**
-   * Save a checkpoint of contribution limit tracking state.
+   * Save a checkpoint of contribution limit and paycheck state.
    * Used for push/pull reprocessing to restore state if segment needs to be recomputed.
    */
   checkpoint(): void {
     this.contributionLimitManager.checkpoint();
+    this.paycheckStateTracker.checkpoint();
   }
 
   /**
-   * Restore contribution limit tracking state from the last checkpoint.
+   * Restore contribution limit and paycheck state from the last checkpoint.
    * Used when segment is reprocessed after push/pull handling.
    */
   restore(): void {
     this.contributionLimitManager.restore();
+    this.paycheckStateTracker.restore();
   }
 
   /**
@@ -376,6 +391,12 @@ export class Calculator {
   processBillEvent(event: BillEvent, segmentResult: SegmentResult, simulation: string): Map<string, number> {
     const bill = event.originalBill;
 
+    // Route paycheck bills to paycheck processor
+    if (bill.paycheckProfile) {
+      this.log('paycheck-bill-routed', { name: bill.name });
+      return this.processPaycheckBill(event, segmentResult, simulation);
+    }
+
     // Route healthcare bills to healthcare processor
     if (bill.isHealthcare) {
       this.log('healthcare-bill-routed', { name: bill.name, person: bill.healthcarePerson || '' });
@@ -522,6 +543,186 @@ export class Calculator {
     segmentResult.balanceChanges.set(event.accountId, currentChange - patientCost);
 
     return new Map([[event.accountId, -patientCost]]);
+  }
+
+  /**
+   * Process a paycheck bill event using the PaycheckProcessor
+   */
+  private processPaycheckBill(
+    event: BillEvent,
+    segmentResult: SegmentResult,
+    simulation: string,
+  ): Map<string, number> {
+    const bill = event.originalBill;
+    const profile = bill.paycheckProfile;
+    if (!profile) {
+      throw new Error(`Bill ${bill.name} marked as paycheck but has no profile`);
+    }
+
+    // Get the account and owner DOB
+    const account = this.balanceTracker.findAccountById(event.accountId);
+    if (!account) {
+      throw new Error(`Account ${event.accountId} not found for paycheck bill ${bill.name}`);
+    }
+
+    const year = event.date.getUTCFullYear();
+    const ssWageBaseCap = this.retirementManager.getWageBaseCapForYear(year);
+
+    // Determine additional Medicare threshold based on filing status
+    const additionalMedicareThreshold = this.filingStatus === 'mfj' ? 250000 : 200000;
+
+    // Compute paychecks per year from bill frequency
+    const paychecksPerYear = this.computePaychecksPerYear(bill.everyN, bill.periods);
+
+    // Compute gross pay (typically from profile or from bill amount)
+    const grossPay = typeof event.amount === 'number' ? event.amount : profile.grossPay;
+
+    // Process the paycheck
+    const mcGetter = this.getMCRateGetter();
+    const mcRateGetterFunc: ((type: string) => number | undefined) | undefined = mcGetter
+      ? (type: string) => {
+          const result = mcGetter(type as any, event.date.getUTCFullYear());
+          return result ?? undefined;
+        }
+      : undefined;
+
+    const paycheckResult = this.paycheckProcessor.processPaycheck(
+      grossPay,
+      profile,
+      bill.name,
+      event.date,
+      account.accountOwnerDOB,
+      ssWageBaseCap,
+      additionalMedicareThreshold,
+      paychecksPerYear,
+      mcRateGetterFunc,
+    );
+
+    // Create main net pay activity for the primary account
+    const mainActivity = new ConsolidatedActivity(
+      bill
+        .toActivity(`${bill.id}-${event.date}`, simulation, paycheckResult.netPay, event.date)
+        .serialize(),
+      { billId: bill.id, firstBill: event.firstBill },
+    );
+
+    if (!segmentResult.activitiesAdded.has(event.accountId)) {
+      segmentResult.activitiesAdded.set(event.accountId, []);
+    }
+    segmentResult.activitiesAdded.get(event.accountId)?.push(mainActivity);
+
+    // AIME: feed gross wages, not net (Option A from spec — fixes #8)
+    this.retirementManager.tryAddToAnnualIncomes(bill.name, event.date, paycheckResult.grossPay);
+
+    // Update main account balance
+    const currentMainChange = segmentResult.balanceChanges.get(event.accountId) || 0;
+    segmentResult.balanceChanges.set(event.accountId, currentMainChange + paycheckResult.netPay);
+
+    // Create deposit activities for each destination (401k, HSA, employer match, etc.)
+    for (const deposit of paycheckResult.depositActivities) {
+      // Create activity for the deposit
+      const depositActivity = new ConsolidatedActivity({
+        id: `${bill.id}-${event.date}-${deposit.label}`,
+        date: formatDate(event.date),
+        dateIsVariable: false,
+        dateVariable: null,
+        name: `${deposit.label} from ${bill.name}`,
+        category: 'Paycheck',
+        amount: deposit.amount,
+        amountIsVariable: false,
+        amountVariable: null,
+        flag: false,
+        flagColor: null,
+        isTransfer: false,
+        from: null,
+        to: null,
+      });
+
+      if (!segmentResult.activitiesAdded.has(deposit.accountId)) {
+        segmentResult.activitiesAdded.set(deposit.accountId, []);
+      }
+      segmentResult.activitiesAdded.get(deposit.accountId)?.push(depositActivity);
+
+      // Update deposit account balance
+      const currentDepositChange = segmentResult.balanceChanges.get(deposit.accountId) || 0;
+      segmentResult.balanceChanges.set(deposit.accountId, currentDepositChange + deposit.amount);
+    }
+
+    // Record flow for income and taxes
+    if (this.flowAggregator) {
+      // Record gross income
+      this.flowAggregator.recordIncome(year, bill.category || 'Income', paycheckResult.grossPay);
+      // Record taxes as expenses
+      const totalTaxes =
+        paycheckResult.ssTax +
+        paycheckResult.medicareTax +
+        paycheckResult.federalWithholding +
+        paycheckResult.stateWithholding;
+      if (totalTaxes > 0) {
+        this.flowAggregator.recordExpense(year, 'Taxes', totalTaxes);
+      }
+    }
+
+    // Record paycheck gross income minus pre-tax deductions as ordinary taxable income
+    // This keeps the existing tax machinery working during Cycle A
+    let taxableWages = paycheckResult.grossPay - paycheckResult.traditional401k - paycheckResult.hsa - paycheckResult.hsaEmployer;
+    // Subtract other pre-tax deductions
+    for (const ded of paycheckResult.preTaxDeductions) {
+      // traditional401k and HSA already subtracted above
+      if (ded.label !== 'Traditional 401k' && ded.label !== 'HSA Employee') {
+        taxableWages -= ded.amount;
+      }
+    }
+
+    const accountName = account.name;
+    if (!segmentResult.taxableOccurrences.has(accountName)) {
+      segmentResult.taxableOccurrences.set(accountName, []);
+    }
+    segmentResult.taxableOccurrences.get(accountName)?.push({
+      date: event.date,
+      year: event.date.getUTCFullYear(),
+      amount: taxableWages,
+      incomeType: 'ordinary' as IncomeType,
+    });
+
+    this.log('paycheck-processed', {
+      name: bill.name,
+      grossPay: paycheckResult.grossPay,
+      netPay: paycheckResult.netPay,
+      traditional401k: paycheckResult.traditional401k,
+      roth401k: paycheckResult.roth401k,
+      hsa: paycheckResult.hsa,
+      employerMatch: paycheckResult.employerMatch,
+      ssTax: paycheckResult.ssTax,
+      medicareTax: paycheckResult.medicareTax,
+    });
+
+    // Return balance changes for all affected accounts
+    const allChanges = new Map<string, number>();
+    allChanges.set(event.accountId, paycheckResult.netPay);
+    for (const deposit of paycheckResult.depositActivities) {
+      const existing = allChanges.get(deposit.accountId) || 0;
+      allChanges.set(deposit.accountId, existing + deposit.amount);
+    }
+    return allChanges;
+  }
+
+  /**
+   * Compute paychecks per year from bill frequency
+   */
+  private computePaychecksPerYear(everyN: number, periods: 'day' | 'week' | 'month' | 'year'): number {
+    switch (periods) {
+      case 'day':
+        return 365 / everyN;
+      case 'week':
+        return 52 / everyN;
+      case 'month':
+        return 12 / everyN;
+      case 'year':
+        return 1 / everyN;
+      default:
+        return 26; // Default to biweekly
+    }
   }
 
   processInterestEvent(event: InterestEvent, segmentResult: SegmentResult): Map<string, number> {

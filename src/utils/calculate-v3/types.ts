@@ -432,3 +432,20 @@ export interface MonteCarloConfig {
   totalSimulations: number;
   variableMappings: Record<string, string>;
 }
+
+export type PaycheckResult = {
+  netPay: number;
+  grossPay: number;
+  traditional401k: number;
+  roth401k: number;
+  employerMatch: number;
+  hsa: number;
+  hsaEmployer: number;
+  ssTax: number;
+  medicareTax: number;
+  federalWithholding: number;
+  stateWithholding: number;
+  preTaxDeductions: { label: string; amount: number }[];
+  postTaxDeductions: { label: string; amount: number }[];
+  depositActivities: { accountId: string; amount: number; label: string }[];
+};
