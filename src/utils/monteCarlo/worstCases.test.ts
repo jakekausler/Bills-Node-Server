@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { computeWorstCases } from './worstCases';
 
-vi.mock('fs', () => ({
-  readFileSync: vi.fn(),
+vi.mock('fs/promises', () => ({
+  readFile: vi.fn(),
 }));
 
 vi.mock('./statisticsGraph', () => ({
   runDeterministicForWorstCases: vi.fn().mockResolvedValue(null),
 }));
 
-import { readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 import { runDeterministicForWorstCases } from './statisticsGraph';
 
-const mockReadFileSync = vi.mocked(readFileSync);
+const mockReadFile = vi.mocked(readFile);
 const mockRunDeterministic = vi.mocked(runDeterministicForWorstCases);
 
 interface SimResult {
@@ -56,12 +56,12 @@ function makeSim(
   };
 }
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  mockRunDeterministic.mockResolvedValue(null);
-});
-
 describe('computeWorstCases', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRunDeterministic.mockResolvedValue(null);
+  });
+
   it('selects correct N% of simulations (5% of 100 = 5 sims)', async () => {
     // Create 100 simulations with varying worst balances
     const results: SimResult[] = [];
@@ -70,9 +70,9 @@ describe('computeWorstCases', () => {
         makeSim(i, { 2026: i * 1000, 2027: i * 500, 2028: i * 200 }),
       );
     }
-    mockReadFileSync.mockReturnValue(buildResultsFile(results));
+    mockReadFile.mockResolvedValue(buildResultsFile(results));
 
-    const result = await computeWorstCases('test-id', 5);
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 5);
 
     expect(result.simulations).toHaveLength(5);
     // Should be sorted by worst balance ascending (sim 1-5 have lowest minimums)
@@ -85,9 +85,9 @@ describe('computeWorstCases', () => {
     for (let i = 1; i <= 10; i++) {
       results.push(makeSim(i, { 2026: i * 1000, 2027: i * 500 }));
     }
-    mockReadFileSync.mockReturnValue(buildResultsFile(results));
+    mockReadFile.mockResolvedValue(buildResultsFile(results));
 
-    const result = await computeWorstCases('test-id', 5);
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 5);
 
     expect(result.simulations).toHaveLength(1);
     expect(result.simulations[0].simulationNumber).toBe(1);
@@ -102,9 +102,9 @@ describe('computeWorstCases', () => {
       makeSim(2, { 2026: 50000, 2027: 30000, 2028: 10000 }),   // worst = 10000
       makeSim(3, { 2026: 80000, 2027: 70000, 2028: 60000 }),   // worst = 60000
     ];
-    mockReadFileSync.mockReturnValue(buildResultsFile(results));
+    mockReadFile.mockResolvedValue(buildResultsFile(results));
 
-    const result = await computeWorstCases('test-id', 50);
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 50);
 
     // 50% of 3 = floor(1.5) = 1 sim
     expect(result.simulations).toHaveLength(1);
@@ -134,14 +134,14 @@ describe('computeWorstCases', () => {
         },
       }),
     ];
-    mockReadFileSync.mockReturnValue(
+    mockReadFile.mockResolvedValue(
       buildResultsFile(results, [
         { id: 'acc-1', name: 'Checking' },
         { id: 'acc-2', name: 'Savings' },
       ]),
     );
 
-    const result = await computeWorstCases('test-id', 50, 'acc-1');
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 50, 'acc-1');
 
     // Per account acc-1: sim1 worst=30000, sim2 worst=45000, sim3 worst=55000
     // 50% of 3 = 1 sim, worst is sim 1
@@ -157,9 +157,9 @@ describe('computeWorstCases', () => {
         inflation: { 2026: 1.0, 2027: 1.1 },
       }),
     ];
-    mockReadFileSync.mockReturnValue(buildResultsFile(results));
+    mockReadFile.mockResolvedValue(buildResultsFile(results));
 
-    const result = await computeWorstCases('test-id', 50);
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 50);
 
     expect(result.simulations).toHaveLength(1);
     expect(result.simulations[0].data).toEqual([100000, 110000]);
@@ -173,9 +173,9 @@ describe('computeWorstCases', () => {
       makeSim(1, { 2026: 10000 }),
       makeSim(2, { 2026: 20000 }),
     ];
-    mockReadFileSync.mockReturnValue(buildResultsFile(results));
+    mockReadFile.mockResolvedValue(buildResultsFile(results));
 
-    const result = await computeWorstCases('test-id', 0);
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 0);
 
     // 1% of 2 = floor(0.02) = 0, clamped to 1
     expect(result.simulations).toHaveLength(1);
@@ -188,9 +188,9 @@ describe('computeWorstCases', () => {
       makeSim(3, { 2026: 30000 }),
       makeSim(4, { 2026: 40000 }),
     ];
-    mockReadFileSync.mockReturnValue(buildResultsFile(results));
+    mockReadFile.mockResolvedValue(buildResultsFile(results));
 
-    const result = await computeWorstCases('test-id', 100);
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 100);
 
     // Clamped to 50: 50% of 4 = 2
     expect(result.simulations).toHaveLength(2);
@@ -202,11 +202,11 @@ describe('computeWorstCases', () => {
         yearlyAccount: { 2026: { 'acc-1': 100000 } },
       }),
     ];
-    mockReadFileSync.mockReturnValue(
+    mockReadFile.mockResolvedValue(
       buildResultsFile(results, [{ id: 'acc-1', name: 'Checking' }]),
     );
 
-    const result = await computeWorstCases('test-id', 5, 'nonexistent-acc');
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 5, 'nonexistent-acc');
 
     expect(result.simulations).toEqual([]);
   });
@@ -216,9 +216,9 @@ describe('computeWorstCases', () => {
       makeSim(1, { 2026: -5000, 2027: -10000 }, { failureYear: 2026 }),
       makeSim(2, { 2026: 50000, 2027: 60000 }),
     ];
-    mockReadFileSync.mockReturnValue(buildResultsFile(results));
+    mockReadFile.mockResolvedValue(buildResultsFile(results));
 
-    const result = await computeWorstCases('test-id', 50);
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 50);
 
     expect(result.simulations).toHaveLength(1);
     expect(result.simulations[0].failureYear).toBe(2026);
@@ -230,12 +230,12 @@ describe('computeWorstCases', () => {
         inflation: { 2026: 1.0, 2027: 1.05 },
       }),
     ];
-    mockReadFileSync.mockReturnValue(buildResultsFile(results));
+    mockReadFile.mockResolvedValue(buildResultsFile(results));
     mockRunDeterministic.mockResolvedValue({
       combined: { 2026: 120000, 2027: 115000 },
     });
 
-    const result = await computeWorstCases('test-id', 50);
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 50);
 
     expect(result.deterministic.data).toEqual([120000, 115000]);
     expect(result.deterministic.realData[0]).toBeCloseTo(120000); // /1.0
@@ -243,12 +243,12 @@ describe('computeWorstCases', () => {
   });
 
   it('returns empty simulations array for empty results (0 simulations)', async () => {
-    mockReadFileSync.mockReturnValue(JSON.stringify({
+    mockReadFile.mockResolvedValue(JSON.stringify({
       metadata: { startDate: '2026-01-01', endDate: '2030-12-31', seed: 42 },
       results: [],
     }));
 
-    const result = await computeWorstCases('test-id', 5);
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 5);
 
     expect(result.labels).toEqual([]);
     expect(result.simulations).toEqual([]);
@@ -265,7 +265,7 @@ describe('computeWorstCases', () => {
         inflation: { 2026: 1.0, 2027: 1.05 },
       }),
     ];
-    mockReadFileSync.mockReturnValue(
+    mockReadFile.mockResolvedValue(
       buildResultsFile(results, [
         { id: 'acc-1', name: 'Checking' },
         { id: 'acc-2', name: 'Savings' },
@@ -279,7 +279,7 @@ describe('computeWorstCases', () => {
       },
     });
 
-    const result = await computeWorstCases('test-id', 50, 'acc-1');
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 50, 'acc-1');
 
     // Deterministic data should come from perAccount, not combined
     expect(result.deterministic.data).toEqual([70000, 65000]);
@@ -287,13 +287,22 @@ describe('computeWorstCases', () => {
     expect(result.deterministic.realData[1]).toBeCloseTo(65000 / 1.05);
   });
 
+  it('throws when results file does not exist', async () => {
+    mockReadFile.mockRejectedValue(new Error('ENOENT: no such file'));
+    await expect(computeWorstCases('00000000-0000-0000-0000-000000000000')).rejects.toThrow('ENOENT');
+  });
+
+  it('throws for invalid simulation ID format', async () => {
+    await expect(computeWorstCases('../etc/passwd')).rejects.toThrow('Invalid simulation ID format');
+  });
+
   it('returns correct labels as year strings', async () => {
     const results = [
       makeSim(1, { 2026: 100000, 2027: 90000, 2028: 80000 }),
     ];
-    mockReadFileSync.mockReturnValue(buildResultsFile(results));
+    mockReadFile.mockResolvedValue(buildResultsFile(results));
 
-    const result = await computeWorstCases('test-id', 50);
+    const result = await computeWorstCases('aabbccdd-1234-5678-9abc-def012345678', 50);
 
     expect(result.labels).toEqual(['2026', '2027', '2028']);
   });

@@ -19,6 +19,10 @@ export interface FailureHistogramResult {
  * We group non-null failure years by year and compute summary statistics.
  */
 export async function computeFailureHistogram(simulationId: string): Promise<FailureHistogramResult> {
+  if (!/^[0-9a-f-]+$/i.test(simulationId)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
   const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
   const fileData = JSON.parse(await readFile(resultsPath, 'utf8'));
   const results: Array<{ fundingFailureYear?: number | null }> = fileData.results ?? [];

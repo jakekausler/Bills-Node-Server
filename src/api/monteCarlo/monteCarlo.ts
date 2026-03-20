@@ -15,14 +15,14 @@ import { WorstCasesResult, computeWorstCases } from '../../utils/monteCarlo/wors
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 
-// In-memory cache for computed percentile graphs
+// In-memory caches — cleared on simulation delete (invalidateGraphCache) and POST /api/cache/clear (clearAllGraphCache).
+// No size limit or TTL — acceptable for typical usage (few simulations, bounded key space).
+
 // Key: `{simulationId}:{accountId || 'combined'}`
 const graphCache = new Map<string, PercentileGraphData>();
 
-// In-memory cache for computed failure histograms
 const histogramCache = new Map<string, FailureHistogramResult>();
 
-// In-memory cache for computed worst-case simulations
 // Key: `{simulationId}:{percentile}:{accountId || 'combined'}`
 const worstCasesCache = new Map<string, WorstCasesResult>();
 
@@ -246,7 +246,7 @@ export async function getWorstCases(req: Request): Promise<WorstCasesResult> {
     throw new Error(`Simulation with ID ${id} is not yet completed`);
   }
 
-  // Clamp percentile for cache key consistency
+  // Clamped here for cache key consistency; also clamped in computeWorstCases for safety
   const clampedPercentile = Math.max(1, Math.min(50, isNaN(percentile) ? 5 : percentile));
 
   // Check cache

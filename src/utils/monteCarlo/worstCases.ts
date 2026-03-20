@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { MC_RESULTS_DIR } from './paths';
 import { runDeterministicForWorstCases } from './statisticsGraph';
@@ -39,11 +39,15 @@ export async function computeWorstCases(
   percentile: number = 5,
   accountId?: string,
 ): Promise<WorstCasesResult> {
+  if (!/^[0-9a-f-]+$/i.test(simulationId)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
   // Clamp percentile to [1, 50], defaulting NaN to 5
   percentile = Math.max(1, Math.min(50, isNaN(percentile) ? 5 : percentile));
 
   const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
-  const fileData = JSON.parse(readFileSync(resultsPath, 'utf8'));
+  const fileData = JSON.parse(await readFile(resultsPath, 'utf8'));
   const results: SimulationResult[] = fileData.results ?? [];
   const metadata = fileData.metadata;
 
@@ -55,7 +59,8 @@ export async function computeWorstCases(
   const allYears = new Set<number>();
   for (const sim of results) {
     for (const yearStr of Object.keys(sim.yearlyMinBalances)) {
-      allYears.add(parseInt(yearStr));
+      const yr = parseInt(yearStr);
+      if (!isNaN(yr)) allYears.add(yr);
     }
   }
   // Note: years derived from yearlyMinBalances; yearlyAccountBalances should always have the same years
@@ -138,6 +143,7 @@ export async function computeWorstCases(
         detData.push(nominalValue);
 
         // For deterministic real values, use median inflation across sims
+        // TODO: extract shared helper with statisticsGraph.ts (getMedianCumulativeInflationForYear)
         const inflationValues: number[] = [];
         for (const sim of results) {
           if (sim.cumulativeInflation?.[year]) {
