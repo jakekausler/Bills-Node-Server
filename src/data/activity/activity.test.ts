@@ -270,4 +270,183 @@ describe('Activity', () => {
       expect(serialized.spendingCategory).toBeNull();
     });
   });
+
+  describe('PaycheckDetails serialization', () => {
+    it('should serialize and deserialize Activity with full PaycheckDetails', () => {
+      const paycheckActivityData: ActivityData = {
+        ...mockActivityData,
+        name: 'Paycheck Activity',
+        category: 'Income',
+        isPaycheckActivity: true,
+        paycheckDetails: {
+          grossPay: 5000,
+          traditional401k: 500,
+          roth401k: 300,
+          employerMatch: 250,
+          hsa: 200,
+          hsaEmployer: 100,
+          ssTax: 310,
+          medicareTax: 72.5,
+          preTaxDeductions: [
+            { label: 'Health Insurance', amount: 200 },
+            { label: 'Dental Insurance', amount: 50 },
+          ],
+          postTaxDeductions: [
+            { label: 'Union Dues', amount: 75 },
+            { label: 'Parking', amount: 25 },
+          ],
+          netPay: 3117.5,
+          parentPaycheckId: 'bill-paycheck-1',
+        },
+      };
+
+      const activity = new Activity(paycheckActivityData);
+      const serialized = activity.serialize();
+
+      // Verify all PaycheckDetails fields survived serialization
+      expect(serialized.isPaycheckActivity).toBe(true);
+      expect(serialized.paycheckDetails).toBeDefined();
+      expect(serialized.paycheckDetails?.grossPay).toBe(5000);
+      expect(serialized.paycheckDetails?.traditional401k).toBe(500);
+      expect(serialized.paycheckDetails?.roth401k).toBe(300);
+      expect(serialized.paycheckDetails?.employerMatch).toBe(250);
+      expect(serialized.paycheckDetails?.hsa).toBe(200);
+      expect(serialized.paycheckDetails?.hsaEmployer).toBe(100);
+      expect(serialized.paycheckDetails?.ssTax).toBe(310);
+      expect(serialized.paycheckDetails?.medicareTax).toBe(72.5);
+      expect(serialized.paycheckDetails?.netPay).toBe(3117.5);
+      expect(serialized.paycheckDetails?.parentPaycheckId).toBe('bill-paycheck-1');
+
+      // Verify deduction arrays
+      expect(serialized.paycheckDetails?.preTaxDeductions).toHaveLength(2);
+      expect(serialized.paycheckDetails?.preTaxDeductions).toEqual([
+        { label: 'Health Insurance', amount: 200 },
+        { label: 'Dental Insurance', amount: 50 },
+      ]);
+      expect(serialized.paycheckDetails?.postTaxDeductions).toHaveLength(2);
+      expect(serialized.paycheckDetails?.postTaxDeductions).toEqual([
+        { label: 'Union Dues', amount: 75 },
+        { label: 'Parking', amount: 25 },
+      ]);
+
+      // Round-trip test: deserialize and verify
+      const restoredActivity = new Activity(serialized);
+      expect(restoredActivity.isPaycheckActivity).toBe(true);
+      expect(restoredActivity.paycheckDetails).toEqual(activity.paycheckDetails);
+    });
+
+    it('should serialize and deserialize Activity without PaycheckDetails (backward compatibility)', () => {
+      const regularActivityData: ActivityData = {
+        ...mockActivityData,
+        name: 'Regular Activity',
+        category: 'Expense',
+        // No isPaycheckActivity or paycheckDetails fields
+      };
+
+      const activity = new Activity(regularActivityData);
+      const serialized = activity.serialize();
+
+      // Verify paycheck fields default to false/null
+      expect(serialized.isPaycheckActivity).toBe(false);
+      expect(serialized.paycheckDetails).toBeNull();
+
+      // Round-trip test
+      const restoredActivity = new Activity(serialized);
+      expect(restoredActivity.isPaycheckActivity).toBe(false);
+      expect(restoredActivity.paycheckDetails).toBeNull();
+    });
+
+    it('should serialize Activity with isPaycheckActivity=true but null PaycheckDetails', () => {
+      const activityData: ActivityData = {
+        ...mockActivityData,
+        name: 'Paycheck Placeholder',
+        category: 'Income',
+        isPaycheckActivity: true,
+        paycheckDetails: null,
+      };
+
+      const activity = new Activity(activityData);
+      const serialized = activity.serialize();
+
+      // This represents a paycheck activity before details are computed
+      expect(serialized.isPaycheckActivity).toBe(true);
+      expect(serialized.paycheckDetails).toBeNull();
+
+      // Round-trip test
+      const restoredActivity = new Activity(serialized);
+      expect(restoredActivity.isPaycheckActivity).toBe(true);
+      expect(restoredActivity.paycheckDetails).toBeNull();
+    });
+
+    it('should serialize Activity with minimal PaycheckDetails', () => {
+      const minimalPaycheckData: ActivityData = {
+        ...mockActivityData,
+        name: 'Simple Paycheck',
+        category: 'Income',
+        isPaycheckActivity: true,
+        paycheckDetails: {
+          grossPay: 3000,
+          traditional401k: 0,
+          roth401k: 0,
+          employerMatch: 0,
+          hsa: 0,
+          hsaEmployer: 0,
+          ssTax: 186,
+          medicareTax: 43.5,
+          preTaxDeductions: [],
+          postTaxDeductions: [],
+          netPay: 2770.5,
+          // no parentPaycheckId
+        },
+      };
+
+      const activity = new Activity(minimalPaycheckData);
+      const serialized = activity.serialize();
+
+      expect(serialized.isPaycheckActivity).toBe(true);
+      expect(serialized.paycheckDetails?.grossPay).toBe(3000);
+      expect(serialized.paycheckDetails?.traditional401k).toBe(0);
+      expect(serialized.paycheckDetails?.preTaxDeductions).toEqual([]);
+      expect(serialized.paycheckDetails?.postTaxDeductions).toEqual([]);
+      expect(serialized.paycheckDetails?.netPay).toBe(2770.5);
+      expect(serialized.paycheckDetails?.parentPaycheckId).toBeUndefined();
+
+      // Round-trip test
+      const restoredActivity = new Activity(serialized);
+      expect(restoredActivity.paycheckDetails?.grossPay).toBe(3000);
+      expect(restoredActivity.paycheckDetails?.preTaxDeductions).toEqual([]);
+      expect(restoredActivity.paycheckDetails?.postTaxDeductions).toEqual([]);
+    });
+
+    it('should handle PaycheckDetails with empty deduction arrays', () => {
+      const activityData: ActivityData = {
+        ...mockActivityData,
+        isPaycheckActivity: true,
+        paycheckDetails: {
+          grossPay: 4000,
+          traditional401k: 400,
+          roth401k: 0,
+          employerMatch: 200,
+          hsa: 0,
+          hsaEmployer: 0,
+          ssTax: 248,
+          medicareTax: 58,
+          preTaxDeductions: [],
+          postTaxDeductions: [],
+          netPay: 3094,
+        },
+      };
+
+      const activity = new Activity(activityData);
+      const serialized = activity.serialize();
+
+      expect(serialized.paycheckDetails?.preTaxDeductions).toEqual([]);
+      expect(serialized.paycheckDetails?.postTaxDeductions).toEqual([]);
+
+      // Round-trip test
+      const restoredActivity = new Activity(serialized);
+      expect(restoredActivity.paycheckDetails?.preTaxDeductions).toEqual([]);
+      expect(restoredActivity.paycheckDetails?.postTaxDeductions).toEqual([]);
+    });
+  });
 });

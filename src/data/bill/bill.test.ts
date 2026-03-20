@@ -31,6 +31,8 @@ vi.mock('../activity/activity', () => ({
     date: new Date(data.date),
     isTransfer: data.isTransfer,
     spendingCategory: data.spendingCategory ?? null,
+    isPaycheckActivity: data.isPaycheckActivity ?? false,
+    paycheckDetails: data.paycheckDetails ?? null,
   })),
 }));
 
@@ -394,6 +396,262 @@ describe('Bill', () => {
       bill.skip();
 
       expect(advanceSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('PaycheckProfile serialization', () => {
+    it('should serialize and deserialize a Bill with full PaycheckProfile', () => {
+      const paycheckBillData: BillData = {
+        ...mockBillData,
+        name: 'Paycheck - Full Profile',
+        category: 'Income',
+        paycheckProfile: {
+          grossPay: 5000,
+          traditional401k: {
+            type: 'percent',
+            value: 10,
+            destinationAccount: 'account-401k',
+            frequency: 'perPaycheck',
+          },
+          roth401k: {
+            type: 'fixed',
+            value: 500,
+            destinationAccount: 'account-roth401k',
+            frequency: 'perPaycheck',
+          },
+          employerMatch: {
+            mode: 'tiered',
+            tiers: [
+              { matchPercent: 100, upToPercent: 3 },
+              { matchPercent: 50, upToPercent: 5 },
+            ],
+            destinationAccount: 'account-401k',
+          },
+          hsa: {
+            type: 'percent',
+            value: 5,
+            destinationAccount: 'account-hsa',
+            frequency: 'perPaycheck',
+          },
+          hsaEmployerContribution: 1000,
+          deductions: [
+            {
+              label: 'Health Insurance',
+              amount: 200,
+              type: 'preTax',
+              frequency: 'perPaycheck',
+              inflationVariable: 'HEALTHCARE_INFLATION',
+              reducesSSWages: false,
+            },
+            {
+              label: 'Dental Insurance',
+              amount: 50,
+              type: 'preTax',
+              frequency: 'monthly',
+              reducesSSWages: true,
+            },
+            {
+              label: 'Union Dues',
+              amount: 75,
+              type: 'postTax',
+              frequency: 'monthly',
+            },
+          ],
+          bonus: {
+            percent: 15,
+            month: 12,
+            subjectTo401k: true,
+          },
+          w4: {
+            filingStatus: 'mfj',
+            extraWithholding: 100,
+            multipleJobs: false,
+          },
+        },
+        taxDeductible: true,
+        studentLoanInterest: false,
+      };
+
+      const bill = new Bill(paycheckBillData);
+      const serialized = bill.serialize();
+
+      // Verify all top-level paycheck fields survived serialization
+      expect(serialized.paycheckProfile).toBeDefined();
+      expect(serialized.paycheckProfile?.grossPay).toBe(5000);
+      expect(serialized.taxDeductible).toBe(true);
+      expect(serialized.studentLoanInterest).toBe(false);
+
+      // Verify 401k contributions
+      expect(serialized.paycheckProfile?.traditional401k).toEqual({
+        type: 'percent',
+        value: 10,
+        destinationAccount: 'account-401k',
+        frequency: 'perPaycheck',
+      });
+      expect(serialized.paycheckProfile?.roth401k).toEqual({
+        type: 'fixed',
+        value: 500,
+        destinationAccount: 'account-roth401k',
+        frequency: 'perPaycheck',
+      });
+
+      // Verify employer match
+      expect(serialized.paycheckProfile?.employerMatch).toEqual({
+        mode: 'tiered',
+        tiers: [
+          { matchPercent: 100, upToPercent: 3 },
+          { matchPercent: 50, upToPercent: 5 },
+        ],
+        destinationAccount: 'account-401k',
+      });
+
+      // Verify HSA
+      expect(serialized.paycheckProfile?.hsa).toEqual({
+        type: 'percent',
+        value: 5,
+        destinationAccount: 'account-hsa',
+        frequency: 'perPaycheck',
+      });
+      expect(serialized.paycheckProfile?.hsaEmployerContribution).toBe(1000);
+
+      // Verify deductions array
+      expect(serialized.paycheckProfile?.deductions).toHaveLength(3);
+      expect(serialized.paycheckProfile?.deductions?.[0]).toEqual({
+        label: 'Health Insurance',
+        amount: 200,
+        type: 'preTax',
+        frequency: 'perPaycheck',
+        inflationVariable: 'HEALTHCARE_INFLATION',
+        reducesSSWages: false,
+      });
+      expect(serialized.paycheckProfile?.deductions?.[1]).toEqual({
+        label: 'Dental Insurance',
+        amount: 50,
+        type: 'preTax',
+        frequency: 'monthly',
+        reducesSSWages: true,
+      });
+      expect(serialized.paycheckProfile?.deductions?.[2]).toEqual({
+        label: 'Union Dues',
+        amount: 75,
+        type: 'postTax',
+        frequency: 'monthly',
+      });
+
+      // Verify bonus
+      expect(serialized.paycheckProfile?.bonus).toEqual({
+        percent: 15,
+        month: 12,
+        subjectTo401k: true,
+      });
+
+      // Verify W4
+      expect(serialized.paycheckProfile?.w4).toEqual({
+        filingStatus: 'mfj',
+        extraWithholding: 100,
+        multipleJobs: false,
+      });
+
+      // Round-trip test: deserialize and verify
+      const restoredBill = new Bill(serialized);
+      expect(restoredBill.paycheckProfile).toEqual(bill.paycheckProfile);
+      expect(restoredBill.taxDeductible).toBe(true);
+      expect(restoredBill.studentLoanInterest).toBe(false);
+    });
+
+    it('should serialize and deserialize a Bill without PaycheckProfile (backward compatibility)', () => {
+      const regularBillData: BillData = {
+        ...mockBillData,
+        name: 'Regular Bill',
+        category: 'Utilities',
+        // No paycheckProfile, taxDeductible, or studentLoanInterest fields
+      };
+
+      const bill = new Bill(regularBillData);
+      const serialized = bill.serialize();
+
+      // Verify paycheck fields are null/false when not provided
+      expect(serialized.paycheckProfile).toBeNull();
+      expect(serialized.taxDeductible).toBe(false);
+      expect(serialized.studentLoanInterest).toBe(false);
+
+      // Round-trip test
+      const restoredBill = new Bill(serialized);
+      expect(restoredBill.paycheckProfile).toBeNull();
+      expect(restoredBill.taxDeductible).toBe(false);
+      expect(restoredBill.studentLoanInterest).toBe(false);
+    });
+
+    it('should serialize Bill with minimal PaycheckProfile', () => {
+      const minimalPaycheckData: BillData = {
+        ...mockBillData,
+        name: 'Simple Paycheck',
+        category: 'Income',
+        paycheckProfile: {
+          grossPay: 3000,
+          // Only required field, all others optional
+        },
+      };
+
+      const bill = new Bill(minimalPaycheckData);
+      const serialized = bill.serialize();
+
+      expect(serialized.paycheckProfile).toBeDefined();
+      expect(serialized.paycheckProfile?.grossPay).toBe(3000);
+      expect(serialized.paycheckProfile?.traditional401k).toBeUndefined();
+      expect(serialized.paycheckProfile?.roth401k).toBeUndefined();
+      expect(serialized.paycheckProfile?.employerMatch).toBeUndefined();
+      expect(serialized.paycheckProfile?.hsa).toBeUndefined();
+      expect(serialized.paycheckProfile?.hsaEmployerContribution).toBeUndefined();
+      expect(serialized.paycheckProfile?.deductions).toBeUndefined();
+      expect(serialized.paycheckProfile?.bonus).toBeUndefined();
+      expect(serialized.paycheckProfile?.w4).toBeUndefined();
+
+      // Round-trip test
+      const restoredBill = new Bill(serialized);
+      expect(restoredBill.paycheckProfile?.grossPay).toBe(3000);
+    });
+  });
+
+  describe('Bill.toActivity() with PaycheckProfile', () => {
+    it('should create Activity with isPaycheckActivity=true when Bill has PaycheckProfile', () => {
+      const paycheckBillData: BillData = {
+        ...mockBillData,
+        name: 'Kendall Paycheck',
+        category: 'Income',
+        paycheckProfile: {
+          grossPay: 4000,
+          traditional401k: {
+            type: 'percent',
+            value: 8,
+            destinationAccount: 'account-401k',
+          },
+        },
+      };
+
+      const bill = new Bill(paycheckBillData);
+      const activity = bill.toActivity('activity-1', 'Default', 4000, new Date('2023-01-15'));
+
+      // Verify isPaycheckActivity is set
+      expect(activity.isPaycheckActivity).toBe(true);
+      // paycheckDetails is null initially (will be populated during processing)
+      expect(activity.paycheckDetails).toBeNull();
+    });
+
+    it('should create Activity with isPaycheckActivity=false when Bill has no PaycheckProfile', () => {
+      const regularBillData: BillData = {
+        ...mockBillData,
+        name: 'Regular Bill',
+        category: 'Utilities',
+        // No paycheckProfile
+      };
+
+      const bill = new Bill(regularBillData);
+      const activity = bill.toActivity('activity-1', 'Default', 100, new Date('2023-01-15'));
+
+      // Verify isPaycheckActivity is false
+      expect(activity.isPaycheckActivity).toBe(false);
+      expect(activity.paycheckDetails).toBeNull();
     });
   });
 });

@@ -343,8 +343,8 @@ export class Bill {
         spendingCategory: this.spendingCategory,
 
         // Paycheck fields - will be populated with details at activity time
-        paycheckDetails: undefined,
-        isPaycheckActivity: this.paycheckProfile ? true : false,
+        paycheckDetails: null,
+        isPaycheckActivity: !!this.paycheckProfile,
       },
       simulation,
     );
