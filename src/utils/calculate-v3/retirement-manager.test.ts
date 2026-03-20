@@ -630,23 +630,36 @@ describe('RetirementManager', () => {
       expect(cap2026).toBeCloseTo(176100 * Math.pow(1.035, 1), 0);
     });
 
-    it('should use MC ratio to compound from previous year', () => {
+    it('should use MC rate getter for SS_WAGE_BASE_CHANGE to compound from previous year', () => {
       retirementManager = new RetirementManager([], []);
       // MC ratio: 1.089796 (from 2023 historical data)
       const mcRatio = 1.089796;
-      const cap2026 = retirementManager.getWageBaseCapForYear(2026, mcRatio);
+      const mockGetter = vi.fn().mockImplementation((type: string, year: number) => {
+        if (type === 'SS_WAGE_BASE_CHANGE') return mcRatio;
+        return null;
+      });
+      retirementManager.setMCRateGetter(mockGetter);
+      const cap2026 = retirementManager.getWageBaseCapForYear(2026);
 
-      // Should compound from previous year's cap
-      expect(cap2026).toBeGreaterThan(0);
+      // Should compound from 2025 (176100) using MC ratio
+      expect(cap2026).toBe(Math.round(176100 * mcRatio));
     });
 
-    it('should handle multiple MC ratios in sequence', () => {
+    it('should handle MC rate getter for multiple years in sequence', () => {
       retirementManager = new RetirementManager([], []);
       const ratio1 = 1.05; // 5% increase
       const ratio2 = 1.03; // 3% increase
+      const mockGetter = vi.fn().mockImplementation((type: string, year: number) => {
+        if (type === 'SS_WAGE_BASE_CHANGE') {
+          if (year === 2026) return ratio1;
+          if (year === 2027) return ratio2;
+        }
+        return null;
+      });
+      retirementManager.setMCRateGetter(mockGetter);
 
-      const cap2026 = retirementManager.getWageBaseCapForYear(2026, ratio1);
-      const cap2027 = retirementManager.getWageBaseCapForYear(2027, ratio2);
+      const cap2026 = retirementManager.getWageBaseCapForYear(2026);
+      const cap2027 = retirementManager.getWageBaseCapForYear(2027);
 
       expect(cap2026).toBeGreaterThan(0);
       expect(cap2027).toBeGreaterThan(cap2026); // Should keep increasing

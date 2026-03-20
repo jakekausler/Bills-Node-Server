@@ -397,6 +397,7 @@ export class Engine {
       this.acaManager.setMCRateGetter(mcRateGetter);
       this.ltcManager.setMCRateGetter(mcRateGetter);
       this.medicareManager.setMCRateGetter(mcRateGetter);
+      this.retirementManager.setMCRateGetter(mcRateGetter);
     }
 
     // Initialize push-pull handler

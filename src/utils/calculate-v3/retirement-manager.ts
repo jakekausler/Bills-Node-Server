@@ -1,7 +1,7 @@
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
 import { RMDTableType } from '../calculate/types';
-import { HistoricRates } from './types';
+import { HistoricRates, MCRateGetter, MonteCarloSampleType } from './types';
 import { loadAverageWageIndex } from '../io/averageWageIndex';
 import { loadBendPoints } from '../io/bendPoints';
 import { load } from '../io/io';
@@ -31,16 +31,12 @@ function getHistoricRates(): HistoricRates {
 
 /**
  * Calculate the Social Security taxable wage base cap for a given year.
- * Uses historical data when available, then inflates at 3.5% annually for future years.
+ * Uses historical data when available, then:
+ * - MC mode: compounds from latest known year using SS_WAGE_BASE_CHANGE draws
+ * - Deterministic: inflates at 3.5% annually from 2025
  */
-function getWageBaseCap(year: number, mcChangeRatio?: number): number {
+function getWageBaseCap(year: number, mcRateGetter?: MCRateGetter | null): number {
   const historicRates = getHistoricRates();
-
-  // If MC ratio is provided and year > 2025, use it to compound from previous year
-  if (mcChangeRatio !== undefined && year > 2025) {
-    const prevCap = getWageBaseCap(year - 1);
-    return Math.round(prevCap * mcChangeRatio);
-  }
 
   // Use historical data if available
   if (historicRates.ssWageBase) {
@@ -50,9 +46,35 @@ function getWageBaseCap(year: number, mcChangeRatio?: number): number {
     }
   }
 
-  // For future years, inflate from most recent known year
-  const yearsFromBase = Math.max(0, year - 2025);
-  return SS_WAGE_BASE_2025 * Math.pow(1 + NAWI_GROWTH_RATE, yearsFromBase);
+  // Find the latest known year in historical data
+  let latestKnownYear = 2025;
+  let latestKnownValue = SS_WAGE_BASE_2025;
+  if (historicRates.ssWageBase) {
+    const knownYears = Object.keys(historicRates.ssWageBase).map(Number).sort((a, b) => b - a);
+    if (knownYears.length > 0) {
+      latestKnownYear = knownYears[0];
+      latestKnownValue = historicRates.ssWageBase[String(latestKnownYear)];
+    }
+  }
+
+  if (year <= latestKnownYear) {
+    // Year is before our data — use 2025 as fallback
+    return SS_WAGE_BASE_2025;
+  }
+
+  // MC mode: compound year-by-year using SS_WAGE_BASE_CHANGE draws (ratios like 1.098)
+  if (mcRateGetter) {
+    let cap = latestKnownValue;
+    for (let y = latestKnownYear + 1; y <= year; y++) {
+      const ratio = mcRateGetter(MonteCarloSampleType.SS_WAGE_BASE_CHANGE, y);
+      cap *= (ratio !== null ? ratio : (1 + NAWI_GROWTH_RATE));
+    }
+    return Math.round(cap);
+  }
+
+  // Deterministic: inflate from latest known year at fixed rate
+  const yearsFromBase = year - latestKnownYear;
+  return latestKnownValue * Math.pow(1 + NAWI_GROWTH_RATE, yearsFromBase);
 }
 
 /**
@@ -93,6 +115,7 @@ export class RetirementManager {
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
+  private mcRateGetter: MCRateGetter | null = null;
 
   constructor(socialSecurities: SocialSecurity[], pensions: Pension[], debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.socialSecurities = socialSecurities;
@@ -112,6 +135,11 @@ export class RetirementManager {
   /** Set the current simulation date for debug log entries */
   setCurrentDate(date: string): void {
     this.currentDate = date;
+  }
+
+  /** Set the MC rate getter for sampling SS wage base and AWI growth in MC mode */
+  setMCRateGetter(getter: MCRateGetter | null): void {
+    this.mcRateGetter = getter;
   }
 
   private initializeSocialSecurity() {
@@ -175,7 +203,7 @@ export class RetirementManager {
     const priorBalance = this.socialSecurityAnnualIncomes.get(name)?.get(year) || 0;
     const totalIncome = income + priorBalance;
     // Apply the Social Security taxable wage base cap
-    const wageBaseCap = getWageBaseCap(year);
+    const wageBaseCap = getWageBaseCap(year, this.mcRateGetter);
     const cappedIncome = Math.min(totalIncome, wageBaseCap);
     if (totalIncome > wageBaseCap) {
       this.log('wage-base-capped', { year, total_income: totalIncome, wage_base_cap: wageBaseCap, capped_income: cappedIncome });
@@ -304,11 +332,13 @@ export class RetirementManager {
       cachedWageIndex = loadAverageWageIndex();
     }
     const averageWageIndex = cachedWageIndex;
-    // Extrapolate the average indices until the year the person turns 60 using the average rate of increase of all the years we have data for
+    // Extrapolate the average indices until the year the person turns 60
     const highestYear = Math.max(...Object.keys(averageWageIndex).map((x) => parseInt(x)));
     const years = Object.keys(averageWageIndex)
       .map((x) => parseInt(x))
       .sort((a, b) => a - b);
+
+    // Compute historical average increase as fallback for deterministic mode
     const increases: number[] = [];
     for (let i = 1; i < years.length; i++) {
       const year = years[i];
@@ -317,7 +347,17 @@ export class RetirementManager {
       increases.push(increase);
     }
     const averageIncrease = increases.reduce((sum, val) => sum + val, 0) / increases.length;
+
     for (let year = highestYear + 1; year <= yearTurn60; year++) {
+      // MC mode: use AWI_GROWTH draw (a ratio like 1.045 for 4.5% growth)
+      if (this.mcRateGetter) {
+        const ratio = this.mcRateGetter(MonteCarloSampleType.AWI_GROWTH, year);
+        if (ratio !== null) {
+          averageWageIndex[year] = averageWageIndex[year - 1] * ratio;
+          continue;
+        }
+      }
+      // Deterministic: use historical average increase
       averageWageIndex[year] = averageWageIndex[year - 1] * (1 + averageIncrease);
     }
     return averageWageIndex;
@@ -485,10 +525,10 @@ export class RetirementManager {
   }
 
   /**
-   * Get Social Security wage base cap for a given year
-   * Optionally with MC change ratio for future year projections
+   * Get Social Security wage base cap for a given year.
+   * In MC mode, uses SS_WAGE_BASE_CHANGE draws for future years.
    */
-  public getWageBaseCapForYear(year: number, mcChangeRatio?: number): number {
-    return getWageBaseCap(year, mcChangeRatio);
+  public getWageBaseCapForYear(year: number): number {
+    return getWageBaseCap(year, this.mcRateGetter);
   }
 }

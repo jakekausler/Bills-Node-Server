@@ -50,7 +50,9 @@ vi.mock('./tax-manager', () => ({
 }));
 
 vi.mock('./retirement-manager', () => ({
-  RetirementManager: vi.fn(),
+  RetirementManager: vi.fn(() => ({
+    setMCRateGetter: vi.fn(),
+  })),
 }));
 
 vi.mock('./healthcare-manager', () => ({
