@@ -473,6 +473,8 @@ export class Engine {
     await this.balanceTracker.initializeBalances(accountsAndTransfers, options.forceRecalculation);
 
     // Track year boundaries for flow aggregator balance recording
+    // Note: if segments skip entire years (no events), those years will have no FlowSummary entry.
+    // Downstream consumers should interpolate or handle missing years.
     let lastYear = segments.length > 0 ? segments[0].startDate.getUTCFullYear() : 0;
     if (this.flowAggregator && segments.length > 0) {
       this.flowAggregator.setStartingBalance(lastYear, this.getPortfolioBalance());

@@ -8,7 +8,6 @@ import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecur
 import { DateString } from '../date/types';
 import { FilingStatus } from './bracket-calculator';
 import type { DebugLogger } from './debug-logger';
-import type { FlowAggregator } from './flow-aggregator';
 
 export type IncomeType = 'ordinary' | 'retirement' | 'socialSecurity' | 'interest' | 'penalty';
 
@@ -36,7 +35,6 @@ export type CalculationOptions = {
   bracketInflationRate?: number;
   withdrawalStrategy?: 'manual' | 'taxOptimized'; // Account withdrawal strategy
   taxAccountName?: string; // Explicit account name for tax events (from taxConfig)
-  flowAggregator?: FlowAggregator | null; // Optional flow aggregator for MC mode
 };
 
 export type TaxableOccurrence = {

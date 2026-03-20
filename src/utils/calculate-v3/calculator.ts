@@ -564,8 +564,15 @@ export class Calculator {
 
     this.log('interest-calculated', { accountId, balance: currentBalance, apr, amount: interestAmount });
 
-    // Record interest flow
-    this.flowAggregator?.recordInterest(event.date.getUTCFullYear(), interestAmount);
+    // Record interest flow — split positive (earned) vs negative (loan accrual)
+    if (this.flowAggregator) {
+      const year = event.date.getUTCFullYear();
+      if (interestAmount > 0) {
+        this.flowAggregator.recordInterest(year, interestAmount);
+      } else if (interestAmount < 0) {
+        this.flowAggregator.recordExpense(year, 'Interest Charges', Math.abs(interestAmount));
+      }
+    }
 
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
@@ -800,10 +807,11 @@ export class Calculator {
     // Record transfer flow: classify by destination type
     if (this.flowAggregator && toAccount) {
       const year = event.date.getUTCFullYear();
-      if (toAccount.type === 'Loan' || toAccount.type === 'Credit') {
-        // Transfers to loans/credit are expenses (debt payments)
+      if (toAccount.type === 'Loan') {
+        // Loan payments are debt servicing with no separate bill event — record as expense
         this.flowAggregator.recordExpense(year, original.category || 'Debt Payment', Math.abs(internalAmount));
       }
+      // Credit card payments are NOT recorded — the underlying bills were already recorded as expenses
       // Transfers to savings/investment/checking are neutral (internal movement) — skip
     }
 
@@ -877,7 +885,9 @@ export class Calculator {
     this.log('pension-processed', { name: pension.name, accountId, amount });
 
     // Record pension income flow
-    this.flowAggregator?.recordIncome(event.date.getUTCFullYear(), pension.name, amount);
+    if (this.flowAggregator && amount > 0) {
+      this.flowAggregator.recordIncome(event.date.getUTCFullYear(), pension.name, amount);
+    }
 
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
@@ -946,7 +956,9 @@ export class Calculator {
     this.log('ss-processed', { name: socialSecurity.name, accountId, amount });
 
     // Record SS income flow
-    this.flowAggregator?.recordIncome(event.date.getUTCFullYear(), socialSecurity.name, amount);
+    if (this.flowAggregator && amount > 0) {
+      this.flowAggregator.recordIncome(event.date.getUTCFullYear(), socialSecurity.name, amount);
+    }
 
     // Update balance in segment result
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
@@ -973,6 +985,9 @@ export class Calculator {
     }
 
     this.log('tax-event-processed', { year: event.date.getUTCFullYear() - 1, totalTax: -amount, autoCalculatedTax: -amount });
+
+    // Tax is computed once per year (single TaxEvent per year per design).
+    // recordTax uses overwrite semantics — safe because of this invariant.
 
     // Record tax flow with federal/penalty breakdown
     if (this.flowAggregator) {
@@ -1535,7 +1550,9 @@ export class Calculator {
     this.log('medicare-premium-processed', { person: event.personName, totalCost: monthlyMedicareCost, accountId });
 
     // Record Medicare healthcare flow
-    this.flowAggregator?.recordHealthcare(year, 'medicare', monthlyMedicareCost);
+    if (this.flowAggregator && monthlyMedicareCost > 0) {
+      this.flowAggregator.recordHealthcare(year, 'medicare', monthlyMedicareCost);
+    }
 
     // Find the paying account
     const payingAccount = this.balanceTracker.findAccountById(accountId);
@@ -1820,7 +1837,9 @@ export class Calculator {
       const annualPremium = (config.annualPremium ?? 3500) * Math.pow(1 + premiumInflationRate, yearsSincePurchase);
 
       // Record LTC insurance premium flow
-      this.flowAggregator?.recordHealthcare(event.year, 'ltcInsurance', annualPremium);
+      if (this.flowAggregator && annualPremium > 0) {
+        this.flowAggregator.recordHealthcare(event.year, 'ltcInsurance', annualPremium);
+      }
 
       const premiumActivity = new ConsolidatedActivity({
         id: `LTC-PREMIUM-${personName}-${event.year}`,
