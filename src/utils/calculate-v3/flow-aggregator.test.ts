@@ -108,8 +108,55 @@ describe('FlowAggregator', () => {
 
     const flows = agg.getYearlyFlows();
     expect(flows['2030'].expenses.healthcare.outOfPocket).toBe(5000);
-    expect(flows['2030'].expenses.healthcare.hsaReimbursements).toBe(2000);
+    expect(flows['2030'].expenses.healthcare.hsaReimbursements).toBe(-2000);
     // totalExpenses = 5000 (OOP) - 2000 (HSA reimbursement) = 3000
     expect(flows['2030'].totalExpenses).toBe(3000);
+  });
+
+  it('returns empty object for new aggregator', () => {
+    expect(agg.getYearlyFlows()).toEqual({});
+  });
+
+  it('handles double recordTax correctly', () => {
+    agg.recordTax(2030, 5000, 200);
+    agg.recordTax(2030, 8000, 300);
+    const flows = agg.getYearlyFlows();
+    expect(flows['2030'].expenses.taxes.federal).toBe(8000);
+    expect(flows['2030'].expenses.taxes.penalty).toBe(300);
+    expect(flows['2030'].totalExpenses).toBe(8300); // not 13500
+  });
+
+  it('handles negative amounts (refunds)', () => {
+    agg.recordIncome(2030, 'Refund', -500);
+    const flows = agg.getYearlyFlows();
+    expect(flows['2030'].income['Refund']).toBe(-500);
+    expect(flows['2030'].totalIncome).toBe(-500);
+  });
+
+  it('getYearlyFlows returns copies, not references', () => {
+    agg.recordIncome(2030, 'Salary', 50000);
+    const flows1 = agg.getYearlyFlows();
+    flows1['2030'].totalIncome = 0;
+    flows1['2030'].income['Salary'] = 0;
+    const flows2 = agg.getYearlyFlows();
+    expect(flows2['2030'].totalIncome).toBe(50000);
+    expect(flows2['2030'].income['Salary']).toBe(50000);
+  });
+
+  it('rejects invalid amounts', () => {
+    expect(() => agg.recordIncome(2030, 'Bad', NaN)).toThrow('invalid amount');
+    expect(() => agg.recordIncome(2030, 'Bad', Infinity)).toThrow('invalid amount');
+    expect(() => agg.recordExpense(2030, 'Bad', NaN)).toThrow('invalid amount');
+    expect(() => agg.recordTax(2030, NaN, 0)).toThrow('invalid amount');
+    expect(() => agg.recordTax(2030, 0, Infinity)).toThrow('invalid amount');
+    expect(() => agg.recordHealthcare(2030, 'cobra', NaN)).toThrow('invalid amount');
+    expect(() => agg.recordTransfer(2030, 'autoPulls', NaN)).toThrow('invalid amount');
+    expect(() => agg.recordInterest(2030, NaN)).toThrow('invalid amount');
+  });
+
+  it('rejects invalid years', () => {
+    expect(() => agg.recordIncome(1899, 'X', 100)).toThrow('invalid year');
+    expect(() => agg.recordIncome(2201, 'X', 100)).toThrow('invalid year');
+    expect(() => agg.recordIncome(2030.5, 'X', 100)).toThrow('invalid year');
   });
 });
