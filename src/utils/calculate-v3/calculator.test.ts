@@ -1153,13 +1153,13 @@ describe('Calculator', () => {
       expect(result.get('account-1')).toBeCloseTo(12000 * (Math.pow(1 + 0.12, 1 / 12) - 1), 2);
     });
 
-    it('does NOT record loan negative interest as expense in flow aggregator', () => {
-      const account = makeAccount({ id: 'loan-1', name: 'Car Loan', type: 'Loan' });
-      const balanceTracker = makeBalanceTracker({
-        getAccountBalance: vi.fn(() => -10000),
-        findAccountById: vi.fn(() => account),
-      });
-      const flowAggregator = {
+  });
+
+  // ─── interest flow aggregator recording ──────────────────────────────────
+
+  describe('interest flow aggregator recording', () => {
+    function makeFlowAggregatorMock(): FlowAggregator {
+      return {
         recordIncome: vi.fn(),
         recordExpense: vi.fn(),
         recordInterest: vi.fn(),
@@ -1170,6 +1170,15 @@ describe('Calculator', () => {
         getYearlyFlows: vi.fn(),
         getAllYears: vi.fn(),
       } as unknown as FlowAggregator;
+    }
+
+    it('does NOT record loan negative interest as expense in flow aggregator', () => {
+      const account = makeAccount({ id: 'loan-1', name: 'Car Loan', type: 'Loan' });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn(() => -10000),
+        findAccountById: vi.fn(() => account),
+      });
+      const flowAggregator = makeFlowAggregatorMock();
       const calculator = makeCalculator({ balanceTracker, flowAggregator });
       const segmentResult = makeSegmentResult();
       const interest = makeInterest({ rate: 0.06 });
@@ -1199,17 +1208,7 @@ describe('Calculator', () => {
         getAccountBalance: vi.fn(() => -5000),
         findAccountById: vi.fn(() => account),
       });
-      const flowAggregator = {
-        recordIncome: vi.fn(),
-        recordExpense: vi.fn(),
-        recordInterest: vi.fn(),
-        recordHealthcare: vi.fn(),
-        recordTransfer: vi.fn(),
-        recordTaxes: vi.fn(),
-        validateAmount: vi.fn(),
-        getYearlyFlows: vi.fn(),
-        getAllYears: vi.fn(),
-      } as unknown as FlowAggregator;
+      const flowAggregator = makeFlowAggregatorMock();
       const calculator = makeCalculator({ balanceTracker, flowAggregator });
       const segmentResult = makeSegmentResult();
       const interest = makeInterest({ rate: 0.20 });
@@ -1238,17 +1237,7 @@ describe('Calculator', () => {
         getAccountBalance: vi.fn(() => 10000),
         findAccountById: vi.fn(() => account),
       });
-      const flowAggregator = {
-        recordIncome: vi.fn(),
-        recordExpense: vi.fn(),
-        recordInterest: vi.fn(),
-        recordHealthcare: vi.fn(),
-        recordTransfer: vi.fn(),
-        recordTaxes: vi.fn(),
-        validateAmount: vi.fn(),
-        getYearlyFlows: vi.fn(),
-        getAllYears: vi.fn(),
-      } as unknown as FlowAggregator;
+      const flowAggregator = makeFlowAggregatorMock();
       const calculator = makeCalculator({ balanceTracker, flowAggregator });
       const segmentResult = makeSegmentResult();
       const interest = makeInterest({ rate: 0.05 });
@@ -1270,6 +1259,35 @@ describe('Calculator', () => {
       expect(flowAggregator.recordInterest).toHaveBeenCalledWith(2024, expect.any(Number));
       expect((flowAggregator.recordInterest as any).mock.calls[0][1]).toBeGreaterThan(0);
       // Should NOT be recorded as expense
+      expect(flowAggregator.recordExpense).not.toHaveBeenCalled();
+    });
+
+    it('does not record interest or expense when balance is zero', () => {
+      const account = makeAccount({ id: 'sav-2', name: 'Empty Savings', type: 'Savings' });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn(() => 0),
+        findAccountById: vi.fn(() => account),
+      });
+      const flowAggregator = makeFlowAggregatorMock();
+      const calculator = makeCalculator({ balanceTracker, flowAggregator });
+      const segmentResult = makeSegmentResult();
+      const interest = makeInterest({ rate: 0.05 });
+
+      const event: InterestEvent = {
+        id: 'evt-int-zero',
+        type: EventType.interest,
+        date: new Date('2024-06-15'),
+        accountId: 'sav-2',
+        priority: 2,
+        originalInterest: interest,
+        rate: 0.05,
+        firstInterest: false,
+      };
+
+      calculator.processInterestEvent(event, segmentResult);
+
+      // Zero balance means zero interest — nothing should be recorded
+      expect(flowAggregator.recordInterest).not.toHaveBeenCalled();
       expect(flowAggregator.recordExpense).not.toHaveBeenCalled();
     });
   });
