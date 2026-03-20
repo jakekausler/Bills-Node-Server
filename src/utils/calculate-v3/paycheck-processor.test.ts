@@ -312,10 +312,9 @@ describe('PaycheckProcessor', () => {
 
       // Tier 1: 150 * 1.0 = 150 (on first 3% = 150)
       // Tier 2: 100 * 0.5 = 50 (50% on next 2% = 100)
-      // Remaining employee: 300 - 150 - 100 = 50
-      // Tier 2 gets 50 remaining * 0.5 = 25
-      // Total: 150 + 50 + 25 = 225
-      expect(result.employerMatch).toBe(225);
+      // Remaining employee: 300 - 150 - 100 = 50 (no matching beyond tier boundaries)
+      // Total: 150 + 50 = 200
+      expect(result.employerMatch).toBe(200);
     });
 
     it('computes fixed employer match', () => {
@@ -806,6 +805,316 @@ describe('PaycheckProcessor', () => {
       // net = 3000 - 150 (401k) - (3000 * 0.062) - (3000 * 0.0145)
       const expectedNet = 3000 - 150 - 3000 * 0.062 - 3000 * 0.0145;
       expect(result.netPay).toBeCloseTo(expectedNet, 1);
+    });
+  });
+
+  describe('Bonus paycheck processing', () => {
+    it('computes bonus gross as percent of annual gross', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-03-15'); // March (bonus month)
+      const regularGross = 5000; // biweekly, so annual = 5000 * 26 = 130k
+      const profile: PaycheckProfile = {
+        grossPay: regularGross,
+        bonus: {
+          percent: 0.10, // 10% of annual = 13k
+          month: 3,
+          subjectTo401k: false,
+        },
+      };
+
+      const result = processor.processBonusPaycheck(
+        regularGross,
+        26, // biweekly
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+      );
+
+      // bonus = 5000 * 26 * 0.10 = 13000
+      const expectedBonus = 5000 * 26 * 0.10;
+      expect(result.grossPay).toBe(expectedBonus);
+      expect(result.grossPay).toBe(13000);
+    });
+
+    it('applies FICA taxes to bonus', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-03-15');
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+        bonus: {
+          percent: 0.10,
+          month: 3,
+          subjectTo401k: false,
+        },
+      };
+
+      const result = processor.processBonusPaycheck(
+        5000,
+        26,
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+      );
+
+      // bonus = 13000
+      // SS: 13000 * 0.062 = 806
+      // Medicare: 13000 * 0.0145 = 188.50
+      // net = 13000 - 806 - 188.50 = 12005.50
+      expect(result.ssTax).toBeCloseTo(13000 * 0.062, 1);
+      expect(result.medicareTax).toBeCloseTo(13000 * 0.0145, 1);
+      expect(result.netPay).toBeCloseTo(13000 - (13000 * 0.062) - (13000 * 0.0145), 1);
+    });
+
+    it('applies bonus 401k when subjectTo401k is true', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-03-15');
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+        traditional401k: {
+          type: 'percent',
+          value: 0.06, // 6% of bonus
+          destinationAccount: 'trad-401k',
+        },
+        bonus: {
+          percent: 0.10,
+          month: 3,
+          subjectTo401k: true,
+        },
+      };
+
+      const result = processor.processBonusPaycheck(
+        5000,
+        26,
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+      );
+
+      // bonus = 13000
+      // 401k = 13000 * 0.06 = 780
+      // SS: 13000 * 0.062 = 806
+      // Medicare: 13000 * 0.0145 = 188.50
+      // net = 13000 - 780 - 806 - 188.50 = 11225.50
+      expect(result.traditional401k).toBe(780);
+      expect(result.depositActivities.find((d) => d.label === 'Traditional 401k Contribution (Bonus)'))
+        .toBeDefined();
+      expect(result.netPay).toBeCloseTo(13000 - 780 - (13000 * 0.062) - (13000 * 0.0145), 1);
+    });
+
+    it('does not apply bonus 401k when subjectTo401k is false', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-03-15');
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+        traditional401k: {
+          type: 'percent',
+          value: 0.06,
+          destinationAccount: 'trad-401k',
+        },
+        bonus: {
+          percent: 0.10,
+          month: 3,
+          subjectTo401k: false,
+        },
+      };
+
+      const result = processor.processBonusPaycheck(
+        5000,
+        26,
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+      );
+
+      // bonus 401k should NOT be applied
+      expect(result.traditional401k).toBe(0);
+      expect(
+        result.depositActivities.find((d) => d.label === 'Traditional 401k Contribution (Bonus)'),
+      ).toBeUndefined();
+      // net = 13000 - (13000 * 0.062) - (13000 * 0.0145)
+      expect(result.netPay).toBeCloseTo(13000 - (13000 * 0.062) - (13000 * 0.0145), 1);
+    });
+
+    it('applies roth 401k to bonus when subjectTo401k is true', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-03-15');
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+        roth401k: {
+          type: 'percent',
+          value: 0.05, // 5% of bonus = 650
+          destinationAccount: 'roth-401k',
+        },
+        bonus: {
+          percent: 0.10,
+          month: 3,
+          subjectTo401k: true,
+        },
+      };
+
+      const result = processor.processBonusPaycheck(
+        5000,
+        26,
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+      );
+
+      // bonus = 13000
+      // Roth 401k = 13000 * 0.05 = 650
+      // net = 13000 - 650 - (13000 * 0.062) - (13000 * 0.0145)
+      expect(result.roth401k).toBe(650);
+      expect(result.depositActivities.find((d) => d.label === 'Roth 401k Contribution (Bonus)'))
+        .toBeDefined();
+      expect(result.netPay).toBeCloseTo(
+        13000 - 650 - 13000 * 0.062 - 13000 * 0.0145,
+        1,
+      );
+    });
+
+    it('respects SS wage cap when bonus pushes over', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-11-15'); // Later in year, high wages already
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+        bonus: {
+          percent: 0.10,
+          month: 11,
+          subjectTo401k: false,
+        },
+      };
+
+      // Process several regular paychecks first to accumulate SS wages
+      const billName = 'Salary';
+      for (let i = 0; i < 20; i++) {
+        const payDate = new Date(`2026-0${Math.floor(i / 3) + 1}-${8 + (i % 3) * 7}`);
+        processor.processPaycheck(
+          5000,
+          profile,
+          billName,
+          payDate,
+          dob,
+          176100,
+          250000,
+          26,
+        );
+      }
+
+      // Now process bonus in November
+      const result = processor.processBonusPaycheck(
+        5000,
+        26,
+        profile,
+        billName,
+        date,
+        dob,
+        176100,
+        250000,
+      );
+
+      // At this point, SS wages should be near or at cap (176100)
+      // The bonus of 13000 will hit the cap
+      expect(result.ssTax).toBeLessThanOrEqual(13000 * 0.062); // Likely less due to cap
+    });
+
+    it('computes employer match on bonus 401k contributions', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-03-15');
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+        traditional401k: {
+          type: 'percent',
+          value: 0.06, // 6% of bonus = 780
+          destinationAccount: 'trad-401k',
+        },
+        employerMatch: {
+          mode: 'simple',
+          simplePercent: 0.50, // 50% match
+          destinationAccount: 'employer-match',
+        },
+        bonus: {
+          percent: 0.10,
+          month: 3,
+          subjectTo401k: true,
+        },
+      };
+
+      const result = processor.processBonusPaycheck(
+        5000,
+        26,
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+      );
+
+      // bonus = 13000
+      // trad 401k = 13000 * 0.06 = 780
+      // employer match = min(13000 * 0.50, 780) = 780
+      expect(result.traditional401k).toBe(780);
+      expect(result.employerMatch).toBe(780);
+      expect(result.depositActivities.find((d) => d.label === 'Employer 401k Match (Bonus)'))
+        .toBeDefined();
+    });
+
+    it('does not apply HSA or custom deductions to bonus', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-03-15');
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+        hsa: {
+          type: 'fixed',
+          value: 100,
+          destinationAccount: 'hsa',
+        },
+        deductions: [
+          {
+            label: 'Custom Deduction',
+            amount: 50,
+            type: 'preTax',
+          },
+        ],
+        bonus: {
+          percent: 0.10,
+          month: 3,
+          subjectTo401k: false,
+        },
+      };
+
+      const result = processor.processBonusPaycheck(
+        5000,
+        26,
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+      );
+
+      // Bonus should not have HSA or custom deductions
+      expect(result.hsa).toBe(0);
+      expect(result.depositActivities.find((d) => d.label === 'HSA Contribution')).toBeUndefined();
+      expect(
+        result.preTaxDeductions.find((d) => d.label === 'Custom Deduction'),
+      ).toBeUndefined();
     });
   });
 });

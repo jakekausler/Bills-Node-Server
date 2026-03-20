@@ -5,6 +5,7 @@ import type { DebugLogger } from './debug-logger';
  * - Social Security wage cap tracking per person per year
  * - Medicare wage threshold tracking per person per year
  * - Paycheck count per bill per month (for deduction frequency logic)
+ * - Bonus fired tracking per bill per year (to fire only once)
  * - Checkpoint/restore for push/pull reprocessing
  */
 export class PaycheckStateTracker {
@@ -14,6 +15,8 @@ export class PaycheckStateTracker {
   private ytdMedicareWages: Map<string, Map<number, number>> = new Map();
   // Paycheck count per bill name per month (YYYY-MM key)
   private paycheckCountInMonth: Map<string, Map<string, number>> = new Map();
+  // Bonus fired tracking: billName -> Set<year>
+  private bonusFiredThisYear: Map<string, Set<number>> = new Map();
 
   private checkpointData: string | null = null;
   private debugLogger: DebugLogger | null;
@@ -177,6 +180,24 @@ export class PaycheckStateTracker {
   }
 
   /**
+   * Check if bonus has already been fired for a bill in a given year.
+   */
+  hasBonusFired(billName: string, year: number): boolean {
+    return this.bonusFiredThisYear.get(billName)?.has(year) ?? false;
+  }
+
+  /**
+   * Mark bonus as fired for a bill in a given year.
+   */
+  markBonusFired(billName: string, year: number): void {
+    if (!this.bonusFiredThisYear.has(billName)) {
+      this.bonusFiredThisYear.set(billName, new Set());
+    }
+    this.bonusFiredThisYear.get(billName)!.add(year);
+    this.log('bonus-marked-fired', { billName, year });
+  }
+
+  /**
    * Checkpoint current state for push/pull reprocessing.
    * Follows ContributionLimitManager pattern.
    */
@@ -205,10 +226,16 @@ export class PaycheckStateTracker {
       });
     });
 
+    const bonusFiredObj: Record<string, number[]> = {};
+    this.bonusFiredThisYear.forEach((yearSet, billName) => {
+      bonusFiredObj[billName] = Array.from(yearSet);
+    });
+
     this.checkpointData = JSON.stringify({
       ssWages: ssWagesObj,
       medicareWages: medicareWagesObj,
       paycheckCount: paycheckCountObj,
+      bonusFired: bonusFiredObj,
     });
     this.log('checkpoint-saved');
   }
@@ -248,6 +275,14 @@ export class PaycheckStateTracker {
       this.paycheckCountInMonth.set(billName, monthMap);
     }
 
+    this.bonusFiredThisYear = new Map();
+    if (data.bonusFired) {
+      for (const billName of Object.keys(data.bonusFired)) {
+        const yearSet = new Set<number>(data.bonusFired[billName]);
+        this.bonusFiredThisYear.set(billName, yearSet);
+      }
+    }
+
     this.log('checkpoint-restored');
   }
 
@@ -268,6 +303,9 @@ export class PaycheckStateTracker {
           monthMap.delete(key);
         }
       }
+    }
+    for (const [, yearSet] of this.bonusFiredThisYear) {
+      yearSet.delete(year);
     }
     this.log('year-reset', { year });
   }

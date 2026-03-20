@@ -662,4 +662,100 @@ describe('SegmentProcessor', () => {
       expect(spendingTrackerManager.recordSegmentActivities).toHaveBeenCalled();
     });
   });
+
+  // -------------------------------------------------------------------------
+  // AIME Integration (Paycheck Editor Stage 5)
+  // -------------------------------------------------------------------------
+  describe('AIME integration with paycheck activities', () => {
+    it('skips tryAddToAnnualIncomes for activities with isPaycheckActivity flag', async () => {
+      const paycheckActivity = {
+        name: 'Paycheck',
+        date: new Date(Date.UTC(2025, 0, 15)),
+        amount: 3000,
+        isPaycheckActivity: true, // This flag marks it as a paycheck activity
+      };
+      const event = makeEvent({ type: EventType.activity, id: 'act-1', date: new Date(Date.UTC(2025, 0, 15)) });
+      const calculator = makeMockCalculator({
+        processActivityEvent: vi.fn().mockImplementation((_event, segmentResult) => {
+          segmentResult.activitiesAdded.set('acct-1', [paycheckActivity]);
+          return new Map([['acct-1', 3000]]);
+        }),
+      });
+
+      const { processor, retirementManager } = makeProcessor({}, {}, calculator);
+      const segment = makeSegment([event]);
+      const options = makeOptions();
+
+      await processor.processSegment(segment, options);
+
+      // Should NOT have been called because of isPaycheckActivity flag
+      expect(retirementManager.tryAddToAnnualIncomes).not.toHaveBeenCalled();
+    });
+
+    it('calls tryAddToAnnualIncomes for non-paycheck activities', async () => {
+      const regularActivity = {
+        name: 'Salary',
+        date: new Date(Date.UTC(2025, 0, 15)),
+        amount: 5000,
+        // No isPaycheckActivity flag
+      };
+      const event = makeEvent({ type: EventType.activity, id: 'act-1', date: new Date(Date.UTC(2025, 0, 15)) });
+      const calculator = makeMockCalculator({
+        processActivityEvent: vi.fn().mockImplementation((_event, segmentResult) => {
+          segmentResult.activitiesAdded.set('acct-1', [regularActivity]);
+          return new Map([['acct-1', 5000]]);
+        }),
+      });
+
+      const { processor, retirementManager } = makeProcessor({}, {}, calculator);
+      const segment = makeSegment([event]);
+      const options = makeOptions();
+
+      await processor.processSegment(segment, options);
+
+      // Should have been called with the activity's amount
+      expect(retirementManager.tryAddToAnnualIncomes).toHaveBeenCalledWith('Salary', expect.any(Date), 5000);
+    });
+
+    it('handles mix of paycheck and non-paycheck activities correctly', async () => {
+      const paycheckActivity = {
+        name: 'Paycheck',
+        date: new Date(Date.UTC(2025, 0, 15)),
+        amount: 3000,
+        isPaycheckActivity: true,
+      };
+      const bonusActivity = {
+        name: 'Bonus',
+        date: new Date(Date.UTC(2025, 0, 20)),
+        amount: 2000,
+        // No isPaycheckActivity flag
+      };
+      const event1 = makeEvent({ type: EventType.activity, id: 'act-1', date: new Date(Date.UTC(2025, 0, 15)) });
+      const event2 = makeEvent({ type: EventType.activity, id: 'act-2', date: new Date(Date.UTC(2025, 0, 20)) });
+      const calculator = makeMockCalculator({
+        processActivityEvent: vi
+          .fn()
+          .mockImplementationOnce((_event, segmentResult) => {
+            segmentResult.activitiesAdded.set('acct-1', [paycheckActivity]);
+            return new Map([['acct-1', 3000]]);
+          })
+          .mockImplementationOnce((_event, segmentResult) => {
+            // Get existing activities and add to them
+            const existing = segmentResult.activitiesAdded.get('acct-1') || [];
+            segmentResult.activitiesAdded.set('acct-1', [...existing, bonusActivity]);
+            return new Map([['acct-1', 2000]]);
+          }),
+      });
+
+      const { processor, retirementManager } = makeProcessor({}, {}, calculator);
+      const segment = makeSegment([event1, event2]);
+      const options = makeOptions();
+
+      await processor.processSegment(segment, options);
+
+      // Should only be called once for the bonus, not the paycheck
+      expect(retirementManager.tryAddToAnnualIncomes).toHaveBeenCalledTimes(1);
+      expect(retirementManager.tryAddToAnnualIncomes).toHaveBeenCalledWith('Bonus', expect.any(Date), 2000);
+    });
+  });
 });

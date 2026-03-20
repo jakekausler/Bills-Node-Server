@@ -333,6 +333,163 @@ export class PaycheckProcessor {
   }
 
   /**
+   * Process a bonus paycheck and return the breakdown of deductions, taxes, and deposits.
+   * Bonus is a one-time payment subject to simplified processing:
+   * - 401k only (if subjectTo401k is true)
+   * - No HSA, no custom deductions
+   * - FICA applies (counts toward YTD SS and Medicare)
+   * - No withholding in Cycle A
+   *
+   * @param grossPay - Gross pay per regular paycheck (used as base for bonus %)
+   * @param paychecksPerYear - Expected number of paychecks per year (26 for biweekly, etc.)
+   * @param profile - Paycheck profile with bonus config
+   * @param billName - Bill name (for state tracking)
+   * @param date - Bonus date
+   * @param accountOwnerDOB - DOB of account owner (for contribution limits and FICA tracking)
+   * @param ssWageBaseCap - Annual Social Security wage cap for this year
+   * @param additionalMedicareThreshold - Additional Medicare tax threshold
+   */
+  processBonusPaycheck(
+    grossPay: number,
+    paychecksPerYear: number,
+    profile: PaycheckProfile,
+    billName: string,
+    date: Date,
+    accountOwnerDOB: Date | null,
+    ssWageBaseCap: number,
+    additionalMedicareThreshold: number,
+  ): PaycheckResult {
+    const year = date.getUTCFullYear();
+    const bonusGross = grossPay * paychecksPerYear * (profile.bonus?.percent ?? 0);
+
+    const preTaxDeductions: { label: string; amount: number }[] = [];
+    const postTaxDeductions: { label: string; amount: number }[] = [];
+    const depositActivities: { accountId: string; amount: number; label: string }[] = [];
+
+    let totalPreTax = 0;
+    let totalPostTax = 0;
+    let traditional401k = 0;
+    let roth401k = 0;
+    let employerMatch = 0;
+
+    // Bonus 401k: only if subjectTo401k is true
+    if (profile.bonus?.subjectTo401k) {
+      if (profile.traditional401k) {
+        let amount = profile.traditional401k.type === 'percent' ? bonusGross * profile.traditional401k.value : profile.traditional401k.value;
+        const remaining = this.contributionLimitManager.getRemainingLimit(accountOwnerDOB, year, '401k');
+        amount = Math.min(amount, remaining);
+        if (amount > 0) {
+          this.contributionLimitManager.recordContribution(accountOwnerDOB, year, '401k', amount);
+          traditional401k = amount;
+          totalPreTax += amount;
+          preTaxDeductions.push({ label: 'Traditional 401k (Bonus)', amount });
+          depositActivities.push({
+            accountId: profile.traditional401k.destinationAccount,
+            amount,
+            label: 'Traditional 401k Contribution (Bonus)',
+          });
+          this.log('bonus-traditional401k-deducted', { amount, bonusGross });
+        }
+      }
+
+      if (profile.roth401k) {
+        let amount = profile.roth401k.type === 'percent' ? bonusGross * profile.roth401k.value : profile.roth401k.value;
+        const remaining = this.contributionLimitManager.getRemainingLimit(accountOwnerDOB, year, '401k');
+        amount = Math.min(amount, remaining);
+        if (amount > 0) {
+          this.contributionLimitManager.recordContribution(accountOwnerDOB, year, '401k', amount);
+          roth401k = amount;
+          totalPostTax += amount;
+          postTaxDeductions.push({ label: 'Roth 401k (Bonus)', amount });
+          depositActivities.push({
+            accountId: profile.roth401k.destinationAccount,
+            amount,
+            label: 'Roth 401k Contribution (Bonus)',
+          });
+          this.log('bonus-roth401k-deducted', { amount, bonusGross });
+        }
+      }
+
+      // Employer match on bonus 401k contributions
+      if (profile.employerMatch) {
+        const totalEmployee = traditional401k + roth401k;
+        employerMatch = this.computeEmployerMatch(bonusGross, totalEmployee, profile.employerMatch, 1); // 1 = single bonus payment
+        if (employerMatch > 0) {
+          depositActivities.push({
+            accountId: profile.employerMatch.destinationAccount,
+            amount: employerMatch,
+            label: 'Employer 401k Match (Bonus)',
+          });
+          this.log('bonus-employer-match-computed', { amount: employerMatch, bonusGross });
+        }
+      }
+    }
+
+    // FICA on bonus (SS wages = bonusGross, 401k does NOT reduce SS wages)
+    const personKey = accountOwnerDOB ? accountOwnerDOB.getTime().toString() : 'unknown';
+    const taxableSS = this.paycheckStateTracker.addSSWages(personKey, year, bonusGross, ssWageBaseCap);
+    const ssTax = taxableSS * 0.062;
+
+    const medicareResult = this.paycheckStateTracker.addMedicareWages(
+      personKey,
+      year,
+      bonusGross,
+      additionalMedicareThreshold,
+    );
+    const baseMedicare = bonusGross * 0.0145;
+    const additionalMedicare = medicareResult.wagesAboveThreshold * 0.009;
+    const medicareTax = baseMedicare + additionalMedicare;
+
+    this.log('bonus-fica-computed', {
+      bonusGross,
+      taxableSS,
+      ssTax,
+      medicareTax,
+    });
+
+    // Net pay = bonus gross - pre-tax deductions - FICA - post-tax deductions
+    const netPay = bonusGross - totalPreTax - ssTax - medicareTax - totalPostTax;
+
+    if (netPay < 0) {
+      this.log('bonus-negative-net-pay', {
+        bonusGross,
+        totalPreTax,
+        ssTax,
+        medicareTax,
+        netPay,
+      });
+    }
+
+    this.log('bonus-paycheck-processed', {
+      bonusGross,
+      netPay,
+      traditional401k,
+      roth401k,
+      employerMatch,
+      ssTax,
+      medicareTax,
+      totalPreTax,
+    });
+
+    return {
+      netPay,
+      grossPay: bonusGross,
+      traditional401k,
+      roth401k,
+      employerMatch,
+      hsa: 0,
+      hsaEmployer: 0,
+      ssTax,
+      medicareTax,
+      federalWithholding: 0,
+      stateWithholding: 0,
+      preTaxDeductions,
+      postTaxDeductions,
+      depositActivities,
+    };
+  }
+
+  /**
    * Compute employer match based on employee contribution and match configuration.
    */
   computeEmployerMatch(
@@ -352,19 +509,13 @@ export class PaycheckProcessor {
         let totalMatch = 0;
         let remainingEmployee = employeeContribution;
         let prevTierCap = 0;
-        let lastTierMatchPercent = 0;
         for (const tier of config.tiers ?? []) {
           const tierBand = (tier.upToPercent - prevTierCap) * grossPay;
           const matchable = Math.min(tierBand, remainingEmployee);
           totalMatch += matchable * tier.matchPercent;
           remainingEmployee -= matchable;
           prevTierCap = tier.upToPercent;
-          lastTierMatchPercent = tier.matchPercent;
           if (remainingEmployee <= 0) break;
-        }
-        // Any remaining employee contribution gets matched at the last tier rate
-        if (remainingEmployee > 0 && lastTierMatchPercent > 0) {
-          totalMatch += remainingEmployee * lastTierMatchPercent;
         }
         return totalMatch;
       }

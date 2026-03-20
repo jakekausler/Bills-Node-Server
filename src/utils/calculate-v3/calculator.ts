@@ -581,7 +581,7 @@ export class Calculator {
     const mcGetter = this.getMCRateGetter();
     const mcRateGetterFunc: ((type: string) => number | undefined) | undefined = mcGetter
       ? (type: string) => {
-          const result = mcGetter(type as any, event.date.getUTCFullYear());
+          const result = mcGetter(type as MonteCarloSampleType, event.date.getUTCFullYear());
           return result ?? undefined;
         }
       : undefined;
@@ -605,6 +605,8 @@ export class Calculator {
         .serialize(),
       { billId: bill.id, firstBill: event.firstBill },
     );
+    // Mark as paycheck activity to prevent AIME double-counting in segment-processor
+    (mainActivity as any).isPaycheckActivity = true;
 
     if (!segmentResult.activitiesAdded.has(event.accountId)) {
       segmentResult.activitiesAdded.set(event.accountId, []);
@@ -697,6 +699,117 @@ export class Calculator {
       medicareTax: paycheckResult.medicareTax,
     });
 
+    // Bonus: fires once per year on the first paycheck of the bonus month
+    if (profile.bonus &&
+        event.date.getUTCMonth() + 1 === profile.bonus.month &&
+        !this.paycheckStateTracker.hasBonusFired(bill.name, year)) {
+      this.paycheckStateTracker.markBonusFired(bill.name, year);
+
+      const bonusResult = this.paycheckProcessor.processBonusPaycheck(
+        grossPay,
+        paychecksPerYear,
+        profile,
+        bill.name,
+        event.date,
+        account.accountOwnerDOB ?? null,
+        ssWageBaseCap,
+        additionalMedicareThreshold,
+      );
+
+      // Create bonus net pay activity on main account
+      const bonusActivity = new ConsolidatedActivity(
+        bill
+          .toActivity(`${bill.id}-bonus-${year}`, simulation, bonusResult.netPay, event.date)
+          .serialize(),
+        { billId: bill.id, firstBill: false },
+      );
+      // Mark as paycheck activity to prevent AIME double-counting in segment-processor
+      (bonusActivity as any).isPaycheckActivity = true;
+
+      if (!segmentResult.activitiesAdded.has(event.accountId)) {
+        segmentResult.activitiesAdded.set(event.accountId, []);
+      }
+      segmentResult.activitiesAdded.get(event.accountId)?.push(bonusActivity);
+
+      // Update main account balance for bonus net pay
+      const currentMainChange = segmentResult.balanceChanges.get(event.accountId) || 0;
+      segmentResult.balanceChanges.set(event.accountId, currentMainChange + bonusResult.netPay);
+
+      // Create bonus deposit activities (401k, employer match, etc.)
+      for (const deposit of bonusResult.depositActivities) {
+        const depositActivity = new ConsolidatedActivity({
+          id: `${bill.id}-bonus-${year}-${deposit.label}`,
+          date: formatDate(event.date),
+          dateIsVariable: false,
+          dateVariable: null,
+          name: `${deposit.label} from ${bill.name} (Bonus)`,
+          category: 'Paycheck',
+          amount: deposit.amount,
+          amountIsVariable: false,
+          amountVariable: null,
+          flag: false,
+          flagColor: null,
+          isTransfer: false,
+          from: null,
+          to: null,
+        });
+
+        if (!segmentResult.activitiesAdded.has(deposit.accountId)) {
+          segmentResult.activitiesAdded.set(deposit.accountId, []);
+        }
+        segmentResult.activitiesAdded.get(deposit.accountId)?.push(depositActivity);
+
+        // Update deposit account balance
+        const currentDepositChange = segmentResult.balanceChanges.get(deposit.accountId) || 0;
+        segmentResult.balanceChanges.set(deposit.accountId, currentDepositChange + deposit.amount);
+      }
+
+      // AIME: feed gross bonus wages
+      this.retirementManager.tryAddToAnnualIncomes(bill.name, event.date, bonusResult.grossPay);
+
+      // Record flow for income and taxes
+      if (this.flowAggregator) {
+        this.flowAggregator.recordIncome(year, bill.category || 'Income', bonusResult.grossPay);
+        const bonusTotalTaxes =
+          bonusResult.ssTax +
+          bonusResult.medicareTax +
+          bonusResult.federalWithholding +
+          bonusResult.stateWithholding;
+        if (bonusTotalTaxes > 0) {
+          this.flowAggregator.recordExpense(year, 'Taxes', bonusTotalTaxes);
+        }
+      }
+
+      // Record bonus taxable wages as ordinary income
+      let bonusTaxableWages = bonusResult.grossPay - bonusResult.traditional401k - bonusResult.hsa;
+      for (const ded of bonusResult.preTaxDeductions) {
+        if (ded.label !== 'Traditional 401k (Bonus)' && ded.label !== 'HSA Employee') {
+          bonusTaxableWages -= ded.amount;
+        }
+      }
+
+      if (!segmentResult.taxableOccurrences.has(accountName)) {
+        segmentResult.taxableOccurrences.set(accountName, []);
+      }
+      segmentResult.taxableOccurrences.get(accountName)?.push({
+        date: event.date,
+        year: event.date.getUTCFullYear(),
+        amount: bonusTaxableWages,
+        incomeType: 'ordinary' as IncomeType,
+      });
+
+      this.log('bonus-paycheck-processed', {
+        name: bill.name,
+        bonusGross: bonusResult.grossPay,
+        bonusNetPay: bonusResult.netPay,
+        traditional401k: bonusResult.traditional401k,
+        roth401k: bonusResult.roth401k,
+        employerMatch: bonusResult.employerMatch,
+        ssTax: bonusResult.ssTax,
+        medicareTax: bonusResult.medicareTax,
+      });
+    }
+
     // Return balance changes for all affected accounts
     const allChanges = new Map<string, number>();
     allChanges.set(event.accountId, paycheckResult.netPay);
@@ -704,6 +817,19 @@ export class Calculator {
       const existing = allChanges.get(deposit.accountId) || 0;
       allChanges.set(deposit.accountId, existing + deposit.amount);
     }
+
+    // Merge bonus balance changes
+    if (profile.bonus &&
+        event.date.getUTCMonth() + 1 === profile.bonus.month &&
+        this.paycheckStateTracker.hasBonusFired(bill.name, year)) {
+      const existingMainBonus = allChanges.get(event.accountId) || 0;
+      allChanges.set(event.accountId, existingMainBonus + bonusResult.netPay);
+      for (const deposit of bonusResult.depositActivities) {
+        const existing = allChanges.get(deposit.accountId) || 0;
+        allChanges.set(deposit.accountId, existing + deposit.amount);
+      }
+    }
+
     return allChanges;
   }
 
