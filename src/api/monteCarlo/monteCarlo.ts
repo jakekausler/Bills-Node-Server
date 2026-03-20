@@ -12,6 +12,7 @@ import { SimulationProgress } from '../../utils/monteCarlo/types';
 import { PercentileGraphData, computePercentileGraph, clearDetCache } from '../../utils/monteCarlo/statisticsGraph';
 import { FailureHistogramResult, computeFailureHistogram } from '../../utils/monteCarlo/failureHistogram';
 import { WorstCasesResult, computeWorstCases } from '../../utils/monteCarlo/worstCases';
+import { IncomeExpenseResult, computeIncomeExpense } from '../../utils/monteCarlo/incomeExpense';
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 
@@ -25,6 +26,9 @@ const histogramCache = new Map<string, FailureHistogramResult>();
 
 // Key: `{simulationId}:{percentile}:{accountId || 'combined'}`
 const worstCasesCache = new Map<string, WorstCasesResult>();
+
+// Key: `{simulationId}:{percentile}`
+const incomeExpenseCache = new Map<string, IncomeExpenseResult>();
 
 /**
  * Invalidate all cached graph data for a given simulation
@@ -41,6 +45,11 @@ export function invalidateGraphCache(simulationId: string): void {
       worstCasesCache.delete(key);
     }
   }
+  for (const key of incomeExpenseCache.keys()) {
+    if (key.startsWith(`${simulationId}:`)) {
+      incomeExpenseCache.delete(key);
+    }
+  }
 }
 
 /**
@@ -50,6 +59,7 @@ export function clearAllGraphCache(): void {
   graphCache.clear();
   histogramCache.clear();
   worstCasesCache.clear();
+  incomeExpenseCache.clear();
   clearDetCache();
 }
 
@@ -354,5 +364,47 @@ export async function getSimulationResultByNumber(req: Request): Promise<unknown
       throw error;
     }
     throw new Error(`Failed to load results for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Get income/expense breakdown for a completed Monte Carlo simulation.
+ * Computes breakdown at requested percentile, fan charts, and summary.
+ */
+export async function getIncomeExpense(req: Request): Promise<IncomeExpenseResult> {
+  const { id } = req.params;
+  const percentile = req.query.percentile ? parseInt(req.query.percentile as string, 10) : 50;
+
+  if (!id) {
+    throw new Error('Simulation ID is required');
+  }
+
+  if (!UUID_REGEX.test(id)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
+  if (!(await isSimulationComplete(id))) {
+    throw new Error(`Simulation with ID ${id} is not yet completed`);
+  }
+
+  const clampedPercentile = Math.max(0, Math.min(100, isNaN(percentile) ? 50 : percentile));
+
+  // Check cache
+  const cacheKey = `${id}:${clampedPercentile}`;
+  const cached = incomeExpenseCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Compute on-demand
+  try {
+    const result = await computeIncomeExpense(id, clampedPercentile);
+    incomeExpenseCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Flow data not available') {
+      throw new Error('Flow data not available for this simulation. Please re-run.');
+    }
+    throw new Error(`Failed to compute income/expense data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

@@ -46,6 +46,7 @@ import {
   clearAllGraphCache,
   getFailureHistogram,
   getWorstCases,
+  getIncomeExpense,
 } from './api/monteCarlo/monteCarlo';
 import { getHealthcareProgress } from './api/healthcare/progress';
 import { getHealthcareExpenses } from './api/healthcare/expenses';
@@ -416,6 +417,20 @@ app.get('/api/monte_carlo/simulations/:id/worst-cases', verifyToken, asyncHandle
       error instanceof Error && (error.message.includes('not found') || error.message.includes('not yet completed'))
         ? 404
         : 400;
+    res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}));
+
+app.get('/api/monte_carlo/simulations/:id/income-expense', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    res.json(await getIncomeExpense(req));
+  } catch (error) {
+    const statusCode =
+      error instanceof Error && (error.message.includes('not found') || error.message.includes('not yet completed'))
+        ? 404
+        : error instanceof Error && error.message.includes('Flow data not available')
+          ? 400
+          : 400;
     res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }));
