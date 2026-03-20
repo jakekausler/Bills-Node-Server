@@ -151,6 +151,15 @@ export class Calculator {
   }
 
   /**
+   * Get an MC-sampled rate for a given sample type and date.
+   * Returns null in deterministic mode (no MC handler).
+   */
+  getMCRate(type: MonteCarloSampleType, date: Date): number | null {
+    if (!this.monteCarloConfig?.handler) return null;
+    return this.monteCarloConfig.handler.getSample(type, date) ?? null;
+  }
+
+  /**
    * Get the MC change ratio for a contribution limit type at a given date.
    * Returns undefined if MC is not enabled (deterministic mode uses fixed inflation).
    */

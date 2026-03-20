@@ -123,6 +123,9 @@ export class MonteCarloHandler {
       yearSamples[MonteCarloSampleType.IRA_LIMIT_CHANGE] = yearData.iraRatio ?? 1.0;
       yearSamples[MonteCarloSampleType.HSA_LIMIT_CHANGE] = yearData.hsaRatio ?? 1.0;
 
+      // AWI Growth — ratio (e.g. 1.04 for 4% growth), NOT a percentage
+      yearSamples[MonteCarloSampleType.AWI_GROWTH] = yearData.awiGrowthRatio ?? 1.04;
+
       // Portfolio - use the SAME drawn year for stock/bond/cash
       const composition = this.getPortfolioComposition(new Date(year, 6, 1)); // mid-year
       const stockReturn = yearData.stock !== undefined

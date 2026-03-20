@@ -323,6 +323,7 @@ export enum MonteCarloSampleType {
   K401_LIMIT_CHANGE = 'K401_LIMIT_CHANGE',
   IRA_LIMIT_CHANGE = 'IRA_LIMIT_CHANGE',
   HSA_LIMIT_CHANGE = 'HSA_LIMIT_CHANGE',
+  AWI_GROWTH = 'AWI_GROWTH',
 }
 
 export interface HistoricRates {
@@ -390,7 +391,10 @@ export interface HistoricRates {
     k401Ratio: number;
     iraRatio: number;
     hsaRatio: number;
+    awiGrowthRatio: number;
   }>>;
+  awi?: Record<string, number>;
+  awiGrowthRatio?: Record<string, number>;
 }
 
 export interface ProxyDefinition {
