@@ -10,12 +10,16 @@ import {
 } from '../../utils/monteCarlo';
 import { SimulationProgress } from '../../utils/monteCarlo/types';
 import { PercentileGraphData, computePercentileGraph, clearDetCache } from '../../utils/monteCarlo/statisticsGraph';
+import { FailureHistogramResult, computeFailureHistogram } from '../../utils/monteCarlo/failureHistogram';
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 
 // In-memory cache for computed percentile graphs
 // Key: `{simulationId}:{accountId || 'combined'}`
 const graphCache = new Map<string, PercentileGraphData>();
+
+// In-memory cache for computed failure histograms
+const histogramCache = new Map<string, FailureHistogramResult>();
 
 /**
  * Invalidate all cached graph data for a given simulation
@@ -26,6 +30,7 @@ export function invalidateGraphCache(simulationId: string): void {
       graphCache.delete(key);
     }
   }
+  histogramCache.delete(simulationId);
 }
 
 /**
@@ -33,6 +38,7 @@ export function invalidateGraphCache(simulationId: string): void {
  */
 export function clearAllGraphCache(): void {
   graphCache.clear();
+  histogramCache.clear();
   clearDetCache();
 }
 
@@ -148,6 +154,41 @@ export async function getSimulationGraph(req: Request): Promise<PercentileGraphD
     return graphData;
   } catch (error) {
     throw new Error(`Failed to compute graph data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Get failure histogram for a completed Monte Carlo simulation.
+ * Groups fundingFailureYear by year and computes summary statistics.
+ */
+export async function getFailureHistogram(req: Request): Promise<FailureHistogramResult> {
+  const { id } = req.params;
+
+  if (!id) {
+    throw new Error('Simulation ID is required');
+  }
+
+  if (!UUID_REGEX.test(id)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
+  if (!(await isSimulationComplete(id))) {
+    throw new Error(`Simulation with ID ${id} is not yet completed`);
+  }
+
+  // Check cache
+  const cached = histogramCache.get(id);
+  if (cached) {
+    return cached;
+  }
+
+  // Compute on-demand
+  try {
+    const result = computeFailureHistogram(id);
+    histogramCache.set(id, result);
+    return result;
+  } catch (error) {
+    throw new Error(`Failed to compute failure histogram for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
