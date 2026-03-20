@@ -143,7 +143,7 @@ export async function computeWorstCases(
         detData.push(nominalValue);
 
         // For deterministic real values, use median inflation across sims
-        // TODO: extract shared helper with statisticsGraph.ts (getMedianCumulativeInflationForYear)
+        // TODO(#33): extract shared helper with statisticsGraph.ts (getMedianCumulativeInflationForYear)
         const inflationValues: number[] = [];
         for (const sim of results) {
           if (sim.cumulativeInflation?.[year]) {
