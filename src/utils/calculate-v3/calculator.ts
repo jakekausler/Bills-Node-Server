@@ -156,7 +156,7 @@ export class Calculator {
    */
   getMCRate(type: MonteCarloSampleType, date: Date): number | null {
     if (!this.monteCarloConfig?.handler) return null;
-    return this.monteCarloConfig.handler.getSample(type, date) ?? null;
+    return this.monteCarloConfig.handler.getSample(type, date);
   }
 
   /**

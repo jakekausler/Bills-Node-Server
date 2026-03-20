@@ -51,6 +51,7 @@ const mockHistoricRates = {
         k401Ratio: 1.0 + (year % 8) * 0.015,
         iraRatio: 1.0 + (year % 7) * 0.012,
         hsaRatio: 1.0 + (year % 6) * 0.01,
+        awiGrowthRatio: 1.03 + (year % 5) * 0.005,
       }];
     }),
   ),
@@ -640,6 +641,117 @@ describe('MonteCarloHandler', () => {
         const composition = mockPortfolioGlidePath[year.toString()];
         expect(composition.bond).toBe(bond);
       }
+    });
+  });
+
+  describe('AWI_GROWTH sampling', () => {
+    let handler: MonteCarloHandler;
+
+    beforeEach(async () => {
+      handler = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 12345);
+    });
+
+    it('returns a number for AWI_GROWTH sample type', () => {
+      const date = new Date(Date.UTC(2024, 0, 1));
+      const sample = handler.getSample(MonteCarloSampleType.AWI_GROWTH, date);
+      expect(typeof sample).toBe('number');
+    });
+
+    it('AWI_GROWTH is a ratio around 1.0 (not a percentage)', () => {
+      const date = new Date(Date.UTC(2024, 0, 1));
+      const sample = handler.getSample(MonteCarloSampleType.AWI_GROWTH, date);
+      // awiGrowthRatio in mock data: 1.03 + (year % 5) * 0.005, range [1.03, 1.05]
+      expect(sample).toBeGreaterThanOrEqual(1.0);
+      expect(sample).toBeLessThanOrEqual(1.1);
+    });
+
+    it('AWI_GROWTH defaults to 1.045 when awiGrowthRatio is missing from yearKeyed', async () => {
+      // Create handler with yearKeyed data that has no awiGrowthRatio
+      const mockRatesNoAwi = JSON.parse(JSON.stringify(mockHistoricRates));
+      mockRatesNoAwi.yearKeyed = { '2024': {} };
+
+      const { readFile } = await import('fs/promises');
+      const mockReadFile = readFile as ReturnType<typeof vi.fn>;
+      mockReadFile.mockImplementation((filePath: string) => {
+        if (filePath.endsWith('historicRates.json')) {
+          return Promise.resolve(JSON.stringify(mockRatesNoAwi));
+        }
+        if (filePath.endsWith('portfolioMakeupOverTime.json')) {
+          return Promise.resolve(JSON.stringify(mockPortfolioMakeup));
+        }
+        return Promise.reject(new Error(`Unexpected file: ${filePath}`));
+      });
+
+      const h = await createHandler(new Date(2024, 0, 1), new Date(2025, 11, 31), 43);
+      const testDate = new Date(Date.UTC(2025, 0, 1));
+      const sample = h.getSample(MonteCarloSampleType.AWI_GROWTH, testDate);
+      expect(sample).toBe(1.045);
+    });
+
+    it('AWI_GROWTH is consistent across all months of the same year', () => {
+      const jan = handler.getSample(MonteCarloSampleType.AWI_GROWTH, new Date(Date.UTC(2024, 0, 1)));
+      const jun = handler.getSample(MonteCarloSampleType.AWI_GROWTH, new Date(Date.UTC(2024, 5, 1)));
+      const dec = handler.getSample(MonteCarloSampleType.AWI_GROWTH, new Date(Date.UTC(2024, 11, 1)));
+      expect(jan).toBe(jun);
+      expect(jun).toBe(dec);
+    });
+  });
+
+  describe('getMCRate integration pattern', () => {
+    // Tests that verify the getMCRate access pattern works correctly.
+    // Calculator.getMCRate delegates to handler.getSample, returning null when no handler.
+
+    it('getSample returns a number (not null/undefined) for all sample types', async () => {
+      const handler = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 42);
+      const date = new Date(Date.UTC(2025, 5, 1));
+
+      const sampleTypes = [
+        MonteCarloSampleType.HYSA,
+        MonteCarloSampleType.LYSA,
+        MonteCarloSampleType.INFLATION,
+        MonteCarloSampleType.HEALTHCARE_INFLATION,
+        MonteCarloSampleType.RAISE,
+        MonteCarloSampleType.LIMIT_INCREASE_401K,
+        MonteCarloSampleType.SS_COLA,
+        MonteCarloSampleType.SS_WAGE_BASE_CHANGE,
+        MonteCarloSampleType.K401_LIMIT_CHANGE,
+        MonteCarloSampleType.IRA_LIMIT_CHANGE,
+        MonteCarloSampleType.HSA_LIMIT_CHANGE,
+        MonteCarloSampleType.AWI_GROWTH,
+        MonteCarloSampleType.PORTFOLIO,
+      ];
+
+      for (const type of sampleTypes) {
+        const sample = handler.getSample(type, date);
+        expect(sample).not.toBeNull();
+        expect(sample).not.toBeUndefined();
+        expect(typeof sample).toBe('number');
+      }
+    });
+
+    it('getMCRate returns null when monteCarloConfig has no handler (deterministic mode)', () => {
+      // Simulates what Calculator.getMCRate does when there is no MC handler
+      const monteCarloConfig: any = null;
+      const getMCRate = (type: MonteCarloSampleType, date: Date): number | null => {
+        if (!monteCarloConfig?.handler) return null;
+        return monteCarloConfig.handler.getSample(type, date);
+      };
+
+      const result = getMCRate(MonteCarloSampleType.INFLATION, new Date(2025, 0, 1));
+      expect(result).toBeNull();
+    });
+
+    it('getMCRate returns a number when handler is set (MC mode)', async () => {
+      const handler = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 42);
+      const monteCarloConfig: any = { handler };
+      const getMCRate = (type: MonteCarloSampleType, date: Date): number | null => {
+        if (!monteCarloConfig?.handler) return null;
+        return monteCarloConfig.handler.getSample(type, date);
+      };
+
+      const result = getMCRate(MonteCarloSampleType.INFLATION, new Date(Date.UTC(2025, 0, 1)));
+      expect(typeof result).toBe('number');
+      expect(result).not.toBeNull();
     });
   });
 
