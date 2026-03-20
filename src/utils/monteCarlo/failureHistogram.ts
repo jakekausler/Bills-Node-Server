@@ -1,6 +1,6 @@
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { MC_RESULTS_DIR } from './paths';
+import { MC_RESULTS_DIR, UUID_REGEX } from './paths';
 
 export interface FailureHistogramResult {
   histogram: Array<{ year: string; count: number }>;
@@ -19,7 +19,7 @@ export interface FailureHistogramResult {
  * We group non-null failure years by year and compute summary statistics.
  */
 export async function computeFailureHistogram(simulationId: string): Promise<FailureHistogramResult> {
-  if (!/^[0-9a-f-]+$/i.test(simulationId)) {
+  if (!UUID_REGEX.test(simulationId)) {
     throw new Error('Invalid simulation ID format');
   }
 

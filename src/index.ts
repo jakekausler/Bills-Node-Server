@@ -428,9 +428,7 @@ app.get('/api/monte_carlo/simulations/:id/income-expense', verifyToken, asyncHan
     const statusCode =
       error instanceof Error && (error.message.includes('not found') || error.message.includes('not yet completed'))
         ? 404
-        : error instanceof Error && error.message.includes('Flow data not available')
-          ? 400
-          : 400;
+        : 400;
     res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }));

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { computeIncomeExpense } from './incomeExpense';
+import { YearlyFlowSummary } from '../calculate-v3/flow-aggregator';
 
 vi.mock('fs/promises', () => ({
   readFile: vi.fn(),
@@ -11,52 +12,44 @@ const mockReadFile = vi.mocked(readFile);
 
 const VALID_UUID = 'aabbccdd-1234-5678-9abc-def012345678';
 
-interface FlowSummary {
-  income: Record<string, number>;
-  expenses: {
-    bills: Record<string, number>;
-    taxes: { federal: number; penalty: number };
-    healthcare: {
-      cobra: number;
-      aca: number;
-      medicare: number;
-      hospital: number;
-      ltcInsurance: number;
-      ltcCare: number;
-      outOfPocket: number;
-      hsaReimbursements: number;
-    };
-  };
-  transfers: { rothConversions: number; rmdDistributions: number; autoPulls: number; autoPushes: number };
-  totalIncome: number;
-  totalExpenses: number;
-  netCashFlow: number;
-  startingBalance: number;
-  endingBalance: number;
-  totalInterestEarned: number;
-}
-
 function makeFlow(overrides: Partial<{
   income: Record<string, number>;
   bills: Record<string, number>;
   federal: number;
   penalty: number;
+  cobra: number;
+  medicare: number;
+  outOfPocket: number;
+  aca: number;
+  hospital: number;
+  ltcInsurance: number;
+  ltcCare: number;
+  hsaReimbursements: number;
   totalIncome: number;
   totalExpenses: number;
-}>): FlowSummary {
+}>): YearlyFlowSummary {
   const income = overrides.income ?? {};
   const bills = overrides.bills ?? {};
   const federal = overrides.federal ?? 0;
   const penalty = overrides.penalty ?? 0;
+  const cobra = overrides.cobra ?? 0;
+  const medicare = overrides.medicare ?? 0;
+  const outOfPocket = overrides.outOfPocket ?? 0;
+  const aca = overrides.aca ?? 0;
+  const hospital = overrides.hospital ?? 0;
+  const ltcInsurance = overrides.ltcInsurance ?? 0;
+  const ltcCare = overrides.ltcCare ?? 0;
+  const hsaReimbursements = overrides.hsaReimbursements ?? 0;
+  const healthcareTotal = cobra + medicare + outOfPocket + aca + hospital + ltcInsurance + ltcCare + hsaReimbursements;
   const totalIncome = overrides.totalIncome ?? Object.values(income).reduce((a, b) => a + b, 0);
-  const totalExpenses = overrides.totalExpenses ?? (Object.values(bills).reduce((a, b) => a + b, 0) + federal + penalty);
+  const totalExpenses = overrides.totalExpenses ?? (Object.values(bills).reduce((a, b) => a + b, 0) + federal + penalty + healthcareTotal);
 
   return {
     income,
     expenses: {
       bills,
       taxes: { federal, penalty },
-      healthcare: { cobra: 0, aca: 0, medicare: 0, hospital: 0, ltcInsurance: 0, ltcCare: 0, outOfPocket: 0, hsaReimbursements: 0 },
+      healthcare: { cobra, aca, medicare, hospital, ltcInsurance, ltcCare, outOfPocket, hsaReimbursements },
     },
     transfers: { rothConversions: 0, rmdDistributions: 0, autoPulls: 0, autoPushes: 0 },
     totalIncome,
@@ -70,7 +63,7 @@ function makeFlow(overrides: Partial<{
 
 function makeSim(
   num: number,
-  yearlyFlows: Record<string, FlowSummary>,
+  yearlyFlows: Record<string, YearlyFlowSummary>,
   inflation?: Record<number, number>,
 ) {
   return {
@@ -229,5 +222,103 @@ describe('computeIncomeExpense', () => {
 
     // Verify the cumulative net cash flow equals the single year values (only 1 year)
     expect(result.summary.cumulativeNetCashFlow.median).toBe(result.summary.medianNetCashFlow[0]);
+  });
+
+  it('healthcare expense subcategories appear in flattened breakdown', async () => {
+    const sims = [
+      makeSim(1, {
+        '2026': makeFlow({
+          income: { Salary: 80000 },
+          bills: { Housing: 20000 },
+          cobra: 5000,
+          medicare: 3000,
+          outOfPocket: 1500,
+          totalIncome: 80000,
+          totalExpenses: 29500,
+        }),
+      }),
+    ];
+    mockReadFile.mockResolvedValue(buildResultsFile(sims) as any);
+
+    const result = await computeIncomeExpense(VALID_UUID);
+
+    expect(result.breakdown.expenses['COBRA'][0]).toBe(5000);
+    expect(result.breakdown.expenses['Medicare'][0]).toBe(3000);
+    expect(result.breakdown.expenses['Out of Pocket'][0]).toBe(1500);
+    // Housing bill should also be present
+    expect(result.breakdown.expenses['Housing'][0]).toBe(20000);
+  });
+
+  it('multi-source income breakdown across sims', async () => {
+    const sims = [
+      makeSim(1, {
+        '2026': makeFlow({ income: { Salary: 60000, Pension: 10000 }, totalIncome: 70000, totalExpenses: 30000 }),
+      }),
+      makeSim(2, {
+        '2026': makeFlow({ income: { Salary: 80000, Pension: 15000 }, totalIncome: 95000, totalExpenses: 40000 }),
+      }),
+      makeSim(3, {
+        '2026': makeFlow({ income: { Salary: 70000, Pension: 12000 }, totalIncome: 82000, totalExpenses: 35000 }),
+      }),
+    ];
+    mockReadFile.mockResolvedValue(buildResultsFile(sims) as any);
+
+    const result = await computeIncomeExpense(VALID_UUID, 50);
+
+    // Median Salary: [60000, 70000, 80000] = 70000
+    expect(result.breakdown.income['Salary'][0]).toBe(70000);
+    // Median Pension: [10000, 12000, 15000] = 12000
+    expect(result.breakdown.income['Pension'][0]).toBe(12000);
+  });
+
+  it('real cumulative net cash flow is correctly deflated', async () => {
+    // 2 years, single sim, known inflation
+    const sims = [
+      makeSim(
+        1,
+        {
+          '2026': makeFlow({ income: { Salary: 100000 }, totalIncome: 100000, totalExpenses: 60000 }),
+          '2027': makeFlow({ income: { Salary: 110000 }, totalIncome: 110000, totalExpenses: 66000 }),
+        },
+        { 2026: 1.0, 2027: 1.1 },
+      ),
+    ];
+    mockReadFile.mockResolvedValue(buildResultsFile(sims) as any);
+
+    const result = await computeIncomeExpense(VALID_UUID);
+
+    // Nominal net: 2026=40000, 2027=44000. Cumulative nominal = 84000
+    expect(result.summary.cumulativeNetCashFlow.median).toBe(84000);
+
+    // Real net: 2026=40000/1.0=40000, 2027=44000/1.1=40000. Real cumulative = 80000
+    expect(result.realSummary.cumulativeNetCashFlow.median).toBeCloseTo(80000);
+  });
+
+  it('missing-year edge case defaults to 0 for sims without that year', async () => {
+    // Sim 1 has 2026-2028, Sim 2 has only 2026-2027
+    const sims = [
+      makeSim(1, {
+        '2026': makeFlow({ income: { Salary: 80000 }, totalIncome: 80000, totalExpenses: 40000 }),
+        '2027': makeFlow({ income: { Salary: 82000 }, totalIncome: 82000, totalExpenses: 41000 }),
+        '2028': makeFlow({ income: { Salary: 84000 }, totalIncome: 84000, totalExpenses: 42000 }),
+      }),
+      makeSim(2, {
+        '2026': makeFlow({ income: { Salary: 90000 }, totalIncome: 90000, totalExpenses: 45000 }),
+        '2027': makeFlow({ income: { Salary: 92000 }, totalIncome: 92000, totalExpenses: 46000 }),
+        // No 2028 data
+      }),
+    ];
+    mockReadFile.mockResolvedValue(buildResultsFile(sims) as any);
+
+    const result = await computeIncomeExpense(VALID_UUID, 50);
+
+    // 2028 should exist in labels
+    expect(result.labels).toContain('2028');
+
+    // For 2028 income: sim1=84000, sim2=0. Median of [0, 84000] with linear interp = 42000
+    expect(result.breakdown.income['Salary'][2]).toBe(42000);
+
+    // For 2028 fan p50 totalIncome: sim1=84000, sim2=0. Median = 42000
+    expect(result.incomeFan['p50'][2]).toBe(42000);
   });
 });

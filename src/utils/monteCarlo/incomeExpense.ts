@@ -1,9 +1,7 @@
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { MC_RESULTS_DIR } from './paths';
+import { MC_RESULTS_DIR, UUID_REGEX } from './paths';
 import { YearlyFlowSummary } from '../calculate-v3/flow-aggregator';
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const FAN_PERCENTILES = [0, 5, 25, 40, 50, 60, 75, 95, 100] as const;
 
@@ -107,6 +105,9 @@ export async function computeIncomeExpense(
     throw new Error('Invalid simulation ID format');
   }
 
+  // Clamp percentile to [0, 100]
+  percentile = Math.max(0, Math.min(100, isNaN(percentile) ? 50 : percentile));
+
   const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
   const fileData = JSON.parse(await readFile(resultsPath, 'utf8'));
   const results: SimFlowData[] = fileData.results ?? [];
@@ -121,42 +122,61 @@ export async function computeIncomeExpense(
   for (const sim of results) {
     if (sim.yearlyFlows) {
       for (const yearStr of Object.keys(sim.yearlyFlows)) {
-        allYears.add(parseInt(yearStr));
+        allYears.add(parseInt(yearStr, 10));
       }
     }
   }
   const sortedYears = Array.from(allYears).sort((a, b) => a - b);
   const labels = sortedYears.map((y) => y.toString());
 
+  // Pre-compute flattened expenses per (simIndex, year) to avoid redundant re-flattening
+  const flatCache = new Map<string, Record<string, number>>();
+  const getFlatExpenses = (simIndex: number, yearStr: string): Record<string, number> => {
+    const key = `${simIndex}:${yearStr}`;
+    let cached = flatCache.get(key);
+    if (!cached) {
+      const flow = results[simIndex].yearlyFlows?.[yearStr];
+      cached = flow ? flattenExpenses(flow) : {};
+      flatCache.set(key, cached);
+    }
+    return cached;
+  };
+
+  // Pre-compute median inflation per year
+  const medianInflationCache = new Map<number, number>();
+  for (const year of sortedYears) {
+    const values: number[] = [];
+    for (const sim of results) {
+      const inf = sim.cumulativeInflation?.[year];
+      if (inf !== undefined) values.push(inf);
+    }
+    if (values.length === 0) {
+      medianInflationCache.set(year, 1.0);
+    } else {
+      values.sort((a, b) => a - b);
+      medianInflationCache.set(year, calculatePercentile(values, 50));
+    }
+  }
+  const getMedianInflation = (year: number): number => medianInflationCache.get(year) ?? 1.0;
+
   // Collect all income source names and expense category names across all sims/years
   const allIncomeSources = new Set<string>();
   const allExpenseCategories = new Set<string>();
 
-  for (const sim of results) {
+  for (let simIdx = 0; simIdx < results.length; simIdx++) {
+    const sim = results[simIdx];
     if (!sim.yearlyFlows) continue;
     for (const yearStr of Object.keys(sim.yearlyFlows)) {
       const flow = sim.yearlyFlows[yearStr];
       for (const source of Object.keys(flow.income)) {
         allIncomeSources.add(source);
       }
-      const expenses = flattenExpenses(flow);
+      const expenses = getFlatExpenses(simIdx, yearStr);
       for (const cat of Object.keys(expenses)) {
         allExpenseCategories.add(cat);
       }
     }
   }
-
-  // Helper: get median cumulative inflation for a year
-  const getMedianInflation = (year: number): number => {
-    const values: number[] = [];
-    for (const sim of results) {
-      const inf = sim.cumulativeInflation?.[year];
-      if (inf !== undefined) values.push(inf);
-    }
-    if (values.length === 0) return 1.0;
-    values.sort((a, b) => a - b);
-    return calculatePercentile(values, 50);
-  };
 
   // --- Breakdown ---
   const breakdown: { income: Record<string, number[]>; expenses: Record<string, number[]> } = {
@@ -188,9 +208,8 @@ export async function computeIncomeExpense(
     // Expense breakdown at requested percentile
     for (const cat of allExpenseCategories) {
       const values: number[] = [];
-      for (const sim of results) {
-        const flow = sim.yearlyFlows?.[yearStr];
-        const expenses = flow ? flattenExpenses(flow) : {};
+      for (let simIdx = 0; simIdx < results.length; simIdx++) {
+        const expenses = getFlatExpenses(simIdx, yearStr);
         values.push(expenses[cat] ?? 0);
       }
       values.sort((a, b) => a - b);
@@ -271,11 +290,6 @@ export async function computeIncomeExpense(
   };
 
   // --- Real (inflation-adjusted) variants ---
-  const deflate = (values: number[], yearIndex: number): number => {
-    const inflation = getMedianInflation(sortedYears[yearIndex]);
-    return values[yearIndex] / inflation;
-  };
-
   const deflateArray = (arr: number[]): number[] =>
     arr.map((_, i) => {
       const inflation = getMedianInflation(sortedYears[i]);

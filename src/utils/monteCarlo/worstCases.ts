@@ -1,6 +1,6 @@
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { MC_RESULTS_DIR } from './paths';
+import { MC_RESULTS_DIR, UUID_REGEX } from './paths';
 import { runDeterministicForWorstCases } from './statisticsGraph';
 
 export interface WorstCasesResult {
@@ -39,7 +39,7 @@ export async function computeWorstCases(
   percentile: number = 5,
   accountId?: string,
 ): Promise<WorstCasesResult> {
-  if (!/^[0-9a-f-]+$/i.test(simulationId)) {
+  if (!UUID_REGEX.test(simulationId)) {
     throw new Error('Invalid simulation ID format');
   }
 
