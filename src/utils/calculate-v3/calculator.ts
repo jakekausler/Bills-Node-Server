@@ -570,7 +570,10 @@ export class Calculator {
       if (interestAmount > 0) {
         this.flowAggregator.recordInterest(year, interestAmount);
       } else if (interestAmount < 0) {
-        this.flowAggregator.recordExpense(year, 'Interest Charges', Math.abs(interestAmount));
+        // Loan interest is already covered by the transfer payment — skip to avoid double-counting
+        if (account.type !== 'Loan') {
+          this.flowAggregator.recordExpense(year, 'Interest Charges', Math.abs(interestAmount));
+        }
       }
     }
 

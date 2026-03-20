@@ -76,6 +76,7 @@ import { Bill } from '../../data/bill/bill';
 import { Account } from '../../data/account/account';
 import { Interest } from '../../data/interest/interest';
 import { loadVariable } from '../simulation/variable';
+import { FlowAggregator } from './flow-aggregator';
 
 // ---------------------------------------------------------------------------
 // Test data factories
@@ -400,6 +401,7 @@ function makeCalculator(opts: {
   simulation?: string;
   filingStatus?: string;
   bracketInflationRate?: number;
+  flowAggregator?: FlowAggregator | null;
 } = {}): Calculator {
   return new Calculator(
     (opts.balanceTracker ?? makeBalanceTracker()) as any,
@@ -414,6 +416,9 @@ function makeCalculator(opts: {
     (opts.acaManager ?? makeAcaManager()) as any,
     opts.filingStatus ?? 'mfj',
     opts.bracketInflationRate ?? 0.03,
+    null, // debugLogger
+    0,    // simNumber
+    opts.flowAggregator ?? null,
   );
 }
 
@@ -1146,6 +1151,126 @@ describe('Calculator', () => {
       const result = calculator.processInterestEvent(event, segmentResult);
       // Default monthly: 12000 * (Math.pow(1.12, 1/12) - 1) ≈ 12000 * 0.009488793 ≈ 113.865516
       expect(result.get('account-1')).toBeCloseTo(12000 * (Math.pow(1 + 0.12, 1 / 12) - 1), 2);
+    });
+
+    it('does NOT record loan negative interest as expense in flow aggregator', () => {
+      const account = makeAccount({ id: 'loan-1', name: 'Car Loan', type: 'Loan' });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn(() => -10000),
+        findAccountById: vi.fn(() => account),
+      });
+      const flowAggregator = {
+        recordIncome: vi.fn(),
+        recordExpense: vi.fn(),
+        recordInterest: vi.fn(),
+        recordHealthcare: vi.fn(),
+        recordTransfer: vi.fn(),
+        recordTaxes: vi.fn(),
+        validateAmount: vi.fn(),
+        getYearlyFlows: vi.fn(),
+        getAllYears: vi.fn(),
+      } as unknown as FlowAggregator;
+      const calculator = makeCalculator({ balanceTracker, flowAggregator });
+      const segmentResult = makeSegmentResult();
+      const interest = makeInterest({ rate: 0.06 });
+
+      const event: InterestEvent = {
+        id: 'evt-int-loan',
+        type: EventType.interest,
+        date: new Date('2024-06-15'),
+        accountId: 'loan-1',
+        priority: 2,
+        originalInterest: interest,
+        rate: 0.06,
+        firstInterest: false,
+      };
+
+      calculator.processInterestEvent(event, segmentResult);
+
+      // Loan interest should NOT be recorded as expense (transfer payment covers it)
+      expect(flowAggregator.recordExpense).not.toHaveBeenCalled();
+      // And it should not be recorded as interest income either (it's negative)
+      expect(flowAggregator.recordInterest).not.toHaveBeenCalled();
+    });
+
+    it('records Credit card negative interest as expense in flow aggregator', () => {
+      const account = makeAccount({ id: 'cc-1', name: 'Credit Card', type: 'Credit' });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn(() => -5000),
+        findAccountById: vi.fn(() => account),
+      });
+      const flowAggregator = {
+        recordIncome: vi.fn(),
+        recordExpense: vi.fn(),
+        recordInterest: vi.fn(),
+        recordHealthcare: vi.fn(),
+        recordTransfer: vi.fn(),
+        recordTaxes: vi.fn(),
+        validateAmount: vi.fn(),
+        getYearlyFlows: vi.fn(),
+        getAllYears: vi.fn(),
+      } as unknown as FlowAggregator;
+      const calculator = makeCalculator({ balanceTracker, flowAggregator });
+      const segmentResult = makeSegmentResult();
+      const interest = makeInterest({ rate: 0.20 });
+
+      const event: InterestEvent = {
+        id: 'evt-int-cc',
+        type: EventType.interest,
+        date: new Date('2024-06-15'),
+        accountId: 'cc-1',
+        priority: 2,
+        originalInterest: interest,
+        rate: 0.20,
+        firstInterest: false,
+      };
+
+      calculator.processInterestEvent(event, segmentResult);
+
+      // Credit card interest SHOULD be recorded as expense
+      expect(flowAggregator.recordExpense).toHaveBeenCalledWith(2024, 'Interest Charges', expect.any(Number));
+      expect((flowAggregator.recordExpense as any).mock.calls[0][2]).toBeGreaterThan(0);
+    });
+
+    it('records positive interest as income in flow aggregator', () => {
+      const account = makeAccount({ id: 'sav-1', name: 'Savings', type: 'Savings' });
+      const balanceTracker = makeBalanceTracker({
+        getAccountBalance: vi.fn(() => 10000),
+        findAccountById: vi.fn(() => account),
+      });
+      const flowAggregator = {
+        recordIncome: vi.fn(),
+        recordExpense: vi.fn(),
+        recordInterest: vi.fn(),
+        recordHealthcare: vi.fn(),
+        recordTransfer: vi.fn(),
+        recordTaxes: vi.fn(),
+        validateAmount: vi.fn(),
+        getYearlyFlows: vi.fn(),
+        getAllYears: vi.fn(),
+      } as unknown as FlowAggregator;
+      const calculator = makeCalculator({ balanceTracker, flowAggregator });
+      const segmentResult = makeSegmentResult();
+      const interest = makeInterest({ rate: 0.05 });
+
+      const event: InterestEvent = {
+        id: 'evt-int-sav',
+        type: EventType.interest,
+        date: new Date('2024-06-15'),
+        accountId: 'sav-1',
+        priority: 2,
+        originalInterest: interest,
+        rate: 0.05,
+        firstInterest: false,
+      };
+
+      calculator.processInterestEvent(event, segmentResult);
+
+      // Positive interest SHOULD be recorded as interest income
+      expect(flowAggregator.recordInterest).toHaveBeenCalledWith(2024, expect.any(Number));
+      expect((flowAggregator.recordInterest as any).mock.calls[0][1]).toBeGreaterThan(0);
+      // Should NOT be recorded as expense
+      expect(flowAggregator.recordExpense).not.toHaveBeenCalled();
     });
   });
 
