@@ -3,6 +3,7 @@ import * as path from 'path';
 import type { DebugLogger } from './debug-logger';
 import type { MCRateGetter } from './types';
 import { MonteCarloSampleType } from './types';
+import { compoundMCInflation } from './mc-utils';
 
 // ===== Type Definitions =====
 
@@ -350,18 +351,15 @@ export class LTCManager {
 
   /**
    * Compute compound healthcare inflation multiplier from baseYear to targetYear.
-   * Uses per-year MC draws when available, otherwise fixed rate.
+   * Delegates to shared compoundMCInflation utility.
+   * ACA/LTC healthcare costs inflate at ~5% (market-driven healthcare costs),
+   * vs Medicare at ~3% (administered prices, set by CMS). These differ intentionally.
    */
-  private compoundHealthcareInflation(targetYear: number): number {
-    if (targetYear <= this.baseYear) return 1;
-    if (this.mcRateGetter) {
-      let multiplier = 1;
-      for (let y = this.baseYear + 1; y <= targetYear; y++) {
-        multiplier *= (1 + this.getHealthcareInflationRateForYear(y));
-      }
-      return multiplier;
-    }
-    return Math.pow(1 + this.healthcareInflationRate, targetYear - this.baseYear);
+  compoundHealthcareInflation(targetYear: number): number {
+    return compoundMCInflation(
+      this.baseYear, targetYear, this.healthcareInflationRate,
+      this.mcRateGetter, MonteCarloSampleType.HEALTHCARE_INFLATION,
+    );
   }
 
   /**

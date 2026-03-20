@@ -391,8 +391,9 @@ export class Engine {
       // Wire MC rate getter to managers that need per-year sampled rates
       const mcRateGetter: MCRateGetter = (type: MonteCarloSampleType, year: number): number | null => {
         if (!this.monteCarloConfig?.handler) return null;
-        return this.monteCarloConfig.handler.getSample(type, new Date(year, 0, 1));
+        return this.monteCarloConfig.handler.getSample(type, new Date(Date.UTC(year, 0, 1)));
       };
+      this.calculator.setMCRateGetter(mcRateGetter);
       this.acaManager.setMCRateGetter(mcRateGetter);
       this.ltcManager.setMCRateGetter(mcRateGetter);
       this.medicareManager.setMCRateGetter(mcRateGetter);

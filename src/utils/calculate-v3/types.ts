@@ -401,6 +401,11 @@ export interface HistoricRates {
   }>>;
   awi?: Record<string, number>;
   awiGrowthRatio?: Record<string, number>;
+  employerPremium?: Record<string, number>;
+  acaBenchmarkPremium?: Record<string, number>;
+  acaAgeCurve?: Record<string, number>;
+  acaOutOfPocketMax?: Record<string, number>;
+  fpl?: Record<string, { firstPerson: number; additionalPerson: number }>;
 }
 
 export interface ProxyDefinition {

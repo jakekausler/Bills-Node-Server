@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import type { MCRateGetter } from './types';
 import { MonteCarloSampleType } from './types';
+import { compoundMCInflation } from './mc-utils';
 
 export type FilingStatus = 'single' | 'mfj' | 'mfs' | 'hoh';
 
@@ -29,8 +30,7 @@ function loadBracketData(): Record<string, YearBracketData> {
 
 /**
  * Compute compound inflation multiplier from baseYear to targetYear.
- * When mcRateGetter is provided, uses per-year MC CPI draws.
- * Otherwise, uses a single fixed rate for all years.
+ * Delegates to shared compoundMCInflation utility.
  */
 function compoundInflationMultiplier(
   baseYear: number,
@@ -38,19 +38,7 @@ function compoundInflationMultiplier(
   fixedRate: number,
   mcRateGetter?: MCRateGetter | null,
 ): number {
-  if (targetYear <= baseYear) return 1;
-
-  if (mcRateGetter) {
-    let multiplier = 1;
-    for (let y = baseYear + 1; y <= targetYear; y++) {
-      const mcRate = mcRateGetter(MonteCarloSampleType.INFLATION, y);
-      const rate = mcRate !== null ? mcRate : fixedRate;
-      multiplier *= (1 + rate);
-    }
-    return multiplier;
-  }
-
-  return Math.pow(1 + fixedRate, targetYear - baseYear);
+  return compoundMCInflation(baseYear, targetYear, fixedRate, mcRateGetter ?? null, MonteCarloSampleType.INFLATION);
 }
 
 // Get bracket data for a year — if year not in data, inflate from most recent year

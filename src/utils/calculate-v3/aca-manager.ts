@@ -3,6 +3,7 @@ import utc from 'dayjs/plugin/utc';
 import { HistoricRates, MCRateGetter, MonteCarloSampleType } from './types';
 import { load } from '../io/io';
 import type { DebugLogger } from './debug-logger';
+import { compoundMCInflation } from './mc-utils';
 
 dayjs.extend(utc);
 
@@ -89,11 +90,11 @@ export class AcaManager {
       return premium;
     }
 
-    let inflatedPremium = cobraPremium;
-    for (let y = 2027; y <= year; y++) {
-      const inflationRate = this.getHealthcareInflationRate(y);
-      inflatedPremium *= 1 + inflationRate;
-    }
+    const inflationMultiplier = compoundMCInflation(
+      2026, year, this.DEFAULT_HEALTHCARE_INFLATION,
+      this.mcRateGetter, MonteCarloSampleType.HEALTHCARE_INFLATION,
+    );
+    const inflatedPremium = cobraPremium * inflationMultiplier;
 
     const premium = Math.round(inflatedPremium * 100) / 100;
     this.log('cobra-premium-calculated', { year, premium });
@@ -104,9 +105,10 @@ export class AcaManager {
    * Get healthcare inflation rate for a given year.
    * In MC mode, uses the healthcare CPI draw for that year.
    * In deterministic mode, uses the fixed default (5%).
-   * @private
+   * ACA/LTC healthcare costs inflate at ~5% (market-driven healthcare costs),
+   * vs Medicare at ~3% (administered prices, set by CMS). These differ intentionally.
    */
-  private getHealthcareInflationRate(year: number): number {
+  getHealthcareInflationRate(year: number): number {
     if (this.mcRateGetter) {
       const mcRate = this.mcRateGetter(MonteCarloSampleType.HEALTHCARE_INFLATION, year);
       if (mcRate !== null) return mcRate;
@@ -141,10 +143,11 @@ export class AcaManager {
     // Inflate benchmark to requested year if needed
     let benchmarkForYear = latestBenchmarkPremium;
     if (year > latestBenchmarkYear) {
-      for (let y = latestBenchmarkYear + 1; y <= year; y++) {
-        const inflationRate = this.getHealthcareInflationRate(y);
-        benchmarkForYear *= 1 + inflationRate;
-      }
+      const inflMultiplier = compoundMCInflation(
+        latestBenchmarkYear, year, this.DEFAULT_HEALTHCARE_INFLATION,
+        this.mcRateGetter, MonteCarloSampleType.HEALTHCARE_INFLATION,
+      );
+      benchmarkForYear *= inflMultiplier;
       this.log('benchmark-inflated', { year, latest_year: latestBenchmarkYear, inflated_premium: Math.round(benchmarkForYear * 100) / 100 });
     }
 
@@ -408,18 +411,14 @@ export class AcaManager {
 
     // If requesting a future year, inflate forward
     if (year > latestYear) {
-      let individual = latestOOPMax.individual;
-      let family = latestOOPMax.family;
-
-      for (let y = latestYear + 1; y <= year; y++) {
-        const inflationRate = this.getHealthcareInflationRate(y);
-        individual *= 1 + inflationRate;
-        family *= 1 + inflationRate;
-      }
+      const oopMultiplier = compoundMCInflation(
+        latestYear, year, this.DEFAULT_HEALTHCARE_INFLATION,
+        this.mcRateGetter, MonteCarloSampleType.HEALTHCARE_INFLATION,
+      );
 
       return {
-        individual: Math.round(individual * 100) / 100,
-        family: Math.round(family * 100) / 100,
+        individual: Math.round(latestOOPMax.individual * oopMultiplier * 100) / 100,
+        family: Math.round(latestOOPMax.family * oopMultiplier * 100) / 100,
       };
     }
 

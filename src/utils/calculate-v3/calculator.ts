@@ -64,6 +64,7 @@ export class Calculator {
   private simNumber: number;
   private currentDate: string = '';
   private flowAggregator: FlowAggregator | null;
+  private mcRateGetterRef: MCRateGetter | null = null;
 
   constructor(
     balanceTracker: BalanceTracker,
@@ -161,15 +162,19 @@ export class Calculator {
   }
 
   /**
-   * Build an MCRateGetter function that maps (type, year) to the MC-sampled rate.
+   * Store an MCRateGetter reference (set by the engine after MC initialization).
+   * Avoids recreating the lambda on every call to getMCRateGetter().
+   */
+  setMCRateGetter(getter: MCRateGetter | null): void {
+    this.mcRateGetterRef = getter;
+  }
+
+  /**
+   * Get the stored MCRateGetter function that maps (type, year) to the MC-sampled rate.
    * Returns null in deterministic mode.
    */
   getMCRateGetter(): MCRateGetter | null {
-    if (!this.monteCarloConfig?.handler) return null;
-    return (type: MonteCarloSampleType, year: number): number | null => {
-      // Use January 1 of the given year as the date (samples are per-year)
-      return this.getMCRate(type, new Date(year, 0, 1));
-    };
+    return this.mcRateGetterRef;
   }
 
   /**
@@ -1874,6 +1879,7 @@ export class Calculator {
     if (event.date.getUTCMonth() === 0 && config.hasInsurance && event.ownerAge >= (config.insurancePurchaseAge ?? 60)) {
       const yearsSincePurchase = event.ownerAge - (config.insurancePurchaseAge ?? 60);
       const premiumInflationRate = config.premiumInflationRate ?? 0.05;
+      // LTC insurance premium inflation is contractually fixed by the insurer — not MC-sampled.
       const annualPremium = (config.annualPremium ?? 3500) * Math.pow(1 + premiumInflationRate, yearsSincePurchase);
 
       // Record LTC insurance premium flow

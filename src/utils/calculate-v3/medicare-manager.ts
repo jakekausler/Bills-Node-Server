@@ -1,6 +1,7 @@
 import { HistoricRates, MCRateGetter, MonteCarloSampleType } from './types';
 import { load } from '../io/io';
 import type { DebugLogger } from './debug-logger';
+import { compoundMCInflation } from './mc-utils';
 
 /**
  * IRMAA (Income-Related Monthly Adjustment Amount) bracket definition
@@ -173,22 +174,21 @@ export class MedicareManager {
 
     // Inflate IRMAA thresholds for future years beyond available data (MC mode only)
     // In deterministic mode, use the raw bracket data as-is (unchanged behavior)
+    // Medicare premiums historically inflate ~3% (administered prices, set by CMS)
+    // vs ACA/LTC at ~5% (market-driven healthcare costs). These differ intentionally.
     if (this.mcRateGetter && year > baseYearNum && yearBrackets.length > 0) {
-      yearBrackets = yearBrackets.map(bracket => {
-        let inflationMultiplier = 1;
-        for (let y = baseYearNum + 1; y <= year; y++) {
-          const mcRate = this.mcRateGetter!(MonteCarloSampleType.INFLATION, y);
-          const rate = mcRate !== null ? mcRate : 0.03;
-          inflationMultiplier *= (1 + rate);
-        }
-        return {
-          ...bracket,
-          singleMin: Math.round(bracket.singleMin * inflationMultiplier),
-          singleMax: Math.round(bracket.singleMax * inflationMultiplier),
-          marriedMin: Math.round(bracket.marriedMin * inflationMultiplier),
-          marriedMax: Math.round(bracket.marriedMax * inflationMultiplier),
-        };
-      });
+      // Compute the compound inflation multiplier ONCE (same for all brackets)
+      const inflationMultiplier = compoundMCInflation(
+        baseYearNum, year, 0.03,
+        this.mcRateGetter, MonteCarloSampleType.INFLATION,
+      );
+      yearBrackets = yearBrackets.map(bracket => ({
+        ...bracket,
+        singleMin: Math.round(bracket.singleMin * inflationMultiplier),
+        singleMax: Math.round(bracket.singleMax * inflationMultiplier),
+        marriedMin: Math.round(bracket.marriedMin * inflationMultiplier),
+        marriedMax: Math.round(bracket.marriedMax * inflationMultiplier),
+      }));
     }
 
     const minIncome = filingStatus === 'mfj' ? 'marriedMin' : 'singleMin';
@@ -310,13 +310,15 @@ export class MedicareManager {
   /**
    * Get healthcare inflation rate for a given year.
    * In MC mode, uses the healthcare CPI draw. In deterministic, defaults to 3%.
+   * Medicare premiums historically inflate ~3% (administered prices, set by CMS)
+   * vs ACA/LTC at ~5% (market-driven healthcare costs). These differ intentionally.
    */
   private getHealthcareInflationRate(year: number): number {
     if (this.mcRateGetter) {
       const mcRate = this.mcRateGetter(MonteCarloSampleType.HEALTHCARE_INFLATION, year);
       if (mcRate !== null) return mcRate;
     }
-    // Default 3% healthcare inflation
+    // Default 3% healthcare inflation for Medicare (administered prices, set by CMS)
     return 0.03;
   }
 
