@@ -1,4 +1,5 @@
 import { AccountsAndTransfers } from '../../data/account/types';
+import { YearlyFlowSummary } from '../calculate-v3/flow-aggregator';
 
 export interface SimulationJob {
   id: string;
@@ -70,6 +71,7 @@ export interface AggregatedSimulationResult {
   cumulativeInflation?: Record<number, number>; // year → cumulative inflation multiplier from start year
   fundingFailureYear?: number | null; // #9: First year a pull account dropped below minimumBalance (null = never failed)
   drawnYears?: number[]; // Historical years drawn by MC handler for deterministic verification
+  yearlyFlows?: Record<string, YearlyFlowSummary>; // Flow aggregation data per year (income, expenses, transfers, etc.)
 }
 
 export type WorkerMessage =

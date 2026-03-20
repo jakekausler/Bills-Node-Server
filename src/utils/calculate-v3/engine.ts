@@ -588,3 +588,10 @@ export async function calculateAllActivity(
 export function getLastPullFailures() {
   return lastEngine ? lastEngine.getPullFailures() : [];
 }
+
+/**
+ * Get the FlowAggregator from the last calculation (for MC worker to extract flow data)
+ */
+export function getLastFlowAggregator(): FlowAggregator | null {
+  return lastEngine ? lastEngine.getFlowAggregator() : null;
+}
