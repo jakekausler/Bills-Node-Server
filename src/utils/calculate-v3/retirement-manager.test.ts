@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { RetirementManager } from './retirement-manager';
+import { RetirementManager, clearRetirementCache } from './retirement-manager';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
 import { Pension } from '../../data/retirement/pension/pension';
 
@@ -82,6 +82,7 @@ describe('RetirementManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearRetirementCache();
   });
 
   // Helper to generate 35 years of income data for realistic SS calculations
@@ -624,10 +625,10 @@ describe('RetirementManager', () => {
 
     it('should use fixed inflation without MC ratio for future years', () => {
       retirementManager = new RetirementManager([], []);
-      // Without MC ratio, should use fixed 3.5% NAWI growth
+      // Without MC ratio, should use fixed 3.5% NAWI growth, rounded
       const cap2026 = retirementManager.getWageBaseCapForYear(2026);
-      // Should be around 176100 * 1.035 = 182263.5
-      expect(cap2026).toBeCloseTo(176100 * Math.pow(1.035, 1), 0);
+      // 176100 * 1.035 = 182263.5 → 182264
+      expect(cap2026).toBe(Math.round(176100 * 1.035));
     });
 
     it('should use MC rate getter for SS_WAGE_BASE_CHANGE to compound from previous year', () => {
@@ -661,8 +662,10 @@ describe('RetirementManager', () => {
       const cap2026 = retirementManager.getWageBaseCapForYear(2026);
       const cap2027 = retirementManager.getWageBaseCapForYear(2027);
 
-      expect(cap2026).toBeGreaterThan(0);
-      expect(cap2027).toBeGreaterThan(cap2026); // Should keep increasing
+      // 2026: 176100 * 1.05 = 184905
+      expect(cap2026).toBe(Math.round(176100 * ratio1));
+      // 2027: 176100 * 1.05 * 1.03 = 190492.15 → 190492
+      expect(cap2027).toBe(Math.round(176100 * ratio1 * ratio2));
     });
   });
 

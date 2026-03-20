@@ -13,8 +13,6 @@ let cachedBendPoints: Record<number, { first: number; second: number }> | null =
 let cachedRMDTable: RMDTableType | null = null;
 let cachedHistoricRates: HistoricRates | null = null;
 
-// Social Security taxable wage base cap (2024 value)
-const SS_WAGE_BASE_2024 = 168600;
 const SS_WAGE_BASE_2025 = 176100;
 // Historical average NAWI (National Average Wage Index) growth rate
 const NAWI_GROWTH_RATE = 0.035;
@@ -58,7 +56,7 @@ function getWageBaseCap(year: number, mcRateGetter?: MCRateGetter | null): numbe
   }
 
   if (year <= latestKnownYear) {
-    // Year is before our data — use 2025 as fallback
+    // Edge case: year before data start. Should not happen in normal operation.
     return SS_WAGE_BASE_2025;
   }
 
@@ -74,7 +72,7 @@ function getWageBaseCap(year: number, mcRateGetter?: MCRateGetter | null): numbe
 
   // Deterministic: inflate from latest known year at fixed rate
   const yearsFromBase = year - latestKnownYear;
-  return latestKnownValue * Math.pow(1 + NAWI_GROWTH_RATE, yearsFromBase);
+  return Math.round(latestKnownValue * Math.pow(1 + NAWI_GROWTH_RATE, yearsFromBase));
 }
 
 /**
@@ -144,7 +142,7 @@ export class RetirementManager {
 
   private initializeSocialSecurity() {
     this.socialSecurities.forEach((socialSecurity) => {
-      // Fiil the annual incomes for each year from the minimum year in the data to the docial security start date year
+      // Fill the annual incomes for each year from the minimum year in the data to the social security start date year
       const minYear = Math.min(...socialSecurity.priorAnnualNetIncomeYears);
       for (let year = minYear; year <= socialSecurity.startDate.getUTCFullYear(); year++) {
         // Get the annual income for the year, if it exists in the priorAnnualNetIncomeYears, otherwise use 0 (in which case it will be added to the annual income map as calculated later)
@@ -331,7 +329,10 @@ export class RetirementManager {
     if (!cachedWageIndex) {
       cachedWageIndex = loadAverageWageIndex();
     }
-    const averageWageIndex = cachedWageIndex;
+    // In MC mode, clone the cache to avoid cross-simulation corruption from mutations below
+    const averageWageIndex = this.mcRateGetter
+      ? { ...cachedWageIndex }
+      : cachedWageIndex;
     // Extrapolate the average indices until the year the person turns 60
     const highestYear = Math.max(...Object.keys(averageWageIndex).map((x) => parseInt(x)));
     const years = Object.keys(averageWageIndex)
@@ -368,7 +369,10 @@ export class RetirementManager {
     if (!cachedBendPoints) {
       cachedBendPoints = loadBendPoints();
     }
-    const bendPoints = cachedBendPoints;
+    // In MC mode, clone the cache to avoid cross-simulation corruption from mutations below
+    const bendPoints: Record<number, { first: number; second: number }> = this.mcRateGetter
+      ? Object.fromEntries(Object.entries(cachedBendPoints).map(([k, v]) => [Number(k), { ...v }]))
+      : cachedBendPoints;
     // Extrapolate the bend points until the year the person turns 62 using the average rate of increase of all the years we have data for
     const highestYear = Math.max(...Object.keys(bendPoints).map((x) => parseInt(x)));
     const years = Object.keys(bendPoints)
@@ -389,9 +393,22 @@ export class RetirementManager {
     const secondBendPointAverageIncrease =
       secondBendPointIncreases.reduce((sum, val) => sum + val, 0) / secondBendPointIncreases.length;
     for (let year = highestYear + 1; year <= yearTurns62; year++) {
+      // Bend points scale with AWI — use AWI_GROWTH MC draws when available, same as getAverageWageIndex
+      let growthRate: number;
+      if (this.mcRateGetter) {
+        const ratio = this.mcRateGetter(MonteCarloSampleType.AWI_GROWTH, year);
+        // AWI_GROWTH draw is a ratio like 1.045; convert to growth rate (0.045)
+        growthRate = ratio !== null ? (ratio - 1) : firstBendPointAverageIncrease;
+      } else {
+        growthRate = firstBendPointAverageIncrease;
+      }
+      // Use same MC-derived growth for both bend points (they track AWI proportionally)
+      const secondGrowthRate = this.mcRateGetter
+        ? growthRate
+        : secondBendPointAverageIncrease;
       bendPoints[year] = {
-        first: bendPoints[year - 1].first * (1 + firstBendPointAverageIncrease),
-        second: bendPoints[year - 1].second * (1 + secondBendPointAverageIncrease),
+        first: bendPoints[year - 1].first * (1 + growthRate),
+        second: bendPoints[year - 1].second * (1 + secondGrowthRate),
       };
     }
     return bendPoints;
