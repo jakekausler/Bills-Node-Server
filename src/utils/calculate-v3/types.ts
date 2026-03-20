@@ -326,6 +326,12 @@ export enum MonteCarloSampleType {
   AWI_GROWTH = 'AWI_GROWTH',
 }
 
+/**
+ * Function type for retrieving MC-sampled rates.
+ * Returns the MC rate for a given sample type and year, or null in deterministic mode.
+ */
+export type MCRateGetter = (type: MonteCarloSampleType, year: number) => number | null;
+
 export interface HistoricRates {
   investment: {
     stock?: number[];

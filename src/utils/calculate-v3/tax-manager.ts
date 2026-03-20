@@ -1,4 +1,4 @@
-import { TaxableOccurrence, FilingStatus } from './types';
+import { TaxableOccurrence, FilingStatus, MCRateGetter } from './types';
 import { computeAnnualFederalTax } from './bracket-calculator';
 import type { DebugLogger } from './debug-logger';
 
@@ -74,6 +74,7 @@ export class TaxManager {
     year: number,
     filingStatus: FilingStatus = 'mfj',
     bracketInflationRate: number = 0.03,
+    mcRateGetter?: MCRateGetter | null,
   ): number {
     // Check cache first
     if (this.taxCache.has(year)) {
@@ -104,7 +105,7 @@ export class TaxManager {
 
     this.log('income-aggregated', { year, ordinary_income: ordinaryIncome, ss_income: ssIncome, penalty_total: penaltyTotal });
 
-    const result = computeAnnualFederalTax(ordinaryIncome, ssIncome, filingStatus, year, bracketInflationRate);
+    const result = computeAnnualFederalTax(ordinaryIncome, ssIncome, filingStatus, year, bracketInflationRate, mcRateGetter);
     const totalTax = result.tax + penaltyTotal;
 
     // Determine SS taxation tier based on provisional income vs thresholds

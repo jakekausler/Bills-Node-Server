@@ -1,5 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import type { MCRateGetter } from './types';
+import { MonteCarloSampleType } from './types';
 
 export type FilingStatus = 'single' | 'mfj' | 'mfs' | 'hoh';
 
@@ -25,8 +27,39 @@ function loadBracketData(): Record<string, YearBracketData> {
   return bracketData!;
 }
 
+/**
+ * Compute compound inflation multiplier from baseYear to targetYear.
+ * When mcRateGetter is provided, uses per-year MC CPI draws.
+ * Otherwise, uses a single fixed rate for all years.
+ */
+function compoundInflationMultiplier(
+  baseYear: number,
+  targetYear: number,
+  fixedRate: number,
+  mcRateGetter?: MCRateGetter | null,
+): number {
+  if (targetYear <= baseYear) return 1;
+
+  if (mcRateGetter) {
+    let multiplier = 1;
+    for (let y = baseYear + 1; y <= targetYear; y++) {
+      const mcRate = mcRateGetter(MonteCarloSampleType.INFLATION, y);
+      const rate = mcRate !== null ? mcRate : fixedRate;
+      multiplier *= (1 + rate);
+    }
+    return multiplier;
+  }
+
+  return Math.pow(1 + fixedRate, targetYear - baseYear);
+}
+
 // Get bracket data for a year — if year not in data, inflate from most recent year
-function getBracketDataForYear(year: number, filingStatus: FilingStatus, inflationRate: number = 0.03): YearBracketData {
+function getBracketDataForYear(
+  year: number,
+  filingStatus: FilingStatus,
+  inflationRate: number = 0.03,
+  mcRateGetter?: MCRateGetter | null,
+): YearBracketData {
   const data = loadBracketData();
   if (data[String(year)]) return data[String(year)];
 
@@ -39,7 +72,7 @@ function getBracketDataForYear(year: number, filingStatus: FilingStatus, inflati
   if (yearsToInflate <= 0) return baseData;
 
   // Inflate bracket thresholds and standard deduction
-  const inflationMultiplier = Math.pow(1 + inflationRate, yearsToInflate);
+  const inflationMultiplier = compoundInflationMultiplier(baseYear, year, inflationRate, mcRateGetter);
   const inflatedBrackets: Record<FilingStatus, TaxBracket[]> = {} as any;
 
   for (const status of ['single', 'mfj', 'mfs', 'hoh'] as FilingStatus[]) {
@@ -103,8 +136,9 @@ export function computeAnnualFederalTax(
   filingStatus: FilingStatus,
   year: number,
   inflationRate: number = 0.03,
+  mcRateGetter?: MCRateGetter | null,
 ): { tax: number; effectiveRate: number; marginalRate: number; taxableIncome: number; taxableSS: number; standardDeduction: number; ssThresholds: { tier1: number; tier2: number } } {
-  const yearData = getBracketDataForYear(year, filingStatus, inflationRate);
+  const yearData = getBracketDataForYear(year, filingStatus, inflationRate, mcRateGetter);
   const brackets = yearData.brackets[filingStatus];
   const standardDeduction = yearData.standardDeduction[filingStatus];
   const ssThresholds = yearData.ssProvisionalThresholds[filingStatus];

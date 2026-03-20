@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { HistoricRates } from './types';
+import { HistoricRates, MCRateGetter, MonteCarloSampleType } from './types';
 import { load } from '../io/io';
 import type { DebugLogger } from './debug-logger';
 
@@ -38,11 +38,17 @@ export class AcaManager {
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
+  private mcRateGetter: MCRateGetter | null = null;
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     // Constructor is minimal; historicRates loaded on-demand
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
+  }
+
+  /** Set the MC rate getter for sampling healthcare inflation in MC mode */
+  setMCRateGetter(getter: MCRateGetter | null): void {
+    this.mcRateGetter = getter;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
@@ -95,11 +101,16 @@ export class AcaManager {
   }
 
   /**
-   * Get healthcare inflation rate for a given year
+   * Get healthcare inflation rate for a given year.
+   * In MC mode, uses the healthcare CPI draw for that year.
+   * In deterministic mode, uses the fixed default (5%).
    * @private
    */
   private getHealthcareInflationRate(year: number): number {
-    // TODO: #13 - Consider loading from configuration, for now use default 5%
+    if (this.mcRateGetter) {
+      const mcRate = this.mcRateGetter(MonteCarloSampleType.HEALTHCARE_INFLATION, year);
+      if (mcRate !== null) return mcRate;
+    }
     return this.DEFAULT_HEALTHCARE_INFLATION;
   }
 

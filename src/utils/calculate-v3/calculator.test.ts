@@ -2274,7 +2274,7 @@ describe('Calculator', () => {
 
       calculator.processTaxEvent(event, segmentResult);
 
-      expect(taxManager.calculateTotalTaxOwed).toHaveBeenCalledWith(2024, 'mfj', 0.03);
+      expect(taxManager.calculateTotalTaxOwed).toHaveBeenCalledWith(2024, 'mfj', 0.03, null);
     });
   });
 

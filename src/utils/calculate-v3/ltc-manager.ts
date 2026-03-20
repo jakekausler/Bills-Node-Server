@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { DebugLogger } from './debug-logger';
+import type { MCRateGetter } from './types';
+import { MonteCarloSampleType } from './types';
 
 // ===== Type Definitions =====
 
@@ -75,6 +77,7 @@ export class LTCManager {
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
+  private mcRateGetter: MCRateGetter | null = null;
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.transitionData = this.loadTransitionData();
@@ -83,6 +86,23 @@ export class LTCManager {
     this.initializePersonStates();
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
+  }
+
+  /** Set the MC rate getter for sampling healthcare inflation in MC mode */
+  setMCRateGetter(getter: MCRateGetter | null): void {
+    this.mcRateGetter = getter;
+  }
+
+  /**
+   * Get healthcare inflation rate for a given year.
+   * In MC mode, uses the healthcare CPI draw. In deterministic, uses fixed 5%.
+   */
+  private getHealthcareInflationRateForYear(year: number): number {
+    if (this.mcRateGetter) {
+      const mcRate = this.mcRateGetter(MonteCarloSampleType.HEALTHCARE_INFLATION, year);
+      if (mcRate !== null) return mcRate;
+    }
+    return this.healthcareInflationRate;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
@@ -329,6 +349,22 @@ export class LTCManager {
   }
 
   /**
+   * Compute compound healthcare inflation multiplier from baseYear to targetYear.
+   * Uses per-year MC draws when available, otherwise fixed rate.
+   */
+  private compoundHealthcareInflation(targetYear: number): number {
+    if (targetYear <= this.baseYear) return 1;
+    if (this.mcRateGetter) {
+      let multiplier = 1;
+      for (let y = this.baseYear + 1; y <= targetYear; y++) {
+        multiplier *= (1 + this.getHealthcareInflationRateForYear(y));
+      }
+      return multiplier;
+    }
+    return Math.pow(1 + this.healthcareInflationRate, targetYear - this.baseYear);
+  }
+
+  /**
    * Get monthly cost for a person in their current state
    */
   getMonthlyCost(personName: string, year: number): number {
@@ -338,7 +374,7 @@ export class LTCManager {
     }
 
     const baseCost = this.baseCosts[state.currentState] ?? 0;
-    const inflated = baseCost * Math.pow(1 + this.healthcareInflationRate, year - this.baseYear);
+    const inflated = baseCost * this.compoundHealthcareInflation(year);
     const costFactor = this.costFactors.get(personName) ?? 1.0;
     return inflated * costFactor;
   }
@@ -420,11 +456,11 @@ export class LTCManager {
     const pAL = t.healthy_to_assistedLiving;
     const pNH = t.healthy_to_nursingHome;
 
+    const inflationMultiplier = this.compoundHealthcareInflation(year);
     const costs = {
-      homeCare: this.baseCosts.homeCare * Math.pow(1 + this.healthcareInflationRate, year - this.baseYear),
-      assistedLiving:
-        this.baseCosts.assistedLiving * Math.pow(1 + this.healthcareInflationRate, year - this.baseYear),
-      nursingHome: this.baseCosts.nursingHome * Math.pow(1 + this.healthcareInflationRate, year - this.baseYear),
+      homeCare: this.baseCosts.homeCare * inflationMultiplier,
+      assistedLiving: this.baseCosts.assistedLiving * inflationMultiplier,
+      nursingHome: this.baseCosts.nursingHome * inflationMultiplier,
     };
 
     return pHome * costs.homeCare + pAL * costs.assistedLiving + pNH * costs.nursingHome;

@@ -9,7 +9,7 @@ import { loadDateOrVariable } from '../simulation/loadVariableValue';
 import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
 import type { DebugLogger } from './debug-logger';
-import type { SegmentResult } from './types';
+import type { MCRateGetter, SegmentResult } from './types';
 
 interface ConversionLot {
   year: number;
@@ -87,6 +87,7 @@ export class RothConversionManager {
     inflationRate: number = 0.03,
     simulation: string = 'default',
     segmentResult?: SegmentResult,
+    mcRateGetter?: MCRateGetter | null,
   ): ConversionResult[] {
     this.conversionsThisYear = [];
     this.currentDate = `${year}-12-31`;
@@ -143,7 +144,7 @@ export class RothConversionManager {
       }
 
       // Get bracket data for this year
-      const bracketData = getBracketDataForYear(year, filingStatus, inflationRate);
+      const bracketData = getBracketDataForYear(year, filingStatus, inflationRate, mcRateGetter);
       const brackets = bracketData.brackets[filingStatus];
       const standardDeduction = bracketData.standardDeduction[filingStatus];
 

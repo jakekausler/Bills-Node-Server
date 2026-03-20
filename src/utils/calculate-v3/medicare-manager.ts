@@ -1,4 +1,4 @@
-import { HistoricRates } from './types';
+import { HistoricRates, MCRateGetter, MonteCarloSampleType } from './types';
 import { load } from '../io/io';
 import type { DebugLogger } from './debug-logger';
 
@@ -66,11 +66,17 @@ export class MedicareManager {
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
+  private mcRateGetter: MCRateGetter | null = null;
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     // Constructor is minimal; historicRates and IRMAA brackets loaded on-demand
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
+  }
+
+  /** Set the MC rate getter for sampling healthcare inflation in MC mode */
+  setMCRateGetter(getter: MCRateGetter | null): void {
+    this.mcRateGetter = getter;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
@@ -162,7 +168,29 @@ export class MedicareManager {
       }
     }
 
-    const yearBrackets = irmaaData[yearStr] || [];
+    let yearBrackets = irmaaData[yearStr] || [];
+    const baseYearNum = parseInt(yearStr, 10);
+
+    // Inflate IRMAA thresholds for future years beyond available data (MC mode only)
+    // In deterministic mode, use the raw bracket data as-is (unchanged behavior)
+    if (this.mcRateGetter && year > baseYearNum && yearBrackets.length > 0) {
+      yearBrackets = yearBrackets.map(bracket => {
+        let inflationMultiplier = 1;
+        for (let y = baseYearNum + 1; y <= year; y++) {
+          const mcRate = this.mcRateGetter!(MonteCarloSampleType.INFLATION, y);
+          const rate = mcRate !== null ? mcRate : 0.03;
+          inflationMultiplier *= (1 + rate);
+        }
+        return {
+          ...bracket,
+          singleMin: Math.round(bracket.singleMin * inflationMultiplier),
+          singleMax: Math.round(bracket.singleMax * inflationMultiplier),
+          marriedMin: Math.round(bracket.marriedMin * inflationMultiplier),
+          marriedMax: Math.round(bracket.marriedMax * inflationMultiplier),
+        };
+      });
+    }
+
     const minIncome = filingStatus === 'mfj' ? 'marriedMin' : 'singleMin';
     const maxIncome = filingStatus === 'mfj' ? 'marriedMax' : 'singleMax';
 
@@ -281,11 +309,14 @@ export class MedicareManager {
 
   /**
    * Get healthcare inflation rate for a given year.
-   * Uses historical rates or defaults to 3%.
+   * In MC mode, uses the healthcare CPI draw. In deterministic, defaults to 3%.
    */
   private getHealthcareInflationRate(year: number): number {
+    if (this.mcRateGetter) {
+      const mcRate = this.mcRateGetter(MonteCarloSampleType.HEALTHCARE_INFLATION, year);
+      if (mcRate !== null) return mcRate;
+    }
     // Default 3% healthcare inflation
-    // Can be extended in the future to use actual historical healthcare CPI data
     return 0.03;
   }
 

@@ -3,7 +3,7 @@ import { join } from 'path';
 import { PortfolioMakeupOverTime } from './types';
 import { Account } from '../../data/account/account';
 import { AccountsAndTransfers } from '../../data/account/types';
-import { CalculationConfig, CalculationOptions, FilingStatus, MonteCarloConfig } from './types';
+import { CalculationConfig, CalculationOptions, FilingStatus, MCRateGetter, MonteCarloConfig, MonteCarloSampleType } from './types';
 import { CacheManager, initializeCache } from './cache';
 import { Timeline } from './timeline';
 import { BalanceTracker } from './balance-tracker';
@@ -387,6 +387,15 @@ export class Engine {
     // Set Monte Carlo config if available
     if (this.monteCarloConfig) {
       this.calculator.setMonteCarloConfig(this.monteCarloConfig);
+
+      // Wire MC rate getter to managers that need per-year sampled rates
+      const mcRateGetter: MCRateGetter = (type: MonteCarloSampleType, year: number): number | null => {
+        if (!this.monteCarloConfig?.handler) return null;
+        return this.monteCarloConfig.handler.getSample(type, new Date(year, 0, 1));
+      };
+      this.acaManager.setMCRateGetter(mcRateGetter);
+      this.ltcManager.setMCRateGetter(mcRateGetter);
+      this.medicareManager.setMCRateGetter(mcRateGetter);
     }
 
     // Initialize push-pull handler

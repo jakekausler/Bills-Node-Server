@@ -26,6 +26,7 @@ import {
   FilingStatus,
   IncomeType,
   InterestEvent,
+  MCRateGetter,
   MonteCarloSampleType,
   PensionEvent,
   RMDEvent,
@@ -157,6 +158,18 @@ export class Calculator {
   getMCRate(type: MonteCarloSampleType, date: Date): number | null {
     if (!this.monteCarloConfig?.handler) return null;
     return this.monteCarloConfig.handler.getSample(type, date);
+  }
+
+  /**
+   * Build an MCRateGetter function that maps (type, year) to the MC-sampled rate.
+   * Returns null in deterministic mode.
+   */
+  getMCRateGetter(): MCRateGetter | null {
+    if (!this.monteCarloConfig?.handler) return null;
+    return (type: MonteCarloSampleType, year: number): number | null => {
+      // Use January 1 of the given year as the date (samples are per-year)
+      return this.getMCRate(type, new Date(year, 0, 1));
+    };
   }
 
   /**
@@ -923,9 +936,22 @@ export class Calculator {
       const yearsCollecting = currentYear - firstPaymentYear;
 
       if (yearsCollecting > 0) {
-        const colaRate = (loadVariable(socialSecurity.colaVariable, this.simulation) as number) || 0;
-        const colaMultiplier = Math.pow(1 + colaRate, yearsCollecting);
-        amount = amount * colaMultiplier;
+        const mcRateGetter = this.getMCRateGetter();
+        if (mcRateGetter) {
+          // MC mode: compound per-year COLA from CPI draws, floored at 0
+          let colaMultiplier = 1;
+          for (let y = firstPaymentYear + 1; y <= currentYear; y++) {
+            const cpiRate = mcRateGetter(MonteCarloSampleType.INFLATION, y);
+            const yearCola = cpiRate !== null ? Math.max(0, cpiRate) : 0;
+            colaMultiplier *= (1 + yearCola);
+          }
+          amount = amount * colaMultiplier;
+        } else {
+          // Deterministic mode: use fixed COLA rate
+          const colaRate = (loadVariable(socialSecurity.colaVariable, this.simulation) as number) || 0;
+          const colaMultiplier = Math.pow(1 + colaRate, yearsCollecting);
+          amount = amount * colaMultiplier;
+        }
       }
     }
 
@@ -991,6 +1017,7 @@ export class Calculator {
       event.date.getUTCFullYear() - 1,
       this.filingStatus,
       this.bracketInflationRate,
+      this.getMCRateGetter(),
     );
     if (amount === 0) {
       return new Map();
@@ -1145,6 +1172,7 @@ export class Calculator {
       this.bracketInflationRate,
       this.simulation,
       segmentResult,
+      this.getMCRateGetter(),
     );
 
     const totalConversionAmount = conversions.reduce((sum: number, c: ConversionResult) => sum + c.amount, 0);
