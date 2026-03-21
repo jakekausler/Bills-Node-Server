@@ -47,6 +47,7 @@ import {
   getFailureHistogram,
   getWorstCases,
   getIncomeExpense,
+  getLongevityData,
 } from './api/monteCarlo/monteCarlo';
 import { getHealthcareProgress } from './api/healthcare/progress';
 import { getHealthcareExpenses } from './api/healthcare/expenses';
@@ -425,6 +426,18 @@ app.get('/api/monte_carlo/simulations/:id/worst-cases', verifyToken, asyncHandle
 app.get('/api/monte_carlo/simulations/:id/income-expense', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     res.json(await getIncomeExpense(req));
+  } catch (error) {
+    const statusCode =
+      error instanceof Error && (error.message.includes('not found') || error.message.includes('not yet completed'))
+        ? 404
+        : 400;
+    res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}));
+
+app.get('/api/monte_carlo/simulations/:id/longevity', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    res.json(await getLongevityData(req));
   } catch (error) {
     const statusCode =
       error instanceof Error && (error.message.includes('not found') || error.message.includes('not yet completed'))

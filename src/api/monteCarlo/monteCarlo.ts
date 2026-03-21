@@ -13,6 +13,7 @@ import { PercentileGraphData, computePercentileGraph, clearDetCache } from '../.
 import { FailureHistogramResult, computeFailureHistogram } from '../../utils/monteCarlo/failureHistogram';
 import { WorstCasesResult, computeWorstCases } from '../../utils/monteCarlo/worstCases';
 import { IncomeExpenseResult, computeIncomeExpense } from '../../utils/monteCarlo/incomeExpense';
+import { LongevityDataPoint, computeLongevityAnalysis } from '../../utils/monteCarlo/longevityAnalysis';
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 
@@ -29,6 +30,9 @@ const worstCasesCache = new Map<string, WorstCasesResult>();
 
 // Key: `{simulationId}:{percentile}`
 const incomeExpenseCache = new Map<string, IncomeExpenseResult>();
+
+// Key: `{simulationId}`
+const longevityCache = new Map<string, LongevityDataPoint[]>();
 
 /**
  * Invalidate all cached graph data for a given simulation
@@ -50,6 +54,7 @@ export function invalidateGraphCache(simulationId: string): void {
       incomeExpenseCache.delete(key);
     }
   }
+  longevityCache.delete(simulationId);
 }
 
 /**
@@ -60,6 +65,7 @@ export function clearAllGraphCache(): void {
   histogramCache.clear();
   worstCasesCache.clear();
   incomeExpenseCache.clear();
+  longevityCache.clear();
   clearDetCache();
 }
 
@@ -143,11 +149,13 @@ export async function getAllSimulations(_req: Request): Promise<SimulationProgre
  * Get the graph data for a completed Monte Carlo simulation.
  * Computes percentiles on-demand from raw results with in-memory caching.
  * Supports ?account={accountId} for per-account percentile data.
+ * Supports ?survivingOnly=true to filter to simulations with survivors in all years.
  * Returns both nominal (data) and real (realValues) in each dataset.
  */
 export async function getSimulationGraph(req: Request): Promise<PercentileGraphData> {
   const { id } = req.params;
   const accountId = req.query.account as string | undefined;
+  const survivingOnly = req.query.survivingOnly === 'true';
 
   if (!id) {
     throw new Error('Simulation ID is required');
@@ -161,8 +169,8 @@ export async function getSimulationGraph(req: Request): Promise<PercentileGraphD
     throw new Error(`Simulation with ID ${id} is not yet completed`);
   }
 
-  // Check cache
-  const cacheKey = `${id}:${accountId || 'combined'}`;
+  // Check cache (include survivingOnly in key)
+  const cacheKey = `${id}:${accountId || 'combined'}:${survivingOnly ? 'surviving' : 'all'}`;
   const cached = graphCache.get(cacheKey);
   if (cached) {
     return cached;
@@ -170,7 +178,7 @@ export async function getSimulationGraph(req: Request): Promise<PercentileGraphD
 
   // Compute on-demand
   try {
-    const graphData = await computePercentileGraph(id, accountId);
+    const graphData = await computePercentileGraph(id, accountId, survivingOnly);
     graphCache.set(cacheKey, graphData);
     return graphData;
   } catch (error) {
@@ -406,5 +414,40 @@ export async function getIncomeExpense(req: Request): Promise<IncomeExpenseResul
       throw new Error('Flow data not available for this simulation. Please re-run.');
     }
     throw new Error(`Failed to compute income/expense data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * #14: Get longevity analysis data for a completed Monte Carlo simulation.
+ * Returns funded ratio and survival probability by age (65-100).
+ */
+export async function getLongevityData(req: Request): Promise<LongevityDataPoint[]> {
+  const { id } = req.params;
+
+  if (!id) {
+    throw new Error('Simulation ID is required');
+  }
+
+  if (!UUID_REGEX.test(id)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
+  if (!(await isSimulationComplete(id))) {
+    throw new Error(`Simulation with ID ${id} is not yet completed`);
+  }
+
+  // Check cache
+  const cached = longevityCache.get(id);
+  if (cached) {
+    return cached;
+  }
+
+  // Compute on-demand
+  try {
+    const result = await computeLongevityAnalysis(id);
+    longevityCache.set(id, result);
+    return result;
+  } catch (error) {
+    throw new Error(`Failed to compute longevity data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

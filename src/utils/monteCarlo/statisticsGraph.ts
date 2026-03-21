@@ -28,6 +28,8 @@ export interface PercentileGraphData {
   finalYear?: { median: number; p5: number; p25: number; p75: number; p95: number; realMedian: number; realP5: number; realP25: number; realP75: number; realP95: number }; // Stats for last year
   seed?: number; // Base seed used for the simulation
   accountNames?: Array<{ id: string; name: string }>; // Available accounts for per-account filtering
+  deathDates?: Array<{ simulationNumber: number; deathDates: Record<string, string | null> }>; // #14: Death dates per simulation for filtering
+  survivingOnlyApplied?: boolean; // Whether survivingOnly filtering was applied
 }
 
 export interface PercentileDataset {
@@ -60,6 +62,7 @@ interface SimulationYearlyData {
   yearlyAccountBalances?: YearlyAccountBalances;
   cumulativeInflation?: Record<number, number>;
   fundingFailureYear?: number | null; // #9: First year a pull account dropped below minimumBalance
+  deathDates?: Record<string, string | null>; // #14: Person name → ISO date or null if alive
 }
 
 /**
@@ -163,6 +166,33 @@ function getMedianCumulativeInflationForYear(
 }
 
 /**
+ * #14: Check if at least one person is alive at a given year
+ * Converts ISO date strings to year and checks if any are >= the given year
+ */
+function hasAnyoneSurvivingInYear(deathDates: Record<string, string | null> | undefined, year: number): boolean {
+  if (!deathDates) return true; // No death data, assume all alive
+
+  for (const [_person, deathDateStr] of Object.entries(deathDates)) {
+    // null = alive at end of simulation
+    if (deathDateStr === null) {
+      return true;
+    }
+    // Parse death date and check if it occurs after the year
+    try {
+      const deathYear = parseInt(deathDateStr.substring(0, 4), 10);
+      if (deathYear > year) {
+        return true; // Someone dies after this year, so they're alive in this year
+      }
+    } catch {
+      // If parsing fails, assume alive
+      return true;
+    }
+  }
+
+  return false; // All persons dead before or during this year
+}
+
+/**
  * Processes all simulations to return pre-computed yearly minimum balances
  * Results file now contains aggregated simulation data (yearly min balances only)
  */
@@ -182,6 +212,7 @@ function processAllSimulations(simulationId: string, separateAccounts: boolean =
       yearlyAccountBalances: separateAccounts ? result.yearlyAccountBalances : undefined,
       cumulativeInflation: result.cumulativeInflation,
       fundingFailureYear: result.fundingFailureYear,
+      deathDates: result.deathDates,
     }));
   } catch (error) {
     throw new Error(`Failed to load simulation results: ${error}`);
@@ -294,11 +325,13 @@ function loadResultsMetadata(simulationId: string): { seed?: number; accountName
  *
  * @param simulationId - ID of the completed simulation
  * @param accountId - Optional account ID; when provided, computes percentiles for that account only
+ * @param survivingOnly - #14: If true, only include simulations where at least one person survives each year
  * @returns Graph data formatted for Chart.js consumption with both nominal and real values
  */
 export async function computePercentileGraph(
   simulationId: string,
   accountId?: string,
+  survivingOnly: boolean = false,
 ): Promise<PercentileGraphData> {
   const PERCENTILES = [0, 5, 25, 40, 50, 60, 75, 95, 100];
 
@@ -306,10 +339,33 @@ export async function computePercentileGraph(
   const needsPerAccount = !!accountId;
 
   // Process all simulations to get yearly data
-  const simulationData = processAllSimulations(simulationId, needsPerAccount);
+  let simulationData = processAllSimulations(simulationId, needsPerAccount);
 
   if (simulationData.length === 0) {
     throw new Error('No simulation data found');
+  }
+
+  // #14: Filter to surviving simulations if requested
+  const totalSimsBeforeFilter = simulationData.length;
+  if (survivingOnly) {
+    // Collect all years first to know which ones to check
+    const allYearsTemp = new Set<number>();
+    simulationData.forEach((sim) => {
+      Object.keys(sim.yearlyMinBalances).forEach((year) => {
+        allYearsTemp.add(parseInt(year));
+      });
+    });
+    const yearsToCheck = Array.from(allYearsTemp).sort();
+
+    // Filter: keep only simulations where someone is alive in ALL years
+    simulationData = simulationData.filter((sim) => {
+      for (const year of yearsToCheck) {
+        if (!hasAnyoneSurvivingInYear(sim.deathDates, year)) {
+          return false; // All dead in this year, exclude this sim
+        }
+      }
+      return true; // Has survivors in all years
+    });
   }
 
   // Load metadata for seed and account names
@@ -496,6 +552,12 @@ export async function computePercentileGraph(
     };
   }
 
+  // #14: Build deathDates array for client-side filtering
+  const deathDatesData = simulationData.map((sim) => ({
+    simulationNumber: sim.simulationNumber,
+    deathDates: sim.deathDates || {},
+  }));
+
   return {
     type: 'percentile',
     labels,
@@ -508,6 +570,8 @@ export async function computePercentileGraph(
     finalYear,
     seed: metadata.seed,
     accountNames: metadata.accountNames,
+    deathDates: deathDatesData,
+    survivingOnlyApplied: survivingOnly,
   };
 }
 
