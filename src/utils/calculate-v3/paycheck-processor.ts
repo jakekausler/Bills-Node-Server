@@ -282,14 +282,25 @@ export class PaycheckProcessor {
     // Step 5: Employer match (computed from employee 401k contribution)
     if (profile.employerMatch) {
       const totalEmployee401k = traditional401k + roth401k;
-      employerMatch = this.computeEmployerMatch(grossPay, totalEmployee401k, profile.employerMatch, paychecksPerYear);
+      // Base gross excludes imputed income additions for match % calculation
+      let baseGross = grossPay;
+      if (profile.deductions) {
+        for (const ded of profile.deductions) {
+          if (ded.imputed) baseGross -= ded.amount;
+        }
+      }
+      // Also subtract hsaEmployerContribution if present (it's imputed)
+      if (profile.hsaEmployerContribution) {
+        baseGross -= profile.hsaEmployerContribution / paychecksPerYear;
+      }
+      employerMatch = this.computeEmployerMatch(baseGross, totalEmployee401k, profile.employerMatch, paychecksPerYear);
       if (employerMatch > 0) {
         depositActivities.push({
           accountId: profile.employerMatch.destinationAccount,
           amount: employerMatch,
           label: 'Employer 401k Match',
         });
-        this.log('employer-match-computed', { amount: employerMatch, mode: profile.employerMatch.mode });
+        this.log('employer-match-computed', { amount: employerMatch, mode: profile.employerMatch.mode, baseGross });
       }
     }
 
@@ -413,14 +424,24 @@ export class PaycheckProcessor {
       // Employer match on bonus 401k contributions
       if (profile.employerMatch) {
         const totalEmployee = traditional401k + roth401k;
-        employerMatch = this.computeEmployerMatch(bonusGross, totalEmployee, profile.employerMatch, 1); // 1 = single bonus payment
+        // For bonus, calculate base bonus gross (excluding imputed deductions)
+        let bonusBaseGross = bonusGross;
+        if (profile.deductions) {
+          for (const ded of profile.deductions) {
+            if (ded.imputed) bonusBaseGross -= ded.amount * paychecksPerYear;
+          }
+        }
+        if (profile.hsaEmployerContribution) {
+          bonusBaseGross -= profile.hsaEmployerContribution;
+        }
+        employerMatch = this.computeEmployerMatch(bonusBaseGross, totalEmployee, profile.employerMatch, 1); // 1 = single bonus payment
         if (employerMatch > 0) {
           depositActivities.push({
             accountId: profile.employerMatch.destinationAccount,
             amount: employerMatch,
             label: 'Employer 401k Match (Bonus)',
           });
-          this.log('bonus-employer-match-computed', { amount: employerMatch, bonusGross });
+          this.log('bonus-employer-match-computed', { amount: employerMatch, bonusGross, bonusBaseGross });
         }
       }
     }
@@ -491,9 +512,11 @@ export class PaycheckProcessor {
 
   /**
    * Compute employer match based on employee contribution and match configuration.
+   * Note: deductions with increaseByVariable will be consumed when the bill's increaseByVariable
+   * is applied during yearly inflation processing (deferred to future PR).
    */
   computeEmployerMatch(
-    grossPay: number,
+    baseGross: number,
     employeeContribution: number,
     config: EmployerMatchConfig,
     paychecksPerYear: number,
@@ -502,7 +525,7 @@ export class PaycheckProcessor {
 
     switch (config.mode) {
       case 'simple': {
-        const maxMatch = grossPay * (config.simplePercent ?? 0);
+        const maxMatch = baseGross * (config.simplePercent ?? 0);
         return Math.min(maxMatch, employeeContribution);
       }
       case 'tiered': {
@@ -510,7 +533,7 @@ export class PaycheckProcessor {
         let remainingEmployee = employeeContribution;
         let prevTierCap = 0;
         for (const tier of config.tiers ?? []) {
-          const tierBand = (tier.upToPercent - prevTierCap) * grossPay;
+          const tierBand = (tier.upToPercent - prevTierCap) * baseGross;
           const matchable = Math.min(tierBand, remainingEmployee);
           totalMatch += matchable * tier.matchPercent;
           remainingEmployee -= matchable;
