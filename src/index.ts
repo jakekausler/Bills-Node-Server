@@ -77,6 +77,7 @@ import {
   getSpendingTrackerChartData,
   ApiError,
 } from './api/spendingTracker/spendingTracker';
+import { getTaxSummary } from './api/tax-summary';
 
 declare global {
   namespace Express {
@@ -745,6 +746,15 @@ app
   .delete(verifyToken, apiErrorHandler(deleteSpendingTrackerCategory));
 
 app.get('/api/spending-tracker/:id/chart-data', verifyToken, apiErrorHandler(getSpendingTrackerChartData));
+
+// Tax Summary route
+app.get('/api/tax-summary', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    res.json(await getTaxSummary(req));
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to get tax summary' });
+  }
+}));
 
 // Cache clear endpoint (for development — forces re-reads of data files)
 app.post('/api/cache/clear', verifyToken, (_req: Request, res: Response) => {
