@@ -526,16 +526,16 @@ export class Engine {
 
       // Check for year boundary before processing segment
       const segmentYear = segment.startDate.getUTCFullYear();
-      if (this.flowAggregator && segmentYear > lastYear) {
-        // Set ending balance for the previous year and starting balance for the new year
-        this.flowAggregator.setEndingBalance(lastYear, this.getPortfolioBalance());
-        this.flowAggregator.setStartingBalance(segmentYear, this.getPortfolioBalance());
-        lastYear = segmentYear;
-      }
-
-      // Year-boundary hook for job loss evaluation (MC mode only)
       if (segmentYear > lastYear || (i === 0 && this.monteCarloConfig)) {
+        if (this.flowAggregator && segmentYear > lastYear) {
+          this.flowAggregator.setEndingBalance(lastYear, this.getPortfolioBalance());
+          this.flowAggregator.setStartingBalance(segmentYear, this.getPortfolioBalance());
+        }
+
+        // Year-boundary hook for job loss evaluation (MC mode only)
         this.evaluateJobLossAtYearBoundary(segmentYear, accountsAndTransfers);
+
+        lastYear = segmentYear;
       }
 
       await this.segmentProcessor.processSegment(segment, options);
@@ -597,15 +597,11 @@ export class Engine {
         const unemploymentRate = this.monteCarloConfig.handler.getSample(MonteCarloSampleType.UNEMPLOYMENT_RATE, yearDate) ?? 4.0;
         const unemploymentDuration = this.monteCarloConfig.handler.getSample(MonteCarloSampleType.UNEMPLOYMENT_DURATION, yearDate) ?? 20;
 
-        // For now, pass null as retirement date — the job loss manager checks internally
-        // via the socialSecurities/pensions in the retirement manager if needed
-        const retirementDate = null;
-
         // Evaluate job loss for this person at the year start
         this.calculator.getJobLossManager().evaluateYearStart(
           year,
           bill.name,
-          retirementDate,
+          bill.endDate,
           unemploymentRate,
           unemploymentDuration,
           profile.jobLoss.scaleFactor || 1.5,
