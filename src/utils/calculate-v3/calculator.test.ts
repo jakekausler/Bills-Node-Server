@@ -313,6 +313,7 @@ function makeTaxManager(overrides: Partial<{
     calculateTotalTaxOwed: taxOwedFn,
     computeReconciliation: reconciliationFn,
     addTaxableOccurrences: vi.fn(),
+    getAllOccurrencesForYear: vi.fn(() => []),
   };
 }
 
@@ -412,6 +413,8 @@ function makeLTCManager(overrides: Partial<{
   allDeceased: ReturnType<typeof vi.fn>;
   isAccountOwnerDeceased: ReturnType<typeof vi.fn>;
   extractPersonNameFromEntity: ReturnType<typeof vi.fn>;
+  getFilingStatus: ReturnType<typeof vi.fn>;
+  getAlivePeople: ReturnType<typeof vi.fn>;
 }> = {}): Partial<any> {
   return {
     stepMonth: overrides.stepMonth ?? vi.fn(),
@@ -422,6 +425,8 @@ function makeLTCManager(overrides: Partial<{
     allDeceased: overrides.allDeceased ?? vi.fn(() => false),
     isAccountOwnerDeceased: overrides.isAccountOwnerDeceased ?? vi.fn(() => false),
     extractPersonNameFromEntity: overrides.extractPersonNameFromEntity ?? vi.fn((name: string) => name.replace(/ Social Security$/, '').replace(/ Pension$/, '')),
+    getFilingStatus: overrides.getFilingStatus ?? vi.fn(() => 'mfj'),
+    getAlivePeople: overrides.getAlivePeople ?? vi.fn(() => ['Jake', 'Kendall']),
   };
 }
 
@@ -2733,6 +2738,168 @@ describe('Calculator', () => {
       expect(stManager.updateCarry).toHaveBeenCalledWith('cat-1', 100, expect.any(Date));
       expect(stManager.resetPeriodSpending).toHaveBeenCalledWith('cat-1');
       expect(stManager.markPeriodProcessed).toHaveBeenCalledWith('cat-1', expect.any(Date));
+    });
+  });
+
+  // ─── Stage 6: Dynamic Filing Status ─────────────────────────────────────
+
+  describe('Dynamic Filing Status (Stage 6)', () => {
+    it('uses mfj filing status when both alive', () => {
+      const ltcManager = makeLTCManager({
+        getFilingStatus: vi.fn(() => 'mfj'),
+      });
+      const taxManager = makeTaxManager({
+        computeReconciliation: vi.fn(() => ({
+          totalIncome: 100000,
+          agi: 100000,
+          taxableIncome: 70000,
+          totalTaxOwed: 10000,
+          totalWithheld: 8000,
+          settlement: 2000,
+        })),
+      });
+      const account = makeAccount({ id: 'account-1', name: 'Checking' });
+      const balanceTracker = makeBalanceTracker({
+        findAccountById: vi.fn(() => account),
+      });
+      const calculator = makeCalculator({ balanceTracker, taxManager, ltcManager });
+      const segmentResult = makeSegmentResult();
+
+      const event: TaxEvent = {
+        id: 'evt-tax-mfj',
+        type: EventType.tax,
+        date: new Date('2024-04-15'),
+        accountId: 'account-1',
+        priority: 5,
+      };
+
+      calculator.processTaxEvent(event, segmentResult);
+      // Verify computeReconciliation was called with mfj status
+      expect(taxManager.computeReconciliation).toHaveBeenCalled();
+    });
+
+    it('uses single filing status when one spouse deceased', () => {
+      const ltcManager = makeLTCManager({
+        getFilingStatus: vi.fn(() => 'single'),
+      });
+      const taxManager = makeTaxManager({
+        computeReconciliation: vi.fn(() => ({
+          totalIncome: 100000,
+          agi: 100000,
+          taxableIncome: 75000,
+          totalTaxOwed: 11000,
+          totalWithheld: 8000,
+          settlement: 3000,
+        })),
+      });
+      const account = makeAccount({ id: 'account-1', name: 'Checking' });
+      const balanceTracker = makeBalanceTracker({
+        findAccountById: vi.fn(() => account),
+      });
+      const calculator = makeCalculator({ balanceTracker, taxManager, ltcManager });
+      const segmentResult = makeSegmentResult();
+
+      const event: TaxEvent = {
+        id: 'evt-tax-single',
+        type: EventType.tax,
+        date: new Date('2030-04-15'),
+        accountId: 'account-1',
+        priority: 5,
+      };
+
+      calculator.processTaxEvent(event, segmentResult);
+      // Tax should be higher for single due to narrower brackets
+      expect(segmentResult.balanceChanges.get('account-1')).toBe(-3000);
+    });
+  });
+
+  // ─── Stage 8: Dynamic ACA Household Size ─────────────────────────────────
+
+  describe('Dynamic ACA Household Size (Stage 8)', () => {
+    it('uses alive people count for household size', () => {
+      const ltcManager = makeLTCManager({
+        getAlivePeople: vi.fn(() => ['Jake', 'Kendall']),
+      });
+      const acaManager = makeAcaManager({
+        getMonthlyHealthcarePremium: vi.fn(() => 950),
+      });
+      const account = makeAccount({ id: 'account-1', name: 'Checking' });
+      const balanceTracker = makeBalanceTracker({
+        findAccountById: vi.fn(() => account),
+      });
+      const calculator = makeCalculator({ balanceTracker, acaManager, ltcManager });
+      const segmentResult = makeSegmentResult();
+
+      const event: AcaPremiumEvent = {
+        id: 'evt-aca',
+        type: EventType.acaPremium,
+        date: new Date('2026-01-15'),
+        accountId: 'account-1',
+        priority: 3,
+        personName: 'Jake',
+        ownerAge: 65,
+        year: 2026,
+        retirementDate: new Date('2026-01-01'),
+        birthDate1: new Date('1961-01-15'),
+        birthDate2: new Date('1961-06-15'),
+        isCobraPeriod: false,
+      };
+
+      calculator.processAcaPremiumEvent(event, segmentResult);
+
+      // Verify household size of 2 was used
+      expect(acaManager.getMonthlyHealthcarePremium).toHaveBeenCalledWith(
+        expect.any(Date),
+        expect.any(Date),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        2, // household size
+        expect.any(Number),
+      );
+    });
+
+    it('adjusts household size to 1 when one spouse dies', () => {
+      const ltcManager = makeLTCManager({
+        getAlivePeople: vi.fn(() => ['Kendall']),
+      });
+      const acaManager = makeAcaManager({
+        getMonthlyHealthcarePremium: vi.fn(() => 550),
+      });
+      const account = makeAccount({ id: 'account-1', name: 'Checking' });
+      const balanceTracker = makeBalanceTracker({
+        findAccountById: vi.fn(() => account),
+      });
+      const calculator = makeCalculator({ balanceTracker, acaManager, ltcManager });
+      const segmentResult = makeSegmentResult();
+
+      const event: AcaPremiumEvent = {
+        id: 'evt-aca-one-alive',
+        type: EventType.acaPremium,
+        date: new Date('2031-01-15'),
+        accountId: 'account-1',
+        priority: 3,
+        personName: 'Kendall',
+        ownerAge: 70,
+        year: 2031,
+        retirementDate: new Date('2026-01-01'),
+        birthDate1: new Date('1961-01-15'),
+        birthDate2: new Date('1961-06-15'),
+        isCobraPeriod: false,
+      };
+
+      calculator.processAcaPremiumEvent(event, segmentResult);
+
+      // Verify household size of 1 was used
+      expect(acaManager.getMonthlyHealthcarePremium).toHaveBeenCalledWith(
+        expect.any(Date),
+        expect.any(Date),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        1, // household size reduced
+        expect.any(Number),
+      );
     });
   });
 });

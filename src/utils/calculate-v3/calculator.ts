@@ -671,7 +671,8 @@ export class Calculator {
     const ssWageBaseCap = this.retirementManager.getWageBaseCapForYear(year);
 
     // Determine additional Medicare threshold based on filing status
-    const additionalMedicareThreshold = this.filingStatus === 'mfj' ? 250000 : 200000;
+    const filingStatus = this.mortalityManager?.getFilingStatus(event.date) ?? this.filingStatus;
+    const additionalMedicareThreshold = filingStatus === 'mfj' ? 250000 : 200000;
 
     // Compute paychecks per year from bill frequency
     const paychecksPerYear = this.computePaychecksPerYear(bill.everyN, bill.periods);
@@ -715,7 +716,8 @@ export class Calculator {
 
     // Get standard deduction for this year and filing status
     const yearForBrackets = year;
-    const bracketDataForYear = computeAnnualFederalTax(0, 0, this.filingStatus, yearForBrackets, this.bracketInflationRate, mcGetter);
+    const dynamicFilingStatus = this.mortalityManager?.getFilingStatus(event.date) ?? this.filingStatus;
+    const bracketDataForYear = computeAnnualFederalTax(0, 0, dynamicFilingStatus, yearForBrackets, this.bracketInflationRate, mcGetter);
     const standardDeduction = bracketDataForYear.standardDeduction;
 
     // Create bracket lookup callback
@@ -726,7 +728,7 @@ export class Calculator {
 
     // Create tax profile for withholding (use account config if available, fallback to defaults)
     const taxProfile: TaxProfile = {
-      filingStatus: this.filingStatus,
+      filingStatus: dynamicFilingStatus,
       state: 'NC', // TODO: load from account config or simulation profile
       stateTaxRate: 0.0475, // NC state tax rate (4.75%)
       itemizationMode: 'standard' as const,
@@ -1613,10 +1615,19 @@ export class Calculator {
     // Get prior year for reconciliation
     const taxYear = event.date.getUTCFullYear() - 1;
 
+    // Use dynamic filing status for tax year
+    const taxEventFilingStatus = this.mortalityManager?.getFilingStatus(event.date) ?? this.filingStatus;
+    const taxEventProfile: TaxProfile = {
+      filingStatus: taxEventFilingStatus,
+      state: this.taxProfile.state,
+      stateTaxRate: this.taxProfile.stateTaxRate,
+      itemizationMode: this.taxProfile.itemizationMode,
+    };
+
     // Compute unified tax reconciliation for prior year
     const reconciliation = this.taxManager.computeReconciliation(
       taxYear,
-      this.taxProfile,
+      taxEventProfile,
       this.deductionTracker,
       this.bracketInflationRate,
       this.getMCRateGetter(),
@@ -1794,11 +1805,12 @@ export class Calculator {
 
     // Process Roth conversions for this year
     // This delegates to the RothConversionManager which handles the bracket-filling logic
+    const rothFilingStatus = this.mortalityManager?.getFilingStatus(event.date) ?? this.filingStatus;
     const conversions = this.rothConversionManager.processConversions(
       event.year,
       this.taxManager,
       this.balanceTracker,
-      this.filingStatus,
+      rothFilingStatus,
       this.bracketInflationRate,
       this.simulation,
       segmentResult,
@@ -2213,7 +2225,8 @@ export class Calculator {
     const magi = priorOccurrences.reduce((sum, occ) => sum + occ.amount, 0);
 
     // Map FilingStatus to Medicare filing status (convert mfs/hoh to single)
-    const medicareFilingStatus = (this.filingStatus === 'mfj') ? 'mfj' : 'single';
+    const dynamicMedicareFilingStatus = this.mortalityManager?.getFilingStatus(event.date) ?? this.filingStatus;
+    const medicareFilingStatus = (dynamicMedicareFilingStatus === 'mfj') ? 'mfj' : 'single';
 
     // Get monthly Medicare cost including IRMAA surcharge
     const monthlyMedicareCost = this.medicareManager.getMonthlyMedicareCost(
@@ -2364,14 +2377,15 @@ export class Calculator {
     const age1 = dayjs.utc(event.date).diff(event.birthDate1, 'year');
     const age2 = dayjs.utc(event.date).diff(event.birthDate2, 'year');
 
-    // Get monthly ACA/COBRA premium
+    // Get monthly ACA/COBRA premium (household size = number of alive people)
+    const householdSize = this.mortalityManager?.getAlivePeople().length ?? 2;
     const monthlyPremium = this.acaManager.getMonthlyHealthcarePremium(
       event.retirementDate,
       event.date,
       age1,
       age2,
       priorMAGI,
-      2, // household size = 2
+      householdSize,
       year,
     );
 

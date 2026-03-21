@@ -88,6 +88,7 @@ export class MortalityManager {
   private deathDates: Map<string, Date | null> = new Map();
   private personNameMapping: Map<string, string> = new Map();
   private checkpointData: string | null = null;
+  private lockedSurvivorBenefits: Map<string, number> = new Map();
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.transitionData = this.loadTransitionData();
@@ -637,6 +638,23 @@ export class MortalityManager {
   }
 
   /**
+   * Lock a person's SS benefit when they die
+   * Survivor spouse will use max(own benefit, deceased's locked benefit)
+   */
+  lockSurvivorBenefit(person: string, monthlyBenefit: number): void {
+    this.lockedSurvivorBenefits.set(person, monthlyBenefit);
+    this.log('survivor-benefit-locked', { person, monthly_benefit: monthlyBenefit });
+  }
+
+  /**
+   * Get the locked survivor benefit for a deceased person
+   * Returns 0 if person not deceased or benefit not locked
+   */
+  getLockedSurvivorBenefit(person: string): number {
+    return this.lockedSurvivorBenefits.get(person) ?? 0;
+  }
+
+  /**
    * Evaluate annual mortality for under-65 persons (outside of monthly LTC checks)
    * For age >= 65, death is handled by stepMonth monthly checks
    */
@@ -681,11 +699,17 @@ export class MortalityManager {
       costFactorsObj[person] = factor;
     }
 
+    const survivorBenefitsObj: Record<string, number> = {};
+    for (const [person, benefit] of this.lockedSurvivorBenefits) {
+      survivorBenefitsObj[person] = benefit;
+    }
+
     this.checkpointData = JSON.stringify({
       personStates: personStatesObj,
       deathDates: deathDatesObj,
       personNameMapping: nameMapObj,
       costFactors: costFactorsObj,
+      lockedSurvivorBenefits: survivorBenefitsObj,
     });
   }
 
@@ -702,6 +726,7 @@ export class MortalityManager {
         deathDates: Record<string, string | null>;
         personNameMapping: Record<string, string>;
         costFactors: Record<string, number>;
+        lockedSurvivorBenefits?: Record<string, number>;
       };
 
       // Restore person states
@@ -727,6 +752,14 @@ export class MortalityManager {
       for (const [person, factor] of Object.entries(data.costFactors)) {
         this.costFactors.set(person, factor);
       }
+
+      // Restore locked survivor benefits
+      this.lockedSurvivorBenefits.clear();
+      if (data.lockedSurvivorBenefits) {
+        for (const [person, benefit] of Object.entries(data.lockedSurvivorBenefits)) {
+          this.lockedSurvivorBenefits.set(person, benefit);
+        }
+      }
     } catch (e) {
       this.log('checkpoint-restore-failed', { error: String(e) });
     }
@@ -739,6 +772,7 @@ export class MortalityManager {
     this.initializePersonStates();
     this.costFactors.clear();
     this.deathDates.clear();
+    this.lockedSurvivorBenefits.clear();
     // Do NOT clear personNameMapping — it's configuration, not per-simulation state
   }
 

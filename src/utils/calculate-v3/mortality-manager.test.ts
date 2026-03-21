@@ -418,6 +418,40 @@ describe('MortalityManager', () => {
     });
   });
 
+  describe('Survivor Benefits', () => {
+    it('should lock survivor benefit when person dies', () => {
+      manager.lockSurvivorBenefit('Jake', 2500);
+      expect(manager.getLockedSurvivorBenefit('Jake')).toBe(2500);
+    });
+
+    it('should return 0 for unlocked person', () => {
+      expect(manager.getLockedSurvivorBenefit('Jake')).toBe(0);
+    });
+
+    it('should preserve locked benefits in checkpoint/restore', () => {
+      manager.lockSurvivorBenefit('Jake', 2500);
+      manager.lockSurvivorBenefit('Kendall', 1800);
+
+      manager.checkpoint();
+      manager.resetPersonStates();
+
+      expect(manager.getLockedSurvivorBenefit('Jake')).toBe(0);
+      expect(manager.getLockedSurvivorBenefit('Kendall')).toBe(0);
+
+      manager.restore();
+      expect(manager.getLockedSurvivorBenefit('Jake')).toBe(2500);
+      expect(manager.getLockedSurvivorBenefit('Kendall')).toBe(1800);
+    });
+
+    it('should clear locked benefits on resetPersonStates', () => {
+      manager.lockSurvivorBenefit('Jake', 2500);
+      expect(manager.getLockedSurvivorBenefit('Jake')).toBe(2500);
+
+      manager.resetPersonStates();
+      expect(manager.getLockedSurvivorBenefit('Jake')).toBe(0);
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle age clamping at 119', () => {
       // Very high age should clamp to 119 for table lookup
