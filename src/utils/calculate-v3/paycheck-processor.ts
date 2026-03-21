@@ -2,6 +2,9 @@ import { PaycheckProfile, EmployerMatchConfig } from '../../data/bill/paycheck-t
 import { PaycheckResult } from './types';
 import { PaycheckStateTracker } from './paycheck-state-tracker';
 import { ContributionLimitManager } from './contribution-limit-manager';
+import { WithholdingCalculator, BracketLookup } from './withholding-calculator';
+import { TaxManager } from './tax-manager';
+import type { TaxProfile } from './tax-profile-types';
 import type { DebugLogger } from './debug-logger';
 
 /**
@@ -10,6 +13,8 @@ import type { DebugLogger } from './debug-logger';
 export class PaycheckProcessor {
   private paycheckStateTracker: PaycheckStateTracker;
   private contributionLimitManager: ContributionLimitManager;
+  private withholdingCalculator: WithholdingCalculator | null;
+  private taxManager: TaxManager | null;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
@@ -17,11 +22,15 @@ export class PaycheckProcessor {
   constructor(
     paycheckStateTracker: PaycheckStateTracker,
     contributionLimitManager: ContributionLimitManager,
+    withholdingCalculator?: WithholdingCalculator | null,
+    taxManager?: TaxManager | null,
     debugLogger?: DebugLogger | null,
     simNumber: number = 0,
   ) {
     this.paycheckStateTracker = paycheckStateTracker;
     this.contributionLimitManager = contributionLimitManager;
+    this.withholdingCalculator = withholdingCalculator ?? null;
+    this.taxManager = taxManager ?? null;
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
   }
@@ -52,6 +61,9 @@ export class PaycheckProcessor {
    * @param additionalMedicareThreshold - Additional Medicare tax threshold (200k single / 250k MFJ)
    * @param paychecksPerYear - Expected number of paychecks per year (26 for biweekly, 12 for monthly, etc.)
    * @param mcRateGetter - Optional function to get MC-sampled rates
+   * @param taxProfile - Optional tax profile for withholding calculations
+   * @param standardDeduction - Optional standard deduction amount
+   * @param bracketLookup - Optional callback to compute federal tax from taxable income
    */
   processPaycheck(
     grossPay: number,
@@ -63,6 +75,9 @@ export class PaycheckProcessor {
     additionalMedicareThreshold: number,
     paychecksPerYear: number,
     mcRateGetter?: ((type: string) => number | undefined),
+    taxProfile?: TaxProfile | null,
+    standardDeduction?: number,
+    bracketLookup?: BracketLookup,
   ): PaycheckResult {
     const year = date.getUTCFullYear();
     const yearMonth = `${year}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
@@ -225,7 +240,34 @@ export class PaycheckProcessor {
       medicareTax,
     });
 
-    // Step 4: Post-tax deductions
+    // Step 4b: Federal withholding
+    let federalWithholding = 0;
+    if (this.withholdingCalculator && taxProfile && standardDeduction !== undefined && standardDeduction !== null && bracketLookup) {
+      const taxableWagesPerPeriod = grossPay - totalPreTax; // gross minus pre-tax deductions
+      federalWithholding = this.withholdingCalculator.computeFederalWithholding(
+        taxableWagesPerPeriod,
+        paychecksPerYear,
+        taxProfile.filingStatus,
+        profile.w4,
+        date.getUTCFullYear(),
+        standardDeduction,
+        bracketLookup,
+      );
+    }
+
+    // Step 4c: State withholding
+    let stateWithholding = 0;
+    if (taxProfile) {
+      stateWithholding = taxProfile.stateTaxRate * (grossPay - totalPreTax);
+    }
+
+    this.log('withholding-computed', {
+      federalWithholding,
+      stateWithholding,
+      taxableWagesPerPeriod: grossPay - totalPreTax,
+    });
+
+    // Step 5: Post-tax deductions
     let totalPostTax = 0;
 
     // Roth 401k (post-tax — does NOT reduce taxable income)
@@ -279,7 +321,7 @@ export class PaycheckProcessor {
       }
     }
 
-    // Step 5: Employer match (computed from employee 401k contribution)
+    // Step 6: Employer match (computed from employee 401k contribution)
     if (profile.employerMatch) {
       const totalEmployee401k = traditional401k + roth401k;
       // Base gross excludes imputed income additions for match % calculation
@@ -304,11 +346,31 @@ export class PaycheckProcessor {
       }
     }
 
-    // Step 6: Net pay
-    const netPay = grossPay - totalPreTax - ssTax - medicareTax - totalPostTax;
+    // Step 7: Net pay
+    const netPay = grossPay - totalPreTax - ssTax - medicareTax - federalWithholding - stateWithholding - totalPostTax;
 
     if (netPay < 0) {
-      this.log('negative-net-pay', { grossPay, totalPreTax, ssTax, medicareTax, totalPostTax, netPay });
+      this.log('negative-net-pay', {
+        grossPay,
+        totalPreTax,
+        ssTax,
+        medicareTax,
+        federalWithholding,
+        stateWithholding,
+        totalPostTax,
+        netPay,
+      });
+    }
+
+    // Record withholding in TaxManager if amounts are present
+    if (this.taxManager && (federalWithholding > 0 || stateWithholding > 0)) {
+      this.taxManager.addWithholdingOccurrence({
+        date,
+        year,
+        federalAmount: federalWithholding,
+        stateAmount: stateWithholding,
+        source: billName,
+      });
     }
 
     this.log('paycheck-processed', {
@@ -321,6 +383,8 @@ export class PaycheckProcessor {
       hsaEmployer,
       ssTax,
       medicareTax,
+      federalWithholding,
+      stateWithholding,
       totalPreTax,
       totalPostTax,
     });
@@ -335,8 +399,8 @@ export class PaycheckProcessor {
       hsaEmployer,
       ssTax,
       medicareTax,
-      federalWithholding: 0, // Cycle A: not implemented
-      stateWithholding: 0, // Cycle A: not implemented
+      federalWithholding,
+      stateWithholding,
       preTaxDeductions,
       postTaxDeductions,
       depositActivities,
@@ -349,7 +413,7 @@ export class PaycheckProcessor {
    * - 401k only (if subjectTo401k is true)
    * - No HSA, no custom deductions
    * - FICA applies (counts toward YTD SS and Medicare)
-   * - No withholding in Cycle A
+   * - Withholding uses 22% flat supplemental rate
    *
    * @param grossPay - Gross pay per regular paycheck (used as base for bonus %)
    * @param paychecksPerYear - Expected number of paychecks per year (26 for biweekly, etc.)
@@ -359,6 +423,7 @@ export class PaycheckProcessor {
    * @param accountOwnerDOB - DOB of account owner (for contribution limits and FICA tracking)
    * @param ssWageBaseCap - Annual Social Security wage cap for this year
    * @param additionalMedicareThreshold - Additional Medicare tax threshold
+   * @param taxProfile - Optional tax profile for withholding calculations
    */
   processBonusPaycheck(
     grossPay: number,
@@ -369,6 +434,7 @@ export class PaycheckProcessor {
     accountOwnerDOB: Date | null,
     ssWageBaseCap: number,
     additionalMedicareThreshold: number,
+    taxProfile?: TaxProfile | null,
   ): PaycheckResult {
     const year = date.getUTCFullYear();
     const bonusGross = grossPay * paychecksPerYear * (profile.bonus?.percent ?? 0);
@@ -468,8 +534,26 @@ export class PaycheckProcessor {
       medicareTax,
     });
 
-    // Net pay = bonus gross - pre-tax deductions - FICA - post-tax deductions
-    const netPay = bonusGross - totalPreTax - ssTax - medicareTax - totalPostTax;
+    // Bonus federal withholding: 22% flat supplemental rate
+    let federalWithholding = 0;
+    if (this.withholdingCalculator) {
+      federalWithholding = this.withholdingCalculator.computeBonusWithholding(bonusGross, totalPreTax);
+    }
+
+    // Bonus state withholding: same flat rate
+    let stateWithholding = 0;
+    if (taxProfile) {
+      stateWithholding = taxProfile.stateTaxRate * (bonusGross - totalPreTax);
+    }
+
+    this.log('bonus-withholding-computed', {
+      federalWithholding,
+      stateWithholding,
+      taxableBonusAmount: bonusGross - totalPreTax,
+    });
+
+    // Net pay = bonus gross - pre-tax deductions - FICA - withholding - post-tax deductions
+    const netPay = bonusGross - totalPreTax - ssTax - medicareTax - federalWithholding - stateWithholding - totalPostTax;
 
     if (netPay < 0) {
       this.log('bonus-negative-net-pay', {
@@ -477,7 +561,20 @@ export class PaycheckProcessor {
         totalPreTax,
         ssTax,
         medicareTax,
+        federalWithholding,
+        stateWithholding,
         netPay,
+      });
+    }
+
+    // Record withholding in TaxManager if amounts are present
+    if (this.taxManager && (federalWithholding > 0 || stateWithholding > 0)) {
+      this.taxManager.addWithholdingOccurrence({
+        date,
+        year,
+        federalAmount: federalWithholding,
+        stateAmount: stateWithholding,
+        source: billName,
       });
     }
 
@@ -489,6 +586,8 @@ export class PaycheckProcessor {
       employerMatch,
       ssTax,
       medicareTax,
+      federalWithholding,
+      stateWithholding,
       totalPreTax,
     });
 
@@ -502,8 +601,8 @@ export class PaycheckProcessor {
       hsaEmployer: 0,
       ssTax,
       medicareTax,
-      federalWithholding: 0,
-      stateWithholding: 0,
+      federalWithholding,
+      stateWithholding,
       preTaxDeductions,
       postTaxDeductions,
       depositActivities,

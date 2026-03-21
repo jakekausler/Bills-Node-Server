@@ -14,6 +14,9 @@ import { SpendingTrackerManager } from './spending-tracker-manager';
 import { ContributionLimitManager } from './contribution-limit-manager';
 import { PaycheckStateTracker } from './paycheck-state-tracker';
 import { PaycheckProcessor } from './paycheck-processor';
+import { WithholdingCalculator } from './withholding-calculator';
+import type { TaxProfile } from './tax-profile-types';
+import type { PaycheckResult } from './types';
 import { RothConversionManager, ConversionResult } from './roth-conversion-manager';
 import { DeductionTracker } from './deduction-tracker';
 import { loadVariable } from '../simulation/variable';
@@ -44,6 +47,7 @@ import {
   AcaPremiumEvent,
   LTCCheckEvent,
 } from './types';
+import { computeAnnualFederalTax } from './bracket-calculator';
 
 dayjs.extend(utc);
 
@@ -107,9 +111,12 @@ export class Calculator {
     this.contributionLimitManager = new ContributionLimitManager(debugLogger, simNumber);
     this.deductionTracker = new DeductionTracker(debugLogger, simNumber);
     this.paycheckStateTracker = new PaycheckStateTracker(debugLogger, simNumber);
+    const withholdingCalculator = new WithholdingCalculator(debugLogger, simNumber);
     this.paycheckProcessor = new PaycheckProcessor(
       this.paycheckStateTracker,
       this.contributionLimitManager,
+      withholdingCalculator,
+      taxManager,
       debugLogger,
       simNumber,
     );
@@ -599,6 +606,25 @@ export class Calculator {
         }
       : undefined;
 
+    // Get standard deduction for this year and filing status
+    const yearForBrackets = year;
+    const bracketDataForYear = computeAnnualFederalTax(0, 0, this.filingStatus, yearForBrackets, this.bracketInflationRate, mcGetter);
+    const standardDeduction = bracketDataForYear.standardDeduction;
+
+    // Create bracket lookup callback
+    const bracketLookup = (taxableIncome: number, filingStatus: FilingStatus, year: number): number => {
+      const result = computeAnnualFederalTax(taxableIncome, 0, filingStatus, year, this.bracketInflationRate, mcGetter);
+      return result.tax;
+    };
+
+    // Create tax profile for withholding (use account config if available, fallback to defaults)
+    const taxProfile: TaxProfile = {
+      filingStatus: this.filingStatus,
+      state: 'NC', // TODO: load from account config or simulation profile
+      stateTaxRate: 0.0475, // NC state tax rate (4.75%)
+      itemizationMode: 'standard' as const,
+    };
+
     const paycheckResult = this.paycheckProcessor.processPaycheck(
       grossPay,
       profile,
@@ -609,6 +635,9 @@ export class Calculator {
       additionalMedicareThreshold,
       paychecksPerYear,
       mcRateGetterFunc,
+      taxProfile,
+      standardDeduction,
+      bracketLookup,
     );
 
     // Create main net pay activity for the primary account
@@ -713,12 +742,13 @@ export class Calculator {
     });
 
     // Bonus: fires once per year on the first paycheck of the bonus month
+    let bonusResult: PaycheckResult | null = null;
     if (profile.bonus &&
         event.date.getUTCMonth() + 1 === profile.bonus.month &&
         !this.paycheckStateTracker.hasBonusFired(bill.name, year)) {
       this.paycheckStateTracker.markBonusFired(bill.name, year);
 
-      const bonusResult = this.paycheckProcessor.processBonusPaycheck(
+      bonusResult = this.paycheckProcessor.processBonusPaycheck(
         grossPay,
         paychecksPerYear,
         profile,
@@ -727,6 +757,7 @@ export class Calculator {
         account.accountOwnerDOB ?? null,
         ssWageBaseCap,
         additionalMedicareThreshold,
+        taxProfile,
       );
 
       // Create bonus net pay activity on main account
@@ -832,9 +863,7 @@ export class Calculator {
     }
 
     // Merge bonus balance changes
-    if (profile.bonus &&
-        event.date.getUTCMonth() + 1 === profile.bonus.month &&
-        this.paycheckStateTracker.hasBonusFired(bill.name, year)) {
+    if (bonusResult) {
       const existingMainBonus = allChanges.get(event.accountId) || 0;
       allChanges.set(event.accountId, existingMainBonus + bonusResult.netPay);
       for (const deposit of bonusResult.depositActivities) {

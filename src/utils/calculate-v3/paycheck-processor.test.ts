@@ -2,17 +2,28 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PaycheckProcessor } from './paycheck-processor';
 import { PaycheckStateTracker } from './paycheck-state-tracker';
 import { ContributionLimitManager } from './contribution-limit-manager';
+import { WithholdingCalculator } from './withholding-calculator';
+import { TaxManager } from './tax-manager';
 import { PaycheckProfile, ContributionConfig, EmployerMatchConfig } from '../../data/bill/paycheck-types';
 
 describe('PaycheckProcessor', () => {
   let paycheckStateTracker: PaycheckStateTracker;
   let contributionLimitManager: ContributionLimitManager;
+  let withholdingCalculator: WithholdingCalculator;
+  let taxManager: TaxManager;
   let processor: PaycheckProcessor;
 
   beforeEach(() => {
     paycheckStateTracker = new PaycheckStateTracker();
     contributionLimitManager = new ContributionLimitManager();
-    processor = new PaycheckProcessor(paycheckStateTracker, contributionLimitManager);
+    withholdingCalculator = new WithholdingCalculator();
+    taxManager = new TaxManager();
+    processor = new PaycheckProcessor(
+      paycheckStateTracker,
+      contributionLimitManager,
+      withholdingCalculator,
+      taxManager,
+    );
   });
 
   describe('Basic gross-to-net calculations', () => {
@@ -865,10 +876,12 @@ describe('PaycheckProcessor', () => {
       // bonus = 13000
       // SS: 13000 * 0.062 = 806
       // Medicare: 13000 * 0.0145 = 188.50
-      // net = 13000 - 806 - 188.50 = 12005.50
+      // Federal withholding: 13000 * 0.22 = 2860 (22% flat supplemental rate)
+      // net = 13000 - 806 - 188.50 - 2860 = 9145.50
       expect(result.ssTax).toBeCloseTo(13000 * 0.062, 1);
       expect(result.medicareTax).toBeCloseTo(13000 * 0.0145, 1);
-      expect(result.netPay).toBeCloseTo(13000 - (13000 * 0.062) - (13000 * 0.0145), 1);
+      expect(result.federalWithholding).toBeCloseTo(13000 * 0.22, 0);
+      expect(result.netPay).toBeCloseTo(13000 - (13000 * 0.062) - (13000 * 0.0145) - (13000 * 0.22), 1);
     });
 
     it('applies bonus 401k when subjectTo401k is true', () => {
@@ -903,11 +916,13 @@ describe('PaycheckProcessor', () => {
       // 401k = 13000 * 0.06 = 780
       // SS: 13000 * 0.062 = 806
       // Medicare: 13000 * 0.0145 = 188.50
-      // net = 13000 - 780 - 806 - 188.50 = 11225.50
+      // Federal withholding: (13000 - 780) * 0.22 = 2688 (on taxable bonus amount)
+      // net = 13000 - 780 - 806 - 188.50 - 2688 = 8537.50
       expect(result.traditional401k).toBe(780);
       expect(result.depositActivities.find((d) => d.label === 'Traditional 401k Contribution (Bonus)'))
         .toBeDefined();
-      expect(result.netPay).toBeCloseTo(13000 - 780 - (13000 * 0.062) - (13000 * 0.0145), 1);
+      expect(result.federalWithholding).toBeCloseTo((13000 - 780) * 0.22, 0);
+      expect(result.netPay).toBeCloseTo(13000 - 780 - (13000 * 0.062) - (13000 * 0.0145) - (13000 - 780) * 0.22, 1);
     });
 
     it('does not apply bonus 401k when subjectTo401k is false', () => {
@@ -943,8 +958,10 @@ describe('PaycheckProcessor', () => {
       expect(
         result.depositActivities.find((d) => d.label === 'Traditional 401k Contribution (Bonus)'),
       ).toBeUndefined();
-      // net = 13000 - (13000 * 0.062) - (13000 * 0.0145)
-      expect(result.netPay).toBeCloseTo(13000 - (13000 * 0.062) - (13000 * 0.0145), 1);
+      // Federal withholding: 13000 * 0.22 = 2860
+      // net = 13000 - (13000 * 0.062) - (13000 * 0.0145) - 2860
+      expect(result.federalWithholding).toBeCloseTo(13000 * 0.22, 0);
+      expect(result.netPay).toBeCloseTo(13000 - (13000 * 0.062) - (13000 * 0.0145) - (13000 * 0.22), 1);
     });
 
     it('applies roth 401k to bonus when subjectTo401k is true', () => {
@@ -976,13 +993,15 @@ describe('PaycheckProcessor', () => {
       );
 
       // bonus = 13000
-      // Roth 401k = 13000 * 0.05 = 650
-      // net = 13000 - 650 - (13000 * 0.062) - (13000 * 0.0145)
+      // Roth 401k = 13000 * 0.05 = 650 (post-tax, does not reduce withholding base)
+      // Federal withholding: 13000 * 0.22 = 2860
+      // net = 13000 - 650 - (13000 * 0.062) - (13000 * 0.0145) - 2860
       expect(result.roth401k).toBe(650);
       expect(result.depositActivities.find((d) => d.label === 'Roth 401k Contribution (Bonus)'))
         .toBeDefined();
+      expect(result.federalWithholding).toBeCloseTo(13000 * 0.22, 0);
       expect(result.netPay).toBeCloseTo(
-        13000 - 650 - 13000 * 0.062 - 13000 * 0.0145,
+        13000 - 650 - 13000 * 0.062 - 13000 * 0.0145 - 13000 * 0.22,
         1,
       );
     });
@@ -1115,6 +1134,176 @@ describe('PaycheckProcessor', () => {
       expect(
         result.preTaxDeductions.find((d) => d.label === 'Custom Deduction'),
       ).toBeUndefined();
+    });
+  });
+
+  describe('Federal and state withholding', () => {
+    it('computes federal withholding and reduces net pay', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-01-15');
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+      };
+
+      // Mock bracket lookup: approximate 12% effective rate on taxable income
+      const bracketLookup = (taxableIncome: number) => {
+        return taxableIncome * 0.12;
+      };
+
+      const result = processor.processPaycheck(
+        5000,
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+        26,
+        undefined,
+        { filingStatus: 'mfj', state: 'NC', stateTaxRate: 0.0475, itemizationMode: 'standard' },
+        14600, // standard deduction for MFJ 2026
+        bracketLookup,
+      );
+
+      // Annualized: 5000 * 26 = 130000
+      // Taxable income: 130000 - 14600 = 115400
+      // Federal withholding per period: (115400 * 0.12) / 26 ≈ 533
+      // State withholding: 5000 * 0.0475 ≈ 238
+      // netPay should be: 5000 - 310 (SS) - 72.5 (Medicare) - federal - state
+      expect(result.federalWithholding).toBeGreaterThan(0);
+      expect(result.stateWithholding).toBeGreaterThan(0);
+      expect(result.netPay).toBeLessThan(5000 - 310 - 72.5); // Less net due to withholding
+    });
+
+    it('uses bonus withholding rate (22% flat) for bonuses', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-03-15');
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+        bonus: {
+          percent: 0.10,
+          month: 3,
+          subjectTo401k: false,
+        },
+      };
+
+      const result = processor.processBonusPaycheck(
+        5000,
+        26,
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+        { filingStatus: 'mfj', state: 'NC', stateTaxRate: 0.0475, itemizationMode: 'standard' },
+      );
+
+      // Bonus = 5000 * 26 * 0.10 = 13000
+      // Federal withholding: 13000 * 0.22 = 2860
+      // State withholding: 13000 * 0.0475 ≈ 617.5
+      expect(result.federalWithholding).toBeCloseTo(2860, 0);
+      expect(result.stateWithholding).toBeCloseTo(617.5, 0);
+    });
+
+    it('records withholding in tax manager', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-01-15');
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+      };
+
+      const bracketLookup = (taxableIncome: number) => {
+        return taxableIncome * 0.12;
+      };
+
+      processor.processPaycheck(
+        5000,
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+        26,
+        undefined,
+        { filingStatus: 'mfj', state: 'NC', stateTaxRate: 0.0475, itemizationMode: 'standard' },
+        14600,
+        bracketLookup,
+      );
+
+      // Check that withholding was recorded in tax manager
+      const withholding = taxManager.getTotalWithholding(2026);
+      expect(withholding.federal).toBeGreaterThan(0);
+      expect(withholding.state).toBeGreaterThan(0);
+    });
+
+    it('computes net pay correctly with all deductions and withholding', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-01-15');
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+        traditional401k: {
+          type: 'percent',
+          value: 0.06,
+          destinationAccount: 'trad-401k',
+        },
+      };
+
+      const bracketLookup = (taxableIncome: number) => {
+        return taxableIncome * 0.12;
+      };
+
+      const result = processor.processPaycheck(
+        5000,
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+        26,
+        undefined,
+        { filingStatus: 'mfj', state: 'NC', stateTaxRate: 0.0475, itemizationMode: 'standard' },
+        14600,
+        bracketLookup,
+      );
+
+      // Verify net pay is correctly reduced
+      // gross: 5000
+      // 401k: 300 (pre-tax)
+      // SS: 310 (6.2% * 5000)
+      // Medicare: 72.5 (1.45% * 5000)
+      // Federal withholding: ~533
+      // State withholding: ~238
+      // expected net ≈ 5000 - 300 - 310 - 72.5 - 533 - 238 = 3646.5
+      const expectedNet = 5000 - result.traditional401k - result.ssTax - result.medicareTax - result.federalWithholding - result.stateWithholding;
+      expect(result.netPay).toBeCloseTo(expectedNet, 0);
+    });
+
+    it('handles zero withholding when tax profile not provided', () => {
+      const dob = new Date('1985-03-15');
+      const date = new Date('2026-01-15');
+      const profile: PaycheckProfile = {
+        grossPay: 5000,
+      };
+
+      // Call without tax profile
+      const result = processor.processPaycheck(
+        5000,
+        profile,
+        'Salary',
+        date,
+        dob,
+        176100,
+        250000,
+        26,
+      );
+
+      // Should have zero withholding
+      expect(result.federalWithholding).toBe(0);
+      expect(result.stateWithholding).toBe(0);
+      expect(result.netPay).toBeCloseTo(5000 - result.ssTax - result.medicareTax, 1);
     });
   });
 });
