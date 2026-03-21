@@ -55,6 +55,14 @@ export type TaxableOccurrenceData = {
   incomeType: IncomeType;
 };
 
+export type WithholdingOccurrence = {
+  date: Date;
+  year: number;
+  federalAmount: number;
+  stateAmount: number;
+  source: string;
+};
+
 /**
  * Records a spending tracker period completion for cache replay.
  */

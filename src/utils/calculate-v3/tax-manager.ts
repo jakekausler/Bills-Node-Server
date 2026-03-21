@@ -1,4 +1,4 @@
-import { TaxableOccurrence, FilingStatus, MCRateGetter } from './types';
+import { TaxableOccurrence, FilingStatus, MCRateGetter, WithholdingOccurrence } from './types';
 import { computeAnnualFederalTax } from './bracket-calculator';
 import type { DebugLogger } from './debug-logger';
 
@@ -7,13 +7,17 @@ export class TaxManager {
   private taxableOccurrences: Map<number, Map<string, TaxableOccurrence[]>>;
   // Cache of computed tax amounts per year
   private taxCache: Map<number, number>;
+  // Map of years to withholding occurrences
+  private withholdingOccurrences: Map<number, WithholdingOccurrence[]> = new Map();
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
+  private checkpointData: string | null = null;
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.taxableOccurrences = new Map<number, Map<string, TaxableOccurrence[]>>();
     this.taxCache = new Map<number, number>();
+    this.withholdingOccurrences = new Map<number, WithholdingOccurrence[]>();
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
   }
@@ -154,5 +158,121 @@ export class TaxManager {
   public getAccountsWithTaxableEvents(year: number): string[] {
     const yearMap = this.taxableOccurrences.get(year);
     return yearMap ? Array.from(yearMap.keys()) : [];
+  }
+
+  /**
+   * Save a checkpoint of tax manager state.
+   * Used for push/pull reprocessing to restore state if segment needs to be recomputed.
+   */
+  public checkpoint(): void {
+    // Deep-clone taxableOccurrences via JSON serialization
+    // Must convert Date objects to ISO strings
+    const taxObj: Record<number, Record<string, Array<{ date: string; year: number; amount: number; incomeType: string }>>> = {};
+    for (const [year, accountMap] of this.taxableOccurrences) {
+      taxObj[year] = {};
+      for (const [accountId, occurrences] of accountMap) {
+        taxObj[year][accountId] = occurrences.map(occ => ({
+          date: occ.date.toISOString(),
+          year: occ.year,
+          amount: occ.amount,
+          incomeType: occ.incomeType,
+        }));
+      }
+    }
+
+    // Serialize withholdingOccurrences (convert Dates to ISO strings)
+    const withObj: Record<number, Array<{ date: string; year: number; federalAmount: number; stateAmount: number; source: string }>> = {};
+    for (const [year, withholdings] of this.withholdingOccurrences) {
+      withObj[year] = withholdings.map(w => ({
+        date: w.date.toISOString(),
+        year: w.year,
+        federalAmount: w.federalAmount,
+        stateAmount: w.stateAmount,
+        source: w.source,
+      }));
+    }
+
+    const checkpoint = { taxableOccurrences: taxObj, withholdingOccurrences: withObj };
+    this.checkpointData = JSON.stringify(checkpoint);
+  }
+
+  /**
+   * Restore tax manager state from the last checkpoint.
+   * Used when segment is reprocessed after push/pull handling.
+   */
+  public restore(): void {
+    if (!this.checkpointData) return;
+
+    const checkpoint = JSON.parse(this.checkpointData) as {
+      taxableOccurrences: Record<number, Record<string, Array<{ date: string; year: number; amount: number; incomeType: string }>>>;
+      withholdingOccurrences: Record<number, Array<{ date: string; year: number; federalAmount: number; stateAmount: number; source: string }>>;
+    };
+
+    // Restore taxable occurrences
+    this.taxableOccurrences = new Map();
+    for (const yearStr of Object.keys(checkpoint.taxableOccurrences)) {
+      const year = Number(yearStr);
+      const accountMap = new Map<string, TaxableOccurrence[]>();
+      for (const accountId of Object.keys(checkpoint.taxableOccurrences[year])) {
+        const occurrences = checkpoint.taxableOccurrences[year][accountId].map(occ => ({
+          date: new Date(occ.date),
+          year: occ.year,
+          amount: occ.amount,
+          incomeType: occ.incomeType as any,
+        }));
+        accountMap.set(accountId, occurrences);
+      }
+      this.taxableOccurrences.set(year, accountMap);
+    }
+
+    // Restore withholding occurrences
+    this.withholdingOccurrences = new Map();
+    for (const yearStr of Object.keys(checkpoint.withholdingOccurrences)) {
+      const year = Number(yearStr);
+      const withholdings = checkpoint.withholdingOccurrences[year].map(w => ({
+        date: new Date(w.date),
+        year: w.year,
+        federalAmount: w.federalAmount,
+        stateAmount: w.stateAmount,
+        source: w.source,
+      }));
+      this.withholdingOccurrences.set(year, withholdings);
+    }
+
+    // Clear cache after restoration
+    this.taxCache.clear();
+  }
+
+  /**
+   * Add a withholding occurrence (e.g., from paycheck)
+   */
+  public addWithholdingOccurrence(occurrence: WithholdingOccurrence): void {
+    if (!this.withholdingOccurrences.has(occurrence.year)) {
+      this.withholdingOccurrences.set(occurrence.year, []);
+    }
+    this.withholdingOccurrences.get(occurrence.year)!.push(occurrence);
+    this.log('withholding-added', { year: occurrence.year, federal: occurrence.federalAmount, state: occurrence.stateAmount, source: occurrence.source });
+  }
+
+  /**
+   * Get total withholding for a given year
+   */
+  public getTotalWithholding(year: number): { federal: number; state: number } {
+    const withholdings = this.withholdingOccurrences.get(year) || [];
+    let federal = 0;
+    let state = 0;
+    for (const w of withholdings) {
+      federal += w.federalAmount;
+      state += w.stateAmount;
+    }
+    return { federal, state };
+  }
+
+  /**
+   * Clear all withholding occurrences
+   */
+  public clearWithholdingOccurrences(): void {
+    this.withholdingOccurrences.clear();
+    this.log('withholding-cleared', {});
   }
 }

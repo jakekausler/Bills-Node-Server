@@ -15,6 +15,7 @@ import { ContributionLimitManager } from './contribution-limit-manager';
 import { PaycheckStateTracker } from './paycheck-state-tracker';
 import { PaycheckProcessor } from './paycheck-processor';
 import { RothConversionManager, ConversionResult } from './roth-conversion-manager';
+import { DeductionTracker } from './deduction-tracker';
 import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -58,6 +59,7 @@ export class Calculator {
   private acaManager: AcaManager;
   private spendingTrackerManager: SpendingTrackerManager;
   private contributionLimitManager: ContributionLimitManager;
+  private deductionTracker: DeductionTracker;
   private paycheckStateTracker: PaycheckStateTracker;
   private paycheckProcessor: PaycheckProcessor;
   private rothConversionManager: RothConversionManager;
@@ -103,6 +105,7 @@ export class Calculator {
     this.simNumber = simNumber;
     this.flowAggregator = flowAggregator ?? null;
     this.contributionLimitManager = new ContributionLimitManager(debugLogger, simNumber);
+    this.deductionTracker = new DeductionTracker(debugLogger, simNumber);
     this.paycheckStateTracker = new PaycheckStateTracker(debugLogger, simNumber);
     this.paycheckProcessor = new PaycheckProcessor(
       this.paycheckStateTracker,
@@ -129,6 +132,7 @@ export class Calculator {
     this.ltcManager.setCurrentDate(date);
     this.acaManager.setCurrentDate(date);
     this.contributionLimitManager.setCurrentDate(date);
+    this.deductionTracker.setCurrentDate(date);
     this.paycheckStateTracker.setCurrentDate(date);
     this.paycheckProcessor.setCurrentDate(date);
     this.spendingTrackerManager.setCurrentDate(date);
@@ -143,20 +147,29 @@ export class Calculator {
   }
 
   /**
-   * Save a checkpoint of contribution limit and paycheck state.
+   * Get the DeductionTracker (for tracking tax deductions across the simulation)
+   */
+  getDeductionTracker(): DeductionTracker {
+    return this.deductionTracker;
+  }
+
+  /**
+   * Save a checkpoint of contribution limit, deduction tracker, and paycheck state.
    * Used for push/pull reprocessing to restore state if segment needs to be recomputed.
    */
   checkpoint(): void {
     this.contributionLimitManager.checkpoint();
+    this.deductionTracker.checkpoint();
     this.paycheckStateTracker.checkpoint();
   }
 
   /**
-   * Restore contribution limit and paycheck state from the last checkpoint.
+   * Restore contribution limit, deduction tracker, and paycheck state from the last checkpoint.
    * Used when segment is reprocessed after push/pull handling.
    */
   restore(): void {
     this.contributionLimitManager.restore();
+    this.deductionTracker.restore();
     this.paycheckStateTracker.restore();
   }
 

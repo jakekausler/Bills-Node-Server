@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TaxManager } from './tax-manager';
-import { TaxableOccurrence } from './types';
+import { TaxableOccurrence, WithholdingOccurrence } from './types';
 
 function makeTaxableEvent(overrides: Partial<TaxableOccurrence> = {}): TaxableOccurrence {
   return {
@@ -14,6 +14,17 @@ function makeTaxableEvent(overrides: Partial<TaxableOccurrence> = {}): TaxableOc
     year: 2025,
     amount: 1000,
     incomeType: 'ordinary',
+    ...overrides,
+  };
+}
+
+function makeWithholdingOccurrence(overrides: Partial<WithholdingOccurrence> = {}): WithholdingOccurrence {
+  return {
+    date: new Date('2025-06-15'),
+    year: 2025,
+    federalAmount: 200,
+    stateAmount: 50,
+    source: 'paycheck',
     ...overrides,
   };
 }
@@ -447,6 +458,226 @@ describe('TaxManager', () => {
       // Total: 50K, should compute some tax (likely minimal after standard deduction)
       expect(typeof tax).toBe('number');
       expect(tax).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // checkpoint/restore
+  // ---------------------------------------------------------------------------
+  describe('checkpoint/restore', () => {
+    it('checkpoint preserves taxable occurrences', () => {
+      const event1 = makeTaxableEvent({ year: 2025, amount: 5000 });
+      const event2 = makeTaxableEvent({ year: 2026, amount: 8000 });
+
+      manager.addTaxableOccurrence('account-1', event1);
+      manager.addTaxableOccurrence('account-1', event2);
+
+      manager.checkpoint();
+
+      // Clear the manager
+      manager.clearAllTaxableOccurrences(2025);
+      manager.clearAllTaxableOccurrences(2026);
+
+      expect(manager.getTaxableOccurrences('account-1', 2025)).toHaveLength(0);
+      expect(manager.getTaxableOccurrences('account-1', 2026)).toHaveLength(0);
+
+      // Restore
+      manager.restore();
+
+      expect(manager.getTaxableOccurrences('account-1', 2025)).toHaveLength(1);
+      expect(manager.getTaxableOccurrences('account-1', 2026)).toHaveLength(1);
+      expect(manager.getTaxableOccurrences('account-1', 2025)[0].amount).toBe(5000);
+      expect(manager.getTaxableOccurrences('account-1', 2026)[0].amount).toBe(8000);
+    });
+
+    it('checkpoint preserves dates correctly (serialization/deserialization)', () => {
+      const date = new Date('2025-03-15T10:30:00Z');
+      const event = makeTaxableEvent({ date });
+
+      manager.addTaxableOccurrence('account-1', event);
+      manager.checkpoint();
+      manager.clearAllTaxableOccurrences(2025);
+      manager.restore();
+
+      const restored = manager.getTaxableOccurrences('account-1', 2025)[0];
+      expect(restored.date.getTime()).toBe(date.getTime());
+    });
+
+    it('checkpoint and restore multiple accounts across multiple years', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 1000 }));
+      manager.addTaxableOccurrence('account-2', makeTaxableEvent({ year: 2025, amount: 2000 }));
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2026, amount: 3000 }));
+
+      manager.checkpoint();
+
+      // Clear everything
+      manager.clearAllTaxableOccurrences(2025);
+      manager.clearAllTaxableOccurrences(2026);
+
+      expect(manager.getAccountsWithTaxableEvents(2025)).toHaveLength(0);
+      expect(manager.getAccountsWithTaxableEvents(2026)).toHaveLength(0);
+
+      // Restore
+      manager.restore();
+
+      expect(manager.getTaxableOccurrences('account-1', 2025)[0].amount).toBe(1000);
+      expect(manager.getTaxableOccurrences('account-2', 2025)[0].amount).toBe(2000);
+      expect(manager.getTaxableOccurrences('account-1', 2026)[0].amount).toBe(3000);
+    });
+
+    it('checkpoint preserves withholding occurrences', () => {
+      const w1 = makeWithholdingOccurrence({ year: 2025, federalAmount: 300, stateAmount: 75 });
+      const w2 = makeWithholdingOccurrence({ year: 2025, federalAmount: 250, stateAmount: 60 });
+
+      manager.addWithholdingOccurrence(w1);
+      manager.addWithholdingOccurrence(w2);
+
+      manager.checkpoint();
+
+      manager.clearWithholdingOccurrences();
+      let totals = manager.getTotalWithholding(2025);
+      expect(totals.federal).toBe(0);
+      expect(totals.state).toBe(0);
+
+      manager.restore();
+
+      totals = manager.getTotalWithholding(2025);
+      expect(totals.federal).toBe(550);
+      expect(totals.state).toBe(135);
+    });
+
+    it('checkpoint preserves both taxable and withholding occurrences together', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 10000 }));
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ year: 2025, federalAmount: 1000, stateAmount: 200 }));
+
+      manager.checkpoint();
+
+      manager.clearAllTaxableOccurrences(2025);
+      manager.clearWithholdingOccurrences();
+
+      expect(manager.getTaxableOccurrences('account-1', 2025)).toHaveLength(0);
+      expect(manager.getTotalWithholding(2025).federal).toBe(0);
+
+      manager.restore();
+
+      expect(manager.getTaxableOccurrences('account-1', 2025)).toHaveLength(1);
+      expect(manager.getTotalWithholding(2025)).toEqual({ federal: 1000, state: 200 });
+    });
+
+    it('restore clears tax cache for proper recalculation', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      const tax1 = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      manager.checkpoint();
+      manager.clearAllTaxableOccurrences(2025);
+      const tax2 = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+      expect(tax2).toBe(0);
+
+      manager.restore();
+      const tax3 = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      expect(tax3).toBe(tax1);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // withholding tracking
+  // ---------------------------------------------------------------------------
+  describe('withholding tracking', () => {
+    it('addWithholdingOccurrence adds a withholding event', () => {
+      const withholding = makeWithholdingOccurrence();
+      manager.addWithholdingOccurrence(withholding);
+
+      const totals = manager.getTotalWithholding(2025);
+      expect(totals.federal).toBe(200);
+      expect(totals.state).toBe(50);
+    });
+
+    it('getTotalWithholding returns 0 for years with no withholdings', () => {
+      const totals = manager.getTotalWithholding(2025);
+      expect(totals.federal).toBe(0);
+      expect(totals.state).toBe(0);
+    });
+
+    it('getTotalWithholding sums federal and state separately', () => {
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ federalAmount: 300, stateAmount: 75 }));
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ federalAmount: 200, stateAmount: 50 }));
+
+      const totals = manager.getTotalWithholding(2025);
+      expect(totals.federal).toBe(500);
+      expect(totals.state).toBe(125);
+    });
+
+    it('getTotalWithholding handles multiple years independently', () => {
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ year: 2025, federalAmount: 300, stateAmount: 75 }));
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ year: 2026, federalAmount: 400, stateAmount: 100 }));
+
+      const totals2025 = manager.getTotalWithholding(2025);
+      const totals2026 = manager.getTotalWithholding(2026);
+
+      expect(totals2025).toEqual({ federal: 300, state: 75 });
+      expect(totals2026).toEqual({ federal: 400, state: 100 });
+    });
+
+    it('multiple paychecks across a year sum correctly', () => {
+      // Simulate 26 bi-weekly paychecks
+      for (let i = 0; i < 26; i++) {
+        manager.addWithholdingOccurrence(
+          makeWithholdingOccurrence({
+            year: 2025,
+            federalAmount: 100,
+            stateAmount: 25,
+            source: `paycheck-${i + 1}`,
+          })
+        );
+      }
+
+      const totals = manager.getTotalWithholding(2025);
+      expect(totals.federal).toBe(2600);
+      expect(totals.state).toBe(650);
+    });
+
+    it('clearWithholdingOccurrences removes all withholdings', () => {
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ year: 2025 }));
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ year: 2026 }));
+
+      let totals2025 = manager.getTotalWithholding(2025);
+      let totals2026 = manager.getTotalWithholding(2026);
+      expect(totals2025.federal).toBe(200);
+      expect(totals2026.federal).toBe(200);
+
+      manager.clearWithholdingOccurrences();
+
+      totals2025 = manager.getTotalWithholding(2025);
+      totals2026 = manager.getTotalWithholding(2026);
+      expect(totals2025.federal).toBe(0);
+      expect(totals2026.federal).toBe(0);
+    });
+
+    it('addWithholdingOccurrence with zero amounts', () => {
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ federalAmount: 0, stateAmount: 0 }));
+
+      const totals = manager.getTotalWithholding(2025);
+      expect(totals).toEqual({ federal: 0, state: 0 });
+    });
+
+    it('existing taxable occurrence behavior is unchanged (regression)', () => {
+      // This test ensures that adding withholding doesn't break existing taxable functionality
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ year: 2025, federalAmount: 5000, stateAmount: 1000 }));
+
+      // Taxable occurrence should still calculate correctly
+      const tax = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+      expect(tax).toBeGreaterThan(0);
+
+      // Retrieve taxable occurrences to verify
+      const occurrences = manager.getTaxableOccurrences('account-1', 2025);
+      expect(occurrences).toHaveLength(1);
+      expect(occurrences[0].amount).toBe(50000);
+
+      // Verify withholding is separate
+      const withholding = manager.getTotalWithholding(2025);
+      expect(withholding).toEqual({ federal: 5000, state: 1000 });
     });
   });
 });
