@@ -41,6 +41,9 @@ export type BillData = {
   // Spending category
   spendingCategory?: string | null;
 
+  // Person field for longevity risk modeling
+  person?: string | null;
+
   // Paycheck fields
   paycheckProfile?: PaycheckProfile | null;
   taxDeductible?: boolean;

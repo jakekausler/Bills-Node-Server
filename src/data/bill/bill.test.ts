@@ -613,6 +613,47 @@ describe('Bill', () => {
     });
   });
 
+  describe('person field', () => {
+    it('should round-trip person field with value "Jake"', () => {
+      const billWithPerson: BillData = {
+        ...mockBillData,
+        person: 'Jake',
+      };
+
+      const bill = new Bill(billWithPerson);
+      expect(bill.person).toBe('Jake');
+
+      const serialized = bill.serialize();
+      expect(serialized.person).toBe('Jake');
+
+      // Round-trip test
+      const restoredBill = new Bill(serialized);
+      expect(restoredBill.person).toBe('Jake');
+    });
+
+    it('should round-trip person field with null (backward compat)', () => {
+      const billWithoutPerson: BillData = {
+        ...mockBillData,
+        person: null,
+      };
+
+      const bill = new Bill(billWithoutPerson);
+      expect(bill.person).toBeNull();
+
+      const serialized = bill.serialize();
+      expect(serialized.person).toBeNull();
+
+      // Round-trip test
+      const restoredBill = new Bill(serialized);
+      expect(restoredBill.person).toBeNull();
+    });
+
+    it('should default person to null when not provided', () => {
+      const bill = new Bill(mockBillData);
+      expect(bill.person).toBeNull();
+    });
+  });
+
   describe('Bill.toActivity() with PaycheckProfile', () => {
     it('should create Activity with isPaycheckActivity=true when Bill has PaycheckProfile', () => {
       const paycheckBillData: BillData = {

@@ -65,6 +65,9 @@ export class Bill {
   // Spending category
   spendingCategory: string | null;
 
+  // Person field for longevity risk modeling
+  person: string | null;
+
   // Paycheck properties
   paycheckProfile: PaycheckProfile | null;
   taxDeductible: boolean;
@@ -86,6 +89,7 @@ export class Bill {
     this.initializeAmountProperties(data, simulation);
     this.initializeHealthcareProperties(data);
     this.spendingCategory = data.spendingCategory ?? null;
+    this.person = data.person ?? null;
     this.initializePaycheckProperties(data);
   }
 
@@ -293,6 +297,9 @@ export class Bill {
 
       // Spending category
       spendingCategory: this.spendingCategory,
+
+      // Person field
+      person: this.person,
 
       // Paycheck fields
       paycheckProfile: this.paycheckProfile,
