@@ -276,9 +276,42 @@ function makeBalanceTracker(overrides: Partial<{
 
 function makeTaxManager(overrides: Partial<{
   calculateTotalTaxOwed: (id: string, year: number) => number;
+  computeReconciliation: (year: number, profile: any, deductionTracker: any, rate: number, getter?: any) => any;
 }> = {}) {
+  // For backward compatibility: if only calculateTotalTaxOwed is overridden,
+  // use that value as the settlement in computeReconciliation
+  const taxOwedFn = overrides.calculateTotalTaxOwed ?? vi.fn(() => 0);
+  const reconciliationFn = overrides.computeReconciliation ?? vi.fn(function(year: any, profile: any, deductionTracker: any, rate: number, getter?: any) {
+    // Call calculateTotalTaxOwed to get tax owed, then use as settlement (no withholding in test)
+    const taxOwed = (taxOwedFn as any)(year, profile?.filingStatus || 'mfj', rate, getter);
+    return {
+      year,
+      totalOrdinaryIncome: 0,
+      totalSSIncome: 0,
+      totalIncome: 0,
+      aboveTheLineDeductions: 0,
+      agi: 0,
+      standardDeduction: 0,
+      itemizedDeduction: 0,
+      deductionUsed: 'standard' as const,
+      deductionAmount: 0,
+      taxableIncome: 0,
+      federalTax: taxOwed,
+      ssTax: 0,
+      stateTax: 0,
+      credits: 0,
+      totalTaxOwed: taxOwed,
+      totalFederalWithheld: 0,
+      totalStateWithheld: 0,
+      totalWithheld: 0,
+      ficaOverpayment: 0,
+      settlement: taxOwed, // settlement = tax owed - withholding (0 in test)
+    };
+  });
+
   return {
-    calculateTotalTaxOwed: overrides.calculateTotalTaxOwed ?? vi.fn(() => 0),
+    calculateTotalTaxOwed: taxOwedFn,
+    computeReconciliation: reconciliationFn,
     addTaxableOccurrences: vi.fn(),
   };
 }
@@ -2272,7 +2305,8 @@ describe('Calculator', () => {
       const activities = segmentResult.activitiesAdded.get('account-1')!;
       expect(activities).toHaveLength(1);
       const serialized = activities[0].serialize();
-      expect(serialized.name).toBe('Auto Calculated Tax');
+      // Name is "Tax Payment" for positive settlement (owe money)
+      expect(serialized.name).toBe('Tax Payment');
       expect(serialized.category).toBe('Taxes.Federal');
       expect(serialized.amount).toBe(-4500);
     });

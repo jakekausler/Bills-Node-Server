@@ -75,6 +75,7 @@ export class Calculator {
   private currentDate: string = '';
   private flowAggregator: FlowAggregator | null;
   private mcRateGetterRef: MCRateGetter | null = null;
+  private taxProfile: TaxProfile;
 
   constructor(
     balanceTracker: BalanceTracker,
@@ -122,6 +123,13 @@ export class Calculator {
     );
     this.rothConversionManager = new RothConversionManager(accountManager, acaManager, debugLogger, simNumber);
     this.rothConversionManager.setBalanceTracker(balanceTracker);
+    // Initialize default tax profile (can be overridden later)
+    this.taxProfile = {
+      filingStatus,
+      state: 'NC',
+      stateTaxRate: 0.0475,
+      itemizationMode: 'standard' as const,
+    };
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
@@ -472,6 +480,47 @@ export class Calculator {
       }
     }
 
+    // Track tax deductible amounts
+    const year = event.date.getUTCFullYear();
+    const numAmount = Number(amount);
+
+    // Handle tax-deductible bills: categorize and add to deduction tracker
+    if (bill.taxDeductible && numAmount < 0) {
+      // Only negative amounts (expenses) can be deductible
+      const deductibleAmount = Math.abs(numAmount);
+
+      // Determine deduction category from bill context
+      const account = this.balanceTracker.findAccountById(accountId);
+      let deductionCategory: 'mortgageInterest' | 'propertyTax' | 'charitable' | 'stateTax' | 'studentLoanInterest' | 'hsaContribution' | 'traditionalIRA' | null = null;
+
+      // Check bill category and account type for categorization
+      const billCat = bill.category?.toLowerCase() || '';
+      const accountName = account?.name.toLowerCase() || '';
+
+      // HEURISTIC: This categorization is based on string matching of account/bill names.
+      // For robust tax deduction tracking, bills should have an explicit taxDeductionCategory field.
+      // TODO: Add explicit taxDeductionCategory field to bill model in future update.
+      if (accountName.includes('mortgage')) {
+        deductionCategory = 'mortgageInterest';
+      } else if (billCat.includes('property') || billCat.includes('tax')) {
+        deductionCategory = 'propertyTax';
+      } else if (billCat.includes('charit') || billCat.includes('donat')) {
+        deductionCategory = 'charitable';
+      }
+
+      if (deductionCategory) {
+        this.deductionTracker.addDeduction(year, deductionCategory, deductibleAmount);
+        this.log('deduction-tracked', { billName: bill.name, category: deductionCategory, amount: deductibleAmount });
+      }
+    }
+
+    // Handle student loan interest deduction
+    if (bill.studentLoanInterest && numAmount < 0) {
+      const deductibleAmount = Math.abs(numAmount);
+      this.deductionTracker.addDeduction(year, 'studentLoanInterest', deductibleAmount);
+      this.log('deduction-tracked', { billName: bill.name, category: 'studentLoanInterest', amount: deductibleAmount });
+    }
+
     // Create consolidated activity for the bill
     const billActivity = new ConsolidatedActivity(
       bill.toActivity(`${bill.id}-${event.date}`, simulation, amount, event.date).serialize(),
@@ -490,8 +539,6 @@ export class Calculator {
 
     // Record flow
     if (this.flowAggregator) {
-      const numAmount = Number(amount);
-      const year = event.date.getUTCFullYear();
       if (numAmount > 0) {
         this.flowAggregator.recordIncome(year, bill.category || 'Income', numAmount);
       } else if (numAmount < 0) {
@@ -1386,42 +1433,55 @@ export class Calculator {
     }
     const accountId = account.id;
 
-    // Calculate the tax amount using progressive brackets
-    const amount = -this.taxManager.calculateTotalTaxOwed(
-      event.date.getUTCFullYear() - 1,
-      this.filingStatus,
+    // Get prior year for reconciliation
+    const taxYear = event.date.getUTCFullYear() - 1;
+
+    // Compute unified tax reconciliation for prior year
+    const reconciliation = this.taxManager.computeReconciliation(
+      taxYear,
+      this.taxProfile,
+      this.deductionTracker,
       this.bracketInflationRate,
       this.getMCRateGetter(),
     );
+
+    // Settlement amount: positive = payment due, negative = refund
+    // For activity, we negate it so positive payment = negative balance change (money out)
+    const amount = -reconciliation.settlement;
+
     if (amount === 0) {
       return new Map();
     }
 
-    this.log('tax-event-processed', { year: event.date.getUTCFullYear() - 1, totalTax: -amount, autoCalculatedTax: -amount });
+    this.log('tax-event-processed', {
+      year: taxYear,
+      reconciliation: {
+        total_income: reconciliation.totalIncome,
+        agi: reconciliation.agi,
+        taxable_income: reconciliation.taxableIncome,
+        total_tax_owed: reconciliation.totalTaxOwed,
+        total_witheld: reconciliation.totalWithheld,
+        settlement: reconciliation.settlement,
+      },
+    });
 
-    // Tax is computed once per year (single TaxEvent per year per design).
-    // recordTax uses overwrite semantics — safe because of this invariant.
-
-    // Record tax flow with federal/penalty breakdown
+    // Record tax flow with federal/state breakdown
     if (this.flowAggregator) {
-      const taxYear = event.date.getUTCFullYear() - 1;
-      const totalTax = -amount; // amount is negative, totalTax is positive
-      // Extract penalty from occurrences to separate federal vs penalty
-      const occurrences = this.taxManager.getAllOccurrencesForYear(taxYear);
-      let penaltyTotal = 0;
-      for (const occ of occurrences) {
-        if (occ.incomeType === 'penalty') {
-          penaltyTotal += occ.amount;
-        }
+      // If settlement is positive, the taxpayer owes (payment)
+      // If settlement is negative, taxpayer gets refund
+      if (reconciliation.settlement > 0) {
+        this.flowAggregator.recordTax(taxYear, reconciliation.federalTax, reconciliation.ssTax);
+      } else {
+        // Refund: record as negative (credit back)
+        this.flowAggregator.recordTax(taxYear, -reconciliation.settlement, 0);
       }
-      const federal = totalTax - penaltyTotal;
-      this.flowAggregator.recordTax(taxYear, federal, penaltyTotal);
     }
 
     // Create the tax activity
+    const activityName = reconciliation.settlement > 0 ? 'Tax Payment' : 'Tax Refund';
     const taxActivity = new ConsolidatedActivity({
       id: `TAX-${accountId}-${formatDate(event.date)}`,
-      name: 'Auto Calculated Tax',
+      name: activityName,
       amount: amount,
       amountIsVariable: false,
       amountVariable: null,
@@ -1431,7 +1491,7 @@ export class Calculator {
       from: null,
       to: null,
       isTransfer: false,
-      category: 'Taxes.Federal',
+      category: reconciliation.settlement > 0 ? 'Taxes.Federal' : 'Taxes.Refund',
       flag: true,
       flagColor: 'orange',
     });

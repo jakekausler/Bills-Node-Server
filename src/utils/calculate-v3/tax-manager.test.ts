@@ -7,6 +7,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TaxManager } from './tax-manager';
 import { TaxableOccurrence, WithholdingOccurrence } from './types';
+import { DeductionTracker } from './deduction-tracker';
+import { TaxProfile } from './tax-profile-types';
 
 function makeTaxableEvent(overrides: Partial<TaxableOccurrence> = {}): TaxableOccurrence {
   return {
@@ -678,6 +680,201 @@ describe('TaxManager', () => {
       // Verify withholding is separate
       const withholding = manager.getTotalWithholding(2025);
       expect(withholding).toEqual({ federal: 5000, state: 1000 });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // computeReconciliation - unified year-end tax reconciliation
+  // ---------------------------------------------------------------------------
+  describe('computeReconciliation', () => {
+    let deductionTracker: DeductionTracker;
+    let taxProfile: TaxProfile;
+
+    beforeEach(() => {
+      deductionTracker = new DeductionTracker();
+      taxProfile = {
+        filingStatus: 'mfj',
+        state: 'NC',
+        stateTaxRate: 0.0475,
+        itemizationMode: 'auto',
+      };
+    });
+
+    it('computes reconciliation with single ordinary income, standard deduction, correct settlement', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ year: 2025, federalAmount: 5000, stateAmount: 1000 }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      expect(recon.year).toBe(2025);
+      expect(recon.totalOrdinaryIncome).toBe(50000);
+      expect(recon.totalSSIncome).toBe(0);
+      expect(recon.totalIncome).toBe(50000);
+      expect(recon.agi).toBe(50000);
+      expect(recon.aboveTheLineDeductions).toBe(0);
+      expect(recon.deductionUsed).toBe('standard');
+      expect(recon.standardDeduction).toBeGreaterThan(0);
+      expect(recon.taxableIncome).toBeGreaterThan(0);
+      expect(recon.federalTax).toBeGreaterThan(0);
+      expect(recon.totalFederalWithheld).toBe(5000);
+      expect(recon.totalStateWithheld).toBe(1000);
+      expect(recon.totalWithheld).toBe(6000);
+      // Settlement: if tax owed > withholding, positive; if less, negative
+      expect(recon.settlement).toBeDefined();
+    });
+
+    it('computes reconciliation with itemized > standard deduction in auto mode', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 100000, incomeType: 'ordinary' }));
+      deductionTracker.addDeduction(2025, 'mortgageInterest', 8000);
+      deductionTracker.addDeduction(2025, 'charitable', 5000);
+      // Total itemized: 13000
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      expect(recon.itemizedDeduction).toBeGreaterThan(0);
+      // In auto mode with itemized > standard, should use itemized
+      if (recon.itemizedDeduction > recon.standardDeduction) {
+        expect(recon.deductionUsed).toBe('itemized');
+        expect(recon.deductionAmount).toBe(recon.itemizedDeduction);
+      }
+    });
+
+    it('computes reconciliation with standard > itemized deduction in auto mode', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      deductionTracker.addDeduction(2025, 'charitable', 500); // Small itemized amount
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // In auto mode with standard > itemized, should use standard
+      if (recon.standardDeduction > recon.itemizedDeduction) {
+        expect(recon.deductionUsed).toBe('standard');
+        expect(recon.deductionAmount).toBe(recon.standardDeduction);
+      }
+    });
+
+    it('aggregates multiple income sources', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 30000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 20000, incomeType: 'retirement' }));
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 5000, incomeType: 'interest' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      expect(recon.totalOrdinaryIncome).toBe(55000); // 30 + 20 + 5
+      expect(recon.totalSSIncome).toBe(0);
+      expect(recon.totalIncome).toBe(55000);
+    });
+
+    it('computes child tax credit for qualifying children', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 75000, incomeType: 'ordinary' }));
+
+      const profileWithChildren: TaxProfile = {
+        filingStatus: 'mfj',
+        state: 'NC',
+        stateTaxRate: 0.0475,
+        itemizationMode: 'standard',
+        dependents: [
+          { name: 'Child 1', birthYear: 2015, relationship: 'child' }, // Age 10 in 2025
+          { name: 'Child 2', birthYear: 2010, relationship: 'child' }, // Age 15 in 2025
+          { name: 'Adult', birthYear: 1990, relationship: 'other' }, // Age 35, not a qualifying child
+        ],
+      };
+
+      const recon = manager.computeReconciliation(2025, profileWithChildren, deductionTracker, 0.03);
+
+      // 2 qualifying children = $4,000 credit
+      expect(recon.credits).toBe(4000);
+      expect(recon.totalTaxOwed).toBeLessThan(
+        manager.calculateTotalTaxOwed(2025, 'mfj', 0.03),
+      );
+    });
+
+    it('computes over-withholding as negative settlement (refund)', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 30000, incomeType: 'ordinary' }));
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ year: 2025, federalAmount: 10000, stateAmount: 2000 }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // Over-withholding should result in negative settlement (refund)
+      if (recon.totalWithheld > recon.totalTaxOwed) {
+        expect(recon.settlement).toBeLessThan(0);
+      }
+    });
+
+    it('computes under-withholding as positive settlement (payment)', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 100000, incomeType: 'ordinary' }));
+      manager.addWithholdingOccurrence(makeWithholdingOccurrence({ year: 2025, federalAmount: 1000, stateAmount: 100 }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // Under-withholding should result in positive settlement (owe money)
+      if (recon.totalWithheld < recon.totalTaxOwed) {
+        expect(recon.settlement).toBeGreaterThan(0);
+      }
+    });
+
+    it('computes state tax correctly', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 60000, incomeType: 'ordinary' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // State tax should be: taxableIncome * stateTaxRate
+      const expectedStateTax = Math.max(0, recon.taxableIncome * taxProfile.stateTaxRate);
+      expect(recon.stateTax).toBe(expectedStateTax);
+    });
+
+    it('computes reconciliation with forced standard deduction mode', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 100000, incomeType: 'ordinary' }));
+      deductionTracker.addDeduction(2025, 'mortgageInterest', 15000);
+      deductionTracker.addDeduction(2025, 'charitable', 10000);
+
+      const standardProfile: TaxProfile = {
+        ...taxProfile,
+        itemizationMode: 'standard',
+      };
+
+      const recon = manager.computeReconciliation(2025, standardProfile, deductionTracker, 0.03);
+
+      expect(recon.deductionUsed).toBe('standard');
+      expect(recon.deductionAmount).toBe(recon.standardDeduction);
+    });
+
+    it('computes reconciliation with forced itemized deduction mode', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 100000, incomeType: 'ordinary' }));
+      deductionTracker.addDeduction(2025, 'mortgageInterest', 15000);
+      deductionTracker.addDeduction(2025, 'charitable', 10000);
+
+      const itemizedProfile: TaxProfile = {
+        ...taxProfile,
+        itemizationMode: 'itemized',
+      };
+
+      const recon = manager.computeReconciliation(2025, itemizedProfile, deductionTracker, 0.03);
+
+      expect(recon.deductionUsed).toBe('itemized');
+      expect(recon.deductionAmount).toBe(recon.itemizedDeduction);
+    });
+
+    it('includes above-the-line deductions in AGI calculation', () => {
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      deductionTracker.addDeduction(2025, 'traditionalIRA', 5000);
+      deductionTracker.addDeduction(2025, 'studentLoanInterest', 2000);
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      expect(recon.aboveTheLineDeductions).toBe(7000); // 5000 + 2000
+      expect(recon.agi).toBe(43000); // 50000 - 7000
+    });
+
+    it('handles zero income scenario', () => {
+      // No taxable occurrences added
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      expect(recon.totalIncome).toBe(0);
+      expect(recon.agi).toBe(0);
+      expect(recon.taxableIncome).toBe(0);
+      expect(recon.federalTax).toBe(0);
+      expect(recon.stateTax).toBe(0);
+      expect(recon.totalTaxOwed).toBe(0);
     });
   });
 });

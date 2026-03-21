@@ -457,3 +457,38 @@ export type PaycheckResult = {
   postTaxDeductions: { label: string; amount: number }[];
   depositActivities: { accountId: string; amount: number; label: string }[];
 };
+
+/**
+ * Unified year-end tax reconciliation result
+ */
+export type TaxReconciliation = {
+  year: number;
+  // Income
+  totalOrdinaryIncome: number;
+  totalSSIncome: number;
+  totalIncome: number;
+  // AGI
+  aboveTheLineDeductions: number;
+  agi: number;
+  // Deductions
+  standardDeduction: number;
+  itemizedDeduction: number;
+  deductionUsed: 'standard' | 'itemized';
+  deductionAmount: number;
+  // Taxable income
+  taxableIncome: number;
+  // Tax
+  federalTax: number;
+  ssTax: number; // tax ON SS benefits (0/50/85% rule)
+  stateTax: number;
+  credits: number;
+  totalTaxOwed: number;
+  // Withholding
+  totalFederalWithheld: number;
+  totalStateWithheld: number;
+  totalWithheld: number;
+  // FICA reconciliation
+  ficaOverpayment: number;
+  // Settlement
+  settlement: number; // positive = owes, negative = refund
+};
