@@ -294,10 +294,14 @@ export function getTaxPayments(
   const result = simulation === 'default' ? getDefaultResult() : getConservativeResult();
   const payments: Array<{ accountName: string; amount: number; date: string }> = [];
   for (const account of result.accounts) {
+    // With the unified tax reconciliation, activities are named 'Tax Payment' or 'Tax Refund'
+    // Old 'Auto Calculated Tax' activities may also exist for backward compatibility
     const taxActivities = account.consolidatedActivity.filter(
       (a) =>
         normalizeDate(a.date).startsWith(`${year}`) &&
-        a.name === 'Auto Calculated Tax' &&
+        (a.name === 'Auto Calculated Tax' ||
+          a.name === 'Tax Payment' ||
+          a.name === 'Tax Refund') &&
         a.amount < 0,
     );
     for (const a of taxActivities) {
