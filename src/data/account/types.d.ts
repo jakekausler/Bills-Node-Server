@@ -51,6 +51,7 @@ export type AccountData = {
   defaultShowInGraph: boolean;
   balance?: number;
   contributionLimitType?: '401k' | 'ira' | 'hsa' | null;
+  person?: string | null;
 };
 
 export type TransfersData = {

@@ -46,6 +46,7 @@ export class Account {
   pushAccount: string | null;
   defaultShowInGraph: boolean;
   contributionLimitType: '401k' | 'ira' | 'hsa' | null;
+  person: string | null;
 
   /**
    * Creates a new Account instance
@@ -108,6 +109,7 @@ export class Account {
     this.pushAccount = data.pushAccount || null;
     this.defaultShowInGraph = data.defaultShowInGraph || false;
     this.contributionLimitType = data.contributionLimitType || null;
+    this.person = data.person ?? null;
   }
 
   /**
@@ -148,6 +150,7 @@ export class Account {
       defaultShowInGraph: this.defaultShowInGraph,
       balance: this.todayBalance,
       contributionLimitType: this.contributionLimitType,
+      person: this.person,
     };
   }
 
@@ -183,6 +186,7 @@ export class Account {
       pushAccount: this.pushAccount,
       defaultShowInGraph: this.defaultShowInGraph,
       contributionLimitType: this.contributionLimitType,
+      person: this.person,
     };
   }
 

@@ -442,6 +442,18 @@ export class Calculator {
   processBillEvent(event: BillEvent, segmentResult: SegmentResult, simulation: string): Map<string, number> {
     const bill = event.originalBill;
 
+    // Mortality cessation check — skip if person is deceased
+    if (this.mortalityManager) {
+      if (bill.person && this.mortalityManager.isDeceased(bill.person)) {
+        this.log('bill-skipped-deceased', { name: bill.name, person: bill.person });
+        return new Map();
+      }
+      if (!bill.person && this.mortalityManager.allDeceased()) {
+        this.log('bill-skipped-all-deceased', { name: bill.name });
+        return new Map();
+      }
+    }
+
     // Route paycheck bills to paycheck processor
     if (bill.paycheckProfile) {
       this.log('paycheck-bill-routed', { name: bill.name });
@@ -1164,9 +1176,21 @@ export class Calculator {
   }
 
   processBillTransferEvent(event: BillTransferEvent, segmentResult: SegmentResult): Map<string, number> {
+    // Mortality cessation check — skip if person is deceased
+    const bill = event.originalBill;
+    if (this.mortalityManager) {
+      if (bill.person && this.mortalityManager.isDeceased(bill.person)) {
+        this.log('bill-transfer-skipped-deceased', { name: bill.name, person: bill.person });
+        return new Map();
+      }
+      if (!bill.person && this.mortalityManager.allDeceased()) {
+        this.log('bill-transfer-skipped-all-deceased', { name: bill.name });
+        return new Map();
+      }
+    }
+
     // Recalculate bill amount with Monte Carlo sampling or deterministic increases if configured
     let amount = event.amount;
-    const bill = event.originalBill;
 
     // Apply contribution limits for transfers to retirement accounts
     amount = this.applyCappedContribution(event, amount, event.date);
@@ -1397,6 +1421,16 @@ export class Calculator {
   processPensionEvent(event: PensionEvent, segmentResult: SegmentResult): Map<string, number> {
     const pension = event.pension;
     const accountId = event.accountId;
+
+    // Mortality cessation check — skip if person is deceased
+    if (this.mortalityManager) {
+      const personName = this.mortalityManager.extractPersonNameFromEntity(pension.name);
+      if (this.mortalityManager.isDeceased(personName)) {
+        this.log('pension-skipped-deceased', { name: pension.name, personName });
+        return new Map();
+      }
+    }
+
     if (event.firstPayment) {
       const firstPaymentYear = event.date.getUTCFullYear();
       this.retirementManager.calculatePensionMonthlyPay(pension, firstPaymentYear);
@@ -1471,6 +1505,16 @@ export class Calculator {
   processSocialSecurityEvent(event: SocialSecurityEvent, segmentResult: SegmentResult): Map<string, number> {
     const socialSecurity = event.socialSecurity;
     const accountId = event.accountId;
+
+    // Mortality cessation check — skip if person is deceased
+    if (this.mortalityManager) {
+      const personName = this.mortalityManager.extractPersonNameFromEntity(socialSecurity.name);
+      if (this.mortalityManager.isDeceased(personName)) {
+        this.log('ss-skipped-deceased', { name: socialSecurity.name, personName });
+        return new Map();
+      }
+    }
+
     if (event.firstPayment) {
       this.retirementManager.calculateSocialSecurityMonthlyPay(socialSecurity);
       this.retirementManager.setSocialSecurityFirstPaymentYear(socialSecurity.name, event.date.getUTCFullYear());
@@ -1553,6 +1597,12 @@ export class Calculator {
   }
 
   processTaxEvent(event: TaxEvent, segmentResult: SegmentResult): Map<string, number> {
+    // Mortality cessation check — skip if all persons deceased
+    if (this.mortalityManager && this.mortalityManager.allDeceased()) {
+      this.log('tax-skipped-all-deceased', {});
+      return new Map();
+    }
+
     // Get the account for this event
     const account = this.balanceTracker.findAccountById(event.accountId);
     if (!account) {
@@ -1645,6 +1695,19 @@ export class Calculator {
       return new Map();
     }
 
+    // Mortality cessation check — skip if account owner is deceased
+    if (this.mortalityManager) {
+      if (this.mortalityManager.isAccountOwnerDeceased(account.name, account.person)) {
+        this.log('rmd-skipped-account-owner-deceased', { accountId: account.id, accountName: account.name, person: account.person });
+        return new Map();
+      }
+      // Also skip if all persons are deceased (edge case)
+      if (this.mortalityManager.allDeceased()) {
+        this.log('rmd-skipped-all-deceased', { accountId: account.id });
+        return new Map();
+      }
+    }
+
     // Get the RMD (to) account
     if (!account.rmdAccount) {
       throw new Error(`Account ${account.id} has no RMD account`);
@@ -1723,6 +1786,12 @@ export class Calculator {
   }
 
   processRothConversionEvent(event: RothConversionEvent, segmentResult: SegmentResult): Map<string, number> {
+    // Mortality cessation check — skip if all persons are deceased
+    if (this.mortalityManager && this.mortalityManager.allDeceased()) {
+      this.log('roth-conversion-skipped-all-deceased', { year: event.year });
+      return new Map();
+    }
+
     // Process Roth conversions for this year
     // This delegates to the RothConversionManager which handles the bracket-filling logic
     const conversions = this.rothConversionManager.processConversions(
@@ -2128,6 +2197,12 @@ export class Calculator {
    * Process a Medicare premium event (monthly Part B, Part D, Medigap premiums + IRMAA)
    */
   processMedicarePremiumEvent(event: MedicarePremiumEvent, segmentResult: SegmentResult): Map<string, number> {
+    // Mortality cessation check — skip if person is deceased
+    if (this.mortalityManager && this.mortalityManager.isDeceased(event.personName)) {
+      this.log('medicare-premium-skipped-deceased', { person: event.personName });
+      return new Map();
+    }
+
     const accountId = event.accountId;
     const year = event.year;
 
@@ -2195,6 +2270,12 @@ export class Calculator {
    * Process a Medicare hospital admission event (annual check for Poisson-distributed admissions)
    */
   processMedicareHospitalEvent(event: MedicareHospitalEvent, segmentResult: SegmentResult): Map<string, number> {
+    // Mortality cessation check — skip if person is deceased
+    if (this.mortalityManager && this.mortalityManager.isDeceased(event.personName)) {
+      this.log('medicare-hospital-skipped-deceased', { person: event.personName });
+      return new Map();
+    }
+
     const accountId = event.accountId;
     const year = event.year;
 
@@ -2261,6 +2342,12 @@ export class Calculator {
    * Process an ACA/COBRA premium event
    */
   processAcaPremiumEvent(event: AcaPremiumEvent, segmentResult: SegmentResult): Map<string, number> {
+    // Mortality cessation check — skip if person is deceased
+    if (this.mortalityManager && this.mortalityManager.isDeceased(event.personName)) {
+      this.log('aca-premium-skipped-deceased', { person: event.personName });
+      return new Map();
+    }
+
     const accountId = event.accountId;
     const year = event.year;
 
@@ -2341,6 +2428,12 @@ export class Calculator {
   processLTCCheckEvent(event: LTCCheckEvent, segmentResult: SegmentResult): Map<string, number> {
     const accountId = event.accountId;
     const personName = event.personName;
+
+    // Mortality cessation check — skip if person is deceased
+    if (this.mortalityManager && this.mortalityManager.isDeceased(personName)) {
+      this.log('ltc-check-skipped-deceased', { person: personName });
+      return new Map();
+    }
 
     // Get the config for this person
     const config = this.mortalityManager.getConfig(personName);

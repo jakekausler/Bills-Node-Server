@@ -517,6 +517,42 @@ export class MortalityManager {
   }
 
   /**
+   * Extract person name from SS/Pension entity names.
+   * Strips known suffixes like " Social Security" to get the canonical person name.
+   */
+  extractPersonNameFromEntity(entityName: string): string {
+    if (!entityName) return entityName;
+    return entityName.replace(/ Social Security$/, '').replace(/ Pension$/, '');
+  }
+
+  /**
+   * Check if the owner of an account is deceased.
+   * If account has explicit person, use it. Otherwise fall back to name matching.
+   * Matches account names like "Jake 401(k)" or "Kendall Checking" to tracked person names.
+   * Returns true if any tracked person's name appears in the account name and that person is deceased.
+   * Handles SS/Pension names by stripping suffixes (e.g., "Jake Social Security" → "Jake").
+   */
+  isAccountOwnerDeceased(accountName: string, accountPerson?: string | null): boolean {
+    if (!accountName && !accountPerson) return false;
+
+    // If account has explicit person, use it
+    if (accountPerson) {
+      return this.isDeceased(accountPerson);
+    }
+
+    // Fallback: check if any deceased person's name appears in account name
+    for (const person of this.personStates.keys()) {
+      if (accountName.toLowerCase().includes(person.toLowerCase())) {
+        // Found the person — check if they're deceased
+        if (this.isDeceased(person)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Get the death date for a person (null if still alive)
    */
   getDeathDate(person: string): Date | null {

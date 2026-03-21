@@ -139,6 +139,33 @@ describe('Account', () => {
       expect(serialized.performsPushes).toBe(mockAccountData.performsPushes);
     });
 
+    it('should round-trip account with person field', () => {
+      const dataWithPerson: AccountData = {
+        ...mockAccountData,
+        person: 'Jake',
+      };
+
+      const account = new Account(dataWithPerson);
+      expect(account.person).toBe('Jake');
+
+      const serialized = account.serialize();
+      expect(serialized.person).toBe('Jake');
+
+      const account2 = new Account(serialized);
+      expect(account2.person).toBe('Jake');
+    });
+
+    it('should round-trip account without person (backward compat)', () => {
+      const account = new Account(mockAccountData);
+      expect(account.person).toBe(null);
+
+      const serialized = account.serialize();
+      expect(serialized.person).toBe(null);
+
+      const account2 = new Account(serialized);
+      expect(account2.person).toBe(null);
+    });
+
     it('should format dates correctly in serialization', () => {
       const dataWithDates: AccountData = {
         ...mockAccountData,
@@ -190,6 +217,7 @@ describe('Account', () => {
         pushAccount: null,
         defaultShowInGraph: false,
         contributionLimitType: null,
+        person: null,
       });
     });
   });

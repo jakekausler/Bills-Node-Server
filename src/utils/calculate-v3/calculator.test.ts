@@ -408,12 +408,20 @@ function makeLTCManager(overrides: Partial<{
   getNetMonthlyCost: ReturnType<typeof vi.fn>;
   getConfig: ReturnType<typeof vi.fn>;
   getPersonState: ReturnType<typeof vi.fn>;
+  isDeceased: ReturnType<typeof vi.fn>;
+  allDeceased: ReturnType<typeof vi.fn>;
+  isAccountOwnerDeceased: ReturnType<typeof vi.fn>;
+  extractPersonNameFromEntity: ReturnType<typeof vi.fn>;
 }> = {}): Partial<any> {
   return {
     stepMonth: overrides.stepMonth ?? vi.fn(),
     getNetMonthlyCost: overrides.getNetMonthlyCost ?? vi.fn(() => 0),
     getConfig: overrides.getConfig ?? vi.fn(() => null),
     getPersonState: overrides.getPersonState ?? vi.fn(() => null),
+    isDeceased: overrides.isDeceased ?? vi.fn(() => false),
+    allDeceased: overrides.allDeceased ?? vi.fn(() => false),
+    isAccountOwnerDeceased: overrides.isAccountOwnerDeceased ?? vi.fn(() => false),
+    extractPersonNameFromEntity: overrides.extractPersonNameFromEntity ?? vi.fn((name: string) => name.replace(/ Social Security$/, '').replace(/ Pension$/, '')),
   };
 }
 
