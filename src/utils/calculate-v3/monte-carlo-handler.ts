@@ -126,6 +126,12 @@ export class MonteCarloHandler {
       // AWI Growth — ratio (e.g. 1.04 for 4% growth), NOT a percentage
       yearSamples[MonteCarloSampleType.AWI_GROWTH] = yearData.awiGrowthRatio ?? 1.045;
 
+      // Unemployment Rate — percentage (e.g., 5.3 for 5.3%), stored as percentage not decimal
+      yearSamples[MonteCarloSampleType.UNEMPLOYMENT_RATE] = yearData.unemploymentRate ?? 0;
+
+      // Unemployment Duration — median weeks (e.g., 12.1 weeks)
+      yearSamples[MonteCarloSampleType.UNEMPLOYMENT_DURATION] = yearData.unemploymentDuration ?? 0;
+
       // Portfolio - use the SAME drawn year for stock/bond/cash
       const composition = this.getPortfolioComposition(new Date(year, 6, 1)); // mid-year
       const stockReturn = yearData.stock !== undefined

@@ -50,6 +50,11 @@ export type W4Config = {
 
 export type DeductionFrequency = 'perPaycheck' | 'monthly' | 'annual';
 
+export type JobLossConfig = {
+  enabled: boolean;
+  scaleFactor?: number; // default 1.5
+};
+
 export type PaycheckProfile = {
   grossPay: number;
   traditional401k?: ContributionConfig;
@@ -60,6 +65,7 @@ export type PaycheckProfile = {
   deductions?: PaycheckDeduction[];
   bonus?: BonusConfig;
   w4?: W4Config;
+  jobLoss?: JobLossConfig;
 };
 
 /**

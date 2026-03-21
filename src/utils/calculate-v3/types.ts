@@ -334,6 +334,8 @@ export enum MonteCarloSampleType {
   IRA_LIMIT_CHANGE = 'IRA_LIMIT_CHANGE',
   HSA_LIMIT_CHANGE = 'HSA_LIMIT_CHANGE',
   AWI_GROWTH = 'AWI_GROWTH',
+  UNEMPLOYMENT_RATE = 'UnemploymentRate',
+  UNEMPLOYMENT_DURATION = 'UnemploymentDuration',
 }
 
 /**
@@ -408,6 +410,8 @@ export interface HistoricRates {
     iraRatio: number;
     hsaRatio: number;
     awiGrowthRatio: number;
+    unemploymentRate: number;
+    unemploymentDuration: number;
   }>>;
   awi?: Record<string, number>;
   awiGrowthRatio?: Record<string, number>;

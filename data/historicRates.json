@@ -770,7 +770,9 @@
       "inflation": 8.1,
       "ssWageBase": 3000,
       "ssWageBaseRatio": 1,
-      "healthcareCpi": 6.28
+      "healthcareCpi": 6.28,
+      "unemploymentRate": 3.8,
+      "unemploymentDuration": 8.6
     },
     "1949": {
       "stock": 10.26,
@@ -779,7 +781,9 @@
       "raise": 3.7,
       "ssWageBase": 3000,
       "ssWageBaseRatio": 1,
-      "healthcareCpi": 3.07
+      "healthcareCpi": 3.07,
+      "unemploymentRate": 6.6,
+      "unemploymentDuration": 10.0
     },
     "1950": {
       "stock": 21.78,
@@ -788,7 +792,9 @@
       "raise": 3.8,
       "ssWageBase": 3000,
       "ssWageBaseRatio": 1,
-      "healthcareCpi": 1.8
+      "healthcareCpi": 1.8,
+      "unemploymentRate": 5.3,
+      "unemploymentDuration": 12.1
     },
     "1951": {
       "stock": 16.46,
@@ -797,7 +803,9 @@
       "raise": 4.1,
       "ssWageBase": 3600,
       "ssWageBaseRatio": 1.2,
-      "healthcareCpi": 4.8
+      "healthcareCpi": 4.8,
+      "unemploymentRate": 3.3,
+      "unemploymentDuration": 8.7
     },
     "1952": {
       "stock": 11.78,
@@ -807,7 +815,9 @@
       "ssWageBase": 3600,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 5.58,
-      "awiGrowthRatio": 1.0622
+      "awiGrowthRatio": 1.0622,
+      "unemploymentRate": 3.0,
+      "unemploymentDuration": 8.4
     },
     "1953": {
       "stock": -6.62,
@@ -817,7 +827,9 @@
       "ssWageBase": 3600,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 3.49,
-      "awiGrowthRatio": 1.0559
+      "awiGrowthRatio": 1.0559,
+      "unemploymentRate": 2.9,
+      "unemploymentDuration": 8.0
     },
     "1954": {
       "stock": 45.02,
@@ -828,7 +840,9 @@
       "ssWageBase": 3600,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 3.08,
-      "awiGrowthRatio": 1.0052
+      "awiGrowthRatio": 1.0052,
+      "unemploymentRate": 5.5,
+      "unemploymentDuration": 11.8
     },
     "1955": {
       "stock": 26.4,
@@ -839,7 +853,9 @@
       "ssWageBase": 4200,
       "ssWageBaseRatio": 1.166667,
       "healthcareCpi": 2.38,
-      "awiGrowthRatio": 1.0462
+      "awiGrowthRatio": 1.0462,
+      "unemploymentRate": 4.4,
+      "unemploymentDuration": 10.4
     },
     "1956": {
       "stock": 2.62,
@@ -850,7 +866,9 @@
       "ssWageBase": 4200,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 3.56,
-      "awiGrowthRatio": 1.0699
+      "awiGrowthRatio": 1.0699,
+      "unemploymentRate": 4.1,
+      "unemploymentDuration": 10.0
     },
     "1957": {
       "stock": -14.31,
@@ -861,7 +879,9 @@
       "ssWageBase": 4200,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 4.1,
-      "awiGrowthRatio": 1.031
+      "awiGrowthRatio": 1.031,
+      "unemploymentRate": 4.3,
+      "unemploymentDuration": 10.5
     },
     "1958": {
       "stock": 38.06,
@@ -872,7 +892,9 @@
       "ssWageBase": 4200,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 4.87,
-      "awiGrowthRatio": 1.0088
+      "awiGrowthRatio": 1.0088,
+      "unemploymentRate": 6.8,
+      "unemploymentDuration": 13.9
     },
     "1959": {
       "stock": 8.48,
@@ -883,7 +905,9 @@
       "ssWageBase": 4800,
       "ssWageBaseRatio": 1.142857,
       "healthcareCpi": 4.16,
-      "awiGrowthRatio": 1.0495
+      "awiGrowthRatio": 1.0495,
+      "unemploymentRate": 5.5,
+      "unemploymentDuration": 12.2
     },
     "1960": {
       "stock": -2.97,
@@ -894,7 +918,9 @@
       "ssWageBase": 4800,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 3.57,
-      "awiGrowthRatio": 1.0392
+      "awiGrowthRatio": 1.0392,
+      "unemploymentRate": 5.5,
+      "unemploymentDuration": 11.8
     },
     "1961": {
       "stock": 23.13,
@@ -905,7 +931,9 @@
       "ssWageBase": 4800,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 2.92,
-      "awiGrowthRatio": 1.0199
+      "awiGrowthRatio": 1.0199,
+      "unemploymentRate": 6.7,
+      "unemploymentDuration": 15.6
     },
     "1962": {
       "stock": -11.81,
@@ -916,7 +944,9 @@
       "ssWageBase": 4800,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 2.69,
-      "awiGrowthRatio": 1.0501
+      "awiGrowthRatio": 1.0501,
+      "unemploymentRate": 5.5,
+      "unemploymentDuration": 12.5
     },
     "1963": {
       "stock": 18.89,
@@ -927,7 +957,9 @@
       "ssWageBase": 4800,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 2.37,
-      "awiGrowthRatio": 1.0245
+      "awiGrowthRatio": 1.0245,
+      "unemploymentRate": 5.7,
+      "unemploymentDuration": 12.0
     },
     "1964": {
       "stock": 12.97,
@@ -938,7 +970,9 @@
       "ssWageBase": 4800,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 2.11,
-      "awiGrowthRatio": 1.0409
+      "awiGrowthRatio": 1.0409,
+      "unemploymentRate": 5.2,
+      "unemploymentDuration": 11.8
     },
     "1965": {
       "stock": 9.06,
@@ -949,7 +983,9 @@
       "ssWageBase": 4800,
       "ssWageBaseRatio": 1,
       "healthcareCpi": 2.41,
-      "awiGrowthRatio": 1.018
+      "awiGrowthRatio": 1.018,
+      "unemploymentRate": 4.5,
+      "unemploymentDuration": 10.4
     },
     "1966": {
       "stock": -13.09,
@@ -963,7 +999,9 @@
       "partBPremium": 3,
       "partADeductible": 40,
       "partBDeductible": 50,
-      "awiGrowthRatio": 1.06
+      "awiGrowthRatio": 1.06,
+      "unemploymentRate": 3.8,
+      "unemploymentDuration": 8.4
     },
     "1967": {
       "stock": 20.09,
@@ -977,7 +1015,9 @@
       "partBPremium": 3,
       "partADeductible": 40,
       "partBDeductible": 50,
-      "awiGrowthRatio": 1.0557
+      "awiGrowthRatio": 1.0557,
+      "unemploymentRate": 3.8,
+      "unemploymentDuration": 8.1
     },
     "1968": {
       "stock": 7.66,
@@ -991,7 +1031,9 @@
       "partBPremium": 4,
       "partADeductible": 40,
       "partBDeductible": 50,
-      "awiGrowthRatio": 1.0687
+      "awiGrowthRatio": 1.0687,
+      "unemploymentRate": 3.6,
+      "unemploymentDuration": 7.6
     },
     "1969": {
       "stock": -11.36,
@@ -1005,7 +1047,9 @@
       "partBPremium": 4,
       "partADeductible": 44,
       "partBDeductible": 50,
-      "awiGrowthRatio": 1.0578
+      "awiGrowthRatio": 1.0578,
+      "unemploymentRate": 3.5,
+      "unemploymentDuration": 7.4
     },
     "1970": {
       "stock": 0.1,
@@ -1019,7 +1063,9 @@
       "partBPremium": 5.3,
       "partADeductible": 52,
       "partBDeductible": 50,
-      "awiGrowthRatio": 1.0496
+      "awiGrowthRatio": 1.0496,
+      "unemploymentRate": 4.9,
+      "unemploymentDuration": 8.6
     },
     "1971": {
       "stock": 10.79,
@@ -1033,7 +1079,9 @@
       "partBPremium": 5.6,
       "partADeductible": 60,
       "partBDeductible": 50,
-      "awiGrowthRatio": 1.0502
+      "awiGrowthRatio": 1.0502,
+      "unemploymentRate": 5.9,
+      "unemploymentDuration": 10.6
     },
     "1972": {
       "stock": 15.63,
@@ -1047,7 +1095,9 @@
       "partBPremium": 5.8,
       "partADeductible": 68,
       "partBDeductible": 50,
-      "awiGrowthRatio": 1.098
+      "awiGrowthRatio": 1.098,
+      "unemploymentRate": 5.6,
+      "unemploymentDuration": 10.2
     },
     "1973": {
       "stock": -17.37,
@@ -1061,7 +1111,9 @@
       "partBPremium": 6.3,
       "partADeductible": 72,
       "partBDeductible": 60,
-      "awiGrowthRatio": 1.0626
+      "awiGrowthRatio": 1.0626,
+      "unemploymentRate": 4.9,
+      "unemploymentDuration": 8.8
     },
     "1974": {
       "stock": -29.72,
@@ -1075,7 +1127,9 @@
       "partBPremium": 6.7,
       "partADeductible": 84,
       "partBDeductible": 60,
-      "awiGrowthRatio": 1.0594
+      "awiGrowthRatio": 1.0594,
+      "unemploymentRate": 5.6,
+      "unemploymentDuration": 9.4
     },
     "1975": {
       "stock": 31.55,
@@ -1090,7 +1144,9 @@
       "partBPremium": 6.7,
       "partADeductible": 92,
       "partBDeductible": 60,
-      "awiGrowthRatio": 1.0747
+      "awiGrowthRatio": 1.0747,
+      "unemploymentRate": 8.5,
+      "unemploymentDuration": 14.2
     },
     "1976": {
       "stock": 19.15,
@@ -1106,7 +1162,9 @@
       "partBPremium": 7.2,
       "partADeductible": 104,
       "partBDeductible": 60,
-      "awiGrowthRatio": 1.069
+      "awiGrowthRatio": 1.069,
+      "unemploymentRate": 7.7,
+      "unemploymentDuration": 13.4
     },
     "1977": {
       "stock": -11.5,
@@ -1122,7 +1180,9 @@
       "partBPremium": 7.7,
       "partADeductible": 124,
       "partBDeductible": 60,
-      "awiGrowthRatio": 1.0599
+      "awiGrowthRatio": 1.0599,
+      "unemploymentRate": 7.1,
+      "unemploymentDuration": 11.5
     },
     "1978": {
       "stock": 1.06,
@@ -1138,7 +1198,9 @@
       "partBPremium": 8.2,
       "partADeductible": 144,
       "partBDeductible": 60,
-      "awiGrowthRatio": 1.0794
+      "awiGrowthRatio": 1.0794,
+      "unemploymentRate": 6.1,
+      "unemploymentDuration": 10.2
     },
     "1979": {
       "stock": 12.31,
@@ -1154,7 +1216,9 @@
       "partBPremium": 8.7,
       "partADeductible": 160,
       "partBDeductible": 60,
-      "awiGrowthRatio": 1.0875
+      "awiGrowthRatio": 1.0875,
+      "unemploymentRate": 5.8,
+      "unemploymentDuration": 10.0
     },
     "1980": {
       "stock": 25.77,
@@ -1170,7 +1234,9 @@
       "partBPremium": 9.6,
       "partADeductible": 180,
       "partBDeductible": 60,
-      "awiGrowthRatio": 1.0901
+      "awiGrowthRatio": 1.0901,
+      "unemploymentRate": 7.1,
+      "unemploymentDuration": 11.9
     },
     "1981": {
       "stock": -9.73,
@@ -1185,7 +1251,9 @@
       "healthcareCpi": 10.78,
       "partBPremium": 11,
       "partADeductible": 204,
-      "awiGrowthRatio": 1.1007
+      "awiGrowthRatio": 1.1007,
+      "unemploymentRate": 7.6,
+      "unemploymentDuration": 12.3
     },
     "1982": {
       "stock": 14.76,
@@ -1201,7 +1269,9 @@
       "partBPremium": 12.2,
       "partADeductible": 260,
       "partBDeductible": 75,
-      "awiGrowthRatio": 1.0551
+      "awiGrowthRatio": 1.0551,
+      "unemploymentRate": 9.7,
+      "unemploymentDuration": 15.6
     },
     "1983": {
       "stock": 17.27,
@@ -1217,7 +1287,9 @@
       "partBPremium": 12.2,
       "partADeductible": 304,
       "partBDeductible": 75,
-      "awiGrowthRatio": 1.0487
+      "awiGrowthRatio": 1.0487,
+      "unemploymentRate": 9.6,
+      "unemploymentDuration": 20.0
     },
     "1984": {
       "stock": 1.4,
@@ -1233,7 +1305,9 @@
       "partBPremium": 14.6,
       "partADeductible": 356,
       "partBDeductible": 75,
-      "awiGrowthRatio": 1.0588
+      "awiGrowthRatio": 1.0588,
+      "unemploymentRate": 7.5,
+      "unemploymentDuration": 16.2
     },
     "1985": {
       "stock": 26.33,
@@ -1249,7 +1323,9 @@
       "partBPremium": 15.5,
       "partADeductible": 400,
       "partBDeductible": 75,
-      "awiGrowthRatio": 1.0426
+      "awiGrowthRatio": 1.0426,
+      "unemploymentRate": 7.2,
+      "unemploymentDuration": 13.5
     },
     "1986": {
       "stock": 14.62,
@@ -1265,7 +1341,9 @@
       "partBPremium": 15.5,
       "partADeductible": 492,
       "partBDeductible": 75,
-      "awiGrowthRatio": 1.0297
+      "awiGrowthRatio": 1.0297,
+      "unemploymentRate": 7.0,
+      "unemploymentDuration": 13.0
     },
     "1987": {
       "stock": 2.03,
@@ -1283,7 +1361,9 @@
       "partBPremium": 17.9,
       "partADeductible": 520,
       "partBDeductible": 75,
-      "awiGrowthRatio": 1.0638
+      "awiGrowthRatio": 1.0638,
+      "unemploymentRate": 6.2,
+      "unemploymentDuration": 11.5
     },
     "1988": {
       "stock": 12.4,
@@ -1301,7 +1381,9 @@
       "partBPremium": 24.8,
       "partADeductible": 540,
       "partBDeductible": 75,
-      "awiGrowthRatio": 1.0493
+      "awiGrowthRatio": 1.0493,
+      "unemploymentRate": 5.5,
+      "unemploymentDuration": 10.2
     },
     "1989": {
       "stock": 27.25,
@@ -1319,7 +1401,9 @@
       "partBPremium": 31.9,
       "partADeductible": 560,
       "partBDeductible": 75,
-      "awiGrowthRatio": 1.0396
+      "awiGrowthRatio": 1.0396,
+      "unemploymentRate": 5.3,
+      "unemploymentDuration": 9.0
     },
     "1990": {
       "stock": -6.56,
@@ -1337,7 +1421,9 @@
       "partBPremium": 28.6,
       "partADeductible": 592,
       "partBDeductible": 75,
-      "awiGrowthRatio": 1.0462
+      "awiGrowthRatio": 1.0462,
+      "unemploymentRate": 5.6,
+      "unemploymentDuration": 10.4
     },
     "1991": {
       "stock": 26.31,
@@ -1355,7 +1441,9 @@
       "partBPremium": 29.9,
       "partADeductible": 628,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0373
+      "awiGrowthRatio": 1.0373,
+      "unemploymentRate": 6.8,
+      "unemploymentDuration": 12.6
     },
     "1992": {
       "stock": 4.46,
@@ -1373,7 +1461,9 @@
       "partBPremium": 31.8,
       "partADeductible": 652,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0515
+      "awiGrowthRatio": 1.0515,
+      "unemploymentRate": 7.5,
+      "unemploymentDuration": 14.4
     },
     "1993": {
       "stock": 7.06,
@@ -1391,7 +1481,9 @@
       "partBPremium": 36.6,
       "partADeductible": 676,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0086
+      "awiGrowthRatio": 1.0086,
+      "unemploymentRate": 6.9,
+      "unemploymentDuration": 14.0
     },
     "1994": {
       "stock": -1.54,
@@ -1409,7 +1501,9 @@
       "partBPremium": 41.1,
       "partADeductible": 696,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0268
+      "awiGrowthRatio": 1.0268,
+      "unemploymentRate": 6.1,
+      "unemploymentDuration": 14.0
     },
     "1995": {
       "stock": 34.11,
@@ -1427,7 +1521,9 @@
       "partBPremium": 46.1,
       "partADeductible": 716,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0401
+      "awiGrowthRatio": 1.0401,
+      "unemploymentRate": 5.6,
+      "unemploymentDuration": 13.6
     },
     "1996": {
       "stock": 20.26,
@@ -1445,7 +1541,9 @@
       "partBPremium": 42.5,
       "partADeductible": 736,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0489
+      "awiGrowthRatio": 1.0489,
+      "unemploymentRate": 5.4,
+      "unemploymentDuration": 12.6
     },
     "1997": {
       "stock": 31.01,
@@ -1463,7 +1561,9 @@
       "partBPremium": 43.8,
       "partADeductible": 760,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0584
+      "awiGrowthRatio": 1.0584,
+      "unemploymentRate": 4.9,
+      "unemploymentDuration": 10.5
     },
     "1998": {
       "stock": 26.67,
@@ -1481,7 +1581,9 @@
       "partBPremium": 43.8,
       "partADeductible": 764,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0523
+      "awiGrowthRatio": 1.0523,
+      "unemploymentRate": 4.5,
+      "unemploymentDuration": 9.5
     },
     "1999": {
       "stock": 19.53,
@@ -1499,7 +1601,9 @@
       "partBPremium": 45.5,
       "partADeductible": 768,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0557
+      "awiGrowthRatio": 1.0557,
+      "unemploymentRate": 4.2,
+      "unemploymentDuration": 9.0
     },
     "2000": {
       "stock": -10.14,
@@ -1517,7 +1621,9 @@
       "partBPremium": 45.5,
       "partADeductible": 776,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0553
+      "awiGrowthRatio": 1.0553,
+      "unemploymentRate": 4.0,
+      "unemploymentDuration": 8.4
     },
     "2001": {
       "stock": -13.04,
@@ -1535,7 +1641,9 @@
       "partBPremium": 50,
       "partADeductible": 792,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0239
+      "awiGrowthRatio": 1.0239,
+      "unemploymentRate": 4.7,
+      "unemploymentDuration": 10.5
     },
     "2002": {
       "stock": -23.37,
@@ -1553,7 +1661,9 @@
       "partBPremium": 54,
       "partADeductible": 812,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.01
+      "awiGrowthRatio": 1.01,
+      "unemploymentRate": 5.8,
+      "unemploymentDuration": 14.0
     },
     "2003": {
       "stock": 26.38,
@@ -1571,7 +1681,9 @@
       "partBPremium": 58.7,
       "partADeductible": 840,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0244
+      "awiGrowthRatio": 1.0244,
+      "unemploymentRate": 6.0,
+      "unemploymentDuration": 16.4
     },
     "2004": {
       "stock": 8.99,
@@ -1589,7 +1701,9 @@
       "partBPremium": 66.6,
       "partADeductible": 876,
       "partBDeductible": 100,
-      "awiGrowthRatio": 1.0465
+      "awiGrowthRatio": 1.0465,
+      "unemploymentRate": 5.5,
+      "unemploymentDuration": 16.0
     },
     "2005": {
       "stock": 3,
@@ -1608,7 +1722,9 @@
       "partBPremium": 78.2,
       "partADeductible": 912,
       "partBDeductible": 110,
-      "awiGrowthRatio": 1.0366
+      "awiGrowthRatio": 1.0366,
+      "unemploymentRate": 5.1,
+      "unemploymentDuration": 13.5
     },
     "2006": {
       "stock": 13.62,
@@ -1627,7 +1743,9 @@
       "partBPremium": 88.5,
       "partADeductible": 952,
       "partBDeductible": 124,
-      "awiGrowthRatio": 1.046
+      "awiGrowthRatio": 1.046,
+      "unemploymentRate": 4.6,
+      "unemploymentDuration": 12.0
     },
     "2007": {
       "stock": 3.53,
@@ -1646,7 +1764,9 @@
       "partBPremium": 93.5,
       "partADeductible": 992,
       "partBDeductible": 131,
-      "awiGrowthRatio": 1.0454
+      "awiGrowthRatio": 1.0454,
+      "unemploymentRate": 4.6,
+      "unemploymentDuration": 11.6
     },
     "2008": {
       "stock": -38.49,
@@ -1665,7 +1785,9 @@
       "partBPremium": 96.4,
       "partADeductible": 1024,
       "partBDeductible": 135,
-      "awiGrowthRatio": 1.023
+      "awiGrowthRatio": 1.023,
+      "unemploymentRate": 5.8,
+      "unemploymentDuration": 14.0
     },
     "2009": {
       "stock": 23.45,
@@ -1684,7 +1806,9 @@
       "partBPremium": 96.4,
       "partADeductible": 1068,
       "partBDeductible": 135,
-      "awiGrowthRatio": 0.9849
+      "awiGrowthRatio": 0.9849,
+      "unemploymentRate": 9.3,
+      "unemploymentDuration": 20.0
     },
     "2010": {
       "stock": 12.78,
@@ -1702,7 +1826,9 @@
       "healthcareCpi": 3.41,
       "partADeductible": 1100,
       "partBDeductible": 155,
-      "awiGrowthRatio": 1.0236
+      "awiGrowthRatio": 1.0236,
+      "unemploymentRate": 9.6,
+      "unemploymentDuration": 25.2
     },
     "2011": {
       "stock": 0,
@@ -1720,7 +1846,9 @@
       "healthcareCpi": 3.04,
       "partADeductible": 1132,
       "partBDeductible": 162,
-      "awiGrowthRatio": 1.0313
+      "awiGrowthRatio": 1.0313,
+      "unemploymentRate": 8.9,
+      "unemploymentDuration": 21.4
     },
     "2012": {
       "stock": 13.41,
@@ -1739,7 +1867,9 @@
       "partBPremium": 99.9,
       "partADeductible": 1156,
       "partBDeductible": 140,
-      "awiGrowthRatio": 1.0312
+      "awiGrowthRatio": 1.0312,
+      "unemploymentRate": 8.1,
+      "unemploymentDuration": 19.2
     },
     "2013": {
       "stock": 29.6,
@@ -1755,7 +1885,9 @@
       "iraRatio": 1.1,
       "hsaRatio": 1.048387,
       "healthcareCpi": 2.46,
-      "awiGrowthRatio": 1.0128
+      "awiGrowthRatio": 1.0128,
+      "unemploymentRate": 7.4,
+      "unemploymentDuration": 16.4
     },
     "2014": {
       "stock": 11.39,
@@ -1771,7 +1903,9 @@
       "iraRatio": 1,
       "hsaRatio": 1.015385,
       "healthcareCpi": 2.39,
-      "awiGrowthRatio": 1.0355
+      "awiGrowthRatio": 1.0355,
+      "unemploymentRate": 6.2,
+      "unemploymentDuration": 14.6
     },
     "2015": {
       "stock": -0.73,
@@ -1787,7 +1921,9 @@
       "iraRatio": 1,
       "hsaRatio": 1.015152,
       "healthcareCpi": 2.63,
-      "awiGrowthRatio": 1.0348
+      "awiGrowthRatio": 1.0348,
+      "unemploymentRate": 5.3,
+      "unemploymentDuration": 12.6
     },
     "2016": {
       "stock": 9.54,
@@ -1803,7 +1939,9 @@
       "iraRatio": 1,
       "hsaRatio": 1,
       "healthcareCpi": 3.79,
-      "awiGrowthRatio": 1.0113
+      "awiGrowthRatio": 1.0113,
+      "unemploymentRate": 4.9,
+      "unemploymentDuration": 11.0
     },
     "2017": {
       "stock": 19.42,
@@ -1819,7 +1957,9 @@
       "iraRatio": 1,
       "hsaRatio": 1.014925,
       "healthcareCpi": 2.51,
-      "awiGrowthRatio": 1.0345
+      "awiGrowthRatio": 1.0345,
+      "unemploymentRate": 4.4,
+      "unemploymentDuration": 10.0
     },
     "2018": {
       "stock": -6.24,
@@ -1835,7 +1975,9 @@
       "iraRatio": 1,
       "hsaRatio": 1.014706,
       "healthcareCpi": 1.97,
-      "awiGrowthRatio": 1.0362
+      "awiGrowthRatio": 1.0362,
+      "unemploymentRate": 3.9,
+      "unemploymentDuration": 9.3
     },
     "2019": {
       "stock": 28.88,
@@ -1851,7 +1993,9 @@
       "iraRatio": 1.090909,
       "hsaRatio": 1.014493,
       "healthcareCpi": 2.83,
-      "awiGrowthRatio": 1.0375
+      "awiGrowthRatio": 1.0375,
+      "unemploymentRate": 3.7,
+      "unemploymentDuration": 9.2
     },
     "2020": {
       "stock": 16.26,
@@ -1867,7 +2011,9 @@
       "iraRatio": 1,
       "hsaRatio": 1.014286,
       "healthcareCpi": 4.1,
-      "awiGrowthRatio": 1.0283
+      "awiGrowthRatio": 1.0283,
+      "unemploymentRate": 8.1,
+      "unemploymentDuration": 14.6
     },
     "2021": {
       "stock": 26.89,
@@ -1883,7 +2029,9 @@
       "iraRatio": 1,
       "hsaRatio": 1.014085,
       "healthcareCpi": 1.24,
-      "awiGrowthRatio": 1.0889
+      "awiGrowthRatio": 1.0889,
+      "unemploymentRate": 5.4,
+      "unemploymentDuration": 18.1
     },
     "2022": {
       "stock": -19.44,
@@ -1899,7 +2047,9 @@
       "iraRatio": 1,
       "hsaRatio": 1.013889,
       "healthcareCpi": 4.05,
-      "awiGrowthRatio": 1.0532
+      "awiGrowthRatio": 1.0532,
+      "unemploymentRate": 3.6,
+      "unemploymentDuration": 8.4
     },
     "2023": {
       "stock": 24.23,
@@ -1912,7 +2062,9 @@
       "ssWageBase": 160200,
       "ssWageBaseRatio": 1.089796,
       "healthcareCpi": 0.46,
-      "awiGrowthRatio": 1.0443
+      "awiGrowthRatio": 1.0443,
+      "unemploymentRate": 3.6,
+      "unemploymentDuration": 9.0
     },
     "2024": {
       "stock": 23.31,
@@ -1928,7 +2080,9 @@
       "iraRatio": 1.166667,
       "hsaRatio": 1.136986,
       "healthcareCpi": 2.69,
-      "awiGrowthRatio": 1.0484
+      "awiGrowthRatio": 1.0484,
+      "unemploymentRate": 4.0,
+      "unemploymentDuration": 10.0
     },
     "2025": {
       "stock": 2.7,

@@ -52,6 +52,8 @@ const mockHistoricRates = {
         iraRatio: 1.0 + (year % 7) * 0.012,
         hsaRatio: 1.0 + (year % 6) * 0.01,
         awiGrowthRatio: 1.03 + (year % 5) * 0.005,
+        unemploymentRate: 3 + (year % 7),
+        unemploymentDuration: 8 + (year % 12),
       }];
     }),
   ),
