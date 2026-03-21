@@ -8,6 +8,7 @@ import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecur
 import { DateString } from '../date/types';
 import { FilingStatus } from './bracket-calculator';
 import type { DebugLogger } from './debug-logger';
+import type { TaxScenario } from './tax-profile-types';
 
 export type IncomeType = 'ordinary' | 'retirement' | 'socialSecurity' | 'interest' | 'penalty';
 
@@ -35,6 +36,7 @@ export type CalculationOptions = {
   bracketInflationRate?: number;
   withdrawalStrategy?: 'manual' | 'taxOptimized'; // Account withdrawal strategy
   taxAccountName?: string; // Explicit account name for tax events (from taxConfig)
+  taxScenario?: TaxScenario; // Tax scenario for bracket evolution
 };
 
 export type TaxableOccurrence = {
@@ -475,6 +477,7 @@ export type TaxReconciliation = {
   itemizedDeduction: number;
   deductionUsed: 'standard' | 'itemized';
   deductionAmount: number;
+  personalExemption: number;
   // Taxable income
   taxableIncome: number;
   // Tax

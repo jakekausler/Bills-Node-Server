@@ -3,6 +3,7 @@ import { join } from 'path';
 import type { MCRateGetter } from './types';
 import { MonteCarloSampleType } from './types';
 import { compoundMCInflation } from './mc-utils';
+import type { TaxScenario } from './tax-profile-types';
 
 export type FilingStatus = 'single' | 'mfj' | 'mfs' | 'hoh';
 
@@ -15,10 +16,16 @@ interface TaxBracket {
 interface YearBracketData {
   brackets: Record<FilingStatus, TaxBracket[]>;
   standardDeduction: Record<FilingStatus, number>;
+  personalExemption: number;
   ssProvisionalThresholds: Record<FilingStatus, { tier1: number; tier2: number }>;
 }
 
 let bracketData: Record<string, YearBracketData> | null = null;
+let currentScenario: TaxScenario = {
+  name: 'currentPolicy',
+  bracketEvolution: 'tcjaPermanent',
+  customRates: null,
+};
 
 function loadBracketData(): Record<string, YearBracketData> {
   if (!bracketData) {
@@ -26,6 +33,13 @@ function loadBracketData(): Record<string, YearBracketData> {
     bracketData = JSON.parse(readFileSync(path, 'utf-8'));
   }
   return bracketData!;
+}
+
+/**
+ * Set the tax scenario for bracket evolution in future years
+ */
+export function setTaxScenario(scenario: TaxScenario): void {
+  currentScenario = scenario;
 }
 
 /**
@@ -42,6 +56,7 @@ function compoundInflationMultiplier(
 }
 
 // Get bracket data for a year — if year not in data, inflate from most recent year
+// Scenario-aware: applies bracket evolution policy for future years
 function getBracketDataForYear(
   year: number,
   filingStatus: FilingStatus,
@@ -59,26 +74,93 @@ function getBracketDataForYear(
 
   if (yearsToInflate <= 0) return baseData;
 
-  // Inflate bracket thresholds and standard deduction
-  const inflationMultiplier = compoundInflationMultiplier(baseYear, year, inflationRate, mcRateGetter);
+  // Determine scenario-based bracket evolution
+  let scenarioBaseYear = baseYear;
+  let scenarioBaseData = baseData;
+
+  if (currentScenario.bracketEvolution === 'tcjaExpires' && year >= 2026) {
+    // For tcjaExpires: use 2017 pre-TCJA brackets as the base for future years
+    scenarioBaseYear = 2017;
+    scenarioBaseData = data['2017'];
+    if (!scenarioBaseData) {
+      // Fallback if 2017 data not available
+      scenarioBaseData = baseData;
+      scenarioBaseYear = baseYear;
+    }
+  }
+
+  // Calculate inflation multiplier from scenario base year to target year
+  let effectiveInflationRate = inflationRate;
+
+  if (currentScenario.bracketEvolution === 'rateCreep') {
+    // Rate creep: 80% of full inflation
+    effectiveInflationRate = inflationRate * 0.8;
+  }
+
+  const inflationMultiplier = compoundInflationMultiplier(scenarioBaseYear, year, effectiveInflationRate, mcRateGetter);
   const inflatedBrackets: Record<FilingStatus, TaxBracket[]> = {} as any;
 
   for (const status of ['single', 'mfj', 'mfs', 'hoh'] as FilingStatus[]) {
-    inflatedBrackets[status] = baseData.brackets[status].map(b => ({
-      min: Math.round(b.min * inflationMultiplier / 50) * 50, // Round to $50 (IRS convention)
-      max: b.max ? Math.round(b.max * inflationMultiplier / 50) * 50 : null,
-      rate: b.rate, // Rates don't inflate
-    }));
+    inflatedBrackets[status] = scenarioBaseData.brackets[status].map(b => {
+      let multiplier = inflationMultiplier;
+
+      // Apply custom bracket multiplier if specified
+      if (currentScenario.bracketEvolution === 'custom' && currentScenario.customRates) {
+        const customRate = currentScenario.customRates.find(r => r.year === year);
+        if (customRate) {
+          // For custom, use the bracket multiplier directly on thresholds
+          multiplier = customRate.bracketMultiplier;
+        }
+      }
+
+      return {
+        min: Math.round(b.min * multiplier / 50) * 50, // Round to $50 (IRS convention)
+        max: b.max ? Math.round(b.max * multiplier / 50) * 50 : null,
+        rate: b.rate, // Rates don't inflate
+      };
+    });
+  }
+
+  // Handle standard deduction scenario logic
+  let deductionData = scenarioBaseData;
+  if (currentScenario.bracketEvolution === 'tcjaExpires' && year >= 2026) {
+    // For tcjaExpires: revert to pre-TCJA standard deduction from 2017
+    deductionData = data['2017'] || scenarioBaseData;
   }
 
   const inflatedDeductions: Record<FilingStatus, number> = {} as any;
   for (const status of ['single', 'mfj', 'mfs', 'hoh'] as FilingStatus[]) {
-    inflatedDeductions[status] = Math.round(baseData.standardDeduction[status] * inflationMultiplier / 50) * 50;
+    let deductionMultiplier = inflationMultiplier;
+
+    // For tcjaExpires with pre-2017 deduction base
+    if (currentScenario.bracketEvolution === 'tcjaExpires' && year >= 2026) {
+      deductionMultiplier = compoundInflationMultiplier(2017, year, effectiveInflationRate, mcRateGetter);
+    }
+
+    // Apply custom multiplier if specified
+    if (currentScenario.bracketEvolution === 'custom' && currentScenario.customRates) {
+      const customRate = currentScenario.customRates.find(r => r.year === year);
+      if (customRate) {
+        deductionMultiplier = customRate.bracketMultiplier;
+      }
+    }
+
+    inflatedDeductions[status] = Math.round(deductionData.standardDeduction[status] * deductionMultiplier / 50) * 50;
+  }
+
+  // Compute personal exemption
+  let personalExemption = 0;
+  if (currentScenario.bracketEvolution === 'tcjaExpires' && year >= 2026) {
+    // Personal exemption: $4,050 in 2017, inflated to target year
+    const baseExemption = 4050; // 2017 value
+    const exemptionMultiplier = compoundInflationMultiplier(2017, year, effectiveInflationRate, mcRateGetter);
+    personalExemption = Math.round(baseExemption * exemptionMultiplier / 50) * 50;
   }
 
   return {
     brackets: inflatedBrackets,
     standardDeduction: inflatedDeductions,
+    personalExemption,
     ssProvisionalThresholds: baseData.ssProvisionalThresholds, // Never inflated
   };
 }

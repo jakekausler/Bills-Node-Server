@@ -11,3 +11,9 @@ export type Dependent = {
   birthYear: number;
   relationship: 'child' | 'other';
 };
+
+export type TaxScenario = {
+  name: 'currentLaw' | 'currentPolicy' | 'rising' | 'custom';
+  bracketEvolution: 'tcjaExpires' | 'tcjaPermanent' | 'rateCreep' | 'custom';
+  customRates?: { year: number; bracketMultiplier: number }[] | null;
+};

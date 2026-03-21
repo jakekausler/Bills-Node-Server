@@ -27,6 +27,9 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import type { DebugLogger } from './debug-logger';
 import { FlowAggregator } from './flow-aggregator';
+import { setTaxScenario } from './bracket-calculator';
+import { load } from '../io/io';
+import type { TaxScenario } from './tax-profile-types';
 
 dayjs.extend(utc);
 
@@ -222,6 +225,32 @@ export class Engine {
       filingStatus: options.filingStatus,
       withdrawalStrategy: options.withdrawalStrategy,
       taxAccountName: options.taxAccountName,
+    });
+
+    // Load tax scenario (bracket evolution policy)
+    let taxScenario: TaxScenario = {
+      name: 'currentPolicy',
+      bracketEvolution: 'tcjaPermanent',
+      customRates: null,
+    };
+    if (!options.taxScenario) {
+      try {
+        taxScenario = load<TaxScenario>('taxScenario.json');
+      } catch {
+        // Use default if file not found
+        taxScenario = {
+          name: 'currentPolicy',
+          bracketEvolution: 'tcjaPermanent',
+          customRates: null,
+        };
+      }
+    } else {
+      taxScenario = options.taxScenario;
+    }
+    setTaxScenario(taxScenario);
+    this.log('tax-scenario-loaded', {
+      name: taxScenario.name,
+      bracketEvolution: taxScenario.bracketEvolution,
     });
 
     // Set bracket inflation rate: use MC inflation if available, else default to 0.03

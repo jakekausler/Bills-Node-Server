@@ -333,6 +333,24 @@ export class TaxManager {
     const bracketResult = computeAnnualFederalTax(0, 0, taxProfile.filingStatus, year, bracketInflationRate, mcRateGetter);
     const standardDeduction = bracketResult.standardDeduction;
 
+    // Step 4a: Get personal exemption and compute total deduction base
+    const bracketDataForExemption = getBracketDataForYear(year, taxProfile.filingStatus, bracketInflationRate, mcRateGetter);
+    let personalExemption = bracketDataForExemption.personalExemption || 0;
+
+    // Number of people: filing status determines base count, then add dependents
+    // Only compute if personal exemption is non-zero (tcjaExpires scenario in 2026+)
+    let totalPersonalExemptions = 0;
+    if (personalExemption > 0) {
+      let numberOfPeople = 1; // Default for single/HOH
+      if (taxProfile.filingStatus === 'mfj') {
+        numberOfPeople = 2; // Two taxpayers
+      }
+      if (taxProfile.dependents && taxProfile.dependents.length > 0) {
+        numberOfPeople += taxProfile.dependents.length;
+      }
+      totalPersonalExemptions = personalExemption * numberOfPeople;
+    }
+
     // Step 5: Get itemized deduction
     const itemizedDeduction = deductionTracker.getItemizedTotal(year);
 
@@ -369,8 +387,8 @@ export class TaxManager {
     // Total income for bracket calculation = AGI + taxable portion of SS
     const totalIncomeForBrackets = agi + taxableSS;
 
-    // Apply deduction (standard or itemized, already chosen in Step 6)
-    const taxableIncome = Math.max(0, totalIncomeForBrackets - deductionAmount);
+    // Apply deduction (standard or itemized, already chosen in Step 6) and personal exemptions
+    const taxableIncome = Math.max(0, totalIncomeForBrackets - deductionAmount - totalPersonalExemptions);
 
     // Apply progressive tax brackets directly (deduction already applied above)
     const federalTax = calculateProgressiveTax(taxableIncome, brackets);
@@ -431,6 +449,7 @@ export class TaxManager {
       itemizedDeduction,
       deductionUsed,
       deductionAmount,
+      personalExemption: totalPersonalExemptions,
       taxableIncome,
       federalTax,
       ssTax: taxableSS, // The amount of SS that is taxable (used for computing tax on it)
