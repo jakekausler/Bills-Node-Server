@@ -415,6 +415,8 @@ function makeLTCManager(overrides: Partial<{
   extractPersonNameFromEntity: ReturnType<typeof vi.fn>;
   getFilingStatus: ReturnType<typeof vi.fn>;
   getAlivePeople: ReturnType<typeof vi.fn>;
+  lockSurvivorBenefit: ReturnType<typeof vi.fn>;
+  getLockedSurvivorBenefit: ReturnType<typeof vi.fn>;
 }> = {}): Partial<any> {
   return {
     stepMonth: overrides.stepMonth ?? vi.fn(),
@@ -427,6 +429,8 @@ function makeLTCManager(overrides: Partial<{
     extractPersonNameFromEntity: overrides.extractPersonNameFromEntity ?? vi.fn((name: string) => name.replace(/ Social Security$/, '').replace(/ Pension$/, '')),
     getFilingStatus: overrides.getFilingStatus ?? vi.fn(() => 'mfj'),
     getAlivePeople: overrides.getAlivePeople ?? vi.fn(() => ['Jake', 'Kendall']),
+    lockSurvivorBenefit: overrides.lockSurvivorBenefit ?? vi.fn(),
+    getLockedSurvivorBenefit: overrides.getLockedSurvivorBenefit ?? vi.fn(() => 0),
   };
 }
 
@@ -441,6 +445,7 @@ function makeCalculator(opts: {
   healthcareManager?: ReturnType<typeof makeHealthcareManager>;
   medicareManager?: ReturnType<typeof makeMedicareManager>;
   ltcManager?: ReturnType<typeof makeLTCManager>;
+  mortalityManager?: ReturnType<typeof makeLTCManager>;
   acaManager?: ReturnType<typeof makeAcaManager>;
   accountManager?: ReturnType<typeof makeAccountManager>;
   spendingTrackerManager?: ReturnType<typeof makeSpendingTrackerManager>;
@@ -455,7 +460,7 @@ function makeCalculator(opts: {
     (opts.retirementManager ?? makeRetirementManager()) as any,
     (opts.healthcareManager ?? makeHealthcareManager()) as any,
     (opts.medicareManager ?? makeMedicareManager()) as any,
-    (opts.ltcManager ?? makeLTCManager()) as any,
+    (opts.mortalityManager ?? opts.ltcManager ?? makeLTCManager()) as any,
     (opts.accountManager ?? makeAccountManager()) as any,
     opts.simulation ?? 'Default',
     (opts.spendingTrackerManager ?? makeSpendingTrackerManager()) as any,
@@ -2242,6 +2247,55 @@ describe('Calculator', () => {
       // After 3 years at 0% COLA: 2000 * (1.0)^3 = 2000
       expect(segmentResult.balanceChanges.get('account-1')).toBe(2000);
     });
+
+    it('locks survivor benefit on first payment (#27)', () => {
+      const balanceTracker = makeBalanceTracker();
+      const mortalityManager = {
+        isDeceased: vi.fn(() => false),
+        extractPersonNameFromEntity: vi.fn((name: string) => name.replace(/ Social Security$/, '')),
+        lockSurvivorBenefit: vi.fn(),
+      };
+      const calculator = makeCalculator({ balanceTracker, mortalityManager });
+      const segmentResult = makeSegmentResult();
+
+      const ss: SocialSecurity = {
+        name: 'Jake Social Security',
+        payToAccount: 'account-1',
+        paycheckNames: ['Jake SS'],
+        paycheckAccounts: ['account-1'],
+        paycheckCategories: ['Income.Retirement'],
+        startDateVariable: 'Jake Start',
+        birthDateVariable: 'Jake Birth',
+        priorAnnualNetIncomes: [100000],
+        priorAnnualNetIncomeYears: [2020],
+        startAge: 67,
+        average35YearPayInflationAdjusted: null,
+        monthlyPay: null,
+        yearTurn60: 2020,
+        collectionAge: 67,
+        firstPaymentYear: null,
+        colaVariable: null,
+        spouseName: null,
+      };
+
+      const event: SocialSecurityEvent = {
+        id: 'evt-ss-lock',
+        type: EventType.socialSecurity,
+        date: new Date('2027-03-15'),
+        accountId: 'account-1',
+        priority: 3,
+        socialSecurity: ss,
+        ownerAge: 70,
+        firstPayment: true,
+      };
+
+      calculator.processSocialSecurityEvent(event, segmentResult);
+
+      // Verify survivor benefit was locked on first payment
+      expect(mortalityManager.lockSurvivorBenefit).toHaveBeenCalledWith('Jake', expect.any(Number));
+      const lockedAmount = (mortalityManager.lockSurvivorBenefit as any).mock.calls[0][1];
+      expect(lockedAmount).toBeGreaterThan(0);
+    });
   });
 
   // ─── processTaxEvent ──────────────────────────────────────────────────────
@@ -2848,15 +2902,9 @@ describe('Calculator', () => {
       calculator.processAcaPremiumEvent(event, segmentResult);
 
       // Verify household size of 2 was used
-      expect(acaManager.getMonthlyHealthcarePremium).toHaveBeenCalledWith(
-        expect.any(Date),
-        expect.any(Date),
-        expect.any(Number),
-        expect.any(Number),
-        expect.any(Number),
-        2, // household size
-        expect.any(Number),
-      );
+      expect(acaManager.getMonthlyHealthcarePremium).toHaveBeenCalled();
+      const calls = (acaManager.getMonthlyHealthcarePremium as any).mock.calls;
+      expect(calls[0][5]).toBe(2); // 6th argument is household size
     });
 
     it('adjusts household size to 1 when one spouse dies', () => {
@@ -2891,15 +2939,9 @@ describe('Calculator', () => {
       calculator.processAcaPremiumEvent(event, segmentResult);
 
       // Verify household size of 1 was used
-      expect(acaManager.getMonthlyHealthcarePremium).toHaveBeenCalledWith(
-        expect.any(Date),
-        expect.any(Date),
-        expect.any(Number),
-        expect.any(Number),
-        expect.any(Number),
-        1, // household size reduced
-        expect.any(Number),
-      );
+      expect(acaManager.getMonthlyHealthcarePremium).toHaveBeenCalled();
+      const calls = (acaManager.getMonthlyHealthcarePremium as any).mock.calls;
+      expect(calls[0][5]).toBe(1); // 6th argument is household size reduced
     });
   });
 });

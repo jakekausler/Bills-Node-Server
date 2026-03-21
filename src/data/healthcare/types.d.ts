@@ -4,6 +4,7 @@ export type HealthcareConfig = {
   id: string;
   name: string;
   coveredPersons: string[];  // e.g., ["Jake", "Jane"]
+  policyholder?: string | null;  // Whose employment provides the plan (for COBRA)
   startDate: DateString;
   startDateIsVariable?: boolean;
   startDateVariable?: string | null;
@@ -26,6 +27,10 @@ export type HealthcareConfig = {
   // Reset date
   resetMonth: number;
   resetDay: number;
+
+  // Premium configuration
+  monthlyPremium?: number;  // Full monthly plan cost (employee + employer)
+  monthlyPremiumInflationVariable?: string;  // e.g., "HEALTHCARE_INFLATION"
 
   // Deductible/OOP inflation configuration
   deductibleInflationVariable?: string;  // e.g., "HEALTHCARE_INFLATION"

@@ -362,6 +362,12 @@ export class Engine {
     // Initialize person states from retirement data (for under-65 mortality tracking)
     this.mortalityManager.initializeRetirementPersonStates(this.accountManager.getSocialSecurities());
 
+    // Wire mortality manager into retirement manager for survivor benefits
+    this.retirementManager.setMortalityManager(this.mortalityManager);
+
+    // Wire mortality manager into healthcare manager for family→individual coverage transition
+    this.healthcareManager.setMortalityManager(this.mortalityManager);
+
     // Initialize spending tracker manager
     if (options.enableLogging) {
       console.log('Initializing spending tracker manager...', Date.now() - this.calculationBegin, 'ms');

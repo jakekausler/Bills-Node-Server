@@ -825,6 +825,68 @@ export class Calculator {
         }
       }
 
+      // Generate death-triggered COBRA for surviving spouse if policyholder is deceased
+      if (this.mortalityManager && this.healthcareManager) {
+        const healthcareConfigs = this.healthcareManager.getAllConfigs();
+        for (const config of healthcareConfigs) {
+          if (config.policyholder && this.mortalityManager.isDeceased(config.policyholder)) {
+            const deathCobraMonthsElapsed = this.mortalityManager.getDeathCobraMonthsElapsed(config.policyholder);
+            if (deathCobraMonthsElapsed < 36) {
+              // Only generate COBRA once per month
+              const lastDeathCobraMonth = this.mortalityManager.getLastDeathCobraMonth(config.policyholder);
+              const currentMonth = event.date.getUTCMonth();
+
+              if (lastDeathCobraMonth === null || lastDeathCobraMonth !== currentMonth) {
+                this.mortalityManager.incrementDeathCobraMonth(config.policyholder);
+                this.mortalityManager.setLastDeathCobraMonth(config.policyholder, currentMonth);
+
+                // Use ACA manager's COBRA premium calculation which correctly handles MC inflation
+                const cobraPremium = this.acaManager.getCobraMonthlyPremium(year, config.monthlyPremium);
+
+                // Create death COBRA expense activity
+                const deathCobraActivity = new ConsolidatedActivity({
+                  id: `${config.id}-death-cobra-${event.date}`,
+                  date: formatDate(event.date),
+                  dateIsVariable: false,
+                  dateVariable: null,
+                  name: `COBRA Insurance (Policyholder Death)`,
+                  category: 'Healthcare.COBRA',
+                  amount: -cobraPremium,
+                  amountIsVariable: false,
+                  amountVariable: null,
+                  flag: true,
+                  flagColor: 'orange',
+                  isTransfer: false,
+                  from: null,
+                  to: null,
+                });
+
+                if (!segmentResult.activitiesAdded.has(event.accountId)) {
+                  segmentResult.activitiesAdded.set(event.accountId, []);
+                }
+                segmentResult.activitiesAdded.get(event.accountId)?.push(deathCobraActivity);
+
+                // Update account balance
+                const currentChange = segmentResult.balanceChanges.get(event.accountId) || 0;
+                segmentResult.balanceChanges.set(event.accountId, currentChange - cobraPremium);
+
+                // Record flow
+                if (this.flowAggregator) {
+                  this.flowAggregator.recordHealthcare(year, 'cobra', cobraPremium);
+                }
+
+                this.log('death-cobra-generated', {
+                  policyholder: config.policyholder,
+                  date: event.date.toISOString(),
+                  deathCobraMonthsElapsed: deathCobraMonthsElapsed + 1,
+                  premium: cobraPremium,
+                });
+              }
+            }
+          }
+        }
+      }
+
       return new Map();
     }
 
@@ -1520,6 +1582,14 @@ export class Calculator {
     if (event.firstPayment) {
       this.retirementManager.calculateSocialSecurityMonthlyPay(socialSecurity);
       this.retirementManager.setSocialSecurityFirstPaymentYear(socialSecurity.name, event.date.getUTCFullYear());
+
+      // Lock the survivor benefit when first payment is made (for spouse's benefit if this person dies)
+      if (this.mortalityManager) {
+        const personName = this.mortalityManager.extractPersonNameFromEntity(socialSecurity.name);
+        const monthlyPay = this.retirementManager.getSocialSecurityMonthlyPay(socialSecurity.name);
+        this.mortalityManager.lockSurvivorBenefit(personName, monthlyPay);
+        this.log('survivor-benefit-locked-first-payment', { person: personName, monthly_pay: monthlyPay });
+      }
     }
     let amount = this.retirementManager.getSocialSecurityMonthlyPay(socialSecurity.name);
 
@@ -2379,6 +2449,21 @@ export class Calculator {
 
     // Get monthly ACA/COBRA premium (household size = number of alive people)
     const householdSize = this.mortalityManager?.getAlivePeople().length ?? 2;
+
+    // Try to get plan-level monthlyPremium from healthcare config for COBRA calculation
+    let basePremiumOverride: number | undefined;
+    let policyholderDeathDate: Date | null | undefined;
+    if (event.isCobraPeriod) {
+      const config = this.healthcareManager.getActiveConfig(event.personName, event.date);
+      if (config?.monthlyPremium) {
+        basePremiumOverride = config.monthlyPremium;
+      }
+      // Check if policyholder is deceased (death-triggered COBRA)
+      if (config?.policyholder && this.mortalityManager?.isDeceased(config.policyholder)) {
+        policyholderDeathDate = this.mortalityManager.getDeathDate(config.policyholder);
+      }
+    }
+
     const monthlyPremium = this.acaManager.getMonthlyHealthcarePremium(
       event.retirementDate,
       event.date,
@@ -2387,6 +2472,8 @@ export class Calculator {
       priorMAGI,
       householdSize,
       year,
+      basePremiumOverride,
+      policyholderDeathDate,
     );
 
     this.log('aca-premium-processed', { person: event.personName, monthlyPremium, priorMAGI, isCobraPeriod: event.isCobraPeriod });

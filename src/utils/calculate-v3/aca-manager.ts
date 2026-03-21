@@ -65,16 +65,21 @@ export class AcaManager {
   /**
    * Get COBRA monthly premium
    * COBRA = 102% of employer premium, inflated at healthcare CPI
+   * Tries config-level monthlyPremium first, falls back to historicRates.employerPremium
    * @param year - Year for which to get the premium
+   * @param basePremiumOverride - Optional override (from healthcare config) for base premium in 2026
    * @returns Monthly COBRA premium
    */
-  getCobraMonthlyPremium(year: number): number {
-    const rates = getHistoricRates();
-    const employerPremium = rates.employerPremium || {};
+  getCobraMonthlyPremium(year: number, basePremiumOverride?: number): number {
+    let basePremium = basePremiumOverride;
 
-    // Get the base premium (2026 = $1,124.32)
-    const basePremiumYear = '2026';
-    const basePremium = employerPremium[basePremiumYear] as number | undefined;
+    // Fallback to historicRates if no override provided
+    if (!basePremium) {
+      const rates = getHistoricRates();
+      const employerPremium = rates.employerPremium || {};
+      const basePremiumYear = '2026';
+      basePremium = employerPremium[basePremiumYear] as number | undefined;
+    }
 
     if (!basePremium) {
       return 0;
@@ -86,7 +91,7 @@ export class AcaManager {
     // Inflate forward from 2026 at 5% healthcare CPI
     if (year <= 2026) {
       const premium = Math.round(cobraPremium * 100) / 100;
-      this.log('cobra-premium-calculated', { year, premium });
+      this.log('cobra-premium-calculated', { year, premium, basePremium });
       return premium;
     }
 
@@ -97,7 +102,7 @@ export class AcaManager {
     const inflatedPremium = cobraPremium * inflationMultiplier;
 
     const premium = Math.round(inflatedPremium * 100) / 100;
-    this.log('cobra-premium-calculated', { year, premium });
+    this.log('cobra-premium-calculated', { year, premium, basePremium });
     return premium;
   }
 
@@ -302,12 +307,23 @@ export class AcaManager {
   }
 
   /**
-   * Determine if a date is within COBRA period (first 18 months after retirement)
+   * Determine if a date is within COBRA period
+   * COBRA can be triggered by retirement (18 months) or policyholder death (36 months)
    * @param retirementDate - Date of retirement
    * @param currentDate - Current date to check
+   * @param deathDate - Optional policyholder death date for death-triggered COBRA (36 months)
    * @returns True if within COBRA period
    */
-  isCobraPeriod(retirementDate: Date, currentDate: Date): boolean {
+  isCobraPeriod(retirementDate: Date, currentDate: Date, deathDate?: Date | null): boolean {
+    // Check death-triggered COBRA first (longer, 36 months)
+    if (deathDate) {
+      const monthsElapsedSinceDeath = dayjs.utc(currentDate).diff(dayjs.utc(deathDate), 'month');
+      if (monthsElapsedSinceDeath < 36) {
+        return true;
+      }
+    }
+
+    // Check retirement-triggered COBRA (18 months)
     const monthsElapsed = dayjs.utc(currentDate).diff(dayjs.utc(retirementDate), 'month');
     return monthsElapsed < 18;
   }
@@ -338,6 +354,8 @@ export class AcaManager {
    * @param householdMAGI - Household Modified Adjusted Gross Income (annual)
    * @param householdSize - Number of people in household
    * @param year - Year for premium calculation
+   * @param basePremiumOverride - Optional override for COBRA base premium (from healthcare config)
+   * @param policyholderDeathDate - Optional policyholder death date for death-triggered COBRA (36 months)
    * @returns Monthly healthcare premium
    */
   getMonthlyHealthcarePremium(
@@ -348,10 +366,12 @@ export class AcaManager {
     householdMAGI: number,
     householdSize: number,
     year: number,
+    basePremiumOverride?: number,
+    policyholderDeathDate?: Date | null,
   ): number {
-    if (this.isCobraPeriod(retirementDate, currentDate)) {
+    if (this.isCobraPeriod(retirementDate, currentDate, policyholderDeathDate)) {
       // COBRA period: return couple premium (COBRA applies to both)
-      return this.getCobraMonthlyPremium(year);
+      return this.getCobraMonthlyPremium(year, basePremiumOverride);
     } else {
       // ACA period
       return this.getNetMonthlyPremium(age1, age2, householdMAGI, householdSize, year);

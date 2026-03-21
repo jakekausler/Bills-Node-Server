@@ -867,4 +867,180 @@ describe('RetirementManager', () => {
       expect(higherPay).toBeGreaterThan(0);
     });
   });
+
+  describe('Survivor SS Benefits (#27)', () => {
+    let higherEarnerSS: SocialSecurity;
+    let lowerEarnerSS: SocialSecurity;
+    let retirementManager: RetirementManager;
+    let mortalityManager: any;
+
+    beforeEach(() => {
+      // Create mock mortality manager
+      mortalityManager = {
+        isDeceased: vi.fn((name: string) => false),
+        getLockedSurvivorBenefit: vi.fn((name: string) => 0),
+        getDeathDate: vi.fn((name: string) => null),
+        lockSurvivorBenefit: vi.fn(),
+      };
+
+      // Create higher earner (spouse 1)
+      higherEarnerSS = {
+        name: 'Higher Earner SS',
+        payToAccount: 'acct-1',
+        paycheckNames: ['Higher Earner SS'],
+        paycheckAccounts: ['acct-1'],
+        paycheckCategories: ['Income.Retirement'],
+        startDateVariable: 'Higher Earner Start',
+        birthDateVariable: 'Higher Earner Birth',
+        priorAnnualNetIncomes: [90000, 95000, 100000],
+        priorAnnualNetIncomeYears: [2015, 2016, 2017],
+        startAge: 67,
+        average35YearPayInflationAdjusted: null,
+        monthlyPay: null,
+        yearTurn60: 2020,
+        collectionAge: 67,
+        firstPaymentYear: null,
+        colaVariable: null,
+        spouseName: 'Lower Earner SS',
+      } as any;
+      (higherEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
+      (higherEarnerSS as any).birthDate = new Date(Date.UTC(1960, 0, 1));
+      (higherEarnerSS as any).yearTurn60 = 2020;
+      (higherEarnerSS as any).collectionAge = 67;
+
+      // Create lower earner (spouse 2)
+      lowerEarnerSS = {
+        name: 'Lower Earner SS',
+        payToAccount: 'acct-2',
+        paycheckNames: ['Lower Earner SS'],
+        paycheckAccounts: ['acct-2'],
+        paycheckCategories: ['Income.Retirement'],
+        startDateVariable: 'Lower Earner Start',
+        birthDateVariable: 'Lower Earner Birth',
+        priorAnnualNetIncomes: [50000, 52000, 55000],
+        priorAnnualNetIncomeYears: [2015, 2016, 2017],
+        startAge: 67,
+        average35YearPayInflationAdjusted: null,
+        monthlyPay: null,
+        yearTurn60: 2021,
+        collectionAge: 67,
+        firstPaymentYear: null,
+        colaVariable: null,
+        spouseName: 'Higher Earner SS',
+      } as any;
+      (lowerEarnerSS as any).startDate = new Date(Date.UTC(2028, 0, 1));
+      (lowerEarnerSS as any).birthDate = new Date(Date.UTC(1961, 0, 1));
+      (lowerEarnerSS as any).yearTurn60 = 2021;
+      (lowerEarnerSS as any).collectionAge = 67;
+    });
+
+    it('both alive: lower earner gets spousal benefit (50% of higher)', () => {
+      mortalityManager.isDeceased.mockReturnValue(false);
+      retirementManager = new RetirementManager([higherEarnerSS, lowerEarnerSS], [], undefined, 0, mortalityManager);
+
+      // Calculate higher earner first (no spouse link yet)
+      retirementManager.calculateSocialSecurityMonthlyPay(higherEarnerSS);
+      const higherPay = retirementManager.getSocialSecurityMonthlyPay('Higher Earner SS');
+      expect(higherPay).toBeGreaterThan(0);
+
+      // Calculate lower earner with spouse alive
+      retirementManager.calculateSocialSecurityMonthlyPay(lowerEarnerSS);
+      const lowerPay = retirementManager.getSocialSecurityMonthlyPay('Lower Earner SS');
+
+      // Lower earner should get max(own benefit, 50% of spouse)
+      const spousalBenefit = higherPay * 0.5;
+      expect(lowerPay).toBeGreaterThanOrEqual(spousalBenefit);
+      expect(mortalityManager.isDeceased).toHaveBeenCalled();
+    });
+
+    it('spouse dies: survivor gets max(own benefit, 100% of deceased locked benefit)', () => {
+      // Setup: higher earner dies, locked at $2000/month
+      mortalityManager.isDeceased.mockImplementation((name: string) => name === 'Higher Earner SS');
+      mortalityManager.getLockedSurvivorBenefit.mockImplementation((name: string) => (name === 'Higher Earner SS' ? 2000 : 0));
+
+      retirementManager = new RetirementManager([higherEarnerSS, lowerEarnerSS], [], undefined, 0, mortalityManager);
+
+      // Pre-calculate higher earner's benefit (this would normally be done by calculateSocialSecurityMonthlyPay)
+      // For this test, mock it to a lower value so we can verify survivor gets the locked benefit
+      retirementManager['socialSecurityMonthlyPay'].set('Higher Earner SS', 1500);
+
+      // Calculate lower earner with spouse deceased
+      retirementManager.calculateSocialSecurityMonthlyPay(lowerEarnerSS);
+      const survivorPay = retirementManager.getSocialSecurityMonthlyPay('Lower Earner SS');
+
+      // Survivor should get 100% of locked spouse benefit (since it's higher than own)
+      expect(survivorPay).toBeCloseTo(2000, 0);
+      expect(mortalityManager.getLockedSurvivorBenefit).toHaveBeenCalledWith('Higher Earner SS');
+    });
+
+    it('own benefit higher than deceased benefit: survivor keeps own', () => {
+      // Setup: spouse dies with locked benefit $300, own benefit will be ~$400
+      mortalityManager.isDeceased.mockImplementation((name: string) => name === 'Higher Earner SS');
+      mortalityManager.getLockedSurvivorBenefit.mockImplementation((name: string) => (name === 'Higher Earner SS' ? 300 : 0));
+
+      retirementManager = new RetirementManager([higherEarnerSS, lowerEarnerSS], [], undefined, 0, mortalityManager);
+
+      // Mock higher earner's benefit low so survivor's own benefit wins
+      retirementManager['socialSecurityMonthlyPay'].set('Higher Earner SS', 500);
+
+      // Calculate lower earner with spouse deceased
+      retirementManager.calculateSocialSecurityMonthlyPay(lowerEarnerSS);
+      const survivorPay = retirementManager.getSocialSecurityMonthlyPay('Lower Earner SS');
+
+      // Survivor should keep own benefit since locked spouse benefit is lower
+      // The actual calculated benefit for lower earner should be retained (should be max(own, 300))
+      expect(survivorPay).toBeGreaterThan(300);
+    });
+
+    it('no spouse: normal calculation without survivor logic', () => {
+      const soloSS = {
+        name: 'Solo SS',
+        payToAccount: 'acct-1',
+        paycheckNames: ['Solo SS'],
+        paycheckAccounts: ['acct-1'],
+        paycheckCategories: ['Income.Retirement'],
+        startDateVariable: 'Solo Start',
+        birthDateVariable: 'Solo Birth',
+        priorAnnualNetIncomes: [80000, 85000, 90000],
+        priorAnnualNetIncomeYears: [2015, 2016, 2017],
+        startAge: 67,
+        average35YearPayInflationAdjusted: null,
+        monthlyPay: null,
+        yearTurn60: 2020,
+        collectionAge: 67,
+        firstPaymentYear: null,
+        colaVariable: null,
+        spouseName: null,
+      } as any;
+      (soloSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
+      (soloSS as any).birthDate = new Date(Date.UTC(1960, 0, 1));
+      (soloSS as any).yearTurn60 = 2020;
+      (soloSS as any).collectionAge = 67;
+
+      retirementManager = new RetirementManager([soloSS], [], undefined, 0, mortalityManager);
+
+      retirementManager.calculateSocialSecurityMonthlyPay(soloSS);
+      const soloPay = retirementManager.getSocialSecurityMonthlyPay('Solo SS');
+
+      // Should just be the calculated benefit, no survivor logic applied
+      expect(soloPay).toBeGreaterThan(0);
+      expect(mortalityManager.getLockedSurvivorBenefit).not.toHaveBeenCalled();
+    });
+
+    it('mortality manager not set: falls back to spousal benefit logic', () => {
+      // No mortality manager passed
+      retirementManager = new RetirementManager([higherEarnerSS, lowerEarnerSS], [], undefined, 0, null);
+
+      retirementManager.calculateSocialSecurityMonthlyPay(higherEarnerSS);
+      const higherPay = retirementManager.getSocialSecurityMonthlyPay('Higher Earner SS');
+      expect(higherPay).toBeGreaterThan(0);
+
+      retirementManager.calculateSocialSecurityMonthlyPay(lowerEarnerSS);
+      const lowerPay = retirementManager.getSocialSecurityMonthlyPay('Lower Earner SS');
+
+      // Should get spousal benefit since no mortality manager
+      const spousalBenefit = higherPay * 0.5;
+      expect(lowerPay).toBeGreaterThanOrEqual(spousalBenefit);
+    });
+  });
 });

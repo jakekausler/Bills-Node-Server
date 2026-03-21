@@ -6,6 +6,7 @@ import { loadAverageWageIndex } from '../io/averageWageIndex';
 import { loadBendPoints } from '../io/bendPoints';
 import { load } from '../io/io';
 import type { DebugLogger } from './debug-logger';
+import type { MortalityManager } from './mortality-manager';
 
 // Module-level caches for expensive disk I/O operations
 let cachedWageIndex: Record<number, number> | null = null;
@@ -109,17 +110,20 @@ export class RetirementManager {
   private socialSecurityFirstPaymentYear: Map<string, number> = new Map();
   // RMD table
   private rmdTable: RMDTableType;
+  // MortalityManager for survivor benefit logic
+  private mortalityManager: MortalityManager | null = null;
 
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
   private mcRateGetter: MCRateGetter | null = null;
 
-  constructor(socialSecurities: SocialSecurity[], pensions: Pension[], debugLogger?: DebugLogger | null, simNumber: number = 0) {
+  constructor(socialSecurities: SocialSecurity[], pensions: Pension[], debugLogger?: DebugLogger | null, simNumber: number = 0, mortalityManager?: MortalityManager | null) {
     this.socialSecurities = socialSecurities;
     this.pensions = pensions;
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
+    this.mortalityManager = mortalityManager ?? null;
     this.initializeSocialSecurity();
     this.initializePension();
     this.rmdTable = this.loadRMDTable();
@@ -138,6 +142,11 @@ export class RetirementManager {
   /** Set the MC rate getter for sampling SS wage base and AWI growth in MC mode */
   setMCRateGetter(getter: MCRateGetter | null): void {
     this.mcRateGetter = getter;
+  }
+
+  /** Set the mortality manager for survivor benefit logic */
+  setMortalityManager(manager: MortalityManager | null): void {
+    this.mortalityManager = manager;
   }
 
   private initializeSocialSecurity() {
@@ -235,17 +244,28 @@ export class RetirementManager {
 
     this.log('ss-monthly-calculated', { name: socialSecurity.name, monthly_pay: monthlyPay, collection_age: socialSecurity.collectionAge, factor: factorForCollectionAge });
 
-    // Apply spousal benefit if spouse exists and their benefit has been calculated
+    // Apply spousal/survivor benefit if spouse exists and their benefit has been calculated
     // TODO #26: Store raw PIA for more accurate spousal benefit calculation (currently using adjusted monthly pay as approximation)
     if (socialSecurity.spouseName) {
-      const spouseMonthlyPay = this.socialSecurityMonthlyPay.get(socialSecurity.spouseName);
+      const spouseName = socialSecurity.spouseName;
+      const spouseMonthlyPay = this.socialSecurityMonthlyPay.get(spouseName);
       if (spouseMonthlyPay && spouseMonthlyPay > 0) {
-        // Spousal benefit = 50% of spouse's monthly pay (approximates 50% of PIA with claiming age adjustments)
-        const spousalBenefit = spouseMonthlyPay * 0.5;
-        // Lower-earning spouse gets the higher of their own benefit or spousal benefit
         const ownBenefit = monthlyPay;
-        monthlyPay = Math.max(monthlyPay, spousalBenefit);
-        this.log('spousal-benefit-checked', { name: socialSecurity.name, own_benefit: ownBenefit, spousal_benefit: spousalBenefit, result: monthlyPay });
+
+        // Check if spouse is deceased
+        if (this.mortalityManager && this.mortalityManager.isDeceased(spouseName)) {
+          // Survivor benefit: use max(own, 100% of deceased's locked benefit)
+          const lockedBenefit = this.mortalityManager.getLockedSurvivorBenefit(spouseName);
+          if (lockedBenefit > 0) {
+            monthlyPay = Math.max(monthlyPay, lockedBenefit);
+            this.log('survivor-benefit-applied', { name: socialSecurity.name, own_benefit: ownBenefit, locked_spouse_benefit: lockedBenefit, result: monthlyPay });
+          }
+        } else {
+          // Spouse alive: normal spousal benefit (50% of spouse's monthly pay)
+          const spousalBenefit = spouseMonthlyPay * 0.5;
+          monthlyPay = Math.max(monthlyPay, spousalBenefit);
+          this.log('spousal-benefit-checked', { name: socialSecurity.name, own_benefit: ownBenefit, spousal_benefit: spousalBenefit, result: monthlyPay });
+        }
       }
     }
 

@@ -34,6 +34,7 @@ vi.mock('./calculator', () => ({
     setMonteCarloConfig: vi.fn(),
     setMCRateGetter: vi.fn(),
     getRothConversionManager: vi.fn(() => ({})),
+    getMortalityManager: vi.fn(() => null),
   })),
 }));
 
@@ -52,11 +53,14 @@ vi.mock('./tax-manager', () => ({
 vi.mock('./retirement-manager', () => ({
   RetirementManager: vi.fn(() => ({
     setMCRateGetter: vi.fn(),
+    setMortalityManager: vi.fn(),
   })),
 }));
 
 vi.mock('./healthcare-manager', () => ({
-  HealthcareManager: vi.fn(),
+  HealthcareManager: vi.fn(() => ({
+    setMortalityManager: vi.fn(),
+  })),
 }));
 
 vi.mock('./spending-tracker-manager', () => ({

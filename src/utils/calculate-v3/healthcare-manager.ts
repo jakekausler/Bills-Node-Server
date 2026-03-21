@@ -4,6 +4,7 @@ import { Activity } from '../../data/activity/activity';
 import { parseDate } from '../../utils/date/date';
 import { loadDateOrVariable } from '../../utils/simulation/loadVariableValue';
 import type { DebugLogger } from './debug-logger';
+import type { MortalityManager } from './mortality-manager';
 
 type YearTracker = {
   planYear: number;
@@ -29,12 +30,14 @@ export class HealthcareManager {
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
+  private mortalityManager: MortalityManager | null;
 
-  constructor(healthcareConfigs: HealthcareConfig[], simulation: string = 'Default', debugLogger?: DebugLogger | null, simNumber: number = 0) {
+  constructor(healthcareConfigs: HealthcareConfig[], simulation: string = 'Default', debugLogger?: DebugLogger | null, simNumber: number = 0, mortalityManager?: MortalityManager | null) {
     // Resolve date variables for each config
     this.configs = healthcareConfigs.map(config => this.resolveConfigDates(config, simulation));
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
+    this.mortalityManager = mortalityManager ?? null;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
@@ -45,6 +48,26 @@ export class HealthcareManager {
   /** Set the current simulation date for debug log entries */
   setCurrentDate(date: string): void {
     this.currentDate = date;
+  }
+
+  /**
+   * Wire the mortality manager to enable family→individual coverage transitions
+   */
+  setMortalityManager(mortalityManager: MortalityManager): void {
+    this.mortalityManager = mortalityManager;
+  }
+
+  /**
+   * Determine if we're in family or individual coverage mode.
+   * Returns true if family mode (2+ people alive), false if individual mode (1 person alive).
+   */
+  private isInFamilyMode(): boolean {
+    if (!this.mortalityManager) {
+      // If no mortality manager, assume family mode (default)
+      return true;
+    }
+    const alivePeople = this.mortalityManager.getAlivePeople();
+    return alivePeople.length >= 2;
   }
 
   /**
@@ -135,6 +158,13 @@ export class HealthcareManager {
     const yearsDiff = Math.max(0, currentYear - baseYear);
     const rate = config.deductibleInflationRate ?? 0.05; // Default 5% healthcare inflation
     return Math.round(config.familyOutOfPocketMax * Math.pow(1 + rate, yearsDiff));
+  }
+
+  /**
+   * Get all healthcare configs
+   */
+  getAllConfigs(): HealthcareConfig[] {
+    return this.configs;
   }
 
   /**
@@ -321,11 +351,16 @@ export class HealthcareManager {
     const familyRemaining = Math.max(0, inflatedFamilyDeductible - familySpent);
 
     const individualMet = individualSpent >= inflatedIndividualDeductible;
-    this.log('deductible-progress', { person: personName, spent: individualSpent, inflated_limit: inflatedIndividualDeductible, remaining: individualRemaining, met: individualMet });
+
+    // When in individual coverage mode (1 person alive), ignore family limit and treat family as met
+    const inFamilyMode = this.isInFamilyMode();
+    const familyMet = inFamilyMode ? (familySpent >= inflatedFamilyDeductible) : true;
+
+    this.log('deductible-progress', { person: personName, spent: individualSpent, inflated_limit: inflatedIndividualDeductible, remaining: individualRemaining, met: individualMet, family_mode: inFamilyMode });
 
     return {
       individualMet,
-      familyMet: familySpent >= inflatedFamilyDeductible,
+      familyMet,
       individualRemaining,
       familyRemaining,
     };
@@ -361,9 +396,12 @@ export class HealthcareManager {
     const familyRemaining = Math.max(0, inflatedFamilyOOP - familySpent);
 
     const individualMet = individualSpent >= inflatedIndividualOOP;
-    const familyMet = familySpent >= inflatedFamilyOOP;
 
-    this.log('oop-progress', { person: personName, spent: individualSpent, inflated_limit: inflatedIndividualOOP, remaining: individualRemaining, met: individualMet });
+    // When in individual coverage mode (1 person alive), ignore family limit and treat family as met
+    const inFamilyMode = this.isInFamilyMode();
+    const familyMet = inFamilyMode ? (familySpent >= inflatedFamilyOOP) : true;
+
+    this.log('oop-progress', { person: personName, spent: individualSpent, inflated_limit: inflatedIndividualOOP, remaining: individualRemaining, met: individualMet, family_mode: inFamilyMode });
 
     return {
       individualMet,

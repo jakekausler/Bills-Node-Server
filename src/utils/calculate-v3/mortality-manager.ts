@@ -90,6 +90,8 @@ export class MortalityManager {
   private checkpointData: string | null = null;
   private lockedSurvivorBenefits: Map<string, number> = new Map();
   private retirementPersonConfigs: Map<string, { birthDateVariable: string; gender: 'male' | 'female' }> = new Map();
+  private deathCobraMonthsElapsed: Map<string, number> = new Map();  // Track months in death COBRA for each policyholder
+  private lastDeathCobraMonth: Map<string, number | null> = new Map();  // Track last month COBRA was generated
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.transitionData = this.loadTransitionData();
@@ -615,6 +617,45 @@ export class MortalityManager {
    */
   getDeathDate(person: string): Date | null {
     return this.deathDates.get(person) ?? null;
+  }
+
+  /**
+   * Get months elapsed in death-triggered COBRA for a policyholder
+   */
+  getDeathCobraMonthsElapsed(person: string): number {
+    return this.deathCobraMonthsElapsed.get(person) ?? 0;
+  }
+
+  /**
+   * Increment the death COBRA month counter for a policyholder
+   */
+  incrementDeathCobraMonth(person: string): void {
+    const current = this.deathCobraMonthsElapsed.get(person) ?? 0;
+    this.deathCobraMonthsElapsed.set(person, current + 1);
+  }
+
+  /**
+   * Get the last month death COBRA was generated (0-11)
+   */
+  getLastDeathCobraMonth(person: string): number | null {
+    return this.lastDeathCobraMonth.get(person) ?? null;
+  }
+
+  /**
+   * Set the last month death COBRA was generated (0-11)
+   */
+  setLastDeathCobraMonth(person: string, month: number): void {
+    this.lastDeathCobraMonth.set(person, month);
+  }
+
+  /**
+   * Check if a policyholder is in the death COBRA period (within 36 months of death)
+   */
+  isInDeathCobra(person: string): boolean {
+    const deathDate = this.getDeathDate(person);
+    if (!deathDate) return false;
+    const monthsElapsed = this.getDeathCobraMonthsElapsed(person);
+    return monthsElapsed < 36;
   }
 
   /**

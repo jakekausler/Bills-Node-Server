@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HealthcareManager } from './healthcare-manager';
 import { HealthcareConfig } from '../../data/healthcare/types';
+import type { MortalityManager } from './mortality-manager';
 
 describe('HealthcareManager', () => {
   let manager: HealthcareManager;
@@ -807,6 +808,151 @@ describe('HealthcareManager', () => {
       const dateEndYear = new Date('2024-12-15');
       const progressEnd = managerInflation.getDeductibleProgress(configWithInflation, dateEndYear, 'John');
       expect(progressEnd.individualRemaining).toBe(1500); // Still no inflation
+    });
+  });
+
+  describe('family-to-individual coverage transition', () => {
+    let familyConfig: HealthcareConfig;
+    let mockMortalityManager: Partial<MortalityManager>;
+
+    beforeEach(() => {
+      familyConfig = {
+        id: 'family-plan',
+        name: 'Family Plan',
+        coveredPersons: ['Jake', 'Kendall'],
+        startDate: '2024-01-01',
+        endDate: null,
+        individualDeductible: 2500,
+        individualOutOfPocketMax: 5000,
+        familyDeductible: 5000,
+        familyOutOfPocketMax: 10000,
+        hsaAccountId: 'hsa-123',
+        hsaReimbursementEnabled: false,
+        resetMonth: 0,
+        resetDay: 1,
+      };
+
+      mockMortalityManager = {
+        getAlivePeople: vi.fn(),
+      };
+    });
+
+    it('should use family deductible when both people are alive', () => {
+      (mockMortalityManager.getAlivePeople as any).mockReturnValue(['Jake', 'Kendall']);
+
+      const manager = new HealthcareManager([familyConfig]);
+      manager.setMortalityManager(mockMortalityManager as MortalityManager);
+
+      const date = new Date('2024-06-15');
+
+      // Both alive, so family deductible applies
+      const progress = manager.getDeductibleProgress(familyConfig, date, 'Jake');
+
+      // familyMet should be based on family deductible
+      expect(progress.familyRemaining).toBe(5000);
+      expect(progress.individualRemaining).toBe(2500);
+    });
+
+    it('should switch to individual deductible when one person dies', () => {
+      (mockMortalityManager.getAlivePeople as any).mockReturnValue(['Jake']);
+
+      const manager = new HealthcareManager([familyConfig]);
+      manager.setMortalityManager(mockMortalityManager as MortalityManager);
+
+      const date = new Date('2024-06-15');
+
+      // One alive, so individual deductible applies
+      const progress = manager.getDeductibleProgress(familyConfig, date, 'Jake');
+
+      // When in individual mode, familyMet should be treated as true (ignored)
+      expect(progress.familyMet).toBe(true);
+      expect(progress.individualRemaining).toBe(2500);
+    });
+
+    it('should use individual OOP max when one person dies', () => {
+      (mockMortalityManager.getAlivePeople as any).mockReturnValue(['Jake']);
+
+      const manager = new HealthcareManager([familyConfig]);
+      manager.setMortalityManager(mockMortalityManager as MortalityManager);
+
+      const date = new Date('2024-06-15');
+
+      // One alive, so individual OOP applies
+      const progress = manager.getOOPProgress(familyConfig, date, 'Jake');
+
+      // When in individual mode, familyMet should be treated as true (ignored)
+      expect(progress.familyMet).toBe(true);
+      expect(progress.individualRemaining).toBe(5000);
+    });
+
+    it('should track deductible correctly through family→individual transition', () => {
+      const manager = new HealthcareManager([familyConfig]);
+      manager.setMortalityManager(mockMortalityManager as MortalityManager);
+
+      const date = new Date('2024-06-15');
+
+      // Start with both alive
+      (mockMortalityManager.getAlivePeople as any).mockReturnValue(['Jake', 'Kendall']);
+
+      // Record expense manually with both alive
+      manager['recordHealthcareExpense']('Jake', date, 1000, 0, familyConfig);
+      let progress = manager.getDeductibleProgress(familyConfig, date, 'Jake');
+
+      // Should count toward family deductible (5000 - 1000 = 4000)
+      expect(progress.familyRemaining).toBe(4000);
+
+      // Now simulate death - one person alive
+      (mockMortalityManager.getAlivePeople as any).mockReturnValue(['Jake']);
+
+      // Record another expense with only one alive
+      manager['recordHealthcareExpense']('Jake', date, 1500, 0, familyConfig);
+      progress = manager.getDeductibleProgress(familyConfig, date, 'Jake');
+
+      // In individual mode, should use individual deductible
+      // Individual: 2500 - 1000 - 1500 = 0
+      expect(progress.individualRemaining).toBe(0);
+      // Family deductible is ignored in individual mode
+      expect(progress.familyMet).toBe(true);
+    });
+
+    it('should handle OOP transition from family to individual', () => {
+      const manager = new HealthcareManager([familyConfig]);
+      manager.setMortalityManager(mockMortalityManager as MortalityManager);
+
+      const date = new Date('2024-06-15');
+
+      // Start with both alive
+      (mockMortalityManager.getAlivePeople as any).mockReturnValue(['Jake', 'Kendall']);
+
+      // Record OOP expense with both alive: 1000 OOP
+      manager['recordHealthcareExpense']('Jake', date, 0, 1000, familyConfig);
+      let progress = manager.getOOPProgress(familyConfig, date, 'Jake');
+
+      // Family OOP should be reduced
+      expect(progress.familyRemaining).toBe(9000); // 10000 - 1000
+
+      // Now one person alive
+      (mockMortalityManager.getAlivePeople as any).mockReturnValue(['Jake']);
+
+      // Record another OOP expense with only one alive: another 1000 OOP
+      manager['recordHealthcareExpense']('Jake', date, 0, 1000, familyConfig);
+      progress = manager.getOOPProgress(familyConfig, date, 'Jake');
+
+      // In individual mode, family limit is ignored
+      expect(progress.familyMet).toBe(true);
+      expect(progress.individualRemaining).toBe(3000); // 5000 - 1000 - 1000 = 3000
+    });
+
+    it('should default to family mode when no mortality manager is set', () => {
+      const manager = new HealthcareManager([familyConfig]);
+
+      const date = new Date('2024-06-15');
+
+      // No mortality manager set, so should default to family mode
+      const progress = manager.getDeductibleProgress(familyConfig, date, 'Jake');
+
+      // Should use family limits
+      expect(progress.familyRemaining).toBe(5000);
     });
   });
 });
