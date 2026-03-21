@@ -205,7 +205,7 @@ export class SegmentProcessor {
           });
         }
       } else {
-        console.warn(`[SegmentProcessor] Account ${accountName} not found for adding taxable occurences`);
+        this.log('taxable-occurrence-account-not-found', { accountName });
       }
     }
   }
@@ -367,7 +367,7 @@ export class SegmentProcessor {
       case EventType.ltcCheck:
         return this.calculator.processLTCCheckEvent(event as LTCCheckEvent, segmentResult);
       default:
-        console.warn(`Unknown event type: ${event.type}`);
+        this.log('unknown-event-type', { type: event.type });
         return new Map<string, number>();
     }
   }

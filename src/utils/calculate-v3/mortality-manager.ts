@@ -89,6 +89,7 @@ export class MortalityManager {
   private personNameMapping: Map<string, string> = new Map();
   private checkpointData: string | null = null;
   private lockedSurvivorBenefits: Map<string, number> = new Map();
+  private retirementPersonConfigs: Map<string, { birthDateVariable: string; gender: 'male' | 'female' }> = new Map();
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.transitionData = this.loadTransitionData();
@@ -176,6 +177,53 @@ export class MortalityManager {
   }
 
   /**
+   * Initialize person states for all people from retirement data (SocialSecurities).
+   * This is called after construction to ensure all tracked persons can have mortality events,
+   * not just those in ltcConfig.json. Persons already initialized (LTC configs) are skipped.
+   */
+  initializeRetirementPersonStates(socialSecurities: any[]): void {
+    if (!socialSecurities || socialSecurities.length === 0) {
+      this.log('retirement-persons-init-skipped', { reason: 'no_social_securities' });
+      return;
+    }
+
+    for (const ss of socialSecurities) {
+      if (!ss.name) continue;
+
+      // Extract the person name (remove " Social Security" suffix if present)
+      const personName = ss.name.replace(/ Social Security$/, '');
+
+      // Skip if already initialized (from LTC config)
+      if (this.personStates.has(personName)) {
+        continue;
+      }
+
+      // Initialize with default person state for mortality tracking
+      this.personStates.set(personName, {
+        currentState: 'healthy',
+        episodeCount: 0,
+        currentEpisodeStartMonth: null,
+        eliminationDaysRemaining: 0,
+        benefitPoolRemaining: 0, // No LTC insurance
+        costFactor: 1.0,
+      });
+
+      // Store the SS data for later retrieval (needed for annual mortality evaluation)
+      // For now, we infer gender from ltcConfig if available, or default to 'male'
+      // A better solution would be to add gender to the SocialSecurity data model
+      const ltcConfig = this.configs.get(personName);
+      const gender = ltcConfig?.gender ?? 'male';
+
+      this.retirementPersonConfigs.set(personName, {
+        birthDateVariable: ss.birthDateVariable,
+        gender,
+      });
+
+      this.log('person-initialized-from-retirement', { person: personName, has_ltc_config: false, birthDateVariable: ss.birthDateVariable, gender });
+    }
+  }
+
+  /**
    * Initialize cost factor once per person per simulation (lognormal)
    */
   private initializeCostFactor(random: () => number): number {
@@ -246,8 +294,10 @@ export class MortalityManager {
     monthIndex: number,
     random: () => number,
   ): void {
+    if (this.isDeceased(personName)) return;
+
     const state = this.personStates.get(personName);
-    if (!state || state.currentState === 'deceased') return;
+    if (!state) return;
 
     const ageBand = getAgeBand(ageInYears);
     if (!ageBand) return; // Under 65, no LTC modeling
@@ -479,6 +529,13 @@ export class MortalityManager {
   }
 
   /**
+   * Get retirement person config (for persons initialized from Social Security, not LTC config)
+   */
+  getRetirementPersonConfig(personName: string): { birthDateVariable: string; gender: 'male' | 'female' } | undefined {
+    return this.retirementPersonConfigs.get(personName);
+  }
+
+  /**
    * Get all configs
    */
   getAllConfigs(): LTCConfig[] {
@@ -659,15 +716,23 @@ export class MortalityManager {
    * For age >= 65, death is handled by stepMonth monthly checks
    */
   evaluateAnnualMortality(person: string, age: number, gender: 'male' | 'female', date: Date, random: () => number): void {
+    this.log('annual-mortality-eval-start', { person, age, gender, isDeceased: this.isDeceased(person) });
+
     if (this.isDeceased(person)) return;
     if (age >= 65) return; // Monthly checks handle 65+
 
-    if (!this.ssaLifeTable) return;
+    if (!this.ssaLifeTable) {
+      this.log('annual-mortality-no-ssa-table', { person, age, gender });
+      return;
+    }
 
     const ageKey = Math.min(Math.floor(age), 119).toString();
     const annualQ = this.ssaLifeTable[gender]?.[ageKey] ?? 0;
+    const roll = random();
 
-    if (random() < annualQ) {
+    this.log('annual-mortality-roll', { person, age, gender, annualQ, roll, willDie: roll < annualQ });
+
+    if (roll < annualQ) {
       this.recordDeath(person, date);
       this.log('annual-mortality-check', { person, age, gender, died: true });
     }

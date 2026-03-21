@@ -434,7 +434,7 @@ export class Calculator {
       segmentResult.balanceChanges.set(hsaAccountId, hsaChange - reimbursementAmount);
       segmentResult.balanceChanges.set(paymentAccountId, accountChange + reimbursementAmount);
     } catch (error) {
-      console.error('[HSA Reimbursement] ERROR:', error);
+      this.log('hsa-reimbursement-error', { error: String(error) });
       throw error; // Re-throw to propagate the error
     }
   }

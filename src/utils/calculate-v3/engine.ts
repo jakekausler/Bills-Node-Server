@@ -300,6 +300,18 @@ export class Engine {
 
     this.log('timeline-created', { eventCount: this.timeline.getSegments().reduce((sum, s) => sum + s.events.length, 0) });
 
+    // Count events by type for debugging LTC event generation
+    if (this.debugLogger) {
+      const eventTypeCounts: Record<string, number> = {};
+      for (const segment of this.timeline.getSegments()) {
+        for (const event of segment.events) {
+          const typeName = event.type?.toString() ?? 'unknown';
+          eventTypeCounts[typeName] = (eventTypeCounts[typeName] ?? 0) + 1;
+        }
+      }
+      this.log('timeline-event-types', { counts: eventTypeCounts });
+    }
+
     // Initialize tax manager
     if (options.enableLogging) {
       console.log('Initializing tax manager...', Date.now() - this.calculationBegin, 'ms');
@@ -346,6 +358,9 @@ export class Engine {
       console.log('Initializing mortality manager...', Date.now() - this.calculationBegin, 'ms');
     }
     this.mortalityManager = new MortalityManager(this.debugLogger, this.simNumber);
+
+    // Initialize person states from retirement data (for under-65 mortality tracking)
+    this.mortalityManager.initializeRetirementPersonStates(this.accountManager.getSocialSecurities());
 
     // Initialize spending tracker manager
     if (options.enableLogging) {
@@ -569,7 +584,7 @@ export class Engine {
           try {
             activity.amount = Math.round(Number(activity.amount) * 100) / 100; // Round to 2 decimal places
           } catch {
-            console.error('Error rounding activity amount:', activity.amount);
+            this.log('rounding-error', { amount: activity.amount });
           }
           activity.balance = Math.round(activity.balance * 100) / 100; // Round to 2 decimal places
         });
@@ -629,18 +644,39 @@ export class Engine {
     const prng = this.monteCarloConfig.handler.getPRNG();
     if (!prng) return;
 
+    this.log('mortality-eval-start', { year, alivePeopleCount: mortalityManager.getAlivePeople().length });
+
     // Get all tracked persons from mortality manager
     for (const person of mortalityManager.getAlivePeople()) {
       // Get person config to access birthDateVariable and gender
-      const config = mortalityManager.getConfig(person);
-      if (!config) continue;
+      let config = mortalityManager.getConfig(person);
+      let birthDateVariable = config?.birthDateVariable;
+      let gender = config?.gender;
+
+      // If no LTC config, try to get retirement config
+      if (!config) {
+        const retirementConfig = mortalityManager.getRetirementPersonConfig(person);
+        if (!retirementConfig) {
+          this.log('mortality-eval-skip-no-config', { person });
+          continue;
+        }
+        birthDateVariable = retirementConfig.birthDateVariable;
+        gender = retirementConfig.gender;
+      }
+
+      // Ensure we have the required variables
+      if (!birthDateVariable || !gender) {
+        this.log('mortality-eval-skip-missing-vars', { person, hasBirthDateVariable: !!birthDateVariable, hasGender: !!gender });
+        continue;
+      }
 
       // Load birth date from the variable
       let birthDate: Date;
       try {
-        birthDate = loadVariable(config.birthDateVariable, this.simulation) as Date;
+        birthDate = loadVariable(birthDateVariable, this.simulation) as Date;
       } catch {
         // If we can't load the birth date, skip this person
+        this.log('mortality-eval-skip-birth-date-load-error', { person, birthDateVariable });
         continue;
       }
 
@@ -650,7 +686,8 @@ export class Engine {
 
       // Evaluate annual mortality check
       const yearBoundaryDate = new Date(Date.UTC(year, 0, 1));
-      mortalityManager.evaluateAnnualMortality(person, age, config.gender, yearBoundaryDate, prng);
+      this.log('mortality-eval-person', { person, age, gender });
+      mortalityManager.evaluateAnnualMortality(person, age, gender, yearBoundaryDate, prng);
     }
   }
 

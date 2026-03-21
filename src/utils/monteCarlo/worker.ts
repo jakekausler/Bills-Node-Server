@@ -49,6 +49,12 @@ async function runWorkerSimulations(): Promise<void> {
     // Load spending tracker categories
     const spendingTrackerCategories = loadSpendingTrackerCategories();
 
+    // Load tax config for taxAccountName (needed by LTC event generation)
+    const taxConfigPath = join(process.cwd(), 'data', 'taxConfig.json');
+    const taxConfig = existsSync(taxConfigPath)
+      ? JSON.parse(readFileSync(taxConfigPath, 'utf-8'))
+      : null;
+
     // Create shared timeline (same as runner does)
     const timeline = await Timeline.fromAccountsAndTransfers(
       accountsAndTransfers,
@@ -67,6 +73,7 @@ async function runWorkerSimulations(): Promise<void> {
         forceRecalculation: false,
         enableLogging: false,
         config: {},
+        taxAccountName: taxConfig?.taxAccountName ?? undefined,
       },
       spendingTrackerCategories,
     );

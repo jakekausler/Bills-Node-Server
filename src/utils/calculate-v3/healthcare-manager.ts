@@ -66,7 +66,7 @@ export class HealthcareManager {
         resolved.startDate = date.toISOString().split('T')[0] as any;
       } catch (e) {
         // If variable resolution fails, keep original date
-        console.warn(`Failed to resolve startDateVariable for config "${config.name}":`, e);
+        this.log('start-date-variable-resolution-failed', { configName: config.name, error: String(e) });
       }
     }
 
@@ -82,7 +82,7 @@ export class HealthcareManager {
         resolved.endDate = date.toISOString().split('T')[0] as any;
       } catch (e) {
         // If variable resolution fails, keep original date
-        console.warn(`Failed to resolve endDateVariable for config "${config.name}":`, e);
+        this.log('end-date-variable-resolution-failed', { configName: config.name, error: String(e) });
       }
     }
 

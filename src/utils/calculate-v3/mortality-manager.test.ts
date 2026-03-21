@@ -480,5 +480,22 @@ describe('MortalityManager', () => {
       expect(manager.allDeceased()).toBe(true);
       expect(manager.getAlivePeople()).toHaveLength(0);
     });
+
+    it('should not double-count death if stepMonth called after person is deceased', () => {
+      const alwaysDie = () => 0.0001;
+
+      manager.stepMonth('Jake', 85, 'male', 0, alwaysDie);
+      expect(manager.isDeceased('Jake')).toBe(true);
+      const deathDate1 = manager.getDeathDate('Jake');
+
+      // Call stepMonth again after person is already deceased
+      // Should return early and not record a second death
+      manager.stepMonth('Jake', 85, 'male', 1, alwaysDie);
+      expect(manager.isDeceased('Jake')).toBe(true);
+      const deathDate2 = manager.getDeathDate('Jake');
+
+      // Death date should be unchanged (not overwritten)
+      expect(deathDate2).toEqual(deathDate1);
+    });
   });
 });

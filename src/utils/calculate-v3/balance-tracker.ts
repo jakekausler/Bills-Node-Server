@@ -201,7 +201,7 @@ export class BalanceTracker {
         account.consolidatedActivity.push(...activities);
         this.updateActivityIndex(accountId, activities.length);
       } else {
-        console.warn(`[BalanceTracker] Account ${accountId} not found for applying activities`);
+        this.log('account-not-found-for-activities', { accountId });
       }
     }
   }

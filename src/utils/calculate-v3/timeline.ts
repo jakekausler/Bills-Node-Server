@@ -306,13 +306,13 @@ export class Timeline {
     for (const activity of accountsAndTransfers.transfers.activity) {
       if (activity.date <= endDate && activity.isTransfer) {
         if (!activity.fro || !activity.to) {
-          console.warn('Transfer activity has no from or to account on the activity', activity);
+          this.log('transfer-activity-missing-accounts', { activityName: activity.name, from: activity.fro ?? null, to: activity.to ?? null });
           continue;
         }
         const fromAccount = this.accountManager.getAccountByName(activity.fro);
         const toAccount = this.accountManager.getAccountByName(activity.to);
         if (!fromAccount && !toAccount) {
-          console.warn('Transfer activity has no from or to account on the account map', activity);
+          this.log('transfer-activity-account-not-found', { activityName: activity.name, from: activity.fro, to: activity.to });
           continue;
         }
 
@@ -331,7 +331,7 @@ export class Timeline {
         }
 
         if (!shouldProcessTransfer) {
-          console.warn('Transfer activity should not be processed', activity);
+          this.log('transfer-activity-skipped', { activityName: activity.name });
           continue;
         }
 
@@ -458,7 +458,7 @@ export class Timeline {
             birthDate = new Date(birthDateStr);
           }
         } catch (error) {
-          console.warn(`Could not load birth date variable ${socialSecurity.birthDateVariable} for ${socialSecurity.name}`);
+          this.log('medicare-birthdate-variable-error', { variable: socialSecurity.birthDateVariable, name: socialSecurity.name });
         }
       }
 
@@ -469,7 +469,7 @@ export class Timeline {
       // Find the account for payouts (assume Medicare comes from the same account as SS)
       const payOutAccount = this.accountManager.getAccountByName(socialSecurity.payToAccount);
       if (!payOutAccount) {
-        console.warn(`Medicare payout account ${socialSecurity.payToAccount} not found`);
+        this.log('medicare-payout-account-not-found', { payToAccount: socialSecurity.payToAccount });
         continue;
       }
 
@@ -518,6 +518,7 @@ export class Timeline {
     }
 
     // Generate LTC events for each person
+    this.log('ltc-events-start', { ssCount: socialSecurities.length, paymentAccount: paymentAccount.name });
     let monthIndex = 0;
     for (const socialSecurity of socialSecurities) {
       if (!socialSecurity.birthDateVariable) {
@@ -532,15 +533,13 @@ export class Timeline {
 
         const birthDate = new Date(birthDateStr);
         const age60Date = dayjs.utc(birthDate).add(60, 'year').toDate();
-        const age65Date = dayjs.utc(birthDate).add(65, 'year').toDate();
 
         // Extract person name by removing " Social Security" suffix
         const personName = socialSecurity.name.replace(' Social Security', '');
 
         const gender = getPersonGender(personName);
 
-        // Start events from the earlier of age 60 (purchase age) or age 65 (Markov chain start)
-        // but use age 60 as earliest since premiums start then
+        // Start events from age 60 (insurance purchase age)
         const eventStartDate = age60Date;
 
         this.generateLTCCheckEvents(
@@ -554,9 +553,10 @@ export class Timeline {
           monthIndex,
         );
 
+        this.log('ltc-events-person-generated', { person: personName, gender, age60: age60Date.toISOString(), eventStart: eventStartDate.toISOString() });
         monthIndex = 0; // Reset for next person (independent month counters)
       } catch (error) {
-        console.warn(`Could not load birth date variable ${socialSecurity.birthDateVariable} for ${socialSecurity.name}`);
+        this.log('ltc-events-person-error', { person: socialSecurity.name, error: String(error) });
       }
     }
 
@@ -600,7 +600,7 @@ export class Timeline {
             birthDates.push(new Date(birthDateStr));
           }
         } catch (error) {
-          console.warn(`Could not load birth date variable ${ss.birthDateVariable}`);
+          this.log('aca-birthdate-variable-error', { variable: ss.birthDateVariable });
         }
       }
     }
@@ -857,7 +857,7 @@ export class Timeline {
     // Find the account to pay to
     const payToAccount = this.accountManager.getAccountByName(socialSecurity.payToAccount);
     if (!payToAccount) {
-      console.warn(`Social Security pay to account ${socialSecurity.payToAccount} not found`);
+      this.log('ss-payout-account-not-found', { payToAccount: socialSecurity.payToAccount });
       return;
     }
 
@@ -901,7 +901,7 @@ export class Timeline {
     // Find the account to pay to
     const payToAccount = this.accountManager.getAccountByName(pension.payToAccount);
     if (!payToAccount) {
-      console.warn(`Pension pay to account ${pension.payToAccount} not found`);
+      this.log('pension-payout-account-not-found', { payToAccount: pension.payToAccount });
       return;
     }
 
@@ -1120,18 +1120,20 @@ export class Timeline {
   private generateLTCCheckEvents(
     personName: string,
     gender: string,
-    age65Date: Date,
+    age60Date: Date,
     endDate: Date,
     accountId: string,
     birthDate: Date,
     startDate: Date,
     monthIndex: number,
   ): void {
-    if (age65Date > endDate) {
-      return; // Never turns 65 in this range
+    // LTC events only relevant if person reaches age 60 within the calculation range
+    if (age60Date > endDate) {
+      return; // Never reaches age 60 in this range
     }
 
-    let currentDate = age65Date;
+    // Only start generating events from startDate onward
+    let currentDate = age60Date < startDate ? startDate : age60Date;
     let monthCounter = monthIndex;
 
     while (currentDate <= endDate) {

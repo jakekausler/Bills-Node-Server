@@ -1368,8 +1368,7 @@ describe('Timeline - core methods', () => {
       expect(events[0].toAccountId).toBe('');
     });
 
-    it('warns and skips when transfer activity has no fro or to (null values)', async () => {
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('skips transfer activity when fro or to is missing (null values)', async () => {
       // Activity with isTransfer=true but fro and to are null/undefined
       const mockActivity = {
         id: 'act-nofroto',
@@ -1390,8 +1389,6 @@ describe('Timeline - core methods', () => {
 
       const events = (timeline as any).events;
       expect(events.length).toBe(0);
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
     });
   });
 
@@ -1780,7 +1777,6 @@ describe('Timeline - core methods', () => {
     });
 
     it('skips social security when payTo account does not exist', async () => {
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const mockAccountManager = {
         getSocialSecurities: vi.fn().mockReturnValue([makeSocialSecurity(null)]),
         getPensions: vi.fn().mockReturnValue([]),
@@ -1792,8 +1788,6 @@ describe('Timeline - core methods', () => {
       await (timeline as any).addSocialSecurityEvents(utcDate(2025, 12, 31));
 
       expect((timeline as any).events.length).toBe(0);
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
     });
 
     it('skips social security that starts after endDate', async () => {
@@ -1871,7 +1865,6 @@ describe('Timeline - core methods', () => {
     });
 
     it('skips pension when payTo account does not exist', async () => {
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const mockAccountManager = {
         getSocialSecurities: vi.fn().mockReturnValue([]),
         getPensions: vi.fn().mockReturnValue([makePension()]),
@@ -1883,8 +1876,6 @@ describe('Timeline - core methods', () => {
       await (timeline as any).addPensionEvents(utcDate(2025, 12, 31));
 
       expect((timeline as any).events.length).toBe(0);
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
     });
 
     it('skips pension that starts after endDate', async () => {

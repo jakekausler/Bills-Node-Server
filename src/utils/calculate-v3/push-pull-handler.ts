@@ -65,7 +65,7 @@ export class PushPullHandler {
     for (const accountId of segment.affectedAccountIds) {
       const account = this.accountManager.getAccountById(accountId);
       if (!account) {
-        console.warn(`Account with ID ${accountId} not found in segment ${segment.id}`);
+        this.log('account-not-found', { accountId, segmentId: segment.id });
         continue;
       }
 
@@ -134,7 +134,7 @@ export class PushPullHandler {
     // Get the account to push to
     const pushAccount = this.accountManager.getAccountByName(account.pushAccount ?? '');
     if (!pushAccount) {
-      console.warn(`Push account ${account.pushAccount} not found for account ${account.name}`);
+      this.log('push-account-not-found', { pushAccount: account.pushAccount, accountName: account.name });
       return false;
     }
 
