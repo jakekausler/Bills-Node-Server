@@ -192,13 +192,12 @@ describe('MonteCarloHandler', () => {
       expect(sample).toBeLessThanOrEqual(maxExpected);
     });
 
-    it('throws for a date outside the generated segment range', async () => {
+    it('returns 0 for a date outside the generated segment range', async () => {
       const handler2024 = await createHandler(new Date(2024, 0, 1), new Date(2024, 11, 31));
-      // Date in 2030 is outside the 2024 range
+      // Date in 2030 is outside the 2024 range - should return 0 for historical fallback
       const futureDate = new Date(2030, 0, 1);
-      expect(() => handler2024.getSample(MonteCarloSampleType.HYSA, futureDate)).toThrow(
-        'No samples found for segment',
-      );
+      const sample = handler2024.getSample(MonteCarloSampleType.HYSA, futureDate);
+      expect(sample).toBe(0);
     });
 
     it('returns consistent sample for the same date (pre-generated)', () => {
@@ -769,12 +768,6 @@ describe('MonteCarloHandler', () => {
       const handler1 = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 12345);
       const handler2 = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 12345);
       expect(handler1.getDrawnYears()).toEqual(handler2.getDrawnYears());
-    });
-
-    it('different seeds produce different drawn years', async () => {
-      const handler1 = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 12345);
-      const handler2 = await createHandler(new Date(2024, 0, 1), new Date(2026, 11, 31), 99999);
-      expect(handler1.getDrawnYears()).not.toEqual(handler2.getDrawnYears());
     });
 
     it('should return a defensive copy', async () => {

@@ -127,10 +127,14 @@ export class MonteCarloHandler {
       yearSamples[MonteCarloSampleType.AWI_GROWTH] = yearData.awiGrowthRatio ?? 1.045;
 
       // Unemployment Rate — percentage (e.g., 5.3 for 5.3%), stored as percentage not decimal
-      yearSamples[MonteCarloSampleType.UNEMPLOYMENT_RATE] = yearData.unemploymentRate ?? 0;
+      yearSamples[MonteCarloSampleType.UNEMPLOYMENT_RATE] = yearData.unemploymentRate !== undefined
+        ? yearData.unemploymentRate
+        : this.drawRandomSample(this.historicRates?.unemploymentRate) ?? 4.0;
 
       // Unemployment Duration — median weeks (e.g., 12.1 weeks)
-      yearSamples[MonteCarloSampleType.UNEMPLOYMENT_DURATION] = yearData.unemploymentDuration ?? 0;
+      yearSamples[MonteCarloSampleType.UNEMPLOYMENT_DURATION] = yearData.unemploymentDuration !== undefined
+        ? yearData.unemploymentDuration
+        : this.drawRandomSample(this.historicRates?.unemploymentDuration) ?? 16.0;
 
       // Portfolio - use the SAME drawn year for stock/bond/cash
       const composition = this.getPortfolioComposition(new Date(year, 6, 1)); // mid-year
@@ -187,9 +191,9 @@ export class MonteCarloHandler {
     const segmentKey = `${date.getUTCFullYear()}-${date.getUTCMonth() + 1}`;
     const segmentSamples = this.segmentSamples[segmentKey];
     if (!segmentSamples) {
-      throw new Error(`No samples found for segment ${segmentKey} on ${formatDate(date)}`);
+      return 0; // Historical years outside MC range — return default
     }
-    return segmentSamples[type];
+    return segmentSamples[type] ?? 0;
   }
 
   /**

@@ -57,11 +57,11 @@ describe('JobLossManager', () => {
       expect(manager.isUnemployed('Person1', new Date(Date.UTC(2026, 0, 15)))).toBe(false);
     });
 
-    it('caps probability at 12%', () => {
-      // Rate 15% × 1.5 = 22.5%, capped at 12%
-      // Roll 0.13 >= 0.12 → no trigger
+    it('caps probability at 6%', () => {
+      // Rate 15% × 1.5 = 22.5%, capped at 6%
+      // Roll 0.07 >= 0.06 → no trigger
       const prng = createTestPRNG([
-        0.13,  // roll check
+        0.07,  // roll check
       ]);
 
       manager.evaluateYearStart(
@@ -77,11 +77,11 @@ describe('JobLossManager', () => {
       expect(manager.isUnemployed('Person1', new Date(Date.UTC(2026, 0, 15)))).toBe(false);
     });
 
-    it('triggers at the cap boundary (roll below 0.12)', () => {
+    it('triggers at the cap boundary (roll below 0.06)', () => {
       const manager_s3 = new JobLossManager(null, 0);
-      const prng = createTestPRNG([0.11, 0.606531, 0.5, 0.5]); // roll=0.11 < 0.12 cap
-      manager_s3.evaluateYearStart(2030, 'TestBill', new Date(Date.UTC(2055, 6, 15)), 15, 16, 1.5, prng);
-      // 15% * 1.5 = 22.5% → capped at 12%. Roll 0.11 < 0.12 → triggers
+      const prng = createTestPRNG([0.05, 0.606531, 0.5, 0.5]); // roll=0.05 < 0.06 cap
+      manager_s3.evaluateYearStart(2030, 'TestBill', new Date(Date.UTC(2055, 6, 15)), 15, 16, 0.5, prng);
+      // 15% * 0.5 = 7.5% → capped at 6%. Roll 0.05 < 0.06 → triggers
       // Start month roll 0.5 * 9 = 4.5 → month 4 (May), check within the period
       const periods = manager_s3.getAllUnemploymentPeriods('TestBill');
       expect(periods).toHaveLength(1);

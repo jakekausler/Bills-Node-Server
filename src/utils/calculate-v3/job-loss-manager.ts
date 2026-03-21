@@ -1,7 +1,7 @@
 import { DebugLogger } from './debug-logger';
 
-const MAX_JOB_LOSS_PROBABILITY = 0.12;
-const DEFAULT_SCALE_FACTOR = 1.5;
+const MAX_JOB_LOSS_PROBABILITY = 0.06;
+const DEFAULT_SCALE_FACTOR = 0.5;
 const MIN_DURATION_WEEKS = 4;
 const MAX_DURATION_WEEKS = 104;
 const LOG_NORMAL_SCALE = 0.6;

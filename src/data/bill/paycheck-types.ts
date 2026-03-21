@@ -52,7 +52,7 @@ export type DeductionFrequency = 'perPaycheck' | 'monthly' | 'annual';
 
 export type JobLossConfig = {
   enabled: boolean;
-  scaleFactor?: number; // default 1.5
+  scaleFactor?: number; // default 0.5
 };
 
 export type PaycheckProfile = {
