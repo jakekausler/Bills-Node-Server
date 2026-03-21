@@ -72,6 +72,7 @@ export interface AggregatedSimulationResult {
   fundingFailureYear?: number | null; // #9: First year a pull account dropped below minimumBalance (null = never failed)
   drawnYears?: number[]; // Historical years drawn by MC handler for deterministic verification
   yearlyFlows?: Record<string, YearlyFlowSummary>; // Flow aggregation data per year (income, expenses, transfers, etc.)
+  deathDates?: Record<string, string | null>; // person → ISO date string or null if alive at end of simulation
 }
 
 export type WorkerMessage =

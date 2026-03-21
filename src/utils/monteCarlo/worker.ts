@@ -5,7 +5,7 @@ import { getAccountsAndTransfers } from '../io/accountsAndTransfers';
 import { WorkerData, WorkerMessage, FilteredActivity, FilteredAccount, AggregatedSimulationResult } from './types';
 import { Timeline } from '../calculate-v3/timeline';
 import { minDate } from '../io/minDate';
-import { calculateAllActivity, getLastPullFailures, getLastFlowAggregator } from '../calculate-v3/engine';
+import { calculateAllActivity, getLastPullFailures, getLastFlowAggregator, getLastMortalityManager } from '../calculate-v3/engine';
 import { calculateYearlyMinBalances } from './statisticsGraph';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 import { MonteCarloHandler } from '../calculate-v3/monte-carlo-handler';
@@ -243,6 +243,10 @@ async function runSingleSimulation(
     const flowAggregator = getLastFlowAggregator();
     const yearlyFlows = flowAggregator ? flowAggregator.getYearlyFlows() : undefined;
 
+    // Extract death dates from mortality manager
+    const mortalityManager = getLastMortalityManager();
+    const deathDates = mortalityManager ? mortalityManager.getDeathDates() : undefined;
+
     // Create aggregated result with yearly data and cumulative inflation
     const aggregatedResult: AggregatedSimulationResult = {
       simulationNumber,
@@ -252,6 +256,7 @@ async function runSingleSimulation(
       fundingFailureYear,
       drawnYears,
       yearlyFlows,
+      deathDates,
     };
 
     // Write to temporary file - store aggregated data only

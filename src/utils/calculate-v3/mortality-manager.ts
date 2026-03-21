@@ -741,4 +741,17 @@ export class MortalityManager {
     this.deathDates.clear();
     // Do NOT clear personNameMapping — it's configuration, not per-simulation state
   }
+
+  /**
+   * Get all death dates (person -> ISO string or null if alive)
+   * Returns map of all tracked persons with their death dates
+   */
+  getDeathDates(): Record<string, string | null> {
+    const result: Record<string, string | null> = {};
+    for (const [person, state] of this.personStates) {
+      const deathDate = this.deathDates.get(person);
+      result[person] = deathDate ? deathDate.toISOString() : null;
+    }
+    return result;
+  }
 }

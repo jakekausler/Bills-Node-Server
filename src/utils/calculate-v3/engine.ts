@@ -667,6 +667,13 @@ export class Engine {
   getFlowAggregator(): FlowAggregator | null {
     return this.flowAggregator;
   }
+
+  /**
+   * Get the MortalityManager instance (for MC worker to extract death dates)
+   */
+  getMortalityManager(): MortalityManager {
+    return this.mortalityManager;
+  }
 }
 
 /**
@@ -719,4 +726,11 @@ export function getLastPullFailures() {
  */
 export function getLastFlowAggregator(): FlowAggregator | null {
   return lastEngine ? lastEngine.getFlowAggregator() : null;
+}
+
+/**
+ * Get the MortalityManager from the last calculation (for MC worker to extract death dates)
+ */
+export function getLastMortalityManager(): MortalityManager | null {
+  return lastEngine ? lastEngine.getMortalityManager() : null;
 }
