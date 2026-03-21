@@ -155,6 +155,10 @@ export class JobLossManager {
     return state.raisesSkippedYears.has(year);
   }
 
+  getRaisesSkippedYears(personKey: string): Set<number> {
+    return this.state.get(personKey)?.raisesSkippedYears ?? new Set();
+  }
+
   getActiveUnemploymentPeriod(personKey: string, date: Date): { start: Date; end: Date } | null {
     const state = this.state.get(personKey);
     if (!state) return null;

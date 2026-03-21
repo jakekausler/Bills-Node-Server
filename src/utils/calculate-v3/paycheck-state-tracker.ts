@@ -17,6 +17,8 @@ export class PaycheckStateTracker {
   private paycheckCountInMonth: Map<string, Map<string, number>> = new Map();
   // Bonus fired tracking: billName -> Set<year>
   private bonusFiredThisYear: Map<string, Set<number>> = new Map();
+  // Last COBRA month generated per person: billName -> month (0-11)
+  private lastCobraMonth: Map<string, number | null> = new Map();
 
   private checkpointData: string | null = null;
   private debugLogger: DebugLogger | null;
@@ -198,6 +200,21 @@ export class PaycheckStateTracker {
   }
 
   /**
+   * Get the last month COBRA was generated for a person (0-11, or null if not set).
+   */
+  getLastCobraMonth(billName: string): number | null {
+    return this.lastCobraMonth.get(billName) ?? null;
+  }
+
+  /**
+   * Set the last month COBRA was generated for a person.
+   */
+  setLastCobraMonth(billName: string, month: number): void {
+    this.lastCobraMonth.set(billName, month);
+    this.log('cobra-month-tracked', { billName, month });
+  }
+
+  /**
    * Checkpoint current state for push/pull reprocessing.
    * Follows ContributionLimitManager pattern.
    */
@@ -231,11 +248,17 @@ export class PaycheckStateTracker {
       bonusFiredObj[billName] = Array.from(yearSet);
     });
 
+    const lastCobra: Record<string, number | null> = {};
+    this.lastCobraMonth.forEach((month, billName) => {
+      lastCobra[billName] = month;
+    });
+
     this.checkpointData = JSON.stringify({
       ssWages: ssWagesObj,
       medicareWages: medicareWagesObj,
       paycheckCount: paycheckCountObj,
       bonusFired: bonusFiredObj,
+      lastCobraMonth: lastCobra,
     });
     this.log('checkpoint-saved');
   }
@@ -280,6 +303,13 @@ export class PaycheckStateTracker {
       for (const billName of Object.keys(data.bonusFired)) {
         const yearSet = new Set<number>(data.bonusFired[billName]);
         this.bonusFiredThisYear.set(billName, yearSet);
+      }
+    }
+
+    this.lastCobraMonth = new Map();
+    if (data.lastCobraMonth) {
+      for (const billName of Object.keys(data.lastCobraMonth)) {
+        this.lastCobraMonth.set(billName, data.lastCobraMonth[billName]);
       }
     }
 

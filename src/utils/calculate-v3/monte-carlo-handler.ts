@@ -176,6 +176,13 @@ export class MonteCarloHandler {
     return [...this.drawnYears];
   }
 
+  /**
+   * Get the seeded PRNG function for use in non-correlated sampling (e.g., job loss probability rolls).
+   */
+  public getPRNG(): (() => number) | null {
+    return this.random;
+  }
+
   public getSample(type: MonteCarloSampleType, date: Date): number {
     const segmentKey = `${date.getUTCFullYear()}-${date.getUTCMonth() + 1}`;
     const segmentSamples = this.segmentSamples[segmentKey];

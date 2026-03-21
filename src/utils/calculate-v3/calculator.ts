@@ -14,6 +14,7 @@ import { SpendingTrackerManager } from './spending-tracker-manager';
 import { ContributionLimitManager } from './contribution-limit-manager';
 import { PaycheckStateTracker } from './paycheck-state-tracker';
 import { PaycheckProcessor } from './paycheck-processor';
+import { JobLossManager } from './job-loss-manager';
 import { WithholdingCalculator } from './withholding-calculator';
 import type { TaxProfile } from './tax-profile-types';
 import type { PaycheckResult } from './types';
@@ -66,6 +67,7 @@ export class Calculator {
   private deductionTracker: DeductionTracker;
   private paycheckStateTracker: PaycheckStateTracker;
   private paycheckProcessor: PaycheckProcessor;
+  private jobLossManager: JobLossManager;
   private rothConversionManager: RothConversionManager;
   private filingStatus: FilingStatus;
   private bracketInflationRate: number;
@@ -112,6 +114,7 @@ export class Calculator {
     this.contributionLimitManager = new ContributionLimitManager(debugLogger, simNumber);
     this.deductionTracker = new DeductionTracker(debugLogger, simNumber);
     this.paycheckStateTracker = new PaycheckStateTracker(debugLogger, simNumber);
+    this.jobLossManager = new JobLossManager(debugLogger, simNumber);
     const withholdingCalculator = new WithholdingCalculator(debugLogger, simNumber);
     this.paycheckProcessor = new PaycheckProcessor(
       this.paycheckStateTracker,
@@ -120,6 +123,7 @@ export class Calculator {
       taxManager,
       debugLogger,
       simNumber,
+      this.jobLossManager,
     );
     this.rothConversionManager = new RothConversionManager(accountManager, acaManager, debugLogger, simNumber);
     this.rothConversionManager.setBalanceTracker(balanceTracker);
@@ -149,6 +153,7 @@ export class Calculator {
     this.contributionLimitManager.setCurrentDate(date);
     this.deductionTracker.setCurrentDate(date);
     this.paycheckStateTracker.setCurrentDate(date);
+    this.jobLossManager.setCurrentDate(date);
     this.paycheckProcessor.setCurrentDate(date);
     this.spendingTrackerManager.setCurrentDate(date);
     this.balanceTracker.setCurrentDate(date);
@@ -162,6 +167,13 @@ export class Calculator {
   }
 
   /**
+   * Get the JobLossManager (for year-boundary evaluation in engine)
+   */
+  getJobLossManager(): JobLossManager {
+    return this.jobLossManager;
+  }
+
+  /**
    * Get the DeductionTracker (for tracking tax deductions across the simulation)
    */
   getDeductionTracker(): DeductionTracker {
@@ -169,23 +181,25 @@ export class Calculator {
   }
 
   /**
-   * Save a checkpoint of contribution limit, deduction tracker, and paycheck state.
+   * Save a checkpoint of contribution limit, deduction tracker, paycheck state, and job loss state.
    * Used for push/pull reprocessing to restore state if segment needs to be recomputed.
    */
   checkpoint(): void {
     this.contributionLimitManager.checkpoint();
     this.deductionTracker.checkpoint();
     this.paycheckStateTracker.checkpoint();
+    this.jobLossManager.checkpoint();
   }
 
   /**
-   * Restore contribution limit, deduction tracker, and paycheck state from the last checkpoint.
+   * Restore contribution limit, deduction tracker, paycheck state, and job loss state from the last checkpoint.
    * Used when segment is reprocessed after push/pull handling.
    */
   restore(): void {
     this.contributionLimitManager.restore();
     this.deductionTracker.restore();
     this.paycheckStateTracker.restore();
+    this.jobLossManager.restore();
   }
 
   /**
@@ -642,7 +656,32 @@ export class Calculator {
     const paychecksPerYear = this.computePaychecksPerYear(bill.everyN, bill.periods);
 
     // Compute gross pay (typically from profile or from bill amount)
-    const grossPay = typeof event.amount === 'number' ? event.amount : profile.grossPay;
+    let grossPay = typeof event.amount === 'number' ? event.amount : profile.grossPay;
+
+    // Apply raise correction for missed raises during unemployment years
+    if (this.jobLossManager) {
+      const skippedYears = this.jobLossManager.getRaisesSkippedYears(bill.name);
+      if (skippedYears.size > 0) {
+        let correctionFactor = 1;
+        for (const skippedYear of skippedYears) {
+          if (skippedYear < year) {
+            // Get raise rate - use bill's increaseBy field
+            const raiseRate = bill.increaseBy ?? 0.03;
+            correctionFactor *= (1 + raiseRate);
+          }
+        }
+        if (correctionFactor > 1) {
+          grossPay = grossPay / correctionFactor;
+          this.log('raise-correction-applied', {
+            billName: bill.name,
+            year,
+            correctionFactor,
+            adjustedGross: grossPay,
+            skippedYears: Array.from(skippedYears).sort(),
+          });
+        }
+      }
+    }
 
     // Process the paycheck
     const mcGetter = this.getMCRateGetter();
@@ -686,6 +725,85 @@ export class Calculator {
       standardDeduction,
       bracketLookup,
     );
+
+    // Skip downstream processing if paycheck is empty (suppressed during unemployment)
+    if (paycheckResult.grossPay === 0) {
+      this.log('paycheck-empty-skip-downstream', { billName: bill.name, date: event.date.toISOString() });
+
+      // Record zero income to FlowAggregator for accurate unemployment tracking
+      if (this.flowAggregator) {
+        this.flowAggregator.recordIncome(year, bill.category || 'Income', 0);
+      }
+
+      // Generate COBRA if person had healthcare deductions
+      if (this.jobLossManager) {
+        const hasHealthcare = profile.deductions?.some(d =>
+          d.label.toLowerCase().includes('medical') ||
+          d.label.toLowerCase().includes('dental') ||
+          d.label.toLowerCase().includes('vision') ||
+          d.label.toLowerCase().includes('health') ||
+          d.label.toLowerCase().includes('insurance')
+        );
+
+        if (hasHealthcare) {
+          const cobraMonthsElapsed = this.jobLossManager.getCobraMonthsElapsed(bill.name);
+          if (cobraMonthsElapsed < 18) {
+            // Only generate COBRA once per month - check if this is a different month than last time
+            const lastCobraMonth = this.paycheckStateTracker.getLastCobraMonth(bill.name);
+            const currentMonth = event.date.getUTCMonth();
+
+            if (lastCobraMonth === null || lastCobraMonth !== currentMonth) {
+              this.jobLossManager.incrementCobraMonth(bill.name);
+              this.paycheckStateTracker.setLastCobraMonth(bill.name, currentMonth);
+
+              // Determine COBRA premium based on profile (for now, use fixed family estimate)
+              const cobraPremium = 1700; // Family COBRA estimate, ~$1,700/month
+
+              // Create COBRA expense activity on the main checking account
+              const cobraActivity = new ConsolidatedActivity({
+                id: `${bill.id}-cobra-${event.date}`,
+                date: formatDate(event.date),
+                dateIsVariable: false,
+                dateVariable: null,
+                name: `COBRA Insurance from ${bill.name}`,
+                category: 'Healthcare',
+                amount: -cobraPremium, // Negative for expense
+                amountIsVariable: false,
+                amountVariable: null,
+                flag: false,
+                flagColor: null,
+                isTransfer: false,
+                from: null,
+                to: null,
+              });
+
+              if (!segmentResult.activitiesAdded.has(event.accountId)) {
+                segmentResult.activitiesAdded.set(event.accountId, []);
+              }
+              segmentResult.activitiesAdded.get(event.accountId)?.push(cobraActivity);
+
+              // Update main account balance
+              const currentMainChange = segmentResult.balanceChanges.get(event.accountId) || 0;
+              segmentResult.balanceChanges.set(event.accountId, currentMainChange - cobraPremium);
+
+              // Record flow
+              if (this.flowAggregator) {
+                this.flowAggregator.recordExpense(year, 'Healthcare', cobraPremium);
+              }
+
+              this.log('cobra-generated', {
+                billName: bill.name,
+                date: event.date.toISOString(),
+                cobraMonthsElapsed: cobraMonthsElapsed + 1,
+                premium: cobraPremium,
+              });
+            }
+          }
+        }
+      }
+
+      return new Map();
+    }
 
     // Create main net pay activity for the primary account
     const mainActivity = new ConsolidatedActivity(

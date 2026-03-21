@@ -6,6 +6,29 @@ import { WithholdingCalculator, BracketLookup } from './withholding-calculator';
 import { TaxManager } from './tax-manager';
 import type { TaxProfile } from './tax-profile-types';
 import type { DebugLogger } from './debug-logger';
+import { JobLossManager } from './job-loss-manager';
+
+/**
+ * Create an empty paycheck result (used when paychecks are suppressed during unemployment)
+ */
+export function createEmptyPaycheckResult(): PaycheckResult {
+  return {
+    netPay: 0,
+    grossPay: 0,
+    traditional401k: 0,
+    roth401k: 0,
+    employerMatch: 0,
+    hsa: 0,
+    hsaEmployer: 0,
+    ssTax: 0,
+    medicareTax: 0,
+    federalWithholding: 0,
+    stateWithholding: 0,
+    preTaxDeductions: [],
+    postTaxDeductions: [],
+    depositActivities: [],
+  };
+}
 
 /**
  * Processes individual paychecks, computing net pay, taxes, and retirement contributions.
@@ -15,6 +38,7 @@ export class PaycheckProcessor {
   private contributionLimitManager: ContributionLimitManager;
   private withholdingCalculator: WithholdingCalculator | null;
   private taxManager: TaxManager | null;
+  private jobLossManager: JobLossManager | null;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
@@ -26,6 +50,7 @@ export class PaycheckProcessor {
     taxManager?: TaxManager | null,
     debugLogger?: DebugLogger | null,
     simNumber: number = 0,
+    jobLossManager?: JobLossManager | null,
   ) {
     this.paycheckStateTracker = paycheckStateTracker;
     this.contributionLimitManager = contributionLimitManager;
@@ -33,6 +58,7 @@ export class PaycheckProcessor {
     this.taxManager = taxManager ?? null;
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
+    this.jobLossManager = jobLossManager ?? null;
   }
 
   setCurrentDate(date: string): void {
@@ -79,6 +105,12 @@ export class PaycheckProcessor {
     standardDeduction?: number,
     bracketLookup?: BracketLookup,
   ): PaycheckResult {
+    // Check for unemployment and skip paycheck if unemployed
+    if (this.jobLossManager?.isUnemployed(billName, date)) {
+      this.log('paycheck-suppressed-unemployment', { billName, date: date.toISOString() });
+      return createEmptyPaycheckResult();
+    }
+
     const year = date.getUTCFullYear();
     const yearMonth = `${year}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
     const paycheckIndex = this.paycheckStateTracker.getAndIncrementPaycheckCount(billName, yearMonth);
@@ -436,6 +468,12 @@ export class PaycheckProcessor {
     additionalMedicareThreshold: number,
     taxProfile?: TaxProfile | null,
   ): PaycheckResult {
+    // Check for unemployment and skip bonus if unemployed
+    if (this.jobLossManager?.isUnemployed(billName, date)) {
+      this.log('bonus-paycheck-suppressed-unemployment', { billName, date: date.toISOString() });
+      return createEmptyPaycheckResult();
+    }
+
     const year = date.getUTCFullYear();
     const bonusGross = grossPay * paychecksPerYear * (profile.bonus?.percent ?? 0);
 

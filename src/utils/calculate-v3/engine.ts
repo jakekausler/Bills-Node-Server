@@ -533,6 +533,11 @@ export class Engine {
         lastYear = segmentYear;
       }
 
+      // Year-boundary hook for job loss evaluation (MC mode only)
+      if (segmentYear > lastYear || (i === 0 && this.monteCarloConfig)) {
+        this.evaluateJobLossAtYearBoundary(segmentYear, accountsAndTransfers);
+      }
+
       await this.segmentProcessor.processSegment(segment, options);
     }
 
@@ -567,6 +572,47 @@ export class Engine {
       }
     });
     return results;
+  }
+
+  /**
+   * Evaluate job loss for all paychecks with jobLoss enabled at a year boundary.
+   * Only runs in MC mode (when monteCarloConfig is set).
+   */
+  private evaluateJobLossAtYearBoundary(year: number, accountsAndTransfers: AccountsAndTransfers): void {
+    if (!this.monteCarloConfig || !this.calculator) return;
+
+    // Get the PRNG from the MC config
+    if (!this.monteCarloConfig.handler) return;
+    const prng = this.monteCarloConfig.handler.getPRNG();
+    if (!prng) return;
+
+    // Iterate through all accounts and bills to find paychecks with jobLoss enabled
+    for (const account of accountsAndTransfers.accounts) {
+      for (const bill of account.bills) {
+        const profile = bill.paycheckProfile;
+        if (!profile || !profile.jobLoss?.enabled) continue;
+
+        // Get MC-sampled unemployment data for this year
+        const yearDate = new Date(Date.UTC(year, 0, 1));
+        const unemploymentRate = this.monteCarloConfig.handler.getSample(MonteCarloSampleType.UNEMPLOYMENT_RATE, yearDate) ?? 4.0;
+        const unemploymentDuration = this.monteCarloConfig.handler.getSample(MonteCarloSampleType.UNEMPLOYMENT_DURATION, yearDate) ?? 20;
+
+        // For now, pass null as retirement date — the job loss manager checks internally
+        // via the socialSecurities/pensions in the retirement manager if needed
+        const retirementDate = null;
+
+        // Evaluate job loss for this person at the year start
+        this.calculator.getJobLossManager().evaluateYearStart(
+          year,
+          bill.name,
+          retirementDate,
+          unemploymentRate,
+          unemploymentDuration,
+          profile.jobLoss.scaleFactor || 1.5,
+          prng,
+        );
+      }
+    }
   }
 
   /**
