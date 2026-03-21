@@ -8,7 +8,7 @@ import { RetirementManager } from './retirement-manager';
 import { TaxManager } from './tax-manager';
 import { HealthcareManager } from './healthcare-manager';
 import { MedicareManager } from './medicare-manager';
-import { LTCManager } from './ltc-manager';
+import { MortalityManager } from './mortality-manager';
 import { AcaManager } from './aca-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { ContributionLimitManager } from './contribution-limit-manager';
@@ -60,7 +60,7 @@ export class Calculator {
   private accountManager: AccountManager;
   private healthcareManager: HealthcareManager;
   private medicareManager: MedicareManager;
-  private ltcManager: LTCManager;
+  private mortalityManager: MortalityManager;
   private acaManager: AcaManager;
   private spendingTrackerManager: SpendingTrackerManager;
   private contributionLimitManager: ContributionLimitManager;
@@ -85,7 +85,7 @@ export class Calculator {
     retirementManager: RetirementManager,
     healthcareManager: HealthcareManager,
     medicareManager: MedicareManager,
-    ltcManager: LTCManager,
+    mortalityManager: MortalityManager,
     accountManager: AccountManager,
     simulation: string,
     spendingTrackerManager: SpendingTrackerManager,
@@ -101,7 +101,7 @@ export class Calculator {
     this.retirementManager = retirementManager;
     this.healthcareManager = healthcareManager;
     this.medicareManager = medicareManager;
-    this.ltcManager = ltcManager;
+    this.mortalityManager = mortalityManager;
     this.acaManager = acaManager;
     this.simulation = simulation;
     this.accountManager = accountManager;
@@ -148,7 +148,7 @@ export class Calculator {
     this.retirementManager.setCurrentDate(date);
     this.healthcareManager.setCurrentDate(date);
     this.medicareManager.setCurrentDate(date);
-    this.ltcManager.setCurrentDate(date);
+    this.mortalityManager.setCurrentDate(date);
     this.acaManager.setCurrentDate(date);
     this.contributionLimitManager.setCurrentDate(date);
     this.deductionTracker.setCurrentDate(date);
@@ -174,6 +174,13 @@ export class Calculator {
   }
 
   /**
+   * Get the MortalityManager (for accessing mortality state and under-65 mortality checks)
+   */
+  getMortalityManager(): MortalityManager | null {
+    return this.mortalityManager ?? null;
+  }
+
+  /**
    * Get the DeductionTracker (for tracking tax deductions across the simulation)
    */
   getDeductionTracker(): DeductionTracker {
@@ -181,7 +188,7 @@ export class Calculator {
   }
 
   /**
-   * Save a checkpoint of contribution limit, deduction tracker, paycheck state, and job loss state.
+   * Save a checkpoint of contribution limit, deduction tracker, paycheck state, job loss state, and mortality state.
    * Used for push/pull reprocessing to restore state if segment needs to be recomputed.
    */
   checkpoint(): void {
@@ -189,10 +196,11 @@ export class Calculator {
     this.deductionTracker.checkpoint();
     this.paycheckStateTracker.checkpoint();
     this.jobLossManager.checkpoint();
+    this.mortalityManager.checkpoint();
   }
 
   /**
-   * Restore contribution limit, deduction tracker, paycheck state, and job loss state from the last checkpoint.
+   * Restore contribution limit, deduction tracker, paycheck state, job loss state, and mortality state from the last checkpoint.
    * Used when segment is reprocessed after push/pull handling.
    */
   restore(): void {
@@ -200,6 +208,7 @@ export class Calculator {
     this.deductionTracker.restore();
     this.paycheckStateTracker.restore();
     this.jobLossManager.restore();
+    this.mortalityManager.restore();
   }
 
   /**
@@ -2334,7 +2343,7 @@ export class Calculator {
     const personName = event.personName;
 
     // Get the config for this person
-    const config = this.ltcManager.getConfig(personName);
+    const config = this.mortalityManager.getConfig(personName);
     if (!config) {
       return new Map();
     }
@@ -2348,7 +2357,7 @@ export class Calculator {
     // Markov chain only steps when age >= 65
     // Before that, only premiums are charged (if applicable)
     if (event.ownerAge >= 65 && random) {
-      this.ltcManager.stepMonth(personName, event.ownerAge, event.gender, event.monthIndex, random);
+      this.mortalityManager.stepMonth(personName, event.ownerAge, event.gender, event.monthIndex, random);
     }
 
     // Get the birth year from the birth date
@@ -2360,10 +2369,10 @@ export class Calculator {
     if (event.ownerAge >= 65) {
       if (random) {
         // MC mode: use actual state cost from Markov chain
-        netMonthlyCost = this.ltcManager.getNetMonthlyCost(personName, event.year, birthYear);
+        netMonthlyCost = this.mortalityManager.getNetMonthlyCost(personName, event.year, birthYear);
       } else {
         // Deterministic mode: use actuarially expected cost (no state transitions)
-        netMonthlyCost = this.ltcManager.getExpectedMonthlyCost(event.ownerAge, event.gender, event.year);
+        netMonthlyCost = this.mortalityManager.getExpectedMonthlyCost(event.ownerAge, event.gender, event.year);
       }
     }
 
@@ -2383,7 +2392,7 @@ export class Calculator {
     // Create activity for LTC expense only if age >= 65 and cost > 0
     if (event.ownerAge >= 65 && netMonthlyCost > 0) {
       // Get current LTC state to determine the type of care
-      const state = this.ltcManager.getPersonState(personName);
+      const state = this.mortalityManager.getPersonState(personName);
       if (!state) {
         return new Map();
       }

@@ -17,7 +17,7 @@ import { RetirementManager } from './retirement-manager';
 import { HealthcareManager } from './healthcare-manager';
 import { MedicareManager } from './medicare-manager';
 import { AcaManager } from './aca-manager';
-import { LTCManager } from './ltc-manager';
+import { MortalityManager } from './mortality-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { loadAllHealthcareConfigs } from '../io/virtualHealthcarePlans';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
@@ -30,6 +30,7 @@ import { FlowAggregator } from './flow-aggregator';
 import { setTaxScenario } from './bracket-calculator';
 import { load } from '../io/io';
 import type { TaxScenario } from './tax-profile-types';
+import { loadVariable } from '../simulation/variable';
 
 dayjs.extend(utc);
 
@@ -51,7 +52,7 @@ export class Engine {
   private healthcareManager: HealthcareManager;
   private medicareManager: MedicareManager;
   private acaManager: AcaManager;
-  private ltcManager: LTCManager;
+  private mortalityManager: MortalityManager;
   private calculationBegin: number;
   private monteCarloConfig: MonteCarloConfig | null = null;
   private debugLogger: DebugLogger | null;
@@ -340,11 +341,11 @@ export class Engine {
     }
     this.acaManager = new AcaManager(this.debugLogger, this.simNumber);
 
-    // Initialize LTC manager
+    // Initialize mortality manager
     if (options.enableLogging) {
-      console.log('Initializing LTC manager...', Date.now() - this.calculationBegin, 'ms');
+      console.log('Initializing mortality manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    this.ltcManager = new LTCManager(this.debugLogger, this.simNumber);
+    this.mortalityManager = new MortalityManager(this.debugLogger, this.simNumber);
 
     // Initialize spending tracker manager
     if (options.enableLogging) {
@@ -401,7 +402,7 @@ export class Engine {
       this.retirementManager,
       this.healthcareManager,
       this.medicareManager,
-      this.ltcManager,
+      this.mortalityManager,
       this.accountManager,
       options.simulation,
       spendingTrackerManager,
@@ -424,7 +425,7 @@ export class Engine {
       };
       this.calculator.setMCRateGetter(mcRateGetter);
       this.acaManager.setMCRateGetter(mcRateGetter);
-      this.ltcManager.setMCRateGetter(mcRateGetter);
+      this.mortalityManager.setMCRateGetter(mcRateGetter);
       this.medicareManager.setMCRateGetter(mcRateGetter);
       this.retirementManager.setMCRateGetter(mcRateGetter);
     }
@@ -535,6 +536,9 @@ export class Engine {
         // Year-boundary hook for job loss evaluation (MC mode only)
         this.evaluateJobLossAtYearBoundary(segmentYear, accountsAndTransfers);
 
+        // Year-boundary hook for under-65 mortality evaluation (MC mode only)
+        this.evaluateAnnualMortalityAtYearBoundary(segmentYear);
+
         lastYear = segmentYear;
       }
 
@@ -608,6 +612,45 @@ export class Engine {
           prng,
         );
       }
+    }
+  }
+
+  /**
+   * Evaluate under-65 annual mortality at year boundary.
+   * Only runs in MC mode (when monteCarloConfig is set).
+   */
+  private evaluateAnnualMortalityAtYearBoundary(year: number): void {
+    if (!this.monteCarloConfig || !this.calculator) return;
+    const mortalityManager = this.calculator.getMortalityManager();
+    if (!mortalityManager) return;
+
+    // Get the PRNG from the MC config
+    if (!this.monteCarloConfig.handler) return;
+    const prng = this.monteCarloConfig.handler.getPRNG();
+    if (!prng) return;
+
+    // Get all tracked persons from mortality manager
+    for (const person of mortalityManager.getAlivePeople()) {
+      // Get person config to access birthDateVariable and gender
+      const config = mortalityManager.getConfig(person);
+      if (!config) continue;
+
+      // Load birth date from the variable
+      let birthDate: Date;
+      try {
+        birthDate = loadVariable(config.birthDateVariable, this.simulation) as Date;
+      } catch {
+        // If we can't load the birth date, skip this person
+        continue;
+      }
+
+      // Calculate age at the year boundary
+      const age = year - birthDate.getUTCFullYear();
+      if (age >= 65) continue; // 65+ mortality is handled by stepMonth monthly checks
+
+      // Evaluate annual mortality check
+      const yearBoundaryDate = new Date(Date.UTC(year, 0, 1));
+      mortalityManager.evaluateAnnualMortality(person, age, config.gender, yearBoundaryDate, prng);
     }
   }
 

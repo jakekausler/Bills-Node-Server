@@ -1,6 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { LTCManager } from './ltc-manager';
 
+/**
+ * IMPORTANT: LTCManager has been refactored to MortalityManager in Stage 2 (#21).
+ * These tests now import via the re-export shim in ltc-manager.ts.
+ *
+ * Stage 2 changes:
+ * - Death transitions now use SSA life tables instead of fixed Markov probabilities
+ * - SSA death check occurs BEFORE Markov state transitions in stepMonth
+ * - This means tests using very low random values (e.g., 0.0001) may trigger death
+ *   instead of LTC transitions at ages 65+
+ *
+ * TODO: Update these tests to account for SSA-based mortality or use ages <65
+ * where Markov modeling is skipped. See mortality-manager.test.ts for new tests.
+ */
+
 describe('LTCManager', () => {
   let manager: LTCManager;
 
