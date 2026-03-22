@@ -90,12 +90,12 @@ describe('InheritanceManager', () => {
     // Year 2025: Dad=80, Mom=75. Oldest living = Dad at 80 → tier 80-89 → 5%
     mgr.evaluateYear(2025);
     const results = mgr.getResults();
-    expect(results[0].finalEstateValue).toBeCloseTo(500_000 * (1 - 0.05), 2);
+    expect(results[0].inheritanceAmount).toBeCloseTo(500_000 * (1 - 0.05), 2);
 
     // Year 2026: Dad=81 → still tier 80-89 → 5%
     mgr.evaluateYear(2026);
     const results2 = mgr.getResults();
-    expect(results2[0].finalEstateValue).toBeCloseTo(500_000 * (1 - 0.05) * (1 - 0.05), 2);
+    expect(results2[0].inheritanceAmount).toBeCloseTo(500_000 * (1 - 0.05) * (1 - 0.05), 2);
   });
 
   // ----- Test 2: Healthcare inflation modulation scales drawdown rate -----
@@ -122,7 +122,7 @@ describe('InheritanceManager', () => {
     mgr.evaluateYear(2025); // Dad=80
     const results = mgr.getResults();
     // With 2x inflation modulation: rate = 0.08
-    expect(results[0].finalEstateValue).toBeCloseTo(500_000 * (1 - 0.08), 2);
+    expect(results[0].inheritanceAmount).toBeCloseTo(500_000 * (1 - 0.08), 2);
   });
 
   // ----- Test 3: Estate approaches zero for very old parents -----
@@ -148,8 +148,8 @@ describe('InheritanceManager', () => {
 
     const results = mgr.getResults();
     // After 50 years at 10%/year: 500000 * (0.9)^50 ≈ 2,623
-    expect(results[0].finalEstateValue).toBeLessThan(5000);
-    expect(results[0].finalEstateValue).toBeGreaterThan(0);
+    expect(results[0].inheritanceAmount).toBeLessThan(5000);
+    expect(results[0].inheritanceAmount).toBeGreaterThan(0);
   });
 
   // ----- Test 4: MC mode — seeded PRNG produces deterministic parent death ages -----
@@ -173,7 +173,8 @@ describe('InheritanceManager', () => {
     mgr.evaluateYear(2025, prng);
     const results = mgr.getResults();
     expect(results[0].parentDeathDates['Dad']).not.toBeNull();
-    expect(results[0].inheritancePaid).toBe(true);
+    expect(results[0].inheritancePaidDate).not.toBeNull();
+    expect(results[0].blocked).toBe(false);
 
     // Run again with different seed that doesn't kill
     const mgr2 = new InheritanceManager([config], highMortality, gate, 'test-sim');
@@ -181,7 +182,7 @@ describe('InheritanceManager', () => {
     mgr2.evaluateYear(2025, prng2);
     const results2 = mgr2.getResults();
     expect(results2[0].parentDeathDates['Dad']).toBeNull();
-    expect(results2[0].inheritancePaid).toBe(false);
+    expect(results2[0].inheritancePaidDate).toBeNull();
   });
 
   // ----- Test 5: MC mode — both parents must die before inheritance triggers -----
@@ -214,7 +215,7 @@ describe('InheritanceManager', () => {
     // Dad dead, Mom alive → no inheritance yet
     expect(results[0].parentDeathDates['Dad']).not.toBeNull();
     expect(results[0].parentDeathDates['Mom']).toBeNull();
-    expect(results[0].inheritancePaid).toBe(false);
+    expect(results[0].inheritancePaidDate).toBeNull();
     expect(mgr.getPayoutActivities()).toHaveLength(0);
   });
 
@@ -239,12 +240,13 @@ describe('InheritanceManager', () => {
     // Year 2029: Mom=84, Dad=89 → youngest < 85 → no trigger
     mgr.evaluateYear(2029);
     let results = mgr.getResults();
-    expect(results[0].inheritancePaid).toBe(false);
+    expect(results[0].inheritancePaidDate).toBeNull();
 
     // Year 2030: Mom=85 → youngest >= 85 → trigger
     mgr.evaluateYear(2030);
     results = mgr.getResults();
-    expect(results[0].inheritancePaid).toBe(true);
+    expect(results[0].inheritancePaidDate).not.toBeNull();
+    expect(results[0].blocked).toBe(false);
     const payouts = mgr.getPayoutActivities();
     expect(payouts).toHaveLength(1);
     expect(payouts[0].targetAccountId).toBe('acct-checking');
@@ -273,7 +275,8 @@ describe('InheritanceManager', () => {
     // Year 2020: Dad=80 → deterministic trigger fires, but Jake is deceased → blocked
     mgr.evaluateYear(2020);
     const results = mgr.getResults();
-    expect(results[0].inheritancePaid).toBe(true);
+    expect(results[0].blocked).toBe(true);
+    expect(results[0].inheritancePaidDate).toBeNull();
     expect(mgr.getPayoutActivities()).toHaveLength(0);
   });
 
@@ -325,7 +328,8 @@ describe('InheritanceManager', () => {
 
     mgr.evaluateYear(2020); // trigger
     const results = mgr.getResults();
-    expect(results[0].inheritancePaid).toBe(true);
+    expect(results[0].blocked).toBe(true);
+    expect(results[0].inheritancePaidDate).toBeNull();
     expect(mgr.getPayoutActivities()).toHaveLength(0);
   });
 
@@ -352,12 +356,12 @@ describe('InheritanceManager', () => {
     // Drawdown another year (mutates state)
     mgr.evaluateYear(2026);
     const afterResults = mgr.getResults();
-    expect(afterResults[0].finalEstateValue).not.toBeCloseTo(beforeResults[0].finalEstateValue, 2);
+    expect(afterResults[0].inheritanceAmount).not.toBeCloseTo(beforeResults[0].inheritanceAmount, 2);
 
     // Restore and verify
     mgr.restore(checkpointData);
     const restoredResults = mgr.getResults();
-    expect(restoredResults[0].finalEstateValue).toBeCloseTo(beforeResults[0].finalEstateValue, 2);
+    expect(restoredResults[0].inheritanceAmount).toBeCloseTo(beforeResults[0].inheritanceAmount, 2);
   });
 
   // ----- Test 11: lastDrawdownYear prevents double-drawdown -----
@@ -376,13 +380,79 @@ describe('InheritanceManager', () => {
     const mgr = new InheritanceManager([config], lifeTable, gate, 'test-sim');
 
     mgr.evaluateYear(2025);
-    const afterFirst = mgr.getResults()[0].finalEstateValue;
+    const afterFirst = mgr.getResults()[0].inheritanceAmount;
 
     // Call again for the same year — should NOT drawdown again
     mgr.evaluateYear(2025);
-    const afterSecond = mgr.getResults()[0].finalEstateValue;
+    const afterSecond = mgr.getResults()[0].inheritanceAmount;
 
     expect(afterSecond).toBeCloseTo(afterFirst, 2);
     expect(afterFirst).toBeCloseTo(500_000 * 0.90, 2);
+  });
+
+  // ----- Test 12: resetBenefactorStates resets all state -----
+  it('resetBenefactorStates returns estate to initial, clears death dates and payout state', () => {
+    const config = makeConfig({
+      parents: [{ name: 'Dad', gender: 'male', birthDate: '1940-01-01' }],
+      deterministicTriggerAge: 85,
+      drawdown: {
+        tiers: [{ minAge: 0, maxAge: 200, baseRate: 0.05 }],
+        healthcareInflationModulated: false,
+        healthcareInflationVariable: '',
+        referenceHealthcareRate: 0.05,
+      },
+    });
+
+    const mgr = new InheritanceManager([config], lifeTable, gate, 'test-sim');
+
+    // Year 2020: Dad=80, drawdown applies (5%), no trigger yet (need age 85)
+    mgr.evaluateYear(2020);
+    let results = mgr.getResults();
+    expect(results[0].inheritancePaidDate).toBeNull();
+    expect(results[0].inheritanceAmount).toBeCloseTo(500_000 * 0.95, 2);
+
+    // Year 2025: Dad=85 → trigger, payout after drawdown
+    mgr.evaluateYear(2025);
+    results = mgr.getResults();
+    expect(results[0].inheritancePaidDate).not.toBeNull();
+    expect(results[0].inheritanceAmount).toBeLessThan(500_000);
+
+    // Drain payout buffer
+    expect(mgr.getPayoutActivities()).toHaveLength(1);
+
+    // Reset
+    mgr.resetBenefactorStates();
+
+    const afterReset = mgr.getResults();
+    expect(afterReset[0].inheritanceAmount).toBe(500_000);
+    expect(afterReset[0].inheritancePaidDate).toBeNull();
+    expect(afterReset[0].blocked).toBe(false);
+    expect(afterReset[0].parentDeathDates['Dad']).toBeNull();
+    expect(mgr.getPayoutActivities()).toHaveLength(0);
+  });
+
+  // ----- Test 13: Deterministic healthcare inflation path uses loadVariable -----
+  it('uses loadVariable for healthcare inflation when mcRateGetter is not set', () => {
+    const config = makeConfig({
+      parents: [{ name: 'Dad', gender: 'male', birthDate: '1945-01-01' }],
+      drawdown: {
+        tiers: [{ minAge: 70, maxAge: 120, baseRate: 0.04 }],
+        healthcareInflationModulated: true,
+        healthcareInflationVariable: 'HEALTHCARE_INFLATION',
+        referenceHealthcareRate: 0.05,
+      },
+      deterministicTriggerAge: 200,
+    });
+
+    // No mcRateGetter set → deterministic path
+    // loadVariable mock returns 0.05 → modulated rate = 0.04 * (0.05 / 0.05) = 0.04
+    const mgr = new InheritanceManager([config], lifeTable, gate, 'test-sim');
+
+    mgr.evaluateYear(2025); // Dad=80
+    const results = mgr.getResults();
+
+    expect(loadVariable).toHaveBeenCalledWith('HEALTHCARE_INFLATION', 'test-sim');
+    // rate = 0.04 * (0.05 / 0.05) = 0.04, so estate = 500000 * (1 - 0.04) = 480000
+    expect(results[0].inheritanceAmount).toBeCloseTo(500_000 * (1 - 0.04), 2);
   });
 });

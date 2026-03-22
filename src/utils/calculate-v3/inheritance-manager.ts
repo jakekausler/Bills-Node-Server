@@ -48,6 +48,8 @@ interface BenefactorState {
   currentEstateValue: number;
   parentDeathDates: Map<string, Date | null>;
   inheritancePaid: boolean;
+  inheritancePaidDate: Date | null;
+  blocked: boolean;
   lastDrawdownYear: number;
 }
 
@@ -109,6 +111,8 @@ export class InheritanceManager {
         currentEstateValue: state.currentEstateValue,
         parentDeathDates,
         inheritancePaid: state.inheritancePaid,
+        inheritancePaidDate: state.inheritancePaidDate ? state.inheritancePaidDate.toISOString() : null,
+        blocked: state.blocked,
         lastDrawdownYear: state.lastDrawdownYear,
       };
     }
@@ -122,6 +126,8 @@ export class InheritanceManager {
         currentEstateValue: number;
         parentDeathDates: Record<string, string | null>;
         inheritancePaid: boolean;
+        inheritancePaidDate: string | null;
+        blocked: boolean;
         lastDrawdownYear: number;
       }
     >;
@@ -131,6 +137,8 @@ export class InheritanceManager {
       if (!state) continue;
       state.currentEstateValue = snap.currentEstateValue;
       state.inheritancePaid = snap.inheritancePaid;
+      state.inheritancePaidDate = snap.inheritancePaidDate ? new Date(snap.inheritancePaidDate) : null;
+      state.blocked = snap.blocked;
       state.lastDrawdownYear = snap.lastDrawdownYear;
       state.parentDeathDates.clear();
       for (const [name, dateStr] of Object.entries(snap.parentDeathDates)) {
@@ -148,18 +156,18 @@ export class InheritanceManager {
   }
 
   getResults(): Array<{
-    id: string;
-    name: string;
-    finalEstateValue: number;
-    inheritancePaid: boolean;
+    benefactorId: string;
     parentDeathDates: Record<string, string | null>;
+    inheritancePaidDate: string | null;
+    inheritanceAmount: number;
+    blocked: boolean;
   }> {
     const results: Array<{
-      id: string;
-      name: string;
-      finalEstateValue: number;
-      inheritancePaid: boolean;
+      benefactorId: string;
       parentDeathDates: Record<string, string | null>;
+      inheritancePaidDate: string | null;
+      inheritanceAmount: number;
+      blocked: boolean;
     }> = [];
 
     for (const [, state] of this.states) {
@@ -168,11 +176,11 @@ export class InheritanceManager {
         parentDeathDates[name] = date ? date.toISOString() : null;
       }
       results.push({
-        id: state.config.id,
-        name: state.config.name,
-        finalEstateValue: state.currentEstateValue,
-        inheritancePaid: state.inheritancePaid,
+        benefactorId: state.config.id,
         parentDeathDates,
+        inheritancePaidDate: state.inheritancePaidDate ? state.inheritancePaidDate.toISOString() : null,
+        inheritanceAmount: state.currentEstateValue,
+        blocked: state.blocked,
       });
     }
     return results;
@@ -190,6 +198,8 @@ export class InheritanceManager {
       currentEstateValue: config.estimatedPostTaxEstateValue,
       parentDeathDates,
       inheritancePaid: false,
+      inheritancePaidDate: null,
+      blocked: false,
       lastDrawdownYear: -1,
     };
   }
@@ -327,6 +337,7 @@ export class InheritanceManager {
       try {
         const val = loadVariable(varName, this.simulation);
         if (typeof val === 'number') return val;
+        this.log('healthcare-variable-not-numeric', { variable: varName, type: typeof val });
       } catch {
         // fall through to reference rate
       }
@@ -345,6 +356,7 @@ export class InheritanceManager {
       // Specific person — blocked if that person is deceased
       if (this.mortalityManager.isDeceased(config.person)) {
         state.inheritancePaid = true;
+        state.blocked = true;
         this.log('payout-blocked-person-deceased', { benefactor: config.name, person: config.person });
         return;
       }
@@ -352,6 +364,7 @@ export class InheritanceManager {
       // Null person — blocked if all tracked persons are deceased
       if (this.mortalityManager.allDeceased()) {
         state.inheritancePaid = true;
+        state.blocked = true;
         this.log('payout-blocked-all-deceased', { benefactor: config.name });
         return;
       }
@@ -362,15 +375,15 @@ export class InheritanceManager {
       const activity = createPayoutActivity(
         `inheritance-${config.id}-${year}`,
         `${year}-01-15`,
-        `${config.name} Inheritance`,
+        `Inheritance from ${config.name}`,
         state.currentEstateValue,
-        'Inheritance',
+        'Income.Inheritance',
       );
 
       this.payoutBuffer.push({
         activity,
         targetAccountId: config.depositAccountId,
-        incomeSourceName: `${config.name} Inheritance`,
+        incomeSourceName: 'Income.Inheritance',
       });
 
       this.log('payout-created', {
@@ -382,5 +395,6 @@ export class InheritanceManager {
     }
 
     state.inheritancePaid = true;
+    state.inheritancePaidDate = new Date(Date.UTC(year, 0, 15));
   }
 }
