@@ -1,0 +1,71 @@
+[
+  {
+    "id": "jake-basic-life",
+    "name": "Jake Basic Life",
+    "type": "employer",
+    "insuredPerson": "Jake",
+    "beneficiary": "Kendall",
+    "depositAccountId": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
+    "coverage": {
+      "formula": "multiplier",
+      "multiplier": 2,
+      "maxCoverage": 300000,
+      "maxCoverageInflationVariable": "INFLATION"
+    },
+    "employmentTied": true,
+    "linkedPaycheckBillName": "Jake Paycheck",
+    "enabled": true
+  },
+  {
+    "id": "jake-supplemental-life",
+    "name": "Jake Supplemental Life",
+    "type": "employer",
+    "insuredPerson": "Jake",
+    "beneficiary": "Kendall",
+    "depositAccountId": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
+    "coverage": {
+      "formula": "multiplier",
+      "multiplier": 5,
+      "maxCoverage": 750000,
+      "maxCoverageInflationVariable": "INFLATION"
+    },
+    "employmentTied": true,
+    "linkedPaycheckBillName": "Jake Paycheck",
+    "enabled": true
+  },
+  {
+    "id": "spouse-basic-life",
+    "name": "Spouse Basic Life",
+    "type": "employer",
+    "insuredPerson": "Kendall",
+    "beneficiary": "Jake",
+    "depositAccountId": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
+    "coverage": {
+      "formula": "fixed",
+      "fixedAmount": 2500,
+      "maxCoverage": 2500,
+      "maxCoverageInflationVariable": "INFLATION"
+    },
+    "employmentTied": true,
+    "linkedPaycheckBillName": "Jake Paycheck",
+    "enabled": true
+  },
+  {
+    "id": "spouse-supplemental-life",
+    "name": "Spouse Supplemental Life",
+    "type": "employer",
+    "insuredPerson": "Kendall",
+    "beneficiary": "Jake",
+    "depositAccountId": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
+    "coverage": {
+      "formula": "fixed",
+      "fixedAmount": 300000,
+      "maxCoverage": 300000,
+      "maxCoverageInflationVariable": "INFLATION",
+      "cappedByPolicyId": "jake-supplemental-life"
+    },
+    "employmentTied": true,
+    "linkedPaycheckBillName": "Jake Paycheck",
+    "enabled": true
+  }
+]

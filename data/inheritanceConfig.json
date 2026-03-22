@@ -1,0 +1,48 @@
+[
+  {
+    "id": "jake-parents",
+    "name": "Jake's Parents",
+    "person": "Jake",
+    "depositAccountId": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
+    "estimatedPostTaxEstateValue": 700000,
+    "parents": [
+      { "name": "Anna", "gender": "female", "birthDate": "1969-06-03" },
+      { "name": "David", "gender": "male", "birthDate": "1969-09-23" }
+    ],
+    "drawdown": {
+      "tiers": [
+        { "minAge": 65, "maxAge": 74, "baseRate": 0.02 },
+        { "minAge": 75, "maxAge": 84, "baseRate": 0.05 },
+        { "minAge": 85, "maxAge": 119, "baseRate": 0.08 }
+      ],
+      "healthcareInflationModulated": true,
+      "healthcareInflationVariable": "HEALTHCARE_INFLATION",
+      "referenceHealthcareRate": 0.05
+    },
+    "deterministicTriggerAge": 90,
+    "enabled": true
+  },
+  {
+    "id": "kendall-parents",
+    "name": "Kendall's Parents",
+    "person": "Kendall",
+    "depositAccountId": "ba1af043-c75c-4a7d-9a81-99574bded9c5",
+    "estimatedPostTaxEstateValue": 200000,
+    "parents": [
+      { "name": "Leslie", "gender": "female", "birthDate": "1970-03-10" },
+      { "name": "Monk", "gender": "male", "birthDate": "1960-11-11" }
+    ],
+    "drawdown": {
+      "tiers": [
+        { "minAge": 65, "maxAge": 74, "baseRate": 0.02 },
+        { "minAge": 75, "maxAge": 84, "baseRate": 0.05 },
+        { "minAge": 85, "maxAge": 119, "baseRate": 0.08 }
+      ],
+      "healthcareInflationModulated": true,
+      "healthcareInflationVariable": "HEALTHCARE_INFLATION",
+      "referenceHealthcareRate": 0.05
+    },
+    "deterministicTriggerAge": 90,
+    "enabled": true
+  }
+]
