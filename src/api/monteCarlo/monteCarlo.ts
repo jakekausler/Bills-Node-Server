@@ -14,6 +14,7 @@ import { FailureHistogramResult, computeFailureHistogram } from '../../utils/mon
 import { WorstCasesResult, computeWorstCases } from '../../utils/monteCarlo/worstCases';
 import { IncomeExpenseResult, computeIncomeExpense } from '../../utils/monteCarlo/incomeExpense';
 import { LongevityDataPoint, computeLongevityAnalysis } from '../../utils/monteCarlo/longevityAnalysis';
+import { SequenceOfReturnsData, loadAndComputeSequenceOfReturns } from '../../utils/monteCarlo/sequenceOfReturns';
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 
@@ -33,6 +34,9 @@ const incomeExpenseCache = new Map<string, IncomeExpenseResult>();
 
 // Key: `{simulationId}`
 const longevityCache = new Map<string, LongevityDataPoint[]>();
+
+// Key: `{simulationId}:{retirementYear}:{window}:{survivingOnly}`
+const sequenceOfReturnsCache = new Map<string, SequenceOfReturnsData>();
 
 /**
  * Invalidate all cached graph data for a given simulation
@@ -55,6 +59,11 @@ export function invalidateGraphCache(simulationId: string): void {
     }
   }
   longevityCache.delete(simulationId);
+  for (const key of sequenceOfReturnsCache.keys()) {
+    if (key.startsWith(`${simulationId}:`)) {
+      sequenceOfReturnsCache.delete(key);
+    }
+  }
 }
 
 /**
@@ -66,6 +75,7 @@ export function clearAllGraphCache(): void {
   worstCasesCache.clear();
   incomeExpenseCache.clear();
   longevityCache.clear();
+  sequenceOfReturnsCache.clear();
   clearDetCache();
 }
 
@@ -449,5 +459,51 @@ export async function getLongevityData(req: Request): Promise<LongevityDataPoint
     return result;
   } catch (error) {
     throw new Error(`Failed to compute longevity data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * #14: Get sequence-of-returns analysis for a completed Monte Carlo simulation.
+ * Correlates early retirement returns with final portfolio outcomes.
+ * Supports ?retirementYear (required), ?window (default 5), ?survivingOnly (default false).
+ */
+export async function getSequenceOfReturns(req: Request): Promise<SequenceOfReturnsData> {
+  const { id } = req.params;
+  const survivingOnly = req.query.survivingOnly === 'true';
+
+  if (!id) {
+    throw new Error('Simulation ID is required');
+  }
+
+  if (!UUID_REGEX.test(id)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
+  if (!(await isSimulationComplete(id))) {
+    throw new Error(`Simulation with ID ${id} is not yet completed`);
+  }
+
+  const retirementYear = parseInt(req.query.retirementYear as string, 10);
+  if (isNaN(retirementYear)) {
+    throw new Error('retirementYear query parameter is required and must be a number');
+  }
+
+  const window = req.query.window ? parseInt(req.query.window as string, 10) : 5;
+  const clampedWindow = Math.max(1, Math.min(30, isNaN(window) ? 5 : window));
+
+  // Check cache
+  const cacheKey = `${id}:${retirementYear}:${clampedWindow}:${survivingOnly ? 'surviving' : 'all'}`;
+  const cached = sequenceOfReturnsCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Compute on-demand
+  try {
+    const result = await loadAndComputeSequenceOfReturns(id, retirementYear, clampedWindow, survivingOnly);
+    sequenceOfReturnsCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    throw new Error(`Failed to compute sequence-of-returns data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
