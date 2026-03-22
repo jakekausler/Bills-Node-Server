@@ -11,8 +11,6 @@ vi.mock('../simulation/variable', () => ({
   loadVariable: vi.fn(() => 0.03),
 }));
 
-import { loadVariable } from '../simulation/variable';
-
 // ===== Test helpers =====
 
 function makeConfig(overrides?: Partial<LifeInsurancePolicyConfig>): LifeInsurancePolicyConfig {
@@ -75,8 +73,8 @@ describe('LifeInsuranceManager', () => {
     });
 
     const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
-    const salaries = makeSalaries([['Jake', 150_000]]);
-    const retDates = makeRetirementDates([['Jake', new Date(Date.UTC(2060, 0, 1))]]);
+    const salaries = makeSalaries([['Paycheck - Jake', 150_000]]);
+    const retDates = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2060, 0, 1))]]);
 
     mgr.evaluateYear(2025, salaries, retDates);
 
@@ -96,8 +94,8 @@ describe('LifeInsuranceManager', () => {
     });
 
     const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
-    const salaries = makeSalaries([['Jake', 100_000]]);
-    const retDates = makeRetirementDates([['Jake', new Date(Date.UTC(2060, 0, 1))]]);
+    const salaries = makeSalaries([['Paycheck - Jake', 100_000]]);
+    const retDates = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2060, 0, 1))]]);
 
     mgr.evaluateYear(2025, salaries, retDates);
 
@@ -130,8 +128,8 @@ describe('LifeInsuranceManager', () => {
     });
 
     const mgr = new LifeInsuranceManager([cappedPolicy, basePolicy], gate, 'test-sim');
-    const salaries = makeSalaries([['Jake', 100_000]]);
-    const retDates = makeRetirementDates([['Jake', new Date(Date.UTC(2060, 0, 1))]]);
+    const salaries = makeSalaries([['Paycheck - Jake', 100_000]]);
+    const retDates = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2060, 0, 1))]]);
 
     mgr.evaluateYear(2025, salaries, retDates);
 
@@ -160,8 +158,8 @@ describe('LifeInsuranceManager', () => {
     const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
     mgr.setMCRateGetter(mcGetter);
 
-    const salaries = makeSalaries([['Jake', 200_000]]);
-    const retDates = makeRetirementDates([['Jake', new Date(Date.UTC(2060, 0, 1))]]);
+    const salaries = makeSalaries([['Paycheck - Jake', 200_000]]);
+    const retDates = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2060, 0, 1))]]);
 
     // Year 1: max = 500,000 * (1 + 0.05) = 525,000
     mgr.evaluateYear(2025, salaries, retDates);
@@ -178,8 +176,8 @@ describe('LifeInsuranceManager', () => {
   it('creates payout when insured person dies while employed', () => {
     const config = makeConfig();
     const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
-    const salaries = makeSalaries([['Jake', 100_000]]);
-    const retDates = makeRetirementDates([['Jake', new Date(Date.UTC(2060, 0, 1))]]);
+    const salaries = makeSalaries([['Paycheck - Jake', 100_000]]);
+    const retDates = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2060, 0, 1))]]);
 
     mgr.evaluateYear(2025, salaries, retDates);
     // Coverage = 2 * 100,000 = 200,000
@@ -191,6 +189,10 @@ describe('LifeInsuranceManager', () => {
     expect(payouts[0].targetAccountId).toBe('acct-checking');
     expect(payouts[0].activity.amount).toBe(200_000);
     expect(payouts[0].incomeSourceName).toBe('Income.LifeInsurance');
+
+    // Verify buffer is cleared after retrieval
+    const payouts2 = mgr.getPayoutActivities();
+    expect(payouts2).toHaveLength(0);
 
     const results = mgr.getResults();
     const policyResult = results.find((r) => r.policyId === 'policy-1')!;
@@ -206,8 +208,8 @@ describe('LifeInsuranceManager', () => {
 
     const config = makeConfig();
     const mgr = new LifeInsuranceManager([config], unemployedGate, 'test-sim');
-    const salaries = makeSalaries([['Jake', 100_000]]);
-    const retDates = makeRetirementDates([['Jake', new Date(Date.UTC(2060, 0, 1))]]);
+    const salaries = makeSalaries([['Paycheck - Jake', 100_000]]);
+    const retDates = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2060, 0, 1))]]);
 
     mgr.evaluateYear(2025, salaries, retDates);
 
@@ -225,9 +227,9 @@ describe('LifeInsuranceManager', () => {
   it('does not create payout when insured person dies after retirement', () => {
     const config = makeConfig();
     const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
-    const salaries = makeSalaries([['Jake', 100_000]]);
+    const salaries = makeSalaries([['Paycheck - Jake', 100_000]]);
     // Retired in 2024 (before evaluation year)
-    const retDates = makeRetirementDates([['Jake', new Date(Date.UTC(2024, 0, 1))]]);
+    const retDates = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2024, 0, 1))]]);
 
     mgr.evaluateYear(2025, salaries, retDates);
 
@@ -250,8 +252,8 @@ describe('LifeInsuranceManager', () => {
 
     const config = makeConfig();
     const mgr = new LifeInsuranceManager([config], dynamicGate, 'test-sim');
-    const salaries = makeSalaries([['Jake', 100_000]]);
-    const retDates = makeRetirementDates([['Jake', new Date(Date.UTC(2060, 0, 1))]]);
+    const salaries = makeSalaries([['Paycheck - Jake', 100_000]]);
+    const retDates = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2060, 0, 1))]]);
 
     // Year 2025: unemployed → coverage inactive
     mgr.evaluateYear(2025, salaries, retDates);
@@ -277,8 +279,8 @@ describe('LifeInsuranceManager', () => {
     });
 
     const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
-    const salaries = makeSalaries([['Jake', 100_000]]);
-    const retDates = makeRetirementDates([['Jake', new Date(Date.UTC(2060, 0, 1))]]);
+    const salaries = makeSalaries([['Paycheck - Jake', 100_000]]);
+    const retDates = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2060, 0, 1))]]);
 
     mgr.evaluateYear(2025, salaries, retDates);
 
@@ -313,8 +315,8 @@ describe('LifeInsuranceManager', () => {
     const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
     mgr.setMCRateGetter(mcGetter);
 
-    const salaries = makeSalaries([['Jake', 200_000]]);
-    const retDates = makeRetirementDates([['Jake', new Date(Date.UTC(2060, 0, 1))]]);
+    const salaries = makeSalaries([['Paycheck - Jake', 200_000]]);
+    const retDates = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2060, 0, 1))]]);
 
     // 10 * 200k = 2M, capped at 500k * 1.04 = 520k
     mgr.evaluateYear(2025, salaries, retDates);

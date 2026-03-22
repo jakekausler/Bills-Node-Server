@@ -120,7 +120,7 @@ export class LifeInsuranceManager {
           // Create payout
           const dateStr = `${deathDate.getUTCFullYear()}-${String(deathDate.getUTCMonth() + 1).padStart(2, '0')}-${String(deathDate.getUTCDate()).padStart(2, '0')}`;
           const activity = createPayoutActivity(
-            `life-insurance-${state.config.id}-${deathDate.getUTCFullYear()}`,
+            `life-insurance-${state.config.id}-${dateStr}`,
             dateStr,
             `Life Insurance Payout: ${state.config.name}`,
             state.currentCoverageAmount,
@@ -293,7 +293,7 @@ export class LifeInsuranceManager {
     // Step 2: Calculate base coverage
     let coverageAmount: number;
     if (config.coverage.formula === 'multiplier') {
-      const salary = currentSalaries.get(config.insuredPerson) ?? 0;
+      const salary = currentSalaries.get(config.linkedPaycheckBillName!) ?? 0;
       coverageAmount = (config.coverage.multiplier ?? 0) * salary;
     } else {
       coverageAmount = config.coverage.fixedAmount ?? 0;
@@ -315,8 +315,8 @@ export class LifeInsuranceManager {
     // Step 3: Employment gating
     if (config.employmentTied) {
       // Check retirement (permanent)
-      const retDate = retirementDates.get(config.insuredPerson);
-      if (retDate && year > retDate.getUTCFullYear()) {
+      const retDate = retirementDates.get(config.linkedPaycheckBillName!);
+      if (retDate && year >= retDate.getUTCFullYear()) {
         state.coverageActive = false;
         state.retiredPermanently = true;
         this.log('coverage-deactivated-retired', { policy: config.name, year });
