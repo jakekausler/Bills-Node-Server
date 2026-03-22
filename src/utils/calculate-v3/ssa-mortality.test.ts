@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { getAnnualDeathProbability } from './ssa-mortality';
+import { getAnnualDeathProbability, SSALifeTable } from './ssa-mortality';
 
-const testLifeTable: Record<string, Record<string, number>> = {
+const testLifeTable: SSALifeTable = {
   male: { '0': 0.006064, '30': 0.001676, '80': 0.065407, '119': 1.0 },
   female: { '0': 0.005028, '30': 0.000726, '80': 0.043232, '119': 1.0 },
 };

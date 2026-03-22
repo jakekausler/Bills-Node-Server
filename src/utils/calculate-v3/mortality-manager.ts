@@ -4,7 +4,7 @@ import type { DebugLogger } from './debug-logger';
 import type { MCRateGetter } from './types';
 import { MonteCarloSampleType } from './types';
 import { compoundMCInflation } from './mc-utils';
-import { getAnnualDeathProbability } from './ssa-mortality';
+import { getAnnualDeathProbability, SSALifeTable } from './ssa-mortality';
 
 // ===== Type Definitions =====
 
@@ -45,11 +45,6 @@ export interface LTCTransitionData {
       mortality_multiplier: { homeCare: number; assistedLiving: number; nursingHome: number };
     };
   };
-}
-
-interface SSALifeTable {
-  male: Record<string, number>;
-  female: Record<string, number>;
 }
 
 // ===== Helper Functions =====
@@ -540,7 +535,7 @@ export class MortalityManager {
   /**
    * Get the SSA life table data (for use by other managers, e.g. InheritanceManager)
    */
-  getSSALifeTable(): Record<string, Record<string, number>> | null {
+  getSSALifeTable(): SSALifeTable | null {
     return this.ssaLifeTable;
   }
 
