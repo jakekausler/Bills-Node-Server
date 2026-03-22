@@ -380,7 +380,12 @@ export class Engine {
       if (existsSync(inheritanceConfigPath)) {
         inheritanceConfigs = JSON.parse(readFileSync(inheritanceConfigPath, 'utf-8'));
       }
-    } catch { /* optional config, skip if missing */ }
+    } catch (e) {
+      // Optional config — log parse errors for debugging
+      if (this.debugLogger) {
+        this.debugLogger.log(0, { component: 'engine', event: 'inheritance-config-load-error', error: String(e) });
+      }
+    }
 
     // Load life insurance config
     const lifeInsuranceConfigPath = join(process.cwd(), 'data', 'lifeInsuranceConfig.json');
@@ -389,7 +394,12 @@ export class Engine {
       if (existsSync(lifeInsuranceConfigPath)) {
         lifeInsuranceConfigs = JSON.parse(readFileSync(lifeInsuranceConfigPath, 'utf-8'));
       }
-    } catch { /* optional config, skip if missing */ }
+    } catch (e) {
+      // Optional config — log parse errors for debugging
+      if (this.debugLogger) {
+        this.debugLogger.log(0, { component: 'engine', event: 'life-insurance-config-load-error', error: String(e) });
+      }
+    }
 
     // Create InheritanceManager
     const ssaLifeTable = this.mortalityManager.getSSALifeTable();
@@ -485,7 +495,6 @@ export class Engine {
       this.medicareManager.setMCRateGetter(mcRateGetter);
       this.retirementManager.setMCRateGetter(mcRateGetter);
       this.inheritanceManager?.setMCRateGetter(mcRateGetter);
-      this.lifeInsuranceManager?.setMCRateGetter(mcRateGetter);
     }
 
     // Create LifeInsuranceManager (after calculator, needs JobLossManager)
@@ -497,7 +506,8 @@ export class Engine {
         this.simulation,
         this.debugLogger,
       );
-      // Wire MC rate getter if available
+      // Wire MC rate getter separately — lifeInsuranceManager is created after the
+      // initial batch of setMCRateGetter calls because it depends on JobLossManager.
       if (this.monteCarloConfig) {
         const mcRateGetter: MCRateGetter = (type: MonteCarloSampleType, year: number): number | null => {
           if (!this.monteCarloConfig?.handler) return null;
@@ -777,7 +787,7 @@ export class Engine {
   private evaluateInheritanceAtYearBoundary(year: number): void {
     if (!this.inheritanceManager) return;
     const prng = this.monteCarloConfig?.handler?.getPRNG() ?? undefined;
-    this.inheritanceManager.evaluateYear(year, prng || undefined);
+    this.inheritanceManager.evaluateYear(year, prng);
   }
 
   private evaluateLifeInsuranceAtYearBoundary(year: number, accountsAndTransfers: AccountsAndTransfers): void {

@@ -260,7 +260,7 @@ export class Calculator {
     this.jobLossManager.restore();
     this.mortalityManager.restore();
     const restored = JSON.parse(this.pendingPayoutsCheckpoint) as Array<{
-      activity: any;
+      activity: Record<string, unknown>;
       targetAccountId: string;
       incomeSourceName: string;
     }>;
