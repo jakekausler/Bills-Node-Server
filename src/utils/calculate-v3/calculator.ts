@@ -15,6 +15,8 @@ import { ContributionLimitManager } from './contribution-limit-manager';
 import { PaycheckStateTracker } from './paycheck-state-tracker';
 import { PaycheckProcessor } from './paycheck-processor';
 import { JobLossManager } from './job-loss-manager';
+import { LifeInsuranceManager } from './life-insurance-manager';
+import { ManagerPayout } from './manager-payout';
 import { WithholdingCalculator } from './withholding-calculator';
 import type { TaxProfile } from './tax-profile-types';
 import type { PaycheckResult } from './types';
@@ -77,6 +79,8 @@ export class Calculator {
   private currentDate: string = '';
   private flowAggregator: FlowAggregator | null;
   private mcRateGetterRef: MCRateGetter | null = null;
+  private lifeInsuranceManager: LifeInsuranceManager | null = null;
+  private pendingPayouts: ManagerPayout[] = [];
   private taxProfile: TaxProfile;
 
   constructor(
@@ -188,15 +192,61 @@ export class Calculator {
   }
 
   /**
+   * Set the LifeInsuranceManager (for death hook in stepMonth)
+   */
+  setLifeInsuranceManager(manager: LifeInsuranceManager | null): void {
+    this.lifeInsuranceManager = manager;
+  }
+
+  /**
+   * Set pending payouts from inheritance/life insurance managers for injection into segments.
+   */
+  setPendingPayouts(payouts: ManagerPayout[]): void {
+    this.pendingPayouts.push(...payouts);
+  }
+
+  /**
+   * Inject pending payouts into a segment result. Called by SegmentProcessor at the start
+   * of each segment to flush buffered inheritance/life insurance payouts.
+   */
+  injectPendingPayouts(segmentResult: SegmentResult): void {
+    if (this.pendingPayouts.length === 0) return;
+
+    for (const { activity, targetAccountId, incomeSourceName } of this.pendingPayouts) {
+      if (!segmentResult.activitiesAdded.has(targetAccountId)) {
+        segmentResult.activitiesAdded.set(targetAccountId, []);
+      }
+      segmentResult.activitiesAdded.get(targetAccountId)!.push(activity);
+      const currentChange = segmentResult.balanceChanges.get(targetAccountId) ?? 0;
+      segmentResult.balanceChanges.set(targetAccountId, currentChange + activity.amount);
+      const year = new Date(activity.date).getUTCFullYear();
+      this.flowAggregator?.recordIncome(year, incomeSourceName, activity.amount);
+    }
+
+    this.pendingPayouts = [];
+  }
+
+  /**
    * Save a checkpoint of contribution limit, deduction tracker, paycheck state, job loss state, and mortality state.
    * Used for push/pull reprocessing to restore state if segment needs to be recomputed.
    */
+  private pendingPayoutsCheckpoint: string = '[]';
+  private lifeInsuranceManagerCheckpoint: string = '';
+
   checkpoint(): void {
     this.contributionLimitManager.checkpoint();
     this.deductionTracker.checkpoint();
     this.paycheckStateTracker.checkpoint();
     this.jobLossManager.checkpoint();
     this.mortalityManager.checkpoint();
+    this.pendingPayoutsCheckpoint = JSON.stringify(this.pendingPayouts.map(p => ({
+      activity: p.activity.serialize(),
+      targetAccountId: p.targetAccountId,
+      incomeSourceName: p.incomeSourceName,
+    })));
+    if (this.lifeInsuranceManager) {
+      this.lifeInsuranceManagerCheckpoint = this.lifeInsuranceManager.checkpoint();
+    }
   }
 
   /**
@@ -209,6 +259,19 @@ export class Calculator {
     this.paycheckStateTracker.restore();
     this.jobLossManager.restore();
     this.mortalityManager.restore();
+    const restored = JSON.parse(this.pendingPayoutsCheckpoint) as Array<{
+      activity: any;
+      targetAccountId: string;
+      incomeSourceName: string;
+    }>;
+    this.pendingPayouts = restored.map(r => ({
+      activity: new ConsolidatedActivity(r.activity),
+      targetAccountId: r.targetAccountId,
+      incomeSourceName: r.incomeSourceName,
+    }));
+    if (this.lifeInsuranceManager && this.lifeInsuranceManagerCheckpoint) {
+      this.lifeInsuranceManager.restore(this.lifeInsuranceManagerCheckpoint);
+    }
   }
 
   /**
@@ -2551,7 +2614,14 @@ export class Calculator {
     // Markov chain only steps when age >= 65
     // Before that, only premiums are charged (if applicable)
     if (event.ownerAge >= 65 && random) {
+      const wasDeceased = this.mortalityManager.isDeceased(personName);
       this.mortalityManager.stepMonth(personName, event.ownerAge, event.gender, event.monthIndex, random);
+      if (!wasDeceased && this.mortalityManager.isDeceased(personName)) {
+        const deathDate = this.mortalityManager.getDeathDate(personName);
+        if (deathDate && this.lifeInsuranceManager) {
+          this.lifeInsuranceManager.evaluateDeath(personName, deathDate);
+        }
+      }
     }
 
     // Get the birth year from the birth date

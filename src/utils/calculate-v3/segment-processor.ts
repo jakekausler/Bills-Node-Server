@@ -221,6 +221,9 @@ export class SegmentProcessor {
       spendingTrackerUpdates: [],
     };
 
+    // Inject any pending payouts from inheritance/life insurance managers
+    this.calculator.injectPendingPayouts(segmentResult);
+
     // Group events by date for efficient processing
     const eventsByDate = this.groupEventsByDate(segment.events);
 

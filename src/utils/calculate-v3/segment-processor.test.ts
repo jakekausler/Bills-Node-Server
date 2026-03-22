@@ -150,6 +150,7 @@ function makeMockCalculator(overrides: Partial<any> = {}) {
     setCurrentDate: vi.fn(),
     checkpoint: vi.fn(),
     restore: vi.fn(),
+    injectPendingPayouts: vi.fn(),
     ...overrides,
   };
 }

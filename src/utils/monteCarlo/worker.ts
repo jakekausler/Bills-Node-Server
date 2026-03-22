@@ -5,7 +5,7 @@ import { getAccountsAndTransfers } from '../io/accountsAndTransfers';
 import { WorkerData, WorkerMessage, FilteredActivity, FilteredAccount, AggregatedSimulationResult } from './types';
 import { Timeline } from '../calculate-v3/timeline';
 import { minDate } from '../io/minDate';
-import { calculateAllActivity, getLastPullFailures, getLastFlowAggregator, getLastMortalityManager } from '../calculate-v3/engine';
+import { calculateAllActivity, getLastPullFailures, getLastFlowAggregator, getLastMortalityManager, getLastInheritanceManager, getLastLifeInsuranceManager } from '../calculate-v3/engine';
 import { calculateYearlyMinBalances } from './statisticsGraph';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 import { MonteCarloHandler } from '../calculate-v3/monte-carlo-handler';
@@ -254,6 +254,12 @@ async function runSingleSimulation(
     const mortalityManager = getLastMortalityManager();
     const deathDates = mortalityManager ? mortalityManager.getDeathDates() : undefined;
 
+    // Extract inheritance and life insurance results
+    const inheritanceManager = getLastInheritanceManager();
+    const lifeInsuranceManager = getLastLifeInsuranceManager();
+    const inheritanceResults = inheritanceManager ? inheritanceManager.getResults() : undefined;
+    const lifeInsuranceResults = lifeInsuranceManager ? lifeInsuranceManager.getResults() : undefined;
+
     // Create aggregated result with yearly data and cumulative inflation
     const aggregatedResult: AggregatedSimulationResult = {
       simulationNumber,
@@ -264,6 +270,8 @@ async function runSingleSimulation(
       drawnYears,
       yearlyFlows,
       deathDates,
+      inheritance: inheritanceResults,
+      lifeInsurance: lifeInsuranceResults,
     };
 
     // Write to temporary file - store aggregated data only

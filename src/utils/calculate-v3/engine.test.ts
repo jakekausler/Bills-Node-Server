@@ -35,6 +35,8 @@ vi.mock('./calculator', () => ({
     setMCRateGetter: vi.fn(),
     getRothConversionManager: vi.fn(() => ({})),
     getMortalityManager: vi.fn(() => null),
+    getJobLossManager: vi.fn(() => ({ isUnemployed: vi.fn(() => false) })),
+    setLifeInsuranceManager: vi.fn(),
   })),
 }));
 

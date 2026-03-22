@@ -18,6 +18,9 @@ import { HealthcareManager } from './healthcare-manager';
 import { MedicareManager } from './medicare-manager';
 import { AcaManager } from './aca-manager';
 import { MortalityManager } from './mortality-manager';
+import { InheritanceManager, BenefactorConfig } from './inheritance-manager';
+import { LifeInsuranceManager, LifeInsurancePolicyConfig } from './life-insurance-manager';
+import { ManagerPayout } from './manager-payout';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { loadAllHealthcareConfigs } from '../io/virtualHealthcarePlans';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
@@ -53,6 +56,8 @@ export class Engine {
   private medicareManager: MedicareManager;
   private acaManager: AcaManager;
   private mortalityManager: MortalityManager;
+  private inheritanceManager: InheritanceManager | null = null;
+  private lifeInsuranceManager: LifeInsuranceManager | null = null;
   private calculationBegin: number;
   private monteCarloConfig: MonteCarloConfig | null = null;
   private debugLogger: DebugLogger | null;
@@ -368,6 +373,36 @@ export class Engine {
     // Wire mortality manager into healthcare manager for family→individual coverage transition
     this.healthcareManager.setMortalityManager(this.mortalityManager);
 
+    // Load inheritance config
+    const inheritanceConfigPath = join(process.cwd(), 'data', 'inheritanceConfig.json');
+    let inheritanceConfigs: BenefactorConfig[] = [];
+    try {
+      if (existsSync(inheritanceConfigPath)) {
+        inheritanceConfigs = JSON.parse(readFileSync(inheritanceConfigPath, 'utf-8'));
+      }
+    } catch { /* optional config, skip if missing */ }
+
+    // Load life insurance config
+    const lifeInsuranceConfigPath = join(process.cwd(), 'data', 'lifeInsuranceConfig.json');
+    let lifeInsuranceConfigs: LifeInsurancePolicyConfig[] = [];
+    try {
+      if (existsSync(lifeInsuranceConfigPath)) {
+        lifeInsuranceConfigs = JSON.parse(readFileSync(lifeInsuranceConfigPath, 'utf-8'));
+      }
+    } catch { /* optional config, skip if missing */ }
+
+    // Create InheritanceManager
+    const ssaLifeTable = this.mortalityManager.getSSALifeTable();
+    if (inheritanceConfigs.length > 0 && ssaLifeTable && this.mortalityManager) {
+      this.inheritanceManager = new InheritanceManager(
+        inheritanceConfigs,
+        ssaLifeTable,
+        this.mortalityManager,
+        this.simulation,
+        this.debugLogger,
+      );
+    }
+
     // Initialize spending tracker manager
     if (options.enableLogging) {
       console.log('Initializing spending tracker manager...', Date.now() - this.calculationBegin, 'ms');
@@ -449,6 +484,32 @@ export class Engine {
       this.mortalityManager.setMCRateGetter(mcRateGetter);
       this.medicareManager.setMCRateGetter(mcRateGetter);
       this.retirementManager.setMCRateGetter(mcRateGetter);
+      this.inheritanceManager?.setMCRateGetter(mcRateGetter);
+      this.lifeInsuranceManager?.setMCRateGetter(mcRateGetter);
+    }
+
+    // Create LifeInsuranceManager (after calculator, needs JobLossManager)
+    if (lifeInsuranceConfigs.length > 0) {
+      const jobLossManager = this.calculator.getJobLossManager();
+      this.lifeInsuranceManager = new LifeInsuranceManager(
+        lifeInsuranceConfigs,
+        jobLossManager || { isUnemployed: () => false },
+        this.simulation,
+        this.debugLogger,
+      );
+      // Wire MC rate getter if available
+      if (this.monteCarloConfig) {
+        const mcRateGetter: MCRateGetter = (type: MonteCarloSampleType, year: number): number | null => {
+          if (!this.monteCarloConfig?.handler) return null;
+          return this.monteCarloConfig.handler.getSample(type, new Date(Date.UTC(year, 0, 1)));
+        };
+        this.lifeInsuranceManager.setMCRateGetter(mcRateGetter);
+      }
+    }
+
+    // Pass life insurance manager to calculator
+    if (this.lifeInsuranceManager) {
+      this.calculator.setLifeInsuranceManager(this.lifeInsuranceManager);
     }
 
     // Initialize push-pull handler
@@ -559,6 +620,15 @@ export class Engine {
 
         // Year-boundary hook for under-65 mortality evaluation (MC mode only)
         this.evaluateAnnualMortalityAtYearBoundary(segmentYear);
+
+        // Update life insurance coverage (salary growth, max inflation, employment gating)
+        this.evaluateLifeInsuranceAtYearBoundary(segmentYear, accountsAndTransfers);
+
+        // Evaluate inheritance drawdown and trigger checks
+        this.evaluateInheritanceAtYearBoundary(segmentYear);
+
+        // Flush buffered payouts to calculator for injection during segment processing
+        this.flushPendingPayoutsToCalculator();
 
         lastYear = segmentYear;
       }
@@ -693,7 +763,61 @@ export class Engine {
       // Evaluate annual mortality check
       const yearBoundaryDate = new Date(Date.UTC(year, 0, 1));
       this.log('mortality-eval-person', { person, age, gender });
+      const wasDeceased = mortalityManager.isDeceased(person);
       mortalityManager.evaluateAnnualMortality(person, age, gender, yearBoundaryDate, prng);
+      if (!wasDeceased && mortalityManager.isDeceased(person)) {
+        const deathDate = mortalityManager.getDeathDate(person);
+        if (deathDate) {
+          this.lifeInsuranceManager?.evaluateDeath(person, deathDate);
+        }
+      }
+    }
+  }
+
+  private evaluateInheritanceAtYearBoundary(year: number): void {
+    if (!this.inheritanceManager) return;
+    const prng = this.monteCarloConfig?.handler?.getPRNG() ?? undefined;
+    this.inheritanceManager.evaluateYear(year, prng || undefined);
+  }
+
+  private evaluateLifeInsuranceAtYearBoundary(year: number, accountsAndTransfers: AccountsAndTransfers): void {
+    if (!this.lifeInsuranceManager) return;
+
+    const currentSalaries = new Map<string, number>();
+    const retirementDates = new Map<string, Date>();
+    for (const account of accountsAndTransfers.accounts) {
+      for (const bill of account.bills) {
+        if (!bill.paycheckProfile) continue;
+        // Derive periodsPerYear from bill frequency
+        let periodsPerYear = 1;
+        switch (bill.periods) {
+          case 'day': periodsPerYear = 365 / bill.everyN; break;
+          case 'week': periodsPerYear = 52 / bill.everyN; break;
+          case 'month': periodsPerYear = 12 / bill.everyN; break;
+          case 'year': periodsPerYear = 1 / bill.everyN; break;
+        }
+        const annualGross = bill.paycheckProfile.grossPay * periodsPerYear;
+        currentSalaries.set(bill.name, annualGross);
+        if (bill.endDate) {
+          const endDate = bill.endDate instanceof Date ? bill.endDate : new Date(bill.endDate);
+          retirementDates.set(bill.name, endDate);
+        }
+      }
+    }
+
+    this.lifeInsuranceManager.evaluateYear(year, currentSalaries, retirementDates);
+  }
+
+  private flushPendingPayoutsToCalculator(): void {
+    if (!this.calculator) return;
+
+    const payouts: ManagerPayout[] = [
+      ...(this.inheritanceManager?.getPayoutActivities() ?? []),
+      ...(this.lifeInsuranceManager?.getPayoutActivities() ?? []),
+    ];
+
+    if (payouts.length > 0) {
+      this.calculator.setPendingPayouts(payouts);
     }
   }
 
@@ -716,6 +840,20 @@ export class Engine {
    */
   getMortalityManager(): MortalityManager {
     return this.mortalityManager;
+  }
+
+  /**
+   * Get the InheritanceManager instance (for MC worker to extract inheritance results)
+   */
+  getInheritanceManager(): InheritanceManager | null {
+    return this.inheritanceManager;
+  }
+
+  /**
+   * Get the LifeInsuranceManager instance (for MC worker to extract life insurance results)
+   */
+  getLifeInsuranceManager(): LifeInsuranceManager | null {
+    return this.lifeInsuranceManager;
   }
 }
 
@@ -776,4 +914,18 @@ export function getLastFlowAggregator(): FlowAggregator | null {
  */
 export function getLastMortalityManager(): MortalityManager | null {
   return lastEngine ? lastEngine.getMortalityManager() : null;
+}
+
+/**
+ * Get the InheritanceManager from the last calculation (for MC worker to extract inheritance results)
+ */
+export function getLastInheritanceManager(): InheritanceManager | null {
+  return lastEngine ? lastEngine.getInheritanceManager() : null;
+}
+
+/**
+ * Get the LifeInsuranceManager from the last calculation (for MC worker to extract life insurance results)
+ */
+export function getLastLifeInsuranceManager(): LifeInsuranceManager | null {
+  return lastEngine ? lastEngine.getLifeInsuranceManager() : null;
 }

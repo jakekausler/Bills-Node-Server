@@ -73,6 +73,19 @@ export interface AggregatedSimulationResult {
   drawnYears?: number[]; // Historical years drawn by MC handler for deterministic verification
   yearlyFlows?: Record<string, YearlyFlowSummary>; // Flow aggregation data per year (income, expenses, transfers, etc.)
   deathDates?: Record<string, string | null>; // person → ISO date string or null if alive at end of simulation
+  inheritance?: Array<{
+    benefactorId: string;
+    parentDeathDates: Record<string, string | null>;
+    inheritancePaidDate: string | null;
+    inheritanceAmount: number;
+    blocked: boolean;
+  }>;
+  lifeInsurance?: Array<{
+    policyId: string;
+    payoutDate: string | null;
+    payoutAmount: number;
+    coverageActiveAtDeath: boolean;
+  }>;
 }
 
 export type WorkerMessage =
