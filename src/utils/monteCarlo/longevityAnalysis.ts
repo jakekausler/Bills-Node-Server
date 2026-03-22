@@ -33,18 +33,24 @@ function wasAliveAtAge(
   deathDateStr: string | null,
   age: number,
   simulationStartYear: number,
+  simulationEndYear: number,
   birthYear: number,
 ): boolean {
   // Year when person reached this age
   const yearAtAge = birthYear + age;
 
-  // If no death date, assume alive at all ages before simulation end
-  if (!deathDateStr) {
-    // Person alive at end of sim — assume alive through simulation end
-    return yearAtAge < simulationStartYear + 100; // Rough estimate
+  // If year at age is after simulation end, person never reached that age in this sim
+  if (yearAtAge > simulationEndYear) {
+    return false;
   }
 
-  // Person has a death date
+  // If no death date, person survived the simulation and was alive at this age
+  if (!deathDateStr) {
+    // Person alive at end of sim, and reached this age within sim timeframe
+    return yearAtAge <= simulationEndYear;
+  }
+
+  // Person has a death date — check if they reached this age before death
   const deathYear = parseInt(deathDateStr.substring(0, 4), 10);
 
   // Alive at age if: year at age is before death year
@@ -72,9 +78,11 @@ export async function computeLongevityAnalysis(simulationId: string): Promise<Lo
       throw new Error('No simulation data found');
     }
 
-    // Get simulation start year from metadata
+    // Get simulation start and end years from metadata
     const startDate = new Date(metadata.startDate || new Date());
+    const endDate = new Date(metadata.endDate || new Date());
     const simStartYear = startDate.getUTCFullYear();
+    const simEndYear = endDate.getUTCFullYear();
 
     // Infer birth years from persons in death dates
     const birthYears: Map<string, number> = new Map();
@@ -112,7 +120,7 @@ export async function computeLongevityAnalysis(simulationId: string): Promise<Lo
         // Check if any person was alive at this age
         for (const [person, deathDateStr] of Object.entries(deathDates)) {
           const birthYear = birthYears.get(person) || (simStartYear - 65);
-          if (wasAliveAtAge(deathDateStr as string | null, age, simStartYear, birthYear)) {
+          if (wasAliveAtAge(deathDateStr as string | null, age, simStartYear, simEndYear, birthYear)) {
             hasAnyoneSurviving = true;
             break;
           }
@@ -128,8 +136,8 @@ export async function computeLongevityAnalysis(simulationId: string): Promise<Lo
         }
       }
 
-      const survivalProbability = simsWithSurvivor > 0 ? (simsWithSurvivor / results.length) * 100 : 0;
-      const fundedRatio = simsWithSurvivor > 0 ? (survivingSimsNotFailed / simsWithSurvivor) * 100 : 0;
+      const survivalProbability = simsWithSurvivor > 0 ? simsWithSurvivor / results.length : 0;
+      const fundedRatio = simsWithSurvivor > 0 ? survivingSimsNotFailed / simsWithSurvivor : 0;
 
       longevityData.push({
         age,

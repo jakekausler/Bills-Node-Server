@@ -810,12 +810,24 @@ export class MortalityManager {
       survivorBenefitsObj[person] = benefit;
     }
 
+    const deathCobraMonthsElapsedObj: Record<string, number> = {};
+    for (const [person, months] of this.deathCobraMonthsElapsed) {
+      deathCobraMonthsElapsedObj[person] = months;
+    }
+
+    const lastDeathCobraMonthObj: Record<string, number | null> = {};
+    for (const [person, month] of this.lastDeathCobraMonth) {
+      lastDeathCobraMonthObj[person] = month;
+    }
+
     this.checkpointData = JSON.stringify({
       personStates: personStatesObj,
       deathDates: deathDatesObj,
       personNameMapping: nameMapObj,
       costFactors: costFactorsObj,
       lockedSurvivorBenefits: survivorBenefitsObj,
+      deathCobraMonthsElapsed: deathCobraMonthsElapsedObj,
+      lastDeathCobraMonth: lastDeathCobraMonthObj,
     });
   }
 
@@ -833,6 +845,8 @@ export class MortalityManager {
         personNameMapping: Record<string, string>;
         costFactors: Record<string, number>;
         lockedSurvivorBenefits?: Record<string, number>;
+        deathCobraMonthsElapsed?: Record<string, number>;
+        lastDeathCobraMonth?: Record<string, number | null>;
       };
 
       // Restore person states
@@ -866,6 +880,22 @@ export class MortalityManager {
           this.lockedSurvivorBenefits.set(person, benefit);
         }
       }
+
+      // Restore death COBRA months elapsed
+      this.deathCobraMonthsElapsed.clear();
+      if (data.deathCobraMonthsElapsed) {
+        for (const [person, months] of Object.entries(data.deathCobraMonthsElapsed)) {
+          this.deathCobraMonthsElapsed.set(person, months);
+        }
+      }
+
+      // Restore last death COBRA month
+      this.lastDeathCobraMonth.clear();
+      if (data.lastDeathCobraMonth) {
+        for (const [person, month] of Object.entries(data.lastDeathCobraMonth)) {
+          this.lastDeathCobraMonth.set(person, month);
+        }
+      }
     } catch (e) {
       this.log('checkpoint-restore-failed', { error: String(e) });
     }
@@ -879,6 +909,8 @@ export class MortalityManager {
     this.costFactors.clear();
     this.deathDates.clear();
     this.lockedSurvivorBenefits.clear();
+    this.deathCobraMonthsElapsed.clear();
+    this.lastDeathCobraMonth.clear();
     // Do NOT clear personNameMapping — it's configuration, not per-simulation state
   }
 
