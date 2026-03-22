@@ -540,8 +540,8 @@ export class MortalityManager {
   /**
    * Get the SSA life table data (for use by other managers, e.g. InheritanceManager)
    */
-  getSSALifeTable(): Record<string, Record<string, number>> {
-    return this.ssaLifeTable as Record<string, Record<string, number>>;
+  getSSALifeTable(): Record<string, Record<string, number>> | null {
+    return this.ssaLifeTable;
   }
 
   /**
