@@ -4,6 +4,7 @@ import type { DebugLogger } from './debug-logger';
 import type { MCRateGetter } from './types';
 import { MonteCarloSampleType } from './types';
 import { compoundMCInflation } from './mc-utils';
+import { getAnnualDeathProbability } from './ssa-mortality';
 
 // ===== Type Definitions =====
 
@@ -262,8 +263,7 @@ export class MortalityManager {
   getMonthlyDeathProbability(age: number, gender: 'male' | 'female', ltcState: LTCState): number {
     if (!this.ssaLifeTable) return 0;
 
-    const ageKey = Math.min(Math.floor(age), 119).toString();
-    const annualQ = this.ssaLifeTable[gender]?.[ageKey] ?? 0;
+    const annualQ = getAnnualDeathProbability(age, gender, this.ssaLifeTable);
     const monthlyBaseline = 1 - Math.pow(1 - annualQ, 1 / 12);
 
     if (ltcState === 'healthy') {
@@ -538,6 +538,13 @@ export class MortalityManager {
   }
 
   /**
+   * Get the SSA life table data (for use by other managers, e.g. InheritanceManager)
+   */
+  getSSALifeTable(): Record<string, Record<string, number>> {
+    return this.ssaLifeTable as Record<string, Record<string, number>>;
+  }
+
+  /**
    * Get all configs
    */
   getAllConfigs(): LTCConfig[] {
@@ -767,8 +774,7 @@ export class MortalityManager {
       return;
     }
 
-    const ageKey = Math.min(Math.floor(age), 119).toString();
-    const annualQ = this.ssaLifeTable[gender]?.[ageKey] ?? 0;
+    const annualQ = getAnnualDeathProbability(age, gender, this.ssaLifeTable);
     const roll = random();
 
     this.log('annual-mortality-roll', { person, age, gender, annualQ, roll, willDie: roll < annualQ });
