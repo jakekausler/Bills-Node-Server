@@ -13,7 +13,7 @@
       "maxCoverageInflationVariable": "INFLATION"
     },
     "employmentTied": true,
-    "linkedPaycheckBillName": "Jake Paycheck",
+    "linkedPaycheckBillName": "Nearpod",
     "enabled": true
   },
   {
@@ -30,7 +30,7 @@
       "maxCoverageInflationVariable": "INFLATION"
     },
     "employmentTied": true,
-    "linkedPaycheckBillName": "Jake Paycheck",
+    "linkedPaycheckBillName": "Nearpod",
     "enabled": true
   },
   {
@@ -47,7 +47,7 @@
       "maxCoverageInflationVariable": "INFLATION"
     },
     "employmentTied": true,
-    "linkedPaycheckBillName": "Jake Paycheck",
+    "linkedPaycheckBillName": "Nearpod",
     "enabled": true
   },
   {
@@ -65,7 +65,7 @@
       "cappedByPolicyId": "jake-supplemental-life"
     },
     "employmentTied": true,
-    "linkedPaycheckBillName": "Jake Paycheck",
+    "linkedPaycheckBillName": "Nearpod",
     "enabled": true
   }
 ]
