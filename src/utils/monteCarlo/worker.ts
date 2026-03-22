@@ -234,6 +234,7 @@ async function runSingleSimulation(
     const inflationHandler = await MonteCarloHandler.getInstance(startDate, endDate, seed);
     const drawnYears = inflationHandler.getDrawnYears();
     const inflationByYear = inflationHandler.getInflationByYear();
+    const yearlyPortfolioReturns = inflationHandler.getPortfolioReturnByYear();
 
     const startYear = startDate.getUTCFullYear();
     const endYear = endDate.getUTCFullYear();
@@ -270,6 +271,7 @@ async function runSingleSimulation(
       drawnYears,
       yearlyFlows,
       deathDates,
+      yearlyPortfolioReturns,
       inheritance: inheritanceResults,
       lifeInsurance: lifeInsuranceResults,
     };

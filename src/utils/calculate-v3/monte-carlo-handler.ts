@@ -219,6 +219,26 @@ export class MonteCarloHandler {
     return result;
   }
 
+  /**
+   * Extract portfolio return rates per year from stored segment samples
+   * Returns a map of year → portfolio return rate (as decimal, e.g., 0.07 for 7%)
+   */
+  public getPortfolioReturnByYear(): Record<number, number> {
+    const result: Record<number, number> = {};
+
+    for (const [key, samples] of Object.entries(this.segmentSamples)) {
+      const [yearStr, monthStr] = key.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+
+      if (month === 1 && !result[year]) {
+        result[year] = samples[MonteCarloSampleType.PORTFOLIO] ?? 0;
+      }
+    }
+
+    return result;
+  }
+
   private calculateProxyReturn(proxyDef: ProxyDefinition | undefined, stockReturn: number, bondReturn: number): number {
     if (!proxyDef) {
       return 0;

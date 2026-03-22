@@ -80,6 +80,7 @@ export interface AggregatedSimulationResult {
     inheritanceAmount: number;
     blocked: boolean;
   }>;
+  yearlyPortfolioReturns?: Record<number, number>;
   lifeInsurance?: Array<{
     policyId: string;
     payoutDate: string | null;
