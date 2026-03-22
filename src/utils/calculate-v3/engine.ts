@@ -410,6 +410,7 @@ export class Engine {
         this.mortalityManager,
         this.simulation,
         this.debugLogger,
+        this.simNumber,
       );
     }
 
@@ -505,6 +506,7 @@ export class Engine {
         jobLossManager || { isUnemployed: () => false },
         this.simulation,
         this.debugLogger,
+        this.simNumber,
       );
       // Wire MC rate getter separately — lifeInsuranceManager is created after the
       // initial batch of setMCRateGetter calls because it depends on JobLossManager.
@@ -628,11 +630,12 @@ export class Engine {
         // Year-boundary hook for job loss evaluation (MC mode only)
         this.evaluateJobLossAtYearBoundary(segmentYear, accountsAndTransfers);
 
+        // Update life insurance coverage BEFORE mortality — evaluateDeath needs
+        // currentCoverageAmount to be populated so payouts are non-zero.
+        this.evaluateLifeInsuranceAtYearBoundary(segmentYear, accountsAndTransfers);
+
         // Year-boundary hook for under-65 mortality evaluation (MC mode only)
         this.evaluateAnnualMortalityAtYearBoundary(segmentYear);
-
-        // Update life insurance coverage (salary growth, max inflation, employment gating)
-        this.evaluateLifeInsuranceAtYearBoundary(segmentYear, accountsAndTransfers);
 
         // Evaluate inheritance drawdown and trigger checks
         this.evaluateInheritanceAtYearBoundary(segmentYear);

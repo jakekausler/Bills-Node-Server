@@ -66,6 +66,7 @@ export class LifeInsuranceManager {
   private jobLossManager: EmploymentGate;
   private simulation: string;
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
   private mcRateGetter: MCRateGetter | null = null;
   private payoutBuffer: ManagerPayout[] = [];
 
@@ -74,10 +75,12 @@ export class LifeInsuranceManager {
     jobLossManager: EmploymentGate,
     simulation: string,
     debugLogger?: DebugLogger | null,
+    simNumber: number = 0,
   ) {
     this.jobLossManager = jobLossManager;
     this.simulation = simulation;
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
 
     for (const config of configs) {
       this.states.set(config.id, this.createInitialState(config));
@@ -273,7 +276,7 @@ export class LifeInsuranceManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'life-insurance', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'life-insurance', event, ...data });
   }
 
   private evaluatePolicy(
@@ -311,6 +314,14 @@ export class LifeInsuranceManager {
     }
 
     state.currentCoverageAmount = coverageAmount;
+
+    this.log('coverage-updated', {
+      policy: config.name,
+      year,
+      formula: config.coverage.formula,
+      coverageAmount,
+      maxCoverage: state.currentMaxCoverage,
+    });
 
     // Step 3: Employment gating
     if (config.employmentTied) {

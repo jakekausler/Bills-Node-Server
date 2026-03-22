@@ -61,6 +61,7 @@ export class InheritanceManager {
   private mortalityManager: MortalityGate;
   private simulation: string;
   private debugLogger: DebugLogger | null;
+  private simNumber: number;
   private mcRateGetter: MCRateGetter | null = null;
   private payoutBuffer: ManagerPayout[] = [];
 
@@ -70,11 +71,13 @@ export class InheritanceManager {
     mortalityManager: MortalityGate,
     simulation: string,
     debugLogger?: DebugLogger | null,
+    simNumber: number = 0,
   ) {
     this.ssaLifeTable = ssaLifeTable;
     this.mortalityManager = mortalityManager;
     this.simulation = simulation;
     this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
 
     for (const config of configs) {
       this.states.set(config.id, this.createInitialState(config));
@@ -206,7 +209,7 @@ export class InheritanceManager {
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
-    this.debugLogger.log(0, { component: 'inheritance', event, ...data });
+    this.debugLogger.log(this.simNumber, { component: 'inheritance', event, ...data });
   }
 
   private evaluateBenefactor(state: BenefactorState, year: number, prng?: () => number): void {
