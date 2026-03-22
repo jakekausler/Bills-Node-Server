@@ -34,6 +34,7 @@ export interface LifeInsurancePolicyConfig {
   };
   employmentTied: boolean;
   linkedPaycheckBillName?: string;
+  employmentPerson?: string;
   enabled: boolean;
 }
 
@@ -343,9 +344,11 @@ export class LifeInsuranceManager {
         return;
       }
 
-      // Check unemployment (temporary)
+      // Check unemployment (temporary) — use employmentPerson if set,
+      // so spouse policies gate on the employee's job status, not the insured's.
+      const employmentPerson = config.employmentPerson ?? config.insuredPerson;
       const evalDate = new Date(Date.UTC(year, 0, 1));
-      if (this.jobLossManager.isUnemployed(config.insuredPerson, evalDate)) {
+      if (this.jobLossManager.isUnemployed(employmentPerson, evalDate)) {
         state.coverageActive = false;
         this.log('coverage-deactivated-unemployed', { policy: config.name, year });
       } else {

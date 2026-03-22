@@ -343,6 +343,84 @@ describe('LifeInsuranceManager', () => {
     expect(payouts).toHaveLength(0);
   });
 
+  // ----- Test 9b: Spouse policy uses employmentPerson for unemployment gating -----
+  it('deactivates spouse policy when employmentPerson (not insuredPerson) loses job', () => {
+    const jakeUnemployed = vi.fn(
+      (person: string, _date: Date) => person === 'Jake',
+    );
+    const employerGate = makeEmploymentGate({ isUnemployed: jakeUnemployed });
+
+    // Spouse policy: insuredPerson=Kendall, but employmentPerson=Jake
+    const spousePolicy = makeConfig({
+      id: 'spouse-basic',
+      name: 'Spouse Basic Life',
+      insuredPerson: 'Kendall',
+      beneficiary: 'Jake',
+      employmentPerson: 'Jake',
+      coverage: {
+        formula: 'fixed',
+        fixedAmount: 25_000,
+        maxCoverage: 50_000,
+        maxCoverageInflationVariable: 'INFLATION',
+      },
+      employmentTied: true,
+      linkedPaycheckBillName: 'Paycheck - Jake',
+    });
+
+    const mgr = new LifeInsuranceManager([spousePolicy], employerGate, 'test-sim');
+    const salaries = makeSalaries([['Paycheck - Jake', 100_000]]);
+    const retDates = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2060, 0, 1))]]);
+
+    mgr.evaluateYear(2025, salaries, retDates);
+
+    // Kendall dies — but Jake is unemployed, so spouse policy is inactive → no payout
+    mgr.evaluateDeath('Kendall', new Date(Date.UTC(2025, 5, 15)));
+
+    const payouts = mgr.getPayoutActivities();
+    expect(payouts).toHaveLength(0);
+
+    // Verify unemployment was checked for Jake, not Kendall
+    expect(jakeUnemployed).toHaveBeenCalledWith('Jake', expect.any(Date));
+  });
+
+  // ----- Test 9c: Spouse policy without employmentPerson falls back to insuredPerson -----
+  it('falls back to insuredPerson for unemployment check when employmentPerson is not set', () => {
+    const kendallUnemployed = vi.fn(
+      (person: string, _date: Date) => person === 'Kendall',
+    );
+    const employerGate = makeEmploymentGate({ isUnemployed: kendallUnemployed });
+
+    // No employmentPerson set — should fall back to insuredPerson (Kendall)
+    const spousePolicy = makeConfig({
+      id: 'spouse-no-emp',
+      name: 'Spouse Life (no employmentPerson)',
+      insuredPerson: 'Kendall',
+      beneficiary: 'Jake',
+      coverage: {
+        formula: 'fixed',
+        fixedAmount: 10_000,
+        maxCoverage: 50_000,
+        maxCoverageInflationVariable: 'INFLATION',
+      },
+      employmentTied: true,
+      linkedPaycheckBillName: 'Paycheck - Kendall',
+    });
+
+    const mgr = new LifeInsuranceManager([spousePolicy], employerGate, 'test-sim');
+    const salaries = makeSalaries([['Paycheck - Kendall', 50_000]]);
+    const retDates = makeRetirementDates([['Paycheck - Kendall', new Date(Date.UTC(2060, 0, 1))]]);
+
+    mgr.evaluateYear(2025, salaries, retDates);
+
+    // Kendall is unemployed → coverage inactive
+    mgr.evaluateDeath('Kendall', new Date(Date.UTC(2025, 5, 15)));
+
+    const payouts = mgr.getPayoutActivities();
+    expect(payouts).toHaveLength(0);
+
+    expect(kendallUnemployed).toHaveBeenCalledWith('Kendall', expect.any(Date));
+  });
+
   // ----- Test 10: Checkpoint/restore round-trip preserves state -----
   it('checkpoint/restore round-trip preserves all state', () => {
     // Use high multiplier so coverage is capped by maxCoverage (which inflates)
