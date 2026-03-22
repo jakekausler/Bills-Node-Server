@@ -14,6 +14,7 @@ describe('createPayoutActivity', () => {
     expect(activity.amount).toBe(100000);
     expect(activity.name).toBe('Test Payout');
     expect(activity.category).toBe('Income.Test');
+    expect(activity.date).toEqual(new Date('2050-01-01T12:00:00.000Z'));
     expect(activity.isTransfer).toBe(false);
   });
 
@@ -44,5 +45,7 @@ describe('createPayoutActivity', () => {
     expect(activity.interestId).toBeNull();
     expect(activity.firstInterest).toBe(false);
     expect(activity.balance).toBe(0);
+    expect(activity.flag).toBe(false);
+    expect(activity.flagColor).toBeNull();
   });
 });
