@@ -306,9 +306,12 @@ export class LifeInsuranceManager {
     coverageAmount = Math.min(coverageAmount, state.currentMaxCoverage);
 
     // Cap by referenced policy if cappedByPolicyId is set
+    // Only apply cap if the reference policy is still active — if the reference
+    // policy is inactive (retired/job loss), the cap does not apply so the
+    // capped policy uses its own fixedAmount or max.
     if (config.coverage.cappedByPolicyId) {
       const refState = this.states.get(config.coverage.cappedByPolicyId);
-      if (refState) {
+      if (refState && refState.coverageActive) {
         coverageAmount = Math.min(coverageAmount, refState.currentCoverageAmount);
       }
     }

@@ -139,6 +139,54 @@ describe('LifeInsuranceManager', () => {
     expect(mgr.getCurrentCoverage('policy-capped')).toBe(100_000);
   });
 
+  // ----- Test 3b: cappedByPolicyId skipped when reference policy is inactive (retired) -----
+  it('does not apply cappedByPolicyId cap when reference policy is inactive', () => {
+    const basePolicy = makeConfig({
+      id: 'policy-base',
+      name: 'Jake Supplemental Life',
+      insuredPerson: 'Jake',
+      coverage: {
+        formula: 'multiplier',
+        multiplier: 1,
+        maxCoverage: 200_000,
+        maxCoverageInflationVariable: 'INFLATION',
+      },
+      employmentTied: true,
+      linkedPaycheckBillName: 'Paycheck - Jake',
+    });
+
+    const cappedPolicy = makeConfig({
+      id: 'policy-capped',
+      name: 'Spouse Supplemental Life',
+      insuredPerson: 'Kendall',
+      coverage: {
+        formula: 'fixed',
+        fixedAmount: 150_000,
+        maxCoverage: 500_000,
+        maxCoverageInflationVariable: 'INFLATION',
+        cappedByPolicyId: 'policy-base',
+      },
+      employmentTied: false,
+    });
+
+    const mgr = new LifeInsuranceManager([cappedPolicy, basePolicy], gate, 'test-sim');
+    const salaries = makeSalaries([['Paycheck - Jake', 100_000]]);
+
+    // Year 1: Jake is employed — base coverage = 100k, capped policy capped at 100k
+    const retDatesActive = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2060, 0, 1))]]);
+    mgr.evaluateYear(2025, salaries, retDatesActive);
+    expect(mgr.getCurrentCoverage('policy-base')).toBe(100_000);
+    expect(mgr.getCurrentCoverage('policy-capped')).toBe(100_000); // capped
+
+    // Year 2: Jake retires — base policy goes inactive, cap should NOT apply
+    const retDatesRetired = makeRetirementDates([['Paycheck - Jake', new Date(Date.UTC(2025, 0, 1))]]);
+    mgr.evaluateYear(2026, salaries, retDatesRetired);
+
+    // Base policy: retired → inactive, coverage amount still calculated but policy inactive
+    // Capped policy: reference is inactive → cap skipped → uses own fixedAmount (150k)
+    expect(mgr.getCurrentCoverage('policy-capped')).toBe(150_000);
+  });
+
   // ----- Test 4: Max coverage inflates year over year -----
   it('inflates maxCoverage year over year via MC rate getter', () => {
     const config = makeConfig({
