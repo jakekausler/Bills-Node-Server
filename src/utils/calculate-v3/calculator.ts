@@ -1529,6 +1529,40 @@ export class Calculator {
       return new Map();
     }
 
+    // Portfolio delegation — track fund-level positions for portfolio-mode accounts
+    if (this.portfolioManager) {
+      const dateString = formatDate(event.date);
+
+      // Withdrawal from source account
+      const sourceMode = this.portfolioManager.getAccountMode(fromAccountId);
+      if (sourceMode === 'estimated' || sourceMode === 'fund-level') {
+        const { sellResults } = this.portfolioManager.executeWithdrawal(
+          fromAccountId, internalAmount, dateString,
+        );
+        this.log('portfolio-withdrawal', {
+          accountId: fromAccountId,
+          amount: internalAmount,
+          sellCount: sellResults.length,
+          totalGain: sellResults.reduce((sum, r) => sum + r.shortTermGain + r.longTermGain, 0),
+        });
+      }
+
+      // Deposit into destination account
+      const destMode = this.portfolioManager.getAccountMode(toAccountId);
+      if (destMode === 'estimated' || destMode === 'fund-level') {
+        const isAutoTransfer = original.id?.startsWith('AUTO-PULL_') || original.id?.startsWith('AUTO-PUSH_');
+        const source: 'transfer' | 'contribution' = isAutoTransfer ? 'transfer' : 'contribution';
+        const transactions = this.portfolioManager.executeDeposit(
+          toAccountId, internalAmount, dateString, source,
+        );
+        this.log('portfolio-deposit', {
+          accountId: toAccountId,
+          amount: internalAmount,
+          buyCount: transactions.length,
+        });
+      }
+    }
+
     const isBill = original instanceof Bill;
     const fromActivity = new ConsolidatedActivity(
       isBill
