@@ -87,6 +87,12 @@ export interface AggregatedSimulationResult {
     payoutAmount: number;
     coverageActiveAtDeath: boolean;
   }>;
+  portfolioPositions?: Record<string, Array<{
+    symbol: string;
+    shares: number;
+    value: number;
+    simulatedPrice: number;
+  }>>;
 }
 
 export type WorkerMessage =

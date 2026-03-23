@@ -5,7 +5,7 @@ import { getAccountsAndTransfers } from '../io/accountsAndTransfers';
 import { WorkerData, WorkerMessage, FilteredActivity, FilteredAccount, AggregatedSimulationResult } from './types';
 import { Timeline } from '../calculate-v3/timeline';
 import { minDate } from '../io/minDate';
-import { calculateAllActivity, getLastPullFailures, getLastFlowAggregator, getLastMortalityManager, getLastInheritanceManager, getLastLifeInsuranceManager } from '../calculate-v3/engine';
+import { calculateAllActivity, getLastPullFailures, getLastFlowAggregator, getLastMortalityManager, getLastInheritanceManager, getLastLifeInsuranceManager, getLastPortfolioManager } from '../calculate-v3/engine';
 import { calculateYearlyMinBalances } from './statisticsGraph';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 import { MonteCarloHandler } from '../calculate-v3/monte-carlo-handler';
@@ -261,6 +261,22 @@ async function runSingleSimulation(
     const inheritanceResults = inheritanceManager ? inheritanceManager.getResults() : undefined;
     const lifeInsuranceResults = lifeInsuranceManager ? lifeInsuranceManager.getResults() : undefined;
 
+    // Extract portfolio positions from PortfolioManager
+    const portfolioManager = getLastPortfolioManager();
+    const portfolioPositions = portfolioManager
+      ? Object.fromEntries(
+          Object.entries(portfolioManager.getAllPositions()).map(([accId, positions]) => [
+            accId,
+            positions.map(p => ({
+              symbol: p.symbol,
+              shares: p.shares,
+              value: p.value,
+              simulatedPrice: p.currentPrice,
+            })),
+          ])
+        )
+      : undefined;
+
     // Create aggregated result with yearly data and cumulative inflation
     const aggregatedResult: AggregatedSimulationResult = {
       simulationNumber,
@@ -274,6 +290,7 @@ async function runSingleSimulation(
       yearlyPortfolioReturns,
       inheritance: inheritanceResults,
       lifeInsurance: lifeInsuranceResults,
+      portfolioPositions,
     };
 
     // Write to temporary file - store aggregated data only
