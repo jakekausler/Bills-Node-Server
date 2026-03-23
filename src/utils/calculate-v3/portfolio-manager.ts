@@ -763,6 +763,118 @@ export class PortfolioManager {
     return { transactions: allTransactions, sellResults: allSellResults };
   }
 
+  // ---- Roth Conversion Support ----
+
+  /**
+   * Execute a Roth conversion: sell from Traditional (source), buy into Roth (dest).
+   * The sell side uses executeWithdrawal; the buy side uses executeDeposit with source 'conversion'.
+   */
+  executeRothConversion(
+    sourceAccountId: string,
+    destAccountId: string,
+    amount: number,
+    date: string,
+  ): { sellResults: SellResult[]; buyTransactions: PortfolioTransaction[] } {
+    // Sell from Traditional account
+    const { sellResults } = this.executeWithdrawal(sourceAccountId, amount, date);
+
+    // Buy into Roth account with source 'conversion'
+    const buyTransactions = this.executeDeposit(destAccountId, amount, date, 'conversion');
+
+    this.log('roth-conversion-executed', {
+      sourceAccountId,
+      destAccountId,
+      amount,
+      date,
+      sellCount: sellResults.length,
+      buyCount: buyTransactions.length,
+    });
+
+    return { sellResults, buyTransactions };
+  }
+
+  /**
+   * Get total contribution basis in a Roth account.
+   * Sum of current value of lots with source: 'contribution'.
+   */
+  getRothContributionBasis(accountId: string): number {
+    const state = this.states.get(accountId);
+    if (!state) return 0;
+
+    let total = 0;
+    for (const lot of state.lots) {
+      if (lot.source === 'contribution' && lot.shares > 0) {
+        total += lot.shares * lot.costBasisPerShare;
+      }
+    }
+    return total;
+  }
+
+  /**
+   * Get all conversion lots for a Roth account, sorted by purchaseDate (FIFO).
+   */
+  getRothConversionLots(accountId: string): Lot[] {
+    const state = this.states.get(accountId);
+    if (!state) return [];
+
+    return state.lots
+      .filter((l) => l.source === 'conversion' && l.shares > 0)
+      .sort((a, b) => a.purchaseDate.localeCompare(b.purchaseDate));
+  }
+
+  /**
+   * Get penalty-free balance from a Roth account.
+   * Contributions are always penalty-free.
+   * Conversions are penalty-free after 5 years from conversion date.
+   */
+  getRothPenaltyFreeBalance(accountId: string, currentDate: string): number {
+    const state = this.states.get(accountId);
+    if (!state) return 0;
+
+    let total = 0;
+    const now = dayjs(currentDate);
+
+    for (const lot of state.lots) {
+      if (lot.shares <= 0) continue;
+      const lotValue = lot.shares * lot.costBasisPerShare;
+
+      if (lot.source === 'contribution') {
+        // Contributions are always penalty-free
+        total += lotValue;
+      } else if (lot.source === 'conversion') {
+        // Conversions are penalty-free after 5 years
+        const yearsSinceConversion = now.diff(dayjs(lot.purchaseDate), 'year', true);
+        if (yearsSinceConversion >= 5) {
+          total += lotValue;
+        }
+      }
+    }
+    return total;
+  }
+
+  /**
+   * Get penaltyable balance from a Roth account.
+   * Conversions within the 5-year rule are subject to penalty.
+   */
+  getRothPenaltyableBalance(accountId: string, currentDate: string): number {
+    const state = this.states.get(accountId);
+    if (!state) return 0;
+
+    let total = 0;
+    const now = dayjs(currentDate);
+
+    for (const lot of state.lots) {
+      if (lot.shares <= 0) continue;
+      if (lot.source === 'conversion') {
+        const yearsSinceConversion = now.diff(dayjs(lot.purchaseDate), 'year', true);
+        if (yearsSinceConversion < 5) {
+          total += lot.shares * lot.costBasisPerShare;
+        }
+      }
+    }
+    return total;
+  }
+
   // ---- Private helpers ----
 
   /**

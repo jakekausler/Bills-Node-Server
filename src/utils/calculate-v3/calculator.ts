@@ -206,6 +206,8 @@ export class Calculator {
    */
   setPortfolioManager(manager: PortfolioManager | null): void {
     this.portfolioManager = manager;
+    // Also wire PortfolioManager to RothConversionManager for ledger delegation
+    this.rothConversionManager.setPortfolioManager(manager);
   }
 
   /**

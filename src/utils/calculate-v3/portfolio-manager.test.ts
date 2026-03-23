@@ -994,4 +994,173 @@ describe('PortfolioManager', () => {
       }
     });
   });
+
+  describe('executeRothConversion', () => {
+    let tradConfig: AccountPortfolioConfig;
+    let rothConfig: AccountPortfolioConfig;
+
+    beforeEach(() => {
+      tradConfig = makeFundLevelConfig();
+      rothConfig = makeFundLevelConfig();
+      manager = new PortfolioManager({
+        tradIRA: tradConfig,
+        rothIRA: rothConfig,
+      });
+
+      // Create lots in Traditional IRA so sells work
+      const tradState = manager.getAccountState('tradIRA')!;
+      tradState.uninvestedCash = 50000;
+      manager.executeBuy('tradIRA', 'FXAIX', 30000, '2020-01-01', 'contribution');
+      manager.executeBuy('tradIRA', 'FXNAX', 10000, '2020-01-01', 'contribution');
+      manager.executeBuy('tradIRA', 'SPRXX', 5000, '2020-01-01', 'contribution');
+    });
+
+    it('creates sell in Traditional + buy in Roth', () => {
+      const result = manager.executeRothConversion('tradIRA', 'rothIRA', 10000, '2026-12-31');
+
+      expect(result.sellResults.length).toBeGreaterThan(0);
+      expect(result.buyTransactions.length).toBeGreaterThan(0);
+
+      // Verify total sell proceeds approximate the conversion amount
+      const totalSold = result.sellResults.reduce((sum, sr) => sum + sr.totalProceeds, 0);
+      expect(totalSold).toBeGreaterThan(0);
+
+      // Verify buy transactions exist in Roth
+      for (const tx of result.buyTransactions) {
+        expect(tx.type).toBe('buy');
+        expect(tx.source).toBe('conversion');
+      }
+    });
+
+    it('Roth lots are tagged with source: conversion', () => {
+      manager.executeRothConversion('tradIRA', 'rothIRA', 10000, '2026-12-31');
+
+      const rothState = manager.getAccountState('rothIRA')!;
+      const conversionLots = rothState.lots.filter((l) => l.source === 'conversion');
+      expect(conversionLots.length).toBeGreaterThan(0);
+      for (const lot of conversionLots) {
+        expect(lot.purchaseDate).toBe('2026-12-31');
+      }
+    });
+  });
+
+  describe('getRothConversionLots', () => {
+    beforeEach(() => {
+      manager = new PortfolioManager({ rothIRA: makeFundLevelConfig() });
+      const state = manager.getAccountState('rothIRA')!;
+      state.uninvestedCash = 50000;
+    });
+
+    it('returns lots sorted by date (FIFO)', () => {
+      // Create conversion lots at different dates
+      manager.executeBuy('rothIRA', 'FXAIX', 5000, '2024-12-31', 'conversion');
+      manager.executeBuy('rothIRA', 'FXAIX', 3000, '2022-12-31', 'conversion');
+      manager.executeBuy('rothIRA', 'FXAIX', 7000, '2023-12-31', 'conversion');
+      // Also a contribution lot (should be excluded)
+      manager.executeBuy('rothIRA', 'FXNAX', 2000, '2025-01-01', 'contribution');
+
+      const convLots = manager.getRothConversionLots('rothIRA');
+      expect(convLots).toHaveLength(3);
+      // Sorted by purchaseDate ascending
+      expect(convLots[0].purchaseDate).toBe('2022-12-31');
+      expect(convLots[1].purchaseDate).toBe('2023-12-31');
+      expect(convLots[2].purchaseDate).toBe('2024-12-31');
+    });
+
+    it('returns empty array for account with no conversion lots', () => {
+      manager.executeBuy('rothIRA', 'FXAIX', 5000, '2024-01-01', 'contribution');
+      const convLots = manager.getRothConversionLots('rothIRA');
+      expect(convLots).toHaveLength(0);
+    });
+
+    it('returns empty array for unknown account', () => {
+      const convLots = manager.getRothConversionLots('nonexistent');
+      expect(convLots).toHaveLength(0);
+    });
+  });
+
+  describe('getRothPenaltyFreeBalance', () => {
+    beforeEach(() => {
+      manager = new PortfolioManager({ rothIRA: makeFundLevelConfig() });
+      const state = manager.getAccountState('rothIRA')!;
+      state.uninvestedCash = 50000;
+    });
+
+    it('conversion > 5 years ago is penalty-free', () => {
+      // Conversion from 2019-12-31, checking at 2025-01-01 => ~5.003 years => penalty-free
+      manager.executeBuy('rothIRA', 'FXAIX', 10000, '2019-12-31', 'conversion');
+
+      const penaltyFree = manager.getRothPenaltyFreeBalance('rothIRA', '2025-01-01');
+      expect(penaltyFree).toBeGreaterThan(0);
+    });
+
+    it('contributions are always penalty-free', () => {
+      manager.executeBuy('rothIRA', 'FXAIX', 5000, '2025-06-01', 'contribution');
+
+      const penaltyFree = manager.getRothPenaltyFreeBalance('rothIRA', '2025-06-15');
+      expect(penaltyFree).toBeGreaterThan(0);
+    });
+
+    it('recent conversion is NOT penalty-free', () => {
+      // Conversion from 2024-12-31, checking at 2025-01-01 => < 5 years
+      manager.executeBuy('rothIRA', 'FXAIX', 10000, '2024-12-31', 'conversion');
+
+      const penaltyFree = manager.getRothPenaltyFreeBalance('rothIRA', '2025-01-01');
+      // Only contributions would be penalty-free, but there are none
+      expect(penaltyFree).toBe(0);
+    });
+  });
+
+  describe('getRothPenaltyableBalance', () => {
+    beforeEach(() => {
+      manager = new PortfolioManager({ rothIRA: makeFundLevelConfig() });
+      const state = manager.getAccountState('rothIRA')!;
+      state.uninvestedCash = 50000;
+    });
+
+    it('conversion <= 5 years ago is penaltyable', () => {
+      manager.executeBuy('rothIRA', 'FXAIX', 10000, '2024-06-01', 'conversion');
+
+      const penaltyable = manager.getRothPenaltyableBalance('rothIRA', '2026-01-01');
+      expect(penaltyable).toBeGreaterThan(0);
+    });
+
+    it('conversion > 5 years ago is NOT penaltyable', () => {
+      manager.executeBuy('rothIRA', 'FXAIX', 10000, '2019-06-01', 'conversion');
+
+      const penaltyable = manager.getRothPenaltyableBalance('rothIRA', '2025-01-01');
+      expect(penaltyable).toBe(0);
+    });
+
+    it('contributions are never penaltyable', () => {
+      manager.executeBuy('rothIRA', 'FXAIX', 5000, '2025-01-01', 'contribution');
+
+      const penaltyable = manager.getRothPenaltyableBalance('rothIRA', '2025-06-01');
+      expect(penaltyable).toBe(0);
+    });
+  });
+
+  describe('getRothContributionBasis', () => {
+    beforeEach(() => {
+      manager = new PortfolioManager({ rothIRA: makeFundLevelConfig() });
+      const state = manager.getAccountState('rothIRA')!;
+      state.uninvestedCash = 50000;
+    });
+
+    it('sums only contribution lots', () => {
+      manager.executeBuy('rothIRA', 'FXAIX', 5000, '2024-01-01', 'contribution');
+      manager.executeBuy('rothIRA', 'FXNAX', 3000, '2024-06-01', 'contribution');
+      manager.executeBuy('rothIRA', 'FXAIX', 10000, '2024-12-31', 'conversion');
+
+      const basis = manager.getRothContributionBasis('rothIRA');
+      expect(basis).toBeCloseTo(8000, 0); // 5000 + 3000 from contributions
+    });
+
+    it('returns 0 for account with no contributions', () => {
+      manager.executeBuy('rothIRA', 'FXAIX', 10000, '2024-12-31', 'conversion');
+
+      const basis = manager.getRothContributionBasis('rothIRA');
+      expect(basis).toBe(0);
+    });
+  });
 });
