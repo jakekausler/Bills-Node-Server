@@ -10,7 +10,7 @@ import { FilingStatus } from './bracket-calculator';
 import type { DebugLogger } from './debug-logger';
 import type { TaxScenario } from './tax-profile-types';
 
-export type IncomeType = 'ordinary' | 'retirement' | 'socialSecurity' | 'interest' | 'penalty';
+export type IncomeType = 'ordinary' | 'retirement' | 'socialSecurity' | 'interest' | 'penalty' | 'shortTermCapitalGain' | 'longTermCapitalGain' | 'qualifiedDividend' | 'ordinaryDividend';
 
 // Re-export FilingStatus for convenience
 export type { FilingStatus };
@@ -502,6 +502,15 @@ export type TaxReconciliation = {
   totalWithheld: number;
   // FICA reconciliation
   ficaOverpayment: number;
+  // Capital gains
+  shortTermCapitalGains: number;
+  longTermCapitalGains: number;
+  qualifiedDividends: number;
+  ordinaryDividends: number;
+  niitTax: number;
+  capitalLossCarryforwardUsed: number;
+  capitalLossCarryforwardRemaining: number;
+  longTermCapitalGainsTax: number;
   // Settlement
   settlement: number; // positive = owes, negative = refund
 };

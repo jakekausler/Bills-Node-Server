@@ -305,6 +305,14 @@ function makeTaxManager(overrides: Partial<{
       totalStateWithheld: 0,
       totalWithheld: 0,
       ficaOverpayment: 0,
+      shortTermCapitalGains: 0,
+      longTermCapitalGains: 0,
+      qualifiedDividends: 0,
+      ordinaryDividends: 0,
+      niitTax: 0,
+      capitalLossCarryforwardUsed: 0,
+      capitalLossCarryforwardRemaining: 0,
+      longTermCapitalGainsTax: 0,
       settlement: taxOwed, // settlement = tax owed - withholding (0 in test)
     };
   });
