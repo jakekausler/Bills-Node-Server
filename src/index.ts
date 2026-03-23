@@ -80,6 +80,8 @@ import {
   ApiError,
 } from './api/spendingTracker/spendingTracker';
 import { getTaxSummary } from './api/tax-summary';
+import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
+import type { PaycheckProfile } from './data/bill/paycheck-types';
 
 declare global {
   namespace Express {
@@ -779,6 +781,74 @@ app.get('/api/tax-summary', verifyToken, asyncHandler(async (req: Request, res: 
     res.json(await getTaxSummary(req));
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to get tax summary' });
+  }
+}));
+
+// Paycheck compute route
+app.post('/api/paycheck/compute', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const {
+      profile,
+      grossPay,
+      billName,
+      date,
+      accountOwnerDOB,
+      paychecksPerYear,
+    } = req.body;
+
+    // Validate required fields
+    if (!profile || typeof grossPay !== 'number' || !billName || !date || typeof paychecksPerYear !== 'number') {
+      return res.status(400).json({
+        error: 'Missing or invalid required fields: profile, grossPay, billName, date, paychecksPerYear',
+      });
+    }
+
+    // Load tax profile from JSON
+    let taxProfile;
+    try {
+      const taxProfilePath = path.join(__dirname, '../data/taxProfile.json');
+      const taxProfileData = JSON.parse(fs.readFileSync(taxProfilePath, 'utf-8'));
+      taxProfile = taxProfileData;
+    } catch {
+      // Use defaults if file not found
+      taxProfile = {
+        filingStatus: 'mfj',
+        state: 'NC',
+        stateTaxRate: 0.0475,
+        itemizationMode: 'standard',
+      };
+    }
+
+    // Parse dates
+    const paycheckDate = new Date(date);
+    const ownerDOB = accountOwnerDOB ? new Date(accountOwnerDOB) : null;
+
+    // Get SS wage base cap for the year (2024 is 168600, 2025 is 176100, default to 2025)
+    const year = paycheckDate.getUTCFullYear();
+    const ssWageBaseCap = year === 2024 ? 168600 : 176100;
+
+    // Get bracket inflation rate (using 3% default)
+    const bracketInflationRate = 0.03;
+
+    // Compute net pay
+    const result = computeNetPay({
+      grossPay,
+      profile: profile as PaycheckProfile,
+      billName,
+      date: paycheckDate,
+      accountOwnerDOB: ownerDOB,
+      paychecksPerYear,
+      filingStatus: taxProfile.filingStatus || 'mfj',
+      bracketInflationRate,
+      ssWageBaseCap,
+    });
+
+    res.json({
+      netPay: result.netPay,
+      breakdown: result,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to compute net pay' });
   }
 }));
 

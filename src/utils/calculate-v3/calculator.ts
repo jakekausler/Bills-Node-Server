@@ -51,6 +51,7 @@ import {
   LTCCheckEvent,
 } from './types';
 import { computeAnnualFederalTax } from './bracket-calculator';
+import { computeNetPay } from './compute-net-pay';
 
 dayjs.extend(utc);
 
@@ -768,52 +769,21 @@ export class Calculator {
       }
     }
 
-    // Process the paycheck
-    const mcGetter = this.getMCRateGetter();
-    const mcRateGetterFunc: ((type: string) => number | undefined) | undefined = mcGetter
-      ? (type: string) => {
-          const result = mcGetter(type as MonteCarloSampleType, event.date.getUTCFullYear());
-          return result ?? undefined;
-        }
-      : undefined;
-
-    // Get standard deduction for this year and filing status
-    const yearForBrackets = year;
+    // Process the paycheck using shared utility
     const dynamicFilingStatus = this.mortalityManager?.getFilingStatus(event.date) ?? this.filingStatus;
-    const bracketDataForYear = computeAnnualFederalTax(0, 0, dynamicFilingStatus, yearForBrackets, this.bracketInflationRate, mcGetter);
-    const standardDeduction = bracketDataForYear.standardDeduction;
-
-    // Create bracket lookup callback
-    const bracketLookup = (taxableIncome: number, filingStatus: FilingStatus, year: number): number => {
-      const result = computeAnnualFederalTax(taxableIncome, 0, filingStatus, year, this.bracketInflationRate, mcGetter);
-      return result.tax;
-    };
-
-    // Create tax profile for withholding (use account config if available, fallback to defaults)
-    const taxProfile: TaxProfile = {
-      filingStatus: dynamicFilingStatus,
-      state: 'NC', // TODO: load from account config or simulation profile
-      stateTaxRate: 0.0475, // NC state tax rate (4.75%)
-      itemizationMode: 'standard' as const,
-    };
-
-    const paycheckResult = this.paycheckProcessor.processPaycheck(
+    const paycheckResult = computeNetPay({
       grossPay,
       profile,
-      bill.name,
-      event.date,
-      account.accountOwnerDOB,
-      ssWageBaseCap,
-      additionalMedicareThreshold,
+      billName: bill.name,
+      date: event.date,
+      accountOwnerDOB: account.accountOwnerDOB,
       paychecksPerYear,
-      mcRateGetterFunc,
-      taxProfile,
-      standardDeduction,
-      bracketLookup,
-    );
-
-    // Write net pay back to bill for frontend display
-    bill.amount = paycheckResult.netPay;
+      filingStatus: dynamicFilingStatus,
+      bracketInflationRate: this.bracketInflationRate,
+      ssWageBaseCap,
+      mcRateGetter: this.getMCRateGetter(),
+      processor: this.paycheckProcessor,
+    });
 
     // Skip downstream processing if paycheck is empty (suppressed during unemployment)
     if (paycheckResult.grossPay === 0) {
@@ -1073,7 +1043,7 @@ export class Calculator {
         account.accountOwnerDOB ?? null,
         ssWageBaseCap,
         additionalMedicareThreshold,
-        taxProfile,
+        this.taxProfile,
       );
 
       // Create bonus net pay activity on main account
