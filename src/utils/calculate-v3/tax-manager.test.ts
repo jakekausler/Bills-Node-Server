@@ -877,4 +877,254 @@ describe('TaxManager', () => {
       expect(recon.totalTaxOwed).toBe(0);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Capital Gains Netting in computeReconciliation
+  // ---------------------------------------------------------------------------
+  describe('computeReconciliation — capital gains', () => {
+    let deductionTracker: DeductionTracker;
+    let taxProfile: TaxProfile;
+
+    beforeEach(() => {
+      deductionTracker = new DeductionTracker();
+      taxProfile = {
+        filingStatus: 'mfj',
+        state: 'NC',
+        stateTaxRate: 0.0475,
+        itemizationMode: 'standard',
+      };
+    });
+
+    it('short-term gains only: added to ordinary income for progressive tax', () => {
+      // $80K ordinary + $20K short-term gains = $100K ordinary base
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 80000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 20000, incomeType: 'shortTermCapitalGain' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // totalOrdinaryIncome should include the ST gains (added during netting)
+      expect(recon.totalOrdinaryIncome).toBe(100000); // 80K + 20K ST
+      expect(recon.shortTermCapitalGains).toBe(20000);
+      expect(recon.longTermCapitalGainsTax).toBe(0); // no LT gains
+      expect(recon.federalTax).toBeGreaterThan(0);
+    });
+
+    it('long-term gains only: stacked on ordinary, taxed at CG rates', () => {
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 80000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'longTermCapitalGain' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      expect(recon.longTermCapitalGains).toBe(50000);
+      expect(recon.longTermCapitalGainsTax).toBeGreaterThan(0);
+      // The LT CG tax should be separate from ordinary federal tax
+      expect(recon.totalTaxOwed).toBeGreaterThan(recon.federalTax);
+    });
+
+    it('short-term loss offsets short-term gain first (netting step 1)', () => {
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 10000, incomeType: 'shortTermCapitalGain' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: -8000, incomeType: 'shortTermCapitalGain' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // Net ST = 10000 - 8000 = 2000. Added to ordinary income.
+      expect(recon.shortTermCapitalGains).toBe(2000); // raw sum
+      expect(recon.totalOrdinaryIncome).toBe(52000); // 50K + 2K net ST
+    });
+
+    it('net short-term loss cross-nets with long-term gain (netting step 3)', () => {
+      // Use high ordinary income so LT gains stack above the 0% CG bracket
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 150000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: -10000, incomeType: 'shortTermCapitalGain' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 30000, incomeType: 'longTermCapitalGain' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // Net ST = -10000, Net LT = 30000
+      // Cross-net: LT becomes 30000 + (-10000) = 20000, ST becomes 0
+      // At $150K ordinary, net $20K LT is stacked above 0% bracket → taxed at 15%
+      expect(recon.longTermCapitalGainsTax).toBeGreaterThan(0);
+      expect(recon.longTermCapitalGains).toBe(30000); // raw input
+    });
+
+    it('net capital loss: $3K deduction against ordinary income (netting step 4)', () => {
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: -5000, incomeType: 'shortTermCapitalGain' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // Net ST = -5000, no LT. Total net CG = -5000.
+      // $3K offset against ordinary: ordinary becomes 50000 - 3000 = 47000
+      // Carryforward = 5000 - 3000 = 2000
+      expect(recon.totalOrdinaryIncome).toBe(47000);
+      expect(recon.capitalLossCarryforwardRemaining).toBe(2000);
+    });
+
+    it('capital loss carryforward: excess carries to next year', () => {
+      // Set prior-year carryforward
+      manager.setCapitalLossCarryforward(10000);
+
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 4000, incomeType: 'shortTermCapitalGain' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // Carryforward of 10000 applied to ST first: 4000 - 10000 = -6000 (net ST = 0, 6000 remainder to LT)
+      // Net LT = 0 - 6000 = -6000
+      // Cross-net: both negative, total net CG = -6000
+      // $3K offset: ordinary = 50000 - 3000 = 47000
+      // New carryforward = 6000 - 3000 = 3000
+      expect(recon.capitalLossCarryforwardUsed).toBe(10000);
+      expect(recon.capitalLossCarryforwardRemaining).toBe(3000);
+      expect(recon.totalOrdinaryIncome).toBe(47000);
+      expect(manager.getCapitalLossCarryforward()).toBe(3000);
+    });
+
+    it('NIIT applied when investment income exceeds threshold', () => {
+      // MFJ NIIT threshold is $250K
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 200000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 100000, incomeType: 'longTermCapitalGain' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // MAGI > 250K, investment income includes 100K LTCG
+      expect(recon.niitTax).toBeGreaterThan(0);
+      // NIIT should be 3.8% on min(investment income, MAGI - 250K)
+    });
+
+    it('NIIT NOT applied when below threshold', () => {
+      // Total income well below $250K MFJ threshold
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 10000, incomeType: 'longTermCapitalGain' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      expect(recon.niitTax).toBe(0);
+    });
+
+    it('state tax includes CG income (broader base)', () => {
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 80000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'longTermCapitalGain' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // State tax base = ordinaryTaxableIncome + net LT gains + qualified dividends
+      // Should be higher than just ordinaryTaxableIncome * rate
+      const ordinaryOnlyStateTax = Math.max(0, recon.taxableIncome * taxProfile.stateTaxRate);
+      expect(recon.stateTax).toBeGreaterThan(ordinaryOnlyStateTax);
+    });
+
+    it('TaxReconciliation return has all new CG fields populated', () => {
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 80000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 20000, incomeType: 'longTermCapitalGain' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 5000, incomeType: 'shortTermCapitalGain' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 3000, incomeType: 'qualifiedDividend' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 1000, incomeType: 'ordinaryDividend' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      expect(recon.shortTermCapitalGains).toBe(5000);
+      expect(recon.longTermCapitalGains).toBe(20000);
+      expect(recon.qualifiedDividends).toBe(3000);
+      expect(recon.ordinaryDividends).toBe(1000);
+      expect(typeof recon.niitTax).toBe('number');
+      expect(typeof recon.capitalLossCarryforwardUsed).toBe('number');
+      expect(typeof recon.capitalLossCarryforwardRemaining).toBe('number');
+      expect(typeof recon.longTermCapitalGainsTax).toBe('number');
+    });
+
+    it('qualified dividends are taxed at CG rates (not ordinary)', () => {
+      // Use high ordinary income so qualified dividends stack above 0% CG bracket
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 150000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 10000, incomeType: 'qualifiedDividend' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      expect(recon.qualifiedDividends).toBe(10000);
+      expect(recon.longTermCapitalGainsTax).toBeGreaterThan(0);
+    });
+
+    it('ordinary dividends are added to ordinary income', () => {
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 5000, incomeType: 'ordinaryDividend' }));
+
+      const recon = manager.computeReconciliation(2025, taxProfile, deductionTracker, 0.03);
+
+      // Ordinary income includes the ordinary dividends
+      expect(recon.totalOrdinaryIncome).toBe(55000);
+      expect(recon.ordinaryDividends).toBe(5000);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Capital loss carryforward checkpoint/restore
+  // ---------------------------------------------------------------------------
+  describe('checkpoint/restore — capital loss carryforward', () => {
+    it('checkpoint preserves capitalLossCarryforward', () => {
+      manager.setCapitalLossCarryforward(7500);
+      manager.checkpoint();
+
+      manager.setCapitalLossCarryforward(0);
+      expect(manager.getCapitalLossCarryforward()).toBe(0);
+
+      manager.restore();
+      expect(manager.getCapitalLossCarryforward()).toBe(7500);
+    });
+
+    it('restore defaults capitalLossCarryforward to 0 for old checkpoints', () => {
+      // Simulate old checkpoint format without capitalLossCarryforward
+      manager.addTaxableOccurrence('account-1', makeTaxableEvent({ year: 2025, amount: 1000 }));
+      manager.checkpoint();
+
+      // Manually override the checkpoint data to remove capitalLossCarryforward
+      const checkpointStr = (manager as any).checkpointData;
+      const parsed = JSON.parse(checkpointStr);
+      delete parsed.capitalLossCarryforward;
+      (manager as any).checkpointData = JSON.stringify(parsed);
+
+      manager.setCapitalLossCarryforward(9999);
+      manager.restore();
+      expect(manager.getCapitalLossCarryforward()).toBe(0);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // calculateTotalTaxOwed — CG income types
+  // ---------------------------------------------------------------------------
+  describe('calculateTotalTaxOwed — capital gains', () => {
+    it('includes short-term CG in ordinary income for bracket calculation', () => {
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      const taxWithoutST = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      // New manager with ST gains
+      const m2 = new TaxManager();
+      m2.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      m2.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 20000, incomeType: 'shortTermCapitalGain' }));
+      const taxWithST = m2.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      expect(taxWithST).toBeGreaterThan(taxWithoutST);
+    });
+
+    it('includes long-term CG tax in total', () => {
+      manager.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 80000, incomeType: 'ordinary' }));
+      const taxWithoutLT = manager.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      const m2 = new TaxManager();
+      m2.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 80000, incomeType: 'ordinary' }));
+      m2.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 100000, incomeType: 'longTermCapitalGain' }));
+      const taxWithLT = m2.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      expect(taxWithLT).toBeGreaterThan(taxWithoutLT);
+    });
+
+    it('handles ordinary dividends in ordinary income', () => {
+      const m2 = new TaxManager();
+      m2.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 50000, incomeType: 'ordinary' }));
+      m2.addTaxableOccurrence('brokerage', makeTaxableEvent({ year: 2025, amount: 5000, incomeType: 'ordinaryDividend' }));
+      const tax = m2.calculateTotalTaxOwed(2025, 'mfj', 0.03);
+
+      expect(tax).toBeGreaterThan(0);
+    });
+  });
 });

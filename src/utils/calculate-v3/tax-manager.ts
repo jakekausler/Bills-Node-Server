@@ -1,5 +1,5 @@
 import { TaxableOccurrence, FilingStatus, MCRateGetter, WithholdingOccurrence, TaxReconciliation } from './types';
-import { computeAnnualFederalTax, calculateTaxableSS, calculateProgressiveTax, getBracketDataForYear } from './bracket-calculator';
+import { computeAnnualFederalTax, calculateTaxableSS, calculateProgressiveTax, getBracketDataForYear, calculateLongTermCapitalGainsTax, calculateNIIT } from './bracket-calculator';
 import type { DebugLogger } from './debug-logger';
 import type { DeductionTracker } from './deduction-tracker';
 import type { TaxProfile } from './tax-profile-types';
@@ -11,6 +11,7 @@ export class TaxManager {
   private taxCache: Map<number, number>;
   // Map of years to withholding occurrences
   private withholdingOccurrences: Map<number, WithholdingOccurrence[]> = new Map();
+  private capitalLossCarryforward: number = 0;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
@@ -75,7 +76,22 @@ export class TaxManager {
     return all;
   }
 
-  // Calculate total tax owed for a year using progressive brackets
+  /**
+   * Get the current capital loss carryforward amount (for testing/inspection).
+   */
+  public getCapitalLossCarryforward(): number {
+    return this.capitalLossCarryforward;
+  }
+
+  /**
+   * Set the capital loss carryforward amount (for testing or year-boundary resets).
+   */
+  public setCapitalLossCarryforward(amount: number): void {
+    this.capitalLossCarryforward = amount;
+  }
+
+  // Calculate total tax owed for a year using progressive brackets.
+  // Includes CG, NIIT, and loss netting for accurate Roth conversion bracket-space.
   public calculateTotalTaxOwed(
     year: number,
     filingStatus: FilingStatus = 'mfj',
@@ -92,6 +108,10 @@ export class TaxManager {
     let ordinaryIncome = 0;
     let ssIncome = 0;
     let penaltyTotal = 0;
+    let shortTermGains = 0;
+    let longTermGains = 0;
+    let qualifiedDividends = 0;
+    let ordinaryDividends = 0;
 
     for (const occurrence of allOccurrences) {
       switch (occurrence.incomeType) {
@@ -104,15 +124,69 @@ export class TaxManager {
           ssIncome += occurrence.amount;
           break;
         case 'penalty':
-          penaltyTotal += occurrence.amount; // Pre-computed dollar amount
+          penaltyTotal += occurrence.amount;
+          break;
+        case 'shortTermCapitalGain':
+          shortTermGains += occurrence.amount;
+          break;
+        case 'longTermCapitalGain':
+          longTermGains += occurrence.amount;
+          break;
+        case 'qualifiedDividend':
+          qualifiedDividends += occurrence.amount;
+          break;
+        case 'ordinaryDividend':
+          ordinaryDividends += occurrence.amount;
           break;
       }
     }
 
-    this.log('income-aggregated', { year, ordinary_income: ordinaryIncome, ss_income: ssIncome, penalty_total: penaltyTotal });
+    // Add ordinary dividends to ordinary income (they use progressive brackets)
+    ordinaryIncome += ordinaryDividends;
+
+    // Simple CG netting for bracket-space calculation (no carryforward mutation here)
+    let netST = shortTermGains;
+    let netLT = longTermGains;
+
+    // Cross-net
+    if (netST < 0 && netLT > 0) {
+      netLT += netST;
+      netST = 0;
+    } else if (netLT < 0 && netST > 0) {
+      netST += netLT;
+      netLT = 0;
+    }
+
+    // Net ST gains go to ordinary income
+    if (netST > 0) {
+      ordinaryIncome += netST;
+    } else if (netST < 0 || netLT < 0) {
+      // Net loss: up to $3K offset
+      const totalNetLoss = Math.min(0, netST) + Math.min(0, netLT);
+      const ordinaryOffset = Math.min(3000, Math.abs(totalNetLoss));
+      ordinaryIncome -= ordinaryOffset;
+    }
+
+    this.log('income-aggregated', { year, ordinary_income: ordinaryIncome, ss_income: ssIncome, penalty_total: penaltyTotal, st_gains: shortTermGains, lt_gains: longTermGains });
 
     const result = computeAnnualFederalTax(ordinaryIncome, ssIncome, filingStatus, year, bracketInflationRate, mcRateGetter);
-    const totalTax = result.tax + penaltyTotal;
+    let totalTax = result.tax + penaltyTotal;
+
+    // Add CG tax on net long-term gains + qualified dividends
+    const netLTForTax = Math.max(0, netLT);
+    if (netLTForTax > 0 || qualifiedDividends > 0) {
+      const cgResult = calculateLongTermCapitalGainsTax(
+        result.taxableIncome, netLTForTax, qualifiedDividends, filingStatus, year, bracketInflationRate, mcRateGetter ?? null,
+      );
+      totalTax += cgResult.tax;
+    }
+
+    // Add NIIT
+    const interestIncome = allOccurrences.filter(o => o.incomeType === 'interest').reduce((s, o) => s + o.amount, 0);
+    const magi = ordinaryIncome + Math.max(0, netST) + Math.max(0, netLT) + qualifiedDividends + interestIncome + ssIncome * 0.5;
+    const investmentIncome = interestIncome + qualifiedDividends + ordinaryDividends + Math.max(0, netST) + Math.max(0, netLT);
+    const niit = calculateNIIT(investmentIncome, magi, filingStatus);
+    totalTax += niit;
 
     // Determine SS taxation tier based on provisional income vs thresholds
     const provisionalIncome = ordinaryIncome + ssIncome * 0.5;
@@ -194,7 +268,7 @@ export class TaxManager {
       }));
     }
 
-    const checkpoint = { taxableOccurrences: taxObj, withholdingOccurrences: withObj };
+    const checkpoint = { taxableOccurrences: taxObj, withholdingOccurrences: withObj, capitalLossCarryforward: this.capitalLossCarryforward };
     this.checkpointData = JSON.stringify(checkpoint);
   }
 
@@ -208,6 +282,7 @@ export class TaxManager {
     const checkpoint = JSON.parse(this.checkpointData) as {
       taxableOccurrences: Record<number, Record<string, Array<{ date: string; year: number; amount: number; incomeType: string }>>>;
       withholdingOccurrences: Record<number, Array<{ date: string; year: number; federalAmount: number; stateAmount: number; source: string }>>;
+      capitalLossCarryforward?: number;
     };
 
     // Restore taxable occurrences
@@ -240,6 +315,9 @@ export class TaxManager {
       }));
       this.withholdingOccurrences.set(year, withholdings);
     }
+
+    // Restore capital loss carryforward (backward compatible)
+    this.capitalLossCarryforward = checkpoint.capitalLossCarryforward ?? 0;
 
     // Clear cache after restoration
     this.taxCache.clear();
@@ -297,13 +375,21 @@ export class TaxManager {
     let totalOrdinaryIncome = 0;
     let totalSSIncome = 0;
     let penaltyTotal = 0;
+    let shortTermGains = 0;
+    let longTermGains = 0;
+    let qualifiedDividends = 0;
+    let ordinaryDividends = 0;
+    let interestIncome = 0;
 
     for (const occurrence of allOccurrences) {
       switch (occurrence.incomeType) {
         case 'ordinary':
         case 'retirement':
+          totalOrdinaryIncome += occurrence.amount;
+          break;
         case 'interest':
           totalOrdinaryIncome += occurrence.amount;
+          interestIncome += occurrence.amount;
           break;
         case 'socialSecurity':
           totalSSIncome += occurrence.amount;
@@ -311,8 +397,80 @@ export class TaxManager {
         case 'penalty':
           penaltyTotal += occurrence.amount;
           break;
+        case 'shortTermCapitalGain':
+          shortTermGains += occurrence.amount;
+          break;
+        case 'longTermCapitalGain':
+          longTermGains += occurrence.amount;
+          break;
+        case 'qualifiedDividend':
+          qualifiedDividends += occurrence.amount;
+          break;
+        case 'ordinaryDividend':
+          ordinaryDividends += occurrence.amount;
+          break;
       }
     }
+
+    // Ordinary dividends are taxed at ordinary rates
+    totalOrdinaryIncome += ordinaryDividends;
+
+    // --- Capital Gains Netting (IRS 4-step algorithm) ---
+
+    // Step N1: Net within each category (already summed above; positive = gain, negative = loss)
+    let netShortTerm = shortTermGains;
+    let netLongTerm = longTermGains;
+
+    // Step N2: Apply prior-year carryforward (carryforward is a positive number representing loss)
+    let carryforwardUsed = 0;
+    let remainingCarryforward = this.capitalLossCarryforward;
+    if (remainingCarryforward > 0) {
+      carryforwardUsed = remainingCarryforward;
+      // Apply to short-term first
+      netShortTerm -= remainingCarryforward;
+      if (netShortTerm < 0) {
+        // Excess not absorbed by ST goes to LT
+        remainingCarryforward = Math.abs(netShortTerm);
+        netShortTerm = 0;
+        netLongTerm -= remainingCarryforward;
+        remainingCarryforward = 0;
+      } else {
+        remainingCarryforward = 0;
+      }
+    }
+
+    // Step N3: Cross-net if one category is net loss
+    if (netShortTerm < 0 && netLongTerm > 0) {
+      netLongTerm += netShortTerm; // loss reduces gain
+      netShortTerm = 0;
+    } else if (netLongTerm < 0 && netShortTerm > 0) {
+      netShortTerm += netLongTerm; // loss reduces gain
+      netLongTerm = 0;
+    }
+
+    // Step N4: If overall net loss, apply $3K ordinary offset + update carryforward
+    let capitalLossOrdinaryOffset = 0;
+    let newCarryforward = 0;
+    const totalNetCG = Math.min(0, netShortTerm) + Math.min(0, netLongTerm);
+    if (totalNetCG < 0) {
+      const absLoss = Math.abs(totalNetCG);
+      capitalLossOrdinaryOffset = Math.min(3000, absLoss);
+      newCarryforward = absLoss - capitalLossOrdinaryOffset;
+    }
+
+    // Apply capital loss offset to ordinary income
+    totalOrdinaryIncome -= capitalLossOrdinaryOffset;
+    totalOrdinaryIncome = Math.max(0, totalOrdinaryIncome);
+
+    // Update carryforward for next year
+    this.capitalLossCarryforward = newCarryforward;
+
+    // Net short-term gains are added to ordinary income (taxed at progressive rates)
+    const netSTForOrdinary = Math.max(0, netShortTerm);
+    totalOrdinaryIncome += netSTForOrdinary;
+
+    // Net long-term gains for CG tax computation
+    const netLTForTax = Math.max(0, netLongTerm);
 
     const totalIncome = totalOrdinaryIncome + totalSSIncome;
 
@@ -327,6 +485,12 @@ export class TaxManager {
       total_income: totalIncome,
       above_the_line_ded: aboveTheLineDeductions,
       agi,
+      st_gains: shortTermGains,
+      lt_gains: longTermGains,
+      net_st: netShortTerm,
+      net_lt: netLongTerm,
+      carryforward_used: carryforwardUsed,
+      new_carryforward: newCarryforward,
     });
 
     // Step 4: Get standard deduction for filing status
@@ -335,15 +499,14 @@ export class TaxManager {
 
     // Step 4a: Get personal exemption and compute total deduction base
     const bracketDataForExemption = getBracketDataForYear(year, taxProfile.filingStatus, bracketInflationRate, mcRateGetter);
-    let personalExemption = bracketDataForExemption.personalExemption || 0;
+    const personalExemption = bracketDataForExemption.personalExemption || 0;
 
     // Number of people: filing status determines base count, then add dependents
-    // Only compute if personal exemption is non-zero (tcjaExpires scenario in 2026+)
     let totalPersonalExemptions = 0;
     if (personalExemption > 0) {
-      let numberOfPeople = 1; // Default for single/HOH
+      let numberOfPeople = 1;
       if (taxProfile.filingStatus === 'mfj') {
-        numberOfPeople = 2; // Two taxpayers
+        numberOfPeople = 2;
       }
       if (taxProfile.dependents && taxProfile.dependents.length > 0) {
         numberOfPeople += taxProfile.dependents.length;
@@ -365,36 +528,48 @@ export class TaxManager {
       deductionUsed = 'itemized';
       deductionAmount = itemizedDeduction;
     } else {
-      // auto mode: use max
       deductionUsed = itemizedDeduction > standardDeduction ? 'itemized' : 'standard';
       deductionAmount = Math.max(standardDeduction, itemizedDeduction);
     }
 
-    // Step 7-8: Compute federal tax using bracket calculator
-    // IMPORTANT: Reconciliation computes taxable income by applying deductions to AGI.
-    // To avoid double-deduction in computeAnnualFederalTax (which applies standard deduction internally),
-    // we use the bracket calculator's lower-level functions directly:
-    // - calculateTaxableSS: Applies 0/50/85% rule based on provisional income (AGI + 0.5*SS)
-    // - calculateProgressiveTax: Applies bracket lookup directly on already-deducted income
-
-    // Get bracket data for the year
+    // Step 7-8: Compute federal ordinary tax using bracket calculator
     const yearData = getBracketDataForYear(year, taxProfile.filingStatus, bracketInflationRate, mcRateGetter);
     const brackets = yearData.brackets[taxProfile.filingStatus];
 
-    // Compute taxable SS using AGI (not total ordinary income, since AGI has above-the-line deductions applied)
+    // Compute taxable SS using AGI
     const taxableSS = calculateTaxableSS(totalSSIncome, agi, taxProfile.filingStatus, yearData.ssProvisionalThresholds[taxProfile.filingStatus]);
 
     // Total income for bracket calculation = AGI + taxable portion of SS
     const totalIncomeForBrackets = agi + taxableSS;
 
-    // Apply deduction (standard or itemized, already chosen in Step 6) and personal exemptions
-    const taxableIncome = Math.max(0, totalIncomeForBrackets - deductionAmount - totalPersonalExemptions);
+    // Apply deduction and personal exemptions — this is the ordinary taxable income
+    const ordinaryTaxableIncome = Math.max(0, totalIncomeForBrackets - deductionAmount - totalPersonalExemptions);
 
-    // Apply progressive tax brackets directly (deduction already applied above)
-    const federalTax = calculateProgressiveTax(taxableIncome, brackets);
+    // Progressive tax on ordinary income only
+    const federalOrdinaryTax = calculateProgressiveTax(ordinaryTaxableIncome, brackets);
 
-    // Step 9: State tax (simple model: apply state tax rate to taxable income)
-    const stateTax = Math.max(0, taxableIncome * taxProfile.stateTaxRate);
+    // Step 8a: Capital gains tax (stacked on top of ordinary income)
+    let longTermCapitalGainsTax = 0;
+    if (netLTForTax > 0 || qualifiedDividends > 0) {
+      const cgResult = calculateLongTermCapitalGainsTax(
+        ordinaryTaxableIncome, netLTForTax, qualifiedDividends,
+        taxProfile.filingStatus, year, bracketInflationRate, mcRateGetter ?? null,
+      );
+      longTermCapitalGainsTax = cgResult.tax;
+    }
+
+    // Step 8b: NIIT on investment income above threshold
+    // MAGI includes all income sources
+    const magi = agi + taxableSS + Math.max(0, netLongTerm) + qualifiedDividends;
+    const investmentIncome = interestIncome + qualifiedDividends + ordinaryDividends
+      + Math.max(0, netShortTerm) + Math.max(0, netLongTerm);
+    const niitTax = calculateNIIT(investmentIncome, magi, taxProfile.filingStatus);
+
+    // Step 9: State tax on broader income base
+    // ordinaryTaxableIncome already includes net ST gains (added in netting step).
+    // Add net LT gains + qualified dividends + ordinary dividends for state purposes.
+    const stateTaxBase = ordinaryTaxableIncome + netLTForTax + qualifiedDividends;
+    const stateTax = Math.max(0, stateTaxBase * taxProfile.stateTaxRate);
 
     // Step 10: Child Tax Credit ($2,000 per qualifying child)
     let childTaxCredit = 0;
@@ -405,9 +580,9 @@ export class TaxManager {
       childTaxCredit = qualifyingChildren.length * 2000;
     }
 
-    // Step 11: Total tax owed
+    // Step 11: Total tax owed = ordinary federal + CG federal + NIIT + state + penalties - credits
     const credits = childTaxCredit;
-    const totalTaxOwed = Math.max(0, federalTax + stateTax + penaltyTotal - credits);
+    const totalTaxOwed = Math.max(0, federalOrdinaryTax + longTermCapitalGainsTax + niitTax + stateTax + penaltyTotal - credits);
 
     // Step 12: Get withholding
     const withholding = this.getTotalWithholding(year);
@@ -415,7 +590,7 @@ export class TaxManager {
     const totalStateWithheld = withholding.state;
     const totalWithheld = totalFederalWithheld + totalStateWithheld;
 
-    // Step 13: FICA reconciliation (set to 0 for now; would need PaycheckStateTracker data)
+    // Step 13: FICA reconciliation
     const ficaOverpayment = 0;
 
     // Step 14: Settlement
@@ -427,8 +602,10 @@ export class TaxManager {
       itemized_ded: itemizedDeduction,
       deduction_used: deductionUsed,
       deduction_amount: deductionAmount,
-      taxable_income: taxableIncome,
-      federal_tax: federalTax,
+      ordinary_taxable_income: ordinaryTaxableIncome,
+      federal_ordinary_tax: federalOrdinaryTax,
+      lt_cg_tax: longTermCapitalGainsTax,
+      niit_tax: niitTax,
       taxable_ss: taxableSS,
       state_tax: stateTax,
       child_tax_credit: childTaxCredit,
@@ -450,9 +627,9 @@ export class TaxManager {
       deductionUsed,
       deductionAmount,
       personalExemption: totalPersonalExemptions,
-      taxableIncome,
-      federalTax,
-      ssTax: taxableSS, // The amount of SS that is taxable (used for computing tax on it)
+      taxableIncome: ordinaryTaxableIncome,
+      federalTax: federalOrdinaryTax,
+      ssTax: taxableSS,
       stateTax,
       credits,
       totalTaxOwed,
@@ -460,14 +637,14 @@ export class TaxManager {
       totalStateWithheld,
       totalWithheld,
       ficaOverpayment,
-      shortTermCapitalGains: 0,
-      longTermCapitalGains: 0,
-      qualifiedDividends: 0,
-      ordinaryDividends: 0,
-      niitTax: 0,
-      capitalLossCarryforwardUsed: 0,
-      capitalLossCarryforwardRemaining: 0,
-      longTermCapitalGainsTax: 0,
+      shortTermCapitalGains: shortTermGains,
+      longTermCapitalGains: longTermGains,
+      qualifiedDividends,
+      ordinaryDividends,
+      niitTax,
+      capitalLossCarryforwardUsed: carryforwardUsed,
+      capitalLossCarryforwardRemaining: newCarryforward,
+      longTermCapitalGainsTax,
       settlement,
     };
   }
