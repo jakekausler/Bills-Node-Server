@@ -204,6 +204,65 @@ describe('PortfolioManager', () => {
     });
   });
 
+  describe('getConfiguredAccountIds', () => {
+    it('returns all configured account IDs', () => {
+      manager = new PortfolioManager({
+        acc1: makeFundLevelConfig(),
+        acc2: makeEstimatedConfig(),
+      });
+      const ids = manager.getConfiguredAccountIds();
+      expect(ids).toHaveLength(2);
+      expect(ids).toContain('acc1');
+      expect(ids).toContain('acc2');
+    });
+
+    it('returns empty array when no configs', () => {
+      manager = new PortfolioManager({});
+      expect(manager.getConfiguredAccountIds()).toHaveLength(0);
+    });
+  });
+
+  describe('estimated initialization from BalanceTracker pattern', () => {
+    it('initializes only estimated accounts when iterating all configured IDs', () => {
+      manager = new PortfolioManager({
+        acc1: makeFundLevelConfig(),
+        acc2: makeEstimatedConfig(),
+      });
+
+      // Simulate the engine pattern: iterate all configured accounts,
+      // initialize only estimated-mode accounts with a balance
+      const simulatedBalance = 250000;
+      for (const accountId of manager.getConfiguredAccountIds()) {
+        if (manager.getAccountMode(accountId) === 'estimated') {
+          manager.initializeEstimatedAccount(accountId, simulatedBalance);
+        }
+      }
+
+      // Fund-level account should be unchanged (initialized from config)
+      const fundPositions = manager.getPositions('acc1');
+      const fxaix = fundPositions.find((p) => p.symbol === 'FXAIX')!;
+      expect(fxaix.shares).toBe(100);
+      expect(fxaix.currentPrice).toBe(200);
+
+      // Estimated account should have virtual funds based on balance
+      const estPositions = manager.getPositions('acc2');
+      expect(estPositions).toHaveLength(3);
+
+      const stock = estPositions.find((p) => p.symbol === 'STOCK')!;
+      expect(stock.shares).toBe(175000); // 250000 * 0.70
+      expect(stock.currentPrice).toBe(1.0);
+      expect(stock.value).toBe(175000);
+
+      const bond = estPositions.find((p) => p.symbol === 'BOND')!;
+      expect(bond.shares).toBe(50000); // 250000 * 0.20
+      expect(bond.value).toBe(50000);
+
+      const cash = estPositions.find((p) => p.symbol === 'CASH')!;
+      expect(cash.shares).toBe(25000); // 250000 * 0.10
+      expect(cash.value).toBe(25000);
+    });
+  });
+
   describe('checkpoint/restore', () => {
     it('round-trip preserves all state including positions, prices, uninvested cash, lastReturnYear', () => {
       manager = new PortfolioManager({ acc1: makeFundLevelConfig() });

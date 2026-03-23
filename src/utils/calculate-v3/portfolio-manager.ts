@@ -65,6 +65,13 @@ export class PortfolioManager {
   }
 
   /**
+   * Returns all account IDs that have portfolio configurations.
+   */
+  getConfiguredAccountIds(): string[] {
+    return Array.from(this.configs.keys());
+  }
+
+  /**
    * Initialize a fund-level account from its config.
    * Creates positions from currentShares/currentPrice in each fund.
    */

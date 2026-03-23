@@ -629,6 +629,16 @@ export class Engine {
     // Initialize accounts with starting balances
     await this.balanceTracker.initializeBalances(accountsAndTransfers, options.forceRecalculation);
 
+    // Initialize estimated-mode accounts with their current balance from BalanceTracker
+    if (this.portfolioManager) {
+      for (const accountId of this.portfolioManager.getConfiguredAccountIds()) {
+        if (this.portfolioManager.getAccountMode(accountId) === 'estimated') {
+          const balance = this.balanceTracker.getAccountBalance(accountId);
+          this.portfolioManager.initializeEstimatedAccount(accountId, balance);
+        }
+      }
+    }
+
     // Track year boundaries for flow aggregator balance recording
     // Note: if segments skip entire years (no events), those years will have no FlowSummary entry.
     // Downstream consumers should interpolate or handle missing years.
