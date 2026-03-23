@@ -114,7 +114,7 @@ export class Activity {
       isTransfer: this.isTransfer,
       from: this.fro,
       to: this.to,
-      amount: this.amount,
+      amount: this.isPaycheckActivity && this.paycheckDetails?.netPay ? this.paycheckDetails.netPay : this.amount,
       amountIsVariable: this.amountIsVariable,
       amountVariable: this.amountVariable,
       date: formatDate(this.date),

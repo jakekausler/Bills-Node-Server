@@ -158,7 +158,10 @@ export class BalanceTracker {
       let runningBalance = 0;
 
       const allActivitiesWithBalances = clonedAccount.consolidatedActivity.map((activity, index) => {
-        activity.balance = runningBalance + Number(activity.amount);
+        const effectiveAmount = (activity as any).isPaycheckActivity && (activity as any).paycheckDetails?.netPay
+          ? (activity as any).paycheckDetails.netPay
+          : Number(activity.amount);
+        activity.balance = runningBalance + effectiveAmount;
         runningBalance = activity.balance;
         return activity;
       });

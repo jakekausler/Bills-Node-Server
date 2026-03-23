@@ -346,8 +346,25 @@ export class Calculator {
     }
     segmentResult.activitiesAdded.get(accountId)?.push(new ConsolidatedActivity(activity.serialize()));
 
-    // Update balance in segment result
-    const balanceChange = activity.amount as number;
+    // For paycheck activities, use netPay as the effective amount
+    let balanceChange = activity.amount as number;
+    if ((activity as any).isPaycheckActivity && (activity as any).paycheckDetails) {
+      balanceChange = (activity as any).paycheckDetails.netPay;
+
+      // Record withholding in TaxManager
+      const year = event.date.getUTCFullYear();
+      const paycheckDetails = (activity as any).paycheckDetails;
+      if (paycheckDetails.federalWithholding > 0 || paycheckDetails.stateWithholding > 0) {
+        this.taxManager.addWithholdingOccurrence({
+          date: event.date,
+          year,
+          federalAmount: paycheckDetails.federalWithholding || 0,
+          stateAmount: paycheckDetails.stateWithholding || 0,
+          source: activity.name,
+        });
+      }
+    }
+
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + balanceChange);
     this.log('activity-processed', { name: activity.name, accountId, amount: balanceChange });
@@ -927,10 +944,29 @@ export class Calculator {
     }
 
     // Create main net pay activity for the primary account
+    const mainActivityData = bill
+      .toActivity(`${bill.id}-${event.date}`, simulation, paycheckResult.netPay, event.date)
+      .serialize();
+
+    // Populate paycheckDetails with the full breakdown
+    mainActivityData.paycheckDetails = {
+      grossPay: paycheckResult.grossPay,
+      netPay: paycheckResult.netPay,
+      traditional401k: paycheckResult.traditional401k,
+      roth401k: paycheckResult.roth401k,
+      employerMatch: paycheckResult.employerMatch,
+      hsa: paycheckResult.hsa,
+      hsaEmployer: paycheckResult.hsaEmployer,
+      ssTax: paycheckResult.ssTax,
+      medicareTax: paycheckResult.medicareTax,
+      federalWithholding: paycheckResult.federalWithholding,
+      stateWithholding: paycheckResult.stateWithholding,
+      preTaxDeductions: paycheckResult.preTaxDeductions,
+      postTaxDeductions: paycheckResult.postTaxDeductions,
+    };
+
     const mainActivity = new ConsolidatedActivity(
-      bill
-        .toActivity(`${bill.id}-${event.date}`, simulation, paycheckResult.netPay, event.date)
-        .serialize(),
+      mainActivityData,
       { billId: bill.id, firstBill: event.firstBill },
     );
     // Mark as paycheck activity to prevent AIME double-counting in segment-processor

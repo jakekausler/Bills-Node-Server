@@ -80,6 +80,8 @@ export type PaycheckDetails = {
   hsaEmployer: number;
   ssTax: number;
   medicareTax: number;
+  federalWithholding: number;
+  stateWithholding: number;
   preTaxDeductions: { label: string; amount: number }[];
   postTaxDeductions: { label: string; amount: number }[];
   netPay: number;
