@@ -138,6 +138,10 @@ export class TaxManager {
         case 'ordinaryDividend':
           ordinaryDividends += occurrence.amount;
           break;
+        default:
+          // Exhaustiveness check — if a new IncomeType is added, this will be caught
+          this.log('unknown-income-type', { type: occurrence.incomeType });
+          break;
       }
     }
 
@@ -182,8 +186,8 @@ export class TaxManager {
     }
 
     // Add NIIT
+    const magi = ordinaryIncome + Math.max(0, netLT) + qualifiedDividends + ssIncome * 0.5;
     const interestIncome = allOccurrences.filter(o => o.incomeType === 'interest').reduce((s, o) => s + o.amount, 0);
-    const magi = ordinaryIncome + Math.max(0, netST) + Math.max(0, netLT) + qualifiedDividends + interestIncome + ssIncome * 0.5;
     const investmentIncome = interestIncome + qualifiedDividends + ordinaryDividends + Math.max(0, netST) + Math.max(0, netLT);
     const niit = calculateNIIT(investmentIncome, magi, filingStatus);
     totalTax += niit;
@@ -409,6 +413,10 @@ export class TaxManager {
         case 'ordinaryDividend':
           ordinaryDividends += occurrence.amount;
           break;
+        default:
+          // Exhaustiveness check — if a new IncomeType is added, this will be caught
+          this.log('unknown-income-type', { type: occurrence.incomeType });
+          break;
       }
     }
 
@@ -560,7 +568,7 @@ export class TaxManager {
 
     // Step 8b: NIIT on investment income above threshold
     // MAGI includes all income sources
-    const magi = agi + taxableSS + Math.max(0, netLongTerm) + qualifiedDividends;
+    const magi = agi + netLTForTax + qualifiedDividends;
     const investmentIncome = interestIncome + qualifiedDividends + ordinaryDividends
       + Math.max(0, netShortTerm) + Math.max(0, netLongTerm);
     const niitTax = calculateNIIT(investmentIncome, magi, taxProfile.filingStatus);
