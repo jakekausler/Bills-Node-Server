@@ -1545,6 +1545,39 @@ export class Calculator {
           sellCount: sellResults.length,
           totalGain: sellResults.reduce((sum, r) => sum + r.shortTermGain + r.longTermGain, 0),
         });
+
+        // Report capital gains to TaxManager for taxable brokerage accounts only.
+        // Taxable = portfolio-mode AND NOT pre-tax retirement (usesRMD) AND NOT Roth.
+        // Roth detection uses name heuristic (same as push-pull-handler.ts). TODO(#25): cleaner account type classification.
+        const isTaxableBrokerage = fromAccount
+          && !fromAccount.usesRMD
+          && !fromAccount.name.toLowerCase().includes('roth');
+        if (isTaxableBrokerage && sellResults.length > 0) {
+          const cgAccountName = fromAccount.name;
+          for (const sellResult of sellResults) {
+            for (const detail of sellResult.lotDetails) {
+              if (detail.gain !== 0) {
+                const incomeType: IncomeType = detail.holdingPeriod === 'short'
+                  ? 'shortTermCapitalGain'
+                  : 'longTermCapitalGain';
+                if (!segmentResult.taxableOccurrences.has(cgAccountName)) {
+                  segmentResult.taxableOccurrences.set(cgAccountName, []);
+                }
+                segmentResult.taxableOccurrences.get(cgAccountName)?.push({
+                  date: event.date,
+                  year: event.date.getUTCFullYear(),
+                  amount: detail.gain,
+                  incomeType,
+                });
+              }
+            }
+          }
+          this.log('capital-gains-reported', {
+            accountId: fromAccountId,
+            accountName: cgAccountName,
+            totalGain: sellResults.reduce((sum, r) => sum + r.shortTermGain + r.longTermGain, 0),
+          });
+        }
       }
 
       // Deposit into destination account
