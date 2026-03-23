@@ -97,16 +97,34 @@ export class PortfolioManager {
       }
     }
 
+    const initialLots: Lot[] = [];
     this.states.set(accountId, {
       accountId,
       mode: 'fund-level',
       config,
       fundPositions,
       uninvestedCash: 0,
-      lots: [],
+      lots: initialLots,
       projectedTransactions: [],
       simulatedPrices,
     });
+
+    // Create initial lots for existing positions so consumeLots can track capital gains.
+    // TODO(#25): import real cost basis from brokerage data instead of using currentPrice
+    if (config.funds) {
+      for (const fund of config.funds) {
+        if (fund.currentShares > 0) {
+          this.createLot(
+            accountId,
+            fund.symbol,
+            fund.currentShares,
+            fund.currentPrice, // Cost basis = current price (best estimate for existing holdings)
+            dayjs().format('YYYY-MM-DD'), // Today's date as purchase date
+            'manual', // Source: manual (initial position, not from a simulated event)
+          );
+        }
+      }
+    }
 
     this.log('init-fund-level', {
       accountId,
@@ -147,6 +165,21 @@ export class PortfolioManager {
     if (state) {
       state.fundPositions = fundPositions;
       state.simulatedPrices = simulatedPrices;
+      state.lots = []; // Clear any stale lots before creating fresh ones
+
+      // Create initial lots for virtual fund positions so consumeLots can track capital gains
+      for (const [symbol, position] of fundPositions) {
+        if (position.shares > 0) {
+          this.createLot(
+            accountId,
+            symbol,
+            position.shares,
+            position.currentPrice, // $1.00 for virtual funds
+            dayjs().format('YYYY-MM-DD'),
+            'manual',
+          );
+        }
+      }
     }
 
     this.log('init-estimated', {

@@ -93,6 +93,45 @@ describe('PortfolioManager', () => {
     });
   });
 
+  describe('fund-level initialization creates initial lots', () => {
+    beforeEach(() => {
+      manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+    });
+
+    it('creates one lot per fund with currentShares > 0', () => {
+      const state = manager.getAccountState('acc1')!;
+      // All 3 funds have currentShares > 0
+      expect(state.lots).toHaveLength(3);
+
+      const fxaixLot = state.lots.find((l) => l.fundSymbol === 'FXAIX')!;
+      expect(fxaixLot.shares).toBe(100);
+      expect(fxaixLot.costBasisPerShare).toBe(200);
+      expect(fxaixLot.totalCost).toBe(20000);
+      expect(fxaixLot.source).toBe('manual');
+      expect(fxaixLot.accountId).toBe('acc1');
+
+      const fxnaxLot = state.lots.find((l) => l.fundSymbol === 'FXNAX')!;
+      expect(fxnaxLot.shares).toBe(50);
+      expect(fxnaxLot.costBasisPerShare).toBe(10);
+      expect(fxnaxLot.totalCost).toBe(500);
+
+      const sprxxLot = state.lots.find((l) => l.fundSymbol === 'SPRXX')!;
+      expect(sprxxLot.shares).toBe(1000);
+      expect(sprxxLot.costBasisPerShare).toBe(1);
+      expect(sprxxLot.totalCost).toBe(1000);
+    });
+
+    it('does not create lot for fund with zero shares', () => {
+      const config = makeFundLevelConfig();
+      config.funds![0].currentShares = 0; // FXAIX = 0 shares
+      const mgr = new PortfolioManager({ acc1: config });
+      const state = mgr.getAccountState('acc1')!;
+      // Only 2 lots (FXNAX + SPRXX)
+      expect(state.lots).toHaveLength(2);
+      expect(state.lots.find((l) => l.fundSymbol === 'FXAIX')).toBeUndefined();
+    });
+  });
+
   describe('estimated initialization', () => {
     beforeEach(() => {
       manager = new PortfolioManager({ acc2: makeEstimatedConfig() });
@@ -117,6 +156,23 @@ describe('PortfolioManager', () => {
       expect(cash.shares).toBe(10000);
       expect(cash.currentPrice).toBe(1.0);
       expect(cash.value).toBe(10000);
+    });
+
+    it('creates initial lots for virtual funds', () => {
+      manager.initializeEstimatedAccount('acc2', 100000);
+      const state = manager.getAccountState('acc2')!;
+      expect(state.lots).toHaveLength(3);
+
+      const stockLot = state.lots.find((l) => l.fundSymbol === 'STOCK')!;
+      expect(stockLot.shares).toBe(70000);
+      expect(stockLot.costBasisPerShare).toBe(1.0);
+      expect(stockLot.source).toBe('manual');
+
+      const bondLot = state.lots.find((l) => l.fundSymbol === 'BOND')!;
+      expect(bondLot.shares).toBe(20000);
+
+      const cashLot = state.lots.find((l) => l.fundSymbol === 'CASH')!;
+      expect(cashLot.shares).toBe(10000);
     });
   });
 
@@ -356,6 +412,23 @@ describe('PortfolioManager', () => {
       const interest = manager.applyAnnualReturns('acc1', 2026, simpleReturns);
       expect(interest).toBeGreaterThan(0);
     });
+
+    it('re-creates initial lots after reset', () => {
+      manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+
+      // Consume some lots (modifies lot state)
+      manager.consumeLots('acc1', 'FXAIX', 50, 250, '2026-06-01');
+
+      manager.resetStates();
+
+      const state = manager.getAccountState('acc1')!;
+      // Should have 3 fresh initial lots (one per fund)
+      expect(state.lots).toHaveLength(3);
+
+      const fxaixLot = state.lots.find((l) => l.fundSymbol === 'FXAIX')!;
+      expect(fxaixLot.shares).toBe(100); // Full initial shares restored
+      expect(fxaixLot.costBasisPerShare).toBe(200);
+    });
   });
 
   describe('createLot', () => {
@@ -402,11 +475,14 @@ describe('PortfolioManager', () => {
 
       manager.consumeLots('acc1', 'FXAIX', 3, 250, '2026-06-01');
 
-      // The lot should have 7 shares remaining
+      // The manually created lot (oldest, FIFO) should have 7 shares remaining
+      // The initial lot (100 shares at today's date) should be untouched
       const state = manager.getAccountState('acc1');
       const lots = state!.lots.filter((l) => l.fundSymbol === 'FXAIX' && l.shares > 0);
-      expect(lots).toHaveLength(1);
-      expect(lots[0].shares).toBe(7);
+      expect(lots).toHaveLength(2); // manual lot (7 remaining) + initial lot (100)
+      // Sort by date to check the manual lot
+      lots.sort((a, b) => a.purchaseDate.localeCompare(b.purchaseDate));
+      expect(lots[0].shares).toBe(7); // partial consumption of the 2024 lot
     });
 
     it('highest-cost: sells most expensive lots first', () => {
@@ -615,21 +691,21 @@ describe('PortfolioManager', () => {
       expect(result.transactions).toHaveLength(1);
     });
 
-    it('edge case: sell when no lots exist returns zero-result', () => {
-      // The config starts with 100 shares of FXAIX in positions but no lots
-      // executeSell should gracefully handle this (consumeLots returns empty)
+    it('sell against initial lots reports zero gain (cost basis = current price)', () => {
+      // initializeAccount creates initial lots with costBasis = currentPrice,
+      // so selling at the same price should produce zero gain
       const state = manager.getAccountState('acc1')!;
       state.uninvestedCash = 0;
 
       const result = manager.executeSell('acc1', 'FXAIX', 5, '2026-06-01');
 
-      expect(result.totalProceeds).toBe(0);
-      expect(result.totalBasis).toBe(0);
-      expect(result.shortTermGain).toBe(0);
-      expect(result.longTermGain).toBe(0);
-      expect(result.lotDetails).toHaveLength(0);
+      // Proceeds and basis should match (price unchanged from init)
+      expect(result.totalProceeds).toBe(1000); // 5 * 200
+      expect(result.totalBasis).toBe(1000);    // 5 * 200 (cost basis = current price)
+      expect(result.shortTermGain + result.longTermGain).toBe(0);
+      expect(result.lotDetails).toHaveLength(1);
 
-      // Position shares should still decrease (shares exist even without lots)
+      // Position shares should decrease
       const position = manager.getPositions('acc1').find((p) => p.symbol === 'FXAIX')!;
       expect(position.shares).toBe(95); // 100 - 5
 
