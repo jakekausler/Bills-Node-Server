@@ -20,6 +20,8 @@ import { AcaManager } from './aca-manager';
 import { MortalityManager } from './mortality-manager';
 import { InheritanceManager, BenefactorConfig } from './inheritance-manager';
 import { LifeInsuranceManager, LifeInsurancePolicyConfig } from './life-insurance-manager';
+import { PortfolioManager } from './portfolio-manager';
+import type { AccountPortfolioConfig } from './portfolio-types';
 import { ManagerPayout } from './manager-payout';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { loadAllHealthcareConfigs } from '../io/virtualHealthcarePlans';
@@ -58,6 +60,7 @@ export class Engine {
   private mortalityManager: MortalityManager;
   private inheritanceManager: InheritanceManager | null = null;
   private lifeInsuranceManager: LifeInsuranceManager | null = null;
+  private portfolioManager: PortfolioManager | null = null;
   private calculationBegin: number;
   private monteCarloConfig: MonteCarloConfig | null = null;
   private debugLogger: DebugLogger | null;
@@ -401,6 +404,20 @@ export class Engine {
       }
     }
 
+    // Load portfolio configs
+    const portfolioConfigPath = join(process.cwd(), 'data', 'accountPortfolioConfigs.json');
+    let portfolioConfigs: Record<string, AccountPortfolioConfig> = {};
+    try {
+      if (existsSync(portfolioConfigPath)) {
+        portfolioConfigs = JSON.parse(readFileSync(portfolioConfigPath, 'utf-8'));
+      }
+    } catch (e) {
+      if (this.debugLogger) {
+        this.debugLogger.log(this.simNumber, { component: 'engine', event: 'portfolio-config-load-error', error: String(e) });
+      }
+    }
+    this.portfolioManager = new PortfolioManager(portfolioConfigs, this.debugLogger, this.simNumber);
+
     // Create InheritanceManager
     const ssaLifeTable = this.mortalityManager.getSSALifeTable();
     if (inheritanceConfigs.length > 0 && ssaLifeTable && this.mortalityManager) {
@@ -522,6 +539,11 @@ export class Engine {
     // Pass life insurance manager to calculator
     if (this.lifeInsuranceManager) {
       this.calculator.setLifeInsuranceManager(this.lifeInsuranceManager);
+    }
+
+    // Pass portfolio manager to calculator
+    if (this.portfolioManager) {
+      this.calculator.setPortfolioManager(this.portfolioManager);
     }
 
     // Initialize push-pull handler
@@ -868,6 +890,13 @@ export class Engine {
   getLifeInsuranceManager(): LifeInsuranceManager | null {
     return this.lifeInsuranceManager;
   }
+
+  /**
+   * Get the PortfolioManager instance (for MC worker to extract portfolio positions)
+   */
+  getPortfolioManager(): PortfolioManager | null {
+    return this.portfolioManager;
+  }
 }
 
 /**
@@ -941,4 +970,11 @@ export function getLastInheritanceManager(): InheritanceManager | null {
  */
 export function getLastLifeInsuranceManager(): LifeInsuranceManager | null {
   return lastEngine ? lastEngine.getLifeInsuranceManager() : null;
+}
+
+/**
+ * Get the PortfolioManager from the last calculation (for MC worker to extract portfolio positions)
+ */
+export function getLastPortfolioManager(): PortfolioManager | null {
+  return lastEngine ? lastEngine.getPortfolioManager() : null;
 }
