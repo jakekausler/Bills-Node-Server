@@ -3,7 +3,11 @@ import {
   calculateProgressiveTax,
   calculateTaxableSS,
   computeAnnualFederalTax,
+  calculateLongTermCapitalGainsTax,
+  calculateNIIT,
 } from './bracket-calculator';
+import type { MCRateGetter } from './types';
+import { MonteCarloSampleType } from './types';
 
 describe('BracketCalculator', () => {
   // Test data from taxBrackets.json for reference in calculations
@@ -295,6 +299,151 @@ describe('BracketCalculator', () => {
       // Tax: 11600*0.10 + 36150*0.12 = 1160 + 4338 = 5498
       // Actual computed: 5558 (verify this is correct or update expected)
       expect(result.tax).toBeCloseTo(5558, 0);
+    });
+  });
+
+  describe('calculateLongTermCapitalGainsTax', () => {
+    // 2024 MFJ CG brackets from capitalGainsRates.json:
+    //   0 - 94050:  0%
+    //   94050 - 583750: 15%
+    //   583750+: 20%
+
+    it('should stack LTCG on top of ordinary income (basic MFJ)', () => {
+      // $80K ordinary taxable income + $20K LTCG, MFJ 2024
+      // Stacking starts at $80K:
+      //   0% bracket space remaining = 94050 - 80000 = 14050
+      //   First $14,050 of LTCG at 0% = $0
+      //   Remaining $5,950 at 15% = $892.50
+      // Total CG tax = $892.50
+      const result = calculateLongTermCapitalGainsTax(80000, 20000, 0, 'mfj', 2024, 0.03, null);
+      expect(result.tax).toBeCloseTo(892.50, 2);
+      expect(result.effectiveRate).toBeCloseTo(892.50 / 20000, 4);
+    });
+
+    it('should tax all LTCG at 0% when below threshold with zero ordinary income', () => {
+      // $0 ordinary + $50K LTCG, MFJ 2024
+      // All $50K falls within 0% bracket (0 - 94050)
+      // Total CG tax = $0
+      const result = calculateLongTermCapitalGainsTax(0, 50000, 0, 'mfj', 2024, 0.03, null);
+      expect(result.tax).toBe(0);
+      expect(result.effectiveRate).toBe(0);
+    });
+
+    it('should handle high income spanning multiple CG brackets (MFJ)', () => {
+      // $100K ordinary + $500K LTCG, MFJ 2024
+      // Stacking starts at $100K (already past 0% threshold of $94,050):
+      //   0% bracket: max=94050, starting=100000 → space = 94050 - 100000 = -5950 → skip
+      //   15% bracket: min=94050, max=583750, starting=100000
+      //     space = 583750 - 100000 = 483750
+      //     taxable = min(500000, 483750) = 483750 at 15% = $72,562.50
+      //     remaining = 500000 - 483750 = 16250
+      //   20% bracket: remaining $16,250 at 20% = $3,250
+      // Total CG tax = $72,562.50 + $3,250 = $75,812.50
+      const result = calculateLongTermCapitalGainsTax(100000, 500000, 0, 'mfj', 2024, 0.03, null);
+      expect(result.tax).toBeCloseTo(75812.50, 2);
+    });
+
+    it('should include qualified dividends in preferential income', () => {
+      // $80K ordinary + $10K LTCG + $10K qualified dividends, MFJ 2024
+      // Total preferential = $20K, same stacking as basic test
+      // Should produce same result as $80K + $20K LTCG
+      const result = calculateLongTermCapitalGainsTax(80000, 10000, 10000, 'mfj', 2024, 0.03, null);
+      expect(result.tax).toBeCloseTo(892.50, 2);
+    });
+
+    it('should return zero effective rate when no preferential income', () => {
+      const result = calculateLongTermCapitalGainsTax(80000, 0, 0, 'mfj', 2024, 0.03, null);
+      expect(result.tax).toBe(0);
+      expect(result.effectiveRate).toBe(0);
+    });
+
+    it('should inflate CG thresholds for future years', () => {
+      // With 3% inflation from 2024 to 2027 (3 years):
+      // multiplier = 1.03^3 = 1.092727
+      // 0% bracket max: 94050 * 1.092727 = ~102773 (rounded to $50)
+      // So $80K ordinary + $20K LTCG in 2027 should all be at 0%
+      // (80000 + 20000 = 100000 < ~102773)
+      const result = calculateLongTermCapitalGainsTax(80000, 20000, 0, 'mfj', 2027, 0.03, null);
+      expect(result.tax).toBe(0); // All within inflated 0% bracket
+    });
+
+    it('should inflate CG thresholds using MC rate getter when provided', () => {
+      // Mock MC rate getter that returns 5% inflation for every year
+      const mcRateGetter: MCRateGetter = (sampleType: MonteCarloSampleType, _year: number) => {
+        if (sampleType === MonteCarloSampleType.INFLATION) return 0.05;
+        return null;
+      };
+      // 2024 -> 2027: multiplier = 1.05^3 = 1.157625
+      // 0% bracket max: 94050 * 1.157625 = ~108870 (rounded to $50)
+      // $100K ordinary + $10K LTCG: 100K + 10K = 110K
+      // space in 0% = 108870 - 100000 = 8870 at 0%
+      // remaining = 10000 - 8870 = 1130 at 15% = ~$169.50
+      const result = calculateLongTermCapitalGainsTax(100000, 10000, 0, 'mfj', 2027, 0.03, mcRateGetter);
+      expect(result.tax).toBeGreaterThan(0);
+      expect(result.tax).toBeLessThan(1500); // Much less than 15% of $10K
+    });
+  });
+
+  describe('calculateNIIT', () => {
+    it('should apply 3.8% NIIT on investment income above MFJ threshold', () => {
+      // $300K MAGI, $300K investment income, MFJ threshold = $250K
+      // NIIT base = min(300000, 300000 - 250000) = min(300000, 50000) = 50000
+      // NIIT = 50000 * 0.038 = $1,900
+      const niit = calculateNIIT(300000, 300000, 'mfj');
+      expect(niit).toBeCloseTo(1900, 2);
+    });
+
+    it('should return $0 NIIT when MAGI is below threshold', () => {
+      // $200K MAGI, MFJ threshold = $250K
+      const niit = calculateNIIT(100000, 200000, 'mfj');
+      expect(niit).toBe(0);
+    });
+
+    it('should use investment income when it is less than MAGI excess', () => {
+      // $400K MAGI, $50K investment income, MFJ threshold = $250K
+      // MAGI excess = 400000 - 250000 = 150000
+      // NIIT base = min(50000, 150000) = 50000
+      // NIIT = 50000 * 0.038 = $1,900
+      const niit = calculateNIIT(50000, 400000, 'mfj');
+      expect(niit).toBeCloseTo(1900, 2);
+    });
+
+    it('should use single threshold ($200K)', () => {
+      // $250K MAGI, $100K investment income, single threshold = $200K
+      // NIIT base = min(100000, 250000 - 200000) = min(100000, 50000) = 50000
+      // NIIT = 50000 * 0.038 = $1,900
+      const niit = calculateNIIT(100000, 250000, 'single');
+      expect(niit).toBeCloseTo(1900, 2);
+    });
+
+    it('should use MFS threshold ($125K)', () => {
+      // $200K MAGI, $100K investment income, MFS threshold = $125K
+      // NIIT base = min(100000, 200000 - 125000) = min(100000, 75000) = 75000
+      // NIIT = 75000 * 0.038 = $2,850
+      const niit = calculateNIIT(100000, 200000, 'mfs');
+      expect(niit).toBeCloseTo(2850, 2);
+    });
+
+    it('should NOT inflate NIIT thresholds (statutory, same in 2040 as 2024)', () => {
+      // NIIT thresholds are statutory and NOT inflation-indexed
+      // $300K MAGI, $300K investment, MFJ in both 2024 and 2040
+      // Both should produce NIIT on $50K (300K - 250K threshold)
+      // Since calculateNIIT does not take a year parameter, this is by design:
+      // the threshold is always $250K for MFJ regardless of year
+      const niit = calculateNIIT(300000, 300000, 'mfj');
+      expect(niit).toBeCloseTo(1900, 2);
+      // If NIIT were inflation-indexed, the threshold for 2040 would be higher
+      // and the NIIT would be less. Since there's no year parameter, it's always $250K.
+    });
+
+    it('should return $0 when investment income is zero', () => {
+      const niit = calculateNIIT(0, 300000, 'mfj');
+      expect(niit).toBe(0);
+    });
+
+    it('should return $0 when MAGI exactly equals threshold', () => {
+      const niit = calculateNIIT(100000, 250000, 'mfj');
+      expect(niit).toBe(0);
     });
   });
 });

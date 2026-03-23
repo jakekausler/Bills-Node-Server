@@ -239,5 +239,140 @@ export function computeAnnualFederalTax(
   return { tax, effectiveRate, marginalRate, taxableIncome, taxableSS, standardDeduction, ssThresholds };
 }
 
+// --- Capital Gains Rate Data ---
+
+interface CGBracket {
+  min: number;
+  max: number | null;
+  rate: number;
+}
+
+interface CGYearData {
+  longTermRates: Record<FilingStatus, CGBracket[]>;
+  niitThresholds: Record<FilingStatus, number>;
+  niitRate: number;
+}
+
+interface CGRateData {
+  baseYear: number;
+  [year: string]: CGYearData | number; // year data or baseYear number
+}
+
+let cgRateData: CGRateData | null = null;
+
+function loadCGRateData(): CGRateData {
+  if (!cgRateData) {
+    const path = join(process.cwd(), 'data', 'capitalGainsRates.json');
+    cgRateData = JSON.parse(readFileSync(path, 'utf-8'));
+  }
+  return cgRateData!;
+}
+
+/**
+ * Reset CG rate data cache (for testing)
+ */
+export function resetCGRateDataCache(): void {
+  cgRateData = null;
+}
+
+/**
+ * Get inflated CG brackets for a given year.
+ * Inflates from the base year in capitalGainsRates.json using compound inflation.
+ */
+function getCGBracketsForYear(
+  filingStatus: FilingStatus,
+  year: number,
+  inflationRate: number,
+  mcRateGetter: MCRateGetter | null,
+): CGBracket[] {
+  const data = loadCGRateData();
+  const baseYear = data.baseYear;
+  const baseData = data[String(baseYear)] as CGYearData;
+  const baseBrackets = baseData.longTermRates[filingStatus];
+
+  if (year <= baseYear) return baseBrackets;
+
+  const inflationMultiplier = compoundInflationMultiplier(baseYear, year, inflationRate, mcRateGetter);
+
+  return baseBrackets.map(b => ({
+    min: Math.round(b.min * inflationMultiplier / 50) * 50,
+    max: b.max !== null ? Math.round(b.max * inflationMultiplier / 50) * 50 : null,
+    rate: b.rate,
+  }));
+}
+
+/**
+ * Calculate long-term capital gains tax using stacking logic.
+ *
+ * CG brackets are "stacked" on top of ordinary taxable income:
+ * ordinary income fills up the lower brackets first, then LTCG + qualified
+ * dividends are taxed at the CG rate that corresponds to where they fall
+ * in the combined income stack.
+ */
+export function calculateLongTermCapitalGainsTax(
+  ordinaryTaxableIncome: number,
+  longTermGains: number,
+  qualifiedDividends: number,
+  filingStatus: FilingStatus,
+  year: number,
+  inflationRate: number,
+  mcRateGetter: MCRateGetter | null,
+): { tax: number; effectiveRate: number } {
+  const totalPreferentialIncome = longTermGains + qualifiedDividends;
+  if (totalPreferentialIncome <= 0) {
+    return { tax: 0, effectiveRate: 0 };
+  }
+
+  const brackets = getCGBracketsForYear(filingStatus, year, inflationRate, mcRateGetter);
+  let tax = 0;
+  let remainingIncome = totalPreferentialIncome;
+  let currentPosition = ordinaryTaxableIncome;
+
+  for (const bracket of brackets) {
+    if (remainingIncome <= 0) break;
+
+    const bracketMax = bracket.max !== null ? bracket.max : Infinity;
+    const spaceInBracket = bracketMax - Math.max(currentPosition, bracket.min);
+
+    if (spaceInBracket <= 0) continue;
+
+    const taxableInBracket = Math.min(remainingIncome, spaceInBracket);
+    tax += taxableInBracket * bracket.rate;
+    currentPosition += taxableInBracket;
+    remainingIncome -= taxableInBracket;
+  }
+
+  return {
+    tax,
+    effectiveRate: totalPreferentialIncome > 0 ? tax / totalPreferentialIncome : 0,
+  };
+}
+
+/**
+ * Calculate Net Investment Income Tax (NIIT).
+ *
+ * NIIT is 3.8% on the lesser of:
+ *   - Net investment income, OR
+ *   - MAGI exceeding the filing status threshold
+ *
+ * NIIT thresholds are STATUTORY and NOT inflation-indexed.
+ */
+export function calculateNIIT(
+  investmentIncome: number,
+  magi: number,
+  filingStatus: FilingStatus,
+): number {
+  const data = loadCGRateData();
+  const baseData = data[String(data.baseYear)] as CGYearData;
+  const threshold = baseData.niitThresholds[filingStatus];
+  const rate = baseData.niitRate;
+
+  if (magi <= threshold) return 0;
+  if (investmentIncome <= 0) return 0;
+
+  const niitBase = Math.min(investmentIncome, magi - threshold);
+  return niitBase * rate;
+}
+
 // Export for testing
 export { getBracketDataForYear, loadBracketData };
