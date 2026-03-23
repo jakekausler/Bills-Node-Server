@@ -740,8 +740,8 @@ export class Calculator {
     // Compute paychecks per year from bill frequency
     const paychecksPerYear = this.computePaychecksPerYear(bill.everyN, bill.periods);
 
-    // Compute gross pay (typically from profile or from bill amount)
-    let grossPay = typeof event.amount === 'number' ? event.amount : profile.grossPay;
+    // Compute gross pay from paycheck profile (not from bill amount)
+    let grossPay = profile.grossPay;
 
     // Apply raise correction for missed raises during unemployment years
     if (this.jobLossManager) {
@@ -811,6 +811,9 @@ export class Calculator {
       standardDeduction,
       bracketLookup,
     );
+
+    // Write net pay back to bill for frontend display
+    bill.amount = paycheckResult.netPay;
 
     // Skip downstream processing if paycheck is empty (suppressed during unemployment)
     if (paycheckResult.grossPay === 0) {

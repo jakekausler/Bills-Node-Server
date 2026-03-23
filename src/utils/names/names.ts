@@ -28,6 +28,7 @@ export interface NameEntry {
   from: string | null;
   to: string | null;
   spendingCategory: string | null;
+  amount?: number;
 }
 
 /**
@@ -51,6 +52,7 @@ const getActivityMetadata = (activity: any): NameEntry => ({
   from: activity.from ?? null,
   to: activity.to ?? null,
   spendingCategory: activity.spendingCategory ?? null,
+  amount: activity.amount,
 });
 
 /**
@@ -66,6 +68,7 @@ const getBillMetadata = (bill: any): NameEntry => ({
   from: bill.from ?? null,
   to: bill.to ?? null,
   spendingCategory: bill.spendingCategory ?? null,
+  amount: bill.amount,
 });
 
 /**
