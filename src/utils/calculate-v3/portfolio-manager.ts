@@ -672,7 +672,7 @@ export class PortfolioManager {
       amount,
       source,
       buyCount: transactions.length,
-      reserveFilled: bucket ? true : false,
+      reserveFilled: bucket ? remaining < amount : false,
     });
 
     return transactions;
@@ -747,9 +747,11 @@ export class PortfolioManager {
       }
     }
 
-    // Step 3: Decrease uninvested cash by amount
+    // Step 3: Decrease uninvested cash by actual proceeds
     // (executeSell increased it by proceeds; the withdrawal removes it)
-    state.uninvestedCash -= amount;
+    // Only subtract what was actually sold — don't go negative
+    const actualProceeds = allSellResults.reduce((sum, r) => sum + r.totalProceeds, 0);
+    state.uninvestedCash -= Math.min(amount, actualProceeds);
 
     this.log('withdrawal-executed', {
       accountId,

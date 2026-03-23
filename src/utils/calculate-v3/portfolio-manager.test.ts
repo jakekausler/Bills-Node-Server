@@ -920,6 +920,10 @@ describe('PortfolioManager', () => {
         const totalProceeds = result.sellResults.reduce((sum, sr) => sum + sr.totalProceeds, 0);
         expect(totalProceeds).toBeLessThan(50000);
         expect(totalProceeds).toBeGreaterThan(0);
+
+        // uninvestedCash must never go negative
+        const state = manager.getAccountState('acc1')!;
+        expect(state.uninvestedCash).toBeGreaterThanOrEqual(0);
       });
     });
 
