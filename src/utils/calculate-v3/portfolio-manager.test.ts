@@ -1109,6 +1109,12 @@ describe('PortfolioManager', () => {
       // Only contributions would be penalty-free, but there are none
       expect(penaltyFree).toBe(0);
     });
+
+    it('conversion exactly 5 years ago is penalty-free', () => {
+      manager.executeBuy('rothIRA', 'FXAIX', 10000, '2020-01-01', 'conversion');
+      const penaltyFree = manager.getRothPenaltyFreeBalance('rothIRA', '2025-01-01');
+      expect(penaltyFree).toBeGreaterThan(0);
+    });
   });
 
   describe('getRothPenaltyableBalance', () => {
@@ -1122,6 +1128,12 @@ describe('PortfolioManager', () => {
       manager.executeBuy('rothIRA', 'FXAIX', 10000, '2024-06-01', 'conversion');
 
       const penaltyable = manager.getRothPenaltyableBalance('rothIRA', '2026-01-01');
+      expect(penaltyable).toBeGreaterThan(0);
+    });
+
+    it('conversion at 4 years 364 days is still penaltyable', () => {
+      manager.executeBuy('rothIRA', 'FXAIX', 10000, '2020-01-02', 'conversion');
+      const penaltyable = manager.getRothPenaltyableBalance('rothIRA', '2025-01-01');
       expect(penaltyable).toBeGreaterThan(0);
     });
 

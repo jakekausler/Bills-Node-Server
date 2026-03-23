@@ -280,7 +280,9 @@ export class RothConversionManager {
 
             if (inAcaPeriodNextYear) {
               // Get current year's income (MAGI for next year ACA subsidy calculation)
-              // ACA MAGI includes: ordinary income + CG + dividends + interest
+              // ACA MAGI = all income types. ordinaryIncome already includes: shortTermCapitalGain,
+              // interest, ordinaryDividends (added in the income aggregation above).
+              // Add longTermCG and qualifiedDividends which are tracked separately (not in ordinaryIncome).
               const currentMAGI = ordinaryIncome + longTermCG + qualifiedDividends;
 
               // Calculate real ages for next year (July 1 age convention)

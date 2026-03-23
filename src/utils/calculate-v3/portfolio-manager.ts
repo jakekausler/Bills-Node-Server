@@ -823,7 +823,8 @@ export class PortfolioManager {
   }
 
   /**
-   * Get penalty-free balance from a Roth account.
+   * Returns the cost basis (conversion amount) of penalty-free Roth lots.
+   * Uses cost basis, not market value, per IRS Roth ordering rules.
    * Contributions are always penalty-free.
    * Conversions are penalty-free after 5 years from conversion date.
    */
@@ -853,7 +854,8 @@ export class PortfolioManager {
   }
 
   /**
-   * Get penaltyable balance from a Roth account.
+   * Returns the cost basis (conversion amount) of penaltyable Roth lots.
+   * Uses cost basis, not market value, per IRS Roth ordering rules.
    * Conversions within the 5-year rule are subject to penalty.
    */
   getRothPenaltyableBalance(accountId: string, currentDate: string): number {
