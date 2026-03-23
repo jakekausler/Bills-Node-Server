@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PortfolioManager } from './portfolio-manager';
-import type { AccountPortfolioConfig, FundConfig } from './portfolio-types';
+import type { AccountPortfolioConfig, FundConfig, SellResult } from './portfolio-types';
 
 // ===== Test Helpers =====
 
@@ -355,6 +355,160 @@ describe('PortfolioManager', () => {
       // Should be able to apply returns for 2026 again
       const interest = manager.applyAnnualReturns('acc1', 2026, simpleReturns);
       expect(interest).toBeGreaterThan(0);
+    });
+  });
+
+  describe('createLot', () => {
+    beforeEach(() => {
+      manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+    });
+
+    it('adds a lot with correct fields (id, shares, costBasis, date, source)', () => {
+      const lot = manager.createLot('acc1', 'FXAIX', 10, 200, '2025-01-15', 'contribution');
+
+      expect(lot.id).toBeDefined();
+      expect(lot.accountId).toBe('acc1');
+      expect(lot.fundSymbol).toBe('FXAIX');
+      expect(lot.shares).toBe(10);
+      expect(lot.costBasisPerShare).toBe(200);
+      expect(lot.totalCost).toBe(2000);
+      expect(lot.purchaseDate).toBe('2025-01-15');
+      expect(lot.source).toBe('contribution');
+    });
+  });
+
+  describe('consumeLots', () => {
+    beforeEach(() => {
+      manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+    });
+
+    it('FIFO: sells oldest lots first', () => {
+      manager.createLot('acc1', 'FXAIX', 10, 180, '2024-01-01', 'contribution');
+      manager.createLot('acc1', 'FXAIX', 10, 200, '2024-06-01', 'contribution');
+      manager.createLot('acc1', 'FXAIX', 10, 220, '2025-01-01', 'contribution');
+
+      const result: SellResult = manager.consumeLots('acc1', 'FXAIX', 15, 250, '2026-06-01');
+
+      // Should consume all 10 from oldest lot ($180) and 5 from middle lot ($200)
+      expect(result.lotDetails).toHaveLength(2);
+      expect(result.lotDetails[0].costBasisPerShare).toBe(180);
+      expect(result.lotDetails[0].shares).toBe(10);
+      expect(result.lotDetails[1].costBasisPerShare).toBe(200);
+      expect(result.lotDetails[1].shares).toBe(5);
+    });
+
+    it('FIFO: partial lot consumption leaves remainder', () => {
+      manager.createLot('acc1', 'FXAIX', 10, 200, '2024-01-01', 'contribution');
+
+      manager.consumeLots('acc1', 'FXAIX', 3, 250, '2026-06-01');
+
+      // The lot should have 7 shares remaining
+      const state = manager.getAccountState('acc1');
+      const lots = state!.lots.filter((l) => l.fundSymbol === 'FXAIX' && l.shares > 0);
+      expect(lots).toHaveLength(1);
+      expect(lots[0].shares).toBe(7);
+    });
+
+    it('highest-cost: sells most expensive lots first', () => {
+      // Use a highest-cost config
+      const hcConfig = makeFundLevelConfig();
+      hcConfig.lotSelectionStrategy = 'highest-cost';
+      const hcManager = new PortfolioManager({ acc1: hcConfig });
+
+      hcManager.createLot('acc1', 'FXAIX', 10, 180, '2024-01-01', 'contribution');
+      hcManager.createLot('acc1', 'FXAIX', 10, 220, '2024-06-01', 'contribution');
+      hcManager.createLot('acc1', 'FXAIX', 10, 200, '2025-01-01', 'contribution');
+
+      const result: SellResult = hcManager.consumeLots('acc1', 'FXAIX', 15, 250, '2026-06-01');
+
+      // Should consume all 10 from most expensive lot ($220) then 5 from next ($200)
+      expect(result.lotDetails).toHaveLength(2);
+      expect(result.lotDetails[0].costBasisPerShare).toBe(220);
+      expect(result.lotDetails[0].shares).toBe(10);
+      expect(result.lotDetails[1].costBasisPerShare).toBe(200);
+      expect(result.lotDetails[1].shares).toBe(5);
+    });
+
+    it('computes gains correctly: (sellPrice - costBasis) * shares', () => {
+      manager.createLot('acc1', 'FXAIX', 10, 180, '2024-01-01', 'contribution');
+
+      const result = manager.consumeLots('acc1', 'FXAIX', 10, 250, '2026-06-01');
+
+      expect(result.lotDetails[0].proceeds).toBe(2500); // 10 * 250
+      expect(result.lotDetails[0].costBasis).toBe(1800); // 10 * 180
+      expect(result.lotDetails[0].gain).toBe(700);       // 2500 - 1800
+    });
+
+    it('classifies holding period: > 365 days = long-term', () => {
+      // Purchased 2024-01-01, sold 2025-01-02 => 366 days => long-term
+      manager.createLot('acc1', 'FXAIX', 10, 200, '2024-01-01', 'contribution');
+
+      const result = manager.consumeLots('acc1', 'FXAIX', 10, 250, '2025-01-02');
+
+      expect(result.lotDetails[0].holdingPeriod).toBe('long');
+    });
+
+    it('classifies holding period: <= 365 days = short-term', () => {
+      // Purchased 2025-01-01, sold 2026-01-01 => 365 days (non-leap year) => short-term
+      manager.createLot('acc1', 'FXAIX', 10, 200, '2025-01-01', 'contribution');
+
+      const result = manager.consumeLots('acc1', 'FXAIX', 10, 250, '2026-01-01');
+
+      expect(result.lotDetails[0].holdingPeriod).toBe('short');
+    });
+
+    it('returns SellResult with correct totals', () => {
+      manager.createLot('acc1', 'FXAIX', 10, 180, '2024-01-01', 'contribution');
+      manager.createLot('acc1', 'FXAIX', 10, 200, '2024-06-01', 'contribution');
+
+      const result = manager.consumeLots('acc1', 'FXAIX', 15, 250, '2026-06-01');
+
+      // lot1: 10 shares @ $180 cost, sold @ $250 => proceeds 2500, basis 1800, gain 700 (long)
+      // lot2: 5 shares @ $200 cost, sold @ $250 => proceeds 1250, basis 1000, gain 250 (long)
+      expect(result.totalProceeds).toBe(3750);
+      expect(result.totalBasis).toBe(2800);
+      expect(result.longTermGain).toBe(950);
+      expect(result.shortTermGain).toBe(0);
+      expect(result.transactions).toHaveLength(2);
+    });
+  });
+
+  describe('checkpoint/restore with lots and projectedTransactions', () => {
+    it('round-trip preserves lots and projectedTransactions', () => {
+      manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+
+      // Create some lots
+      manager.createLot('acc1', 'FXAIX', 10, 200, '2024-01-01', 'contribution');
+      manager.createLot('acc1', 'FXAIX', 5, 210, '2024-06-01', 'contribution');
+
+      // Sell some to generate projectedTransactions
+      manager.consumeLots('acc1', 'FXAIX', 8, 250, '2026-06-01');
+
+      const checkpoint = manager.checkpoint();
+
+      // Create fresh manager and restore
+      const manager2 = new PortfolioManager({ acc1: makeFundLevelConfig() });
+      manager2.restore(checkpoint);
+
+      // Verify lots preserved
+      const state1 = manager.getAccountState('acc1')!;
+      const state2 = manager2.getAccountState('acc1')!;
+
+      expect(state2.lots).toHaveLength(state1.lots.length);
+      for (let i = 0; i < state1.lots.length; i++) {
+        expect(state2.lots[i].id).toBe(state1.lots[i].id);
+        expect(state2.lots[i].shares).toBe(state1.lots[i].shares);
+        expect(state2.lots[i].costBasisPerShare).toBe(state1.lots[i].costBasisPerShare);
+        expect(state2.lots[i].purchaseDate).toBe(state1.lots[i].purchaseDate);
+      }
+
+      // Verify projectedTransactions preserved
+      expect(state2.projectedTransactions).toHaveLength(state1.projectedTransactions.length);
+      for (let i = 0; i < state1.projectedTransactions.length; i++) {
+        expect(state2.projectedTransactions[i].id).toBe(state1.projectedTransactions[i].id);
+        expect(state2.projectedTransactions[i].type).toBe(state1.projectedTransactions[i].type);
+        expect(state2.projectedTransactions[i].shares).toBe(state1.projectedTransactions[i].shares);
+      }
     });
   });
 });

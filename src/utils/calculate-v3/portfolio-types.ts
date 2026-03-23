@@ -79,6 +79,27 @@ export interface Lot {
   source: 'contribution' | 'conversion' | 'reinvestment' | 'rebalance' | 'transfer' | 'manual';
 }
 
+export interface LotSellDetail {
+  lotId: string;
+  fundSymbol: string;
+  shares: number;
+  costBasisPerShare: number;
+  sellPrice: number;
+  proceeds: number;       // shares * sellPrice
+  costBasis: number;      // shares * costBasisPerShare
+  gain: number;           // proceeds - costBasis
+  holdingPeriod: 'short' | 'long';  // > 1 year from purchase = long
+}
+
+export interface SellResult {
+  totalProceeds: number;
+  totalBasis: number;
+  shortTermGain: number;
+  longTermGain: number;
+  lotDetails: LotSellDetail[];
+  transactions: PortfolioTransaction[];
+}
+
 export interface FundPosition {
   symbol: string;
   shares: number;

@@ -8,12 +8,17 @@
  * Accounts not in the config map are treated as interest-mode (null from getAccountMode).
  */
 
+import dayjs from 'dayjs';
 import type { DebugLogger } from './debug-logger';
 import type {
   AccountPortfolioConfig,
   AccountPortfolioState,
   FundPosition,
+  Lot,
+  LotSellDetail,
   PortfolioMode,
+  PortfolioTransaction,
+  SellResult,
 } from './portfolio-types';
 
 export class PortfolioManager {
@@ -258,6 +263,8 @@ export class PortfolioManager {
         fundPositions: Object.fromEntries(state.fundPositions),
         uninvestedCash: state.uninvestedCash,
         simulatedPrices: Object.fromEntries(state.simulatedPrices),
+        lots: state.lots,
+        projectedTransactions: state.projectedTransactions,
       };
     }
 
@@ -277,6 +284,8 @@ export class PortfolioManager {
         fundPositions: Record<string, FundPosition>;
         uninvestedCash: number;
         simulatedPrices: Record<string, number>;
+        lots?: Lot[];
+        projectedTransactions?: PortfolioTransaction[];
       }>;
       lastReturnYear: Record<string, number>;
     };
@@ -295,6 +304,8 @@ export class PortfolioManager {
       state.uninvestedCash = snap.uninvestedCash;
       state.fundPositions = new Map(Object.entries(snap.fundPositions));
       state.simulatedPrices = new Map(Object.entries(snap.simulatedPrices));
+      state.lots = snap.lots ?? [];
+      state.projectedTransactions = snap.projectedTransactions ?? [];
     }
   }
 
@@ -321,6 +332,161 @@ export class PortfolioManager {
         });
       }
     }
+  }
+
+  /**
+   * Get account state (for testing and external inspection).
+   */
+  getAccountState(accountId: string): AccountPortfolioState | undefined {
+    return this.states.get(accountId);
+  }
+
+  /**
+   * Create a new lot for an account + fund.
+   */
+  createLot(
+    accountId: string,
+    fundSymbol: string,
+    shares: number,
+    pricePerShare: number,
+    date: string,
+    source: Lot['source'],
+  ): Lot {
+    const state = this.states.get(accountId);
+    if (!state) {
+      throw new Error(`No portfolio state for account ${accountId}`);
+    }
+
+    const lot: Lot = {
+      id: `${accountId}-${fundSymbol}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      accountId,
+      fundSymbol,
+      shares,
+      costBasisPerShare: pricePerShare,
+      totalCost: shares * pricePerShare,
+      purchaseDate: date,
+      source,
+    };
+
+    state.lots.push(lot);
+
+    this.log('lot-created', {
+      accountId,
+      fundSymbol,
+      shares,
+      pricePerShare,
+      lotId: lot.id,
+    });
+
+    return lot;
+  }
+
+  /**
+   * Consume lots for a sell operation using the account's lot selection strategy.
+   * Returns a SellResult with per-lot details and gain classification.
+   */
+  consumeLots(
+    accountId: string,
+    fundSymbol: string,
+    sharesToSell: number,
+    sellPrice: number,
+    sellDate: string,
+  ): SellResult {
+    const state = this.states.get(accountId);
+    if (!state) {
+      throw new Error(`No portfolio state for account ${accountId}`);
+    }
+
+    // Filter lots for this fund with remaining shares
+    const eligibleLots = state.lots.filter(
+      (l) => l.fundSymbol === fundSymbol && l.shares > 0,
+    );
+
+    // Sort by strategy
+    const strategy = state.config.lotSelectionStrategy;
+    if (strategy === 'highest-cost') {
+      eligibleLots.sort((a, b) => b.costBasisPerShare - a.costBasisPerShare);
+    } else {
+      // FIFO: oldest first
+      eligibleLots.sort((a, b) => a.purchaseDate.localeCompare(b.purchaseDate));
+    }
+
+    let remaining = sharesToSell;
+    const lotDetails: LotSellDetail[] = [];
+    const transactions: PortfolioTransaction[] = [];
+    let shortTermGain = 0;
+    let longTermGain = 0;
+    let totalProceeds = 0;
+    let totalBasis = 0;
+
+    for (const lot of eligibleLots) {
+      if (remaining <= 0) break;
+
+      const sharesToConsume = Math.min(lot.shares, remaining);
+      lot.shares -= sharesToConsume;
+      remaining -= sharesToConsume;
+
+      const proceeds = sharesToConsume * sellPrice;
+      const costBasis = sharesToConsume * lot.costBasisPerShare;
+      const gain = proceeds - costBasis;
+      const holdingDays = dayjs(sellDate).diff(dayjs(lot.purchaseDate), 'day');
+      const holdingPeriod: 'short' | 'long' = holdingDays > 365 ? 'long' : 'short';
+
+      if (holdingPeriod === 'long') {
+        longTermGain += gain;
+      } else {
+        shortTermGain += gain;
+      }
+      totalProceeds += proceeds;
+      totalBasis += costBasis;
+
+      lotDetails.push({
+        lotId: lot.id,
+        fundSymbol,
+        shares: sharesToConsume,
+        costBasisPerShare: lot.costBasisPerShare,
+        sellPrice,
+        proceeds,
+        costBasis,
+        gain,
+        holdingPeriod,
+      });
+
+      const tx: PortfolioTransaction = {
+        id: `sell-${lot.id}-${sellDate}`,
+        date: sellDate,
+        type: 'sell',
+        fundSymbol,
+        shares: sharesToConsume,
+        pricePerShare: sellPrice,
+        totalAmount: proceeds,
+        fees: 0,
+        lotId: lot.id,
+        isProjected: true,
+        isEstimated: false,
+      };
+      transactions.push(tx);
+      state.projectedTransactions.push(tx);
+    }
+
+    this.log('consume-lots', {
+      accountId,
+      fundSymbol,
+      sharesToSell,
+      sellPrice,
+      lotsConsumed: lotDetails.length,
+      shortTermGain,
+      longTermGain,
+    });
+
+    return {
+      totalProceeds,
+      totalBasis,
+      shortTermGain,
+      longTermGain,
+      lotDetails,
+      transactions,
+    };
   }
 
   // ---- Private helpers ----
