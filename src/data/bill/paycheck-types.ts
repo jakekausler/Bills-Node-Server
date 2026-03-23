@@ -86,4 +86,5 @@ export type PaycheckDetails = {
   postTaxDeductions: { label: string; amount: number }[];
   netPay: number;
   parentPaycheckId?: string;
+  depositActivities?: { accountId: string; amount: number; label: string }[];
 };

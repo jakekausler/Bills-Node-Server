@@ -348,12 +348,12 @@ export class Calculator {
 
     // For paycheck activities, use netPay as the effective amount
     let balanceChange = activity.amount as number;
-    if ((activity as any).isPaycheckActivity && (activity as any).paycheckDetails) {
-      balanceChange = (activity as any).paycheckDetails.netPay;
+    const paycheckDetails = (activity as any).paycheckDetails;
+    if ((activity as any).isPaycheckActivity && paycheckDetails) {
+      balanceChange = paycheckDetails.netPay;
 
       // Record withholding in TaxManager
       const year = event.date.getUTCFullYear();
-      const paycheckDetails = (activity as any).paycheckDetails;
       if (paycheckDetails.federalWithholding > 0 || paycheckDetails.stateWithholding > 0) {
         this.taxManager.addWithholdingOccurrence({
           date: event.date,
@@ -362,6 +362,37 @@ export class Calculator {
           stateAmount: paycheckDetails.stateWithholding || 0,
           source: activity.name,
         });
+      }
+
+      // Generate deposit activities for 401k/HSA/employer match
+      if (paycheckDetails.depositActivities) {
+        for (const deposit of paycheckDetails.depositActivities) {
+          const depositActivity = new ConsolidatedActivity({
+            id: `${activity.id}-${event.date}-${deposit.label}`,
+            date: formatDate(event.date),
+            dateIsVariable: false,
+            dateVariable: null,
+            name: `${deposit.label} from ${activity.name}`,
+            category: 'Paycheck',
+            amount: deposit.amount,
+            amountIsVariable: false,
+            amountVariable: null,
+            flag: false,
+            flagColor: null,
+            isTransfer: false,
+            from: null,
+            to: null,
+          });
+
+          const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+          if (!segmentResult.activitiesAdded.has(resolvedDepositAccountId)) {
+            segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
+          }
+          segmentResult.activitiesAdded.get(resolvedDepositAccountId)?.push(depositActivity);
+
+          const currentDepositChange = segmentResult.balanceChanges.get(resolvedDepositAccountId) || 0;
+          segmentResult.balanceChanges.set(resolvedDepositAccountId, currentDepositChange + deposit.amount);
+        }
       }
     }
 
@@ -379,7 +410,16 @@ export class Calculator {
       }
     }
 
-    return new Map([[accountId, balanceChange]]);
+    // Return balance changes for all affected accounts
+    const allChanges = new Map([[accountId, balanceChange]]);
+    if (paycheckDetails?.depositActivities) {
+      for (const deposit of paycheckDetails.depositActivities) {
+        const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+        const existing = allChanges.get(resolvedDepositAccountId) || 0;
+        allChanges.set(resolvedDepositAccountId, existing + deposit.amount);
+      }
+    }
+    return allChanges;
   }
 
   /**
@@ -963,6 +1003,7 @@ export class Calculator {
       stateWithholding: paycheckResult.stateWithholding,
       preTaxDeductions: paycheckResult.preTaxDeductions,
       postTaxDeductions: paycheckResult.postTaxDeductions,
+      depositActivities: paycheckResult.depositActivities,
     };
 
     const mainActivity = new ConsolidatedActivity(
@@ -1004,14 +1045,15 @@ export class Calculator {
         to: null,
       });
 
-      if (!segmentResult.activitiesAdded.has(deposit.accountId)) {
-        segmentResult.activitiesAdded.set(deposit.accountId, []);
+      const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+      if (!segmentResult.activitiesAdded.has(resolvedDepositAccountId)) {
+        segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
       }
-      segmentResult.activitiesAdded.get(deposit.accountId)?.push(depositActivity);
+      segmentResult.activitiesAdded.get(resolvedDepositAccountId)?.push(depositActivity);
 
       // Update deposit account balance
-      const currentDepositChange = segmentResult.balanceChanges.get(deposit.accountId) || 0;
-      segmentResult.balanceChanges.set(deposit.accountId, currentDepositChange + deposit.amount);
+      const currentDepositChange = segmentResult.balanceChanges.get(resolvedDepositAccountId) || 0;
+      segmentResult.balanceChanges.set(resolvedDepositAccountId, currentDepositChange + deposit.amount);
     }
 
     // Record flow for income and taxes
@@ -1120,14 +1162,15 @@ export class Calculator {
           to: null,
         });
 
-        if (!segmentResult.activitiesAdded.has(deposit.accountId)) {
-          segmentResult.activitiesAdded.set(deposit.accountId, []);
+        const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+        if (!segmentResult.activitiesAdded.has(resolvedDepositAccountId)) {
+          segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
         }
-        segmentResult.activitiesAdded.get(deposit.accountId)?.push(depositActivity);
+        segmentResult.activitiesAdded.get(resolvedDepositAccountId)?.push(depositActivity);
 
         // Update deposit account balance
-        const currentDepositChange = segmentResult.balanceChanges.get(deposit.accountId) || 0;
-        segmentResult.balanceChanges.set(deposit.accountId, currentDepositChange + deposit.amount);
+        const currentDepositChange = segmentResult.balanceChanges.get(resolvedDepositAccountId) || 0;
+        segmentResult.balanceChanges.set(resolvedDepositAccountId, currentDepositChange + deposit.amount);
       }
 
       // AIME: feed gross bonus wages
@@ -1180,8 +1223,9 @@ export class Calculator {
     const allChanges = new Map<string, number>();
     allChanges.set(event.accountId, paycheckResult.netPay);
     for (const deposit of paycheckResult.depositActivities) {
-      const existing = allChanges.get(deposit.accountId) || 0;
-      allChanges.set(deposit.accountId, existing + deposit.amount);
+      const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+      const existing = allChanges.get(resolvedDepositAccountId) || 0;
+      allChanges.set(resolvedDepositAccountId, existing + deposit.amount);
     }
 
     // Merge bonus balance changes
@@ -1189,8 +1233,9 @@ export class Calculator {
       const existingMainBonus = allChanges.get(event.accountId) || 0;
       allChanges.set(event.accountId, existingMainBonus + bonusResult.netPay);
       for (const deposit of bonusResult.depositActivities) {
-        const existing = allChanges.get(deposit.accountId) || 0;
-        allChanges.set(deposit.accountId, existing + deposit.amount);
+        const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+        const existing = allChanges.get(resolvedDepositAccountId) || 0;
+        allChanges.set(resolvedDepositAccountId, existing + deposit.amount);
       }
     }
 
