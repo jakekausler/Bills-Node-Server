@@ -609,7 +609,185 @@ export class PortfolioManager {
     return sellResult;
   }
 
+  /**
+   * Execute a deposit: add cash and distribute into fund buys.
+   * If bucket config exists, fills reserve first, then distributes remainder.
+   * Otherwise distributes across all funds by contribution weight.
+   */
+  executeDeposit(
+    accountId: string,
+    amount: number,
+    date: string,
+    source: Lot['source'] = 'contribution',
+  ): PortfolioTransaction[] {
+    const state = this.states.get(accountId);
+    if (!state) {
+      throw new Error(`No portfolio state for account ${accountId}`);
+    }
+
+    // Add amount to uninvested cash (executeBuy will deduct from it)
+    state.uninvestedCash += amount;
+
+    const transactions: PortfolioTransaction[] = [];
+    let remaining = amount;
+    const bucket = state.config.bucket;
+
+    // Step 1: If bucket config, fill reserve first
+    if (bucket) {
+      const reservePosition = state.fundPositions.get(bucket.reserveAsset);
+      const reserveValue = reservePosition ? reservePosition.value : 0;
+      // TODO(#25): inflation-adjust reserveTarget using reserveInflationVariable
+      const target = bucket.reserveTarget;
+
+      if (reserveValue < target) {
+        const reserveBuyAmount = Math.min(remaining, target - reserveValue);
+        if (reserveBuyAmount > 0) {
+          const tx = this.executeBuy(accountId, bucket.reserveAsset, reserveBuyAmount, date, source);
+          transactions.push(tx);
+          remaining -= reserveBuyAmount;
+        }
+      }
+    }
+
+    // Step 2: Distribute remaining across non-reserve funds by contribution weight
+    if (remaining > 0) {
+      const weightedFunds = this.getContributionWeightedFunds(state, bucket?.reserveAsset);
+
+      if (weightedFunds.length > 0) {
+        const totalWeight = weightedFunds.reduce((sum, f) => sum + f.weight, 0);
+
+        for (const { symbol, weight } of weightedFunds) {
+          const normalizedWeight = weight / totalWeight;
+          const fundAmount = remaining * normalizedWeight;
+          if (fundAmount > 0) {
+            const tx = this.executeBuy(accountId, symbol, fundAmount, date, source);
+            transactions.push(tx);
+          }
+        }
+      }
+    }
+
+    this.log('deposit-executed', {
+      accountId,
+      amount,
+      source,
+      buyCount: transactions.length,
+      reserveFilled: bucket ? true : false,
+    });
+
+    return transactions;
+  }
+
+  /**
+   * Execute a withdrawal: sell fund positions to raise cash.
+   * If bucket config, sells reserve first, then other funds proportionally by value.
+   * Without bucket config, sells all funds proportionally by value weight.
+   */
+  executeWithdrawal(
+    accountId: string,
+    amount: number,
+    date: string,
+  ): { transactions: PortfolioTransaction[]; sellResults: SellResult[] } {
+    const state = this.states.get(accountId);
+    if (!state) {
+      throw new Error(`No portfolio state for account ${accountId}`);
+    }
+
+    const allTransactions: PortfolioTransaction[] = [];
+    const allSellResults: SellResult[] = [];
+    let remaining = amount;
+    const bucket = state.config.bucket;
+
+    // Step 1: If bucket config, sell from reserve first
+    if (bucket) {
+      const reservePosition = state.fundPositions.get(bucket.reserveAsset);
+      if (reservePosition && reservePosition.value > 0) {
+        const reserveSellAmount = Math.min(remaining, reservePosition.value);
+        if (reserveSellAmount > 0) {
+          const price = state.simulatedPrices.get(bucket.reserveAsset);
+          if (price && price > 0) {
+            const sharesToSell = reserveSellAmount / price;
+            const sellResult = this.executeSell(accountId, bucket.reserveAsset, sharesToSell, date);
+            allTransactions.push(...sellResult.transactions);
+            allSellResults.push(sellResult);
+            remaining -= reserveSellAmount;
+          }
+        }
+      }
+    }
+
+    // Step 2: If remaining > 0, sell from other funds proportionally by value
+    if (remaining > 0) {
+      const nonReserveFunds: Array<{ symbol: string; value: number }> = [];
+      for (const [symbol, position] of state.fundPositions) {
+        if (bucket && symbol === bucket.reserveAsset) continue;
+        if (position.value > 0) {
+          nonReserveFunds.push({ symbol, value: position.value });
+        }
+      }
+
+      const totalNonReserveValue = nonReserveFunds.reduce((sum, f) => sum + f.value, 0);
+
+      if (totalNonReserveValue > 0) {
+        for (const { symbol, value } of nonReserveFunds) {
+          const fundSellAmount = Math.min(
+            remaining * (value / totalNonReserveValue),
+            value,
+          );
+          if (fundSellAmount > 0) {
+            const price = state.simulatedPrices.get(symbol);
+            if (price && price > 0) {
+              const sharesToSell = fundSellAmount / price;
+              const sellResult = this.executeSell(accountId, symbol, sharesToSell, date);
+              allTransactions.push(...sellResult.transactions);
+              allSellResults.push(sellResult);
+            }
+          }
+        }
+      }
+    }
+
+    // Step 3: Decrease uninvested cash by amount
+    // (executeSell increased it by proceeds; the withdrawal removes it)
+    state.uninvestedCash -= amount;
+
+    this.log('withdrawal-executed', {
+      accountId,
+      amount,
+      sellCount: allSellResults.length,
+      totalProceeds: allSellResults.reduce((sum, sr) => sum + sr.totalProceeds, 0),
+    });
+
+    return { transactions: allTransactions, sellResults: allSellResults };
+  }
+
   // ---- Private helpers ----
+
+  /**
+   * Get funds with contribution weights for deposit distribution.
+   * For fund-level: uses FundConfig.contributionWeight, excluding reserveAsset.
+   * For estimated: uses allocation weights as contribution weights.
+   */
+  private getContributionWeightedFunds(
+    state: AccountPortfolioState,
+    reserveAsset?: string,
+  ): Array<{ symbol: string; weight: number }> {
+    if (state.mode === 'fund-level' && state.config.funds) {
+      return state.config.funds
+        .filter((f) => f.contributionWeight > 0 && f.symbol !== reserveAsset)
+        .map((f) => ({ symbol: f.symbol, weight: f.contributionWeight }));
+    }
+
+    // Estimated mode: use allocation weights as contribution weights
+    const result: Array<{ symbol: string; weight: number }> = [];
+    for (const [className, weight] of Object.entries(state.config.allocation)) {
+      if (!weight || weight <= 0) continue;
+      const symbol = className.toUpperCase();
+      if (symbol === reserveAsset) continue;
+      result.push({ symbol, weight });
+    }
+    return result;
+  }
 
   /**
    * For virtual funds (estimated mode), derive asset class mapping from symbol name.

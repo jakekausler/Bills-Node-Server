@@ -638,6 +638,320 @@ describe('PortfolioManager', () => {
     });
   });
 
+  describe('executeDeposit', () => {
+    describe('with bucket config (reserve below target)', () => {
+      let bucketConfig: AccountPortfolioConfig;
+
+      beforeEach(() => {
+        bucketConfig = {
+          ...makeFundLevelConfig(),
+          bucket: {
+            reserveAsset: 'SPRXX',
+            reserveTarget: 5000,
+          },
+        };
+        manager = new PortfolioManager({ acc1: bucketConfig });
+      });
+
+      it('fills reserve first, overflow to investments per weights', () => {
+        const state = manager.getAccountState('acc1')!;
+        // SPRXX starts at 1000 shares * $1 = $1000, target = $5000, shortfall = $4000
+        // Deposit $6000: $4000 to reserve, $2000 split among non-reserve by weight
+        state.uninvestedCash = 0;
+
+        const txs = manager.executeDeposit('acc1', 6000, '2026-01-15', 'contribution');
+
+        // Should have at least 3 transactions: 1 reserve buy + 2 non-reserve buys
+        expect(txs.length).toBeGreaterThanOrEqual(3);
+
+        // Reserve (SPRXX) buy should be for $4000
+        const reserveBuys = txs.filter((t) => t.fundSymbol === 'SPRXX');
+        expect(reserveBuys).toHaveLength(1);
+        expect(reserveBuys[0].totalAmount).toBeCloseTo(4000, 2);
+
+        // Remaining $2000 split between FXAIX (weight 0.60) and FXNAX (weight 0.30)
+        // Normalized: FXAIX = 0.60/0.90 = 2/3, FXNAX = 0.30/0.90 = 1/3
+        const fxaixBuys = txs.filter((t) => t.fundSymbol === 'FXAIX');
+        expect(fxaixBuys).toHaveLength(1);
+        expect(fxaixBuys[0].totalAmount).toBeCloseTo(2000 * (2 / 3), 2);
+
+        const fxnaxBuys = txs.filter((t) => t.fundSymbol === 'FXNAX');
+        expect(fxnaxBuys).toHaveLength(1);
+        expect(fxnaxBuys[0].totalAmount).toBeCloseTo(2000 * (1 / 3), 2);
+      });
+
+      it('deposit smaller than reserve shortfall: all goes to reserve', () => {
+        const state = manager.getAccountState('acc1')!;
+        // SPRXX at $1000, target $5000, shortfall $4000
+        // Deposit $2000 — all to reserve
+        state.uninvestedCash = 0;
+
+        const txs = manager.executeDeposit('acc1', 2000, '2026-01-15', 'contribution');
+
+        expect(txs).toHaveLength(1);
+        expect(txs[0].fundSymbol).toBe('SPRXX');
+        expect(txs[0].totalAmount).toBeCloseTo(2000, 2);
+      });
+    });
+
+    describe('with bucket config (reserve at/above target)', () => {
+      let bucketConfig: AccountPortfolioConfig;
+
+      beforeEach(() => {
+        bucketConfig = {
+          ...makeFundLevelConfig(),
+          bucket: {
+            reserveAsset: 'SPRXX',
+            reserveTarget: 500, // Target below current value (1000 shares * $1 = $1000)
+          },
+        };
+        manager = new PortfolioManager({ acc1: bucketConfig });
+      });
+
+      it('all to investments per weights when reserve at/above target', () => {
+        const state = manager.getAccountState('acc1')!;
+        state.uninvestedCash = 0;
+
+        const txs = manager.executeDeposit('acc1', 3000, '2026-01-15', 'contribution');
+
+        // No reserve buy needed; all $3000 to non-reserve funds
+        const reserveBuys = txs.filter((t) => t.fundSymbol === 'SPRXX');
+        expect(reserveBuys).toHaveLength(0);
+
+        // FXAIX: 0.60/(0.60+0.30) = 2/3, FXNAX: 0.30/(0.60+0.30) = 1/3
+        const fxaixBuys = txs.filter((t) => t.fundSymbol === 'FXAIX');
+        expect(fxaixBuys).toHaveLength(1);
+        expect(fxaixBuys[0].totalAmount).toBeCloseTo(3000 * (2 / 3), 2);
+
+        const fxnaxBuys = txs.filter((t) => t.fundSymbol === 'FXNAX');
+        expect(fxnaxBuys).toHaveLength(1);
+        expect(fxnaxBuys[0].totalAmount).toBeCloseTo(3000 * (1 / 3), 2);
+      });
+    });
+
+    describe('with no bucket config', () => {
+      beforeEach(() => {
+        manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+      });
+
+      it('all to investments per contribution weights', () => {
+        const state = manager.getAccountState('acc1')!;
+        state.uninvestedCash = 0;
+
+        const txs = manager.executeDeposit('acc1', 1000, '2026-01-15', 'contribution');
+
+        // FXAIX: 0.60, FXNAX: 0.30, SPRXX: 0.10 — all have contribution weights
+        // Total weight = 1.0, so no normalization needed
+        expect(txs).toHaveLength(3);
+
+        const fxaixBuy = txs.find((t) => t.fundSymbol === 'FXAIX')!;
+        expect(fxaixBuy.totalAmount).toBeCloseTo(600, 2);
+
+        const fxnaxBuy = txs.find((t) => t.fundSymbol === 'FXNAX')!;
+        expect(fxnaxBuy.totalAmount).toBeCloseTo(300, 2);
+
+        const sprxxBuy = txs.find((t) => t.fundSymbol === 'SPRXX')!;
+        expect(sprxxBuy.totalAmount).toBeCloseTo(100, 2);
+      });
+    });
+
+    describe('lot source tracking', () => {
+      beforeEach(() => {
+        manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+      });
+
+      it('deposit with source contribution creates lots with that source', () => {
+        const state = manager.getAccountState('acc1')!;
+        state.uninvestedCash = 0;
+
+        manager.executeDeposit('acc1', 1000, '2026-01-15', 'contribution');
+
+        const newLots = state.lots.filter((l) => l.purchaseDate === '2026-01-15');
+        expect(newLots.length).toBeGreaterThan(0);
+        for (const lot of newLots) {
+          expect(lot.source).toBe('contribution');
+        }
+      });
+
+      it('deposit with source transfer creates lots with that source', () => {
+        const state = manager.getAccountState('acc1')!;
+        state.uninvestedCash = 0;
+
+        manager.executeDeposit('acc1', 1000, '2026-01-15', 'transfer');
+
+        const newLots = state.lots.filter((l) => l.purchaseDate === '2026-01-15');
+        expect(newLots.length).toBeGreaterThan(0);
+        for (const lot of newLots) {
+          expect(lot.source).toBe('transfer');
+        }
+      });
+    });
+
+    describe('estimated mode deposit', () => {
+      beforeEach(() => {
+        manager = new PortfolioManager({ acc2: makeEstimatedConfig() });
+        manager.initializeEstimatedAccount('acc2', 100000);
+      });
+
+      it('distributes per allocation weights (used as contribution weights)', () => {
+        const state = manager.getAccountState('acc2')!;
+        state.uninvestedCash = 0;
+
+        const txs = manager.executeDeposit('acc2', 10000, '2026-01-15', 'contribution');
+
+        // allocation: stock 0.70, bond 0.20, cash 0.10
+        expect(txs).toHaveLength(3);
+
+        const stockBuy = txs.find((t) => t.fundSymbol === 'STOCK')!;
+        expect(stockBuy.totalAmount).toBeCloseTo(7000, 2);
+
+        const bondBuy = txs.find((t) => t.fundSymbol === 'BOND')!;
+        expect(bondBuy.totalAmount).toBeCloseTo(2000, 2);
+
+        const cashBuy = txs.find((t) => t.fundSymbol === 'CASH')!;
+        expect(cashBuy.totalAmount).toBeCloseTo(1000, 2);
+      });
+    });
+  });
+
+  describe('executeWithdrawal', () => {
+    describe('with bucket config', () => {
+      let bucketConfig: AccountPortfolioConfig;
+
+      beforeEach(() => {
+        bucketConfig = {
+          ...makeFundLevelConfig(),
+          bucket: {
+            reserveAsset: 'SPRXX',
+            reserveTarget: 5000,
+          },
+        };
+        manager = new PortfolioManager({ acc1: bucketConfig });
+        // Create lots so sells have something to consume
+        const state = manager.getAccountState('acc1')!;
+        state.uninvestedCash = 50000;
+        manager.executeBuy('acc1', 'FXAIX', 20000, '2024-01-01', 'contribution');
+        manager.executeBuy('acc1', 'FXNAX', 5000, '2024-01-01', 'contribution');
+        manager.executeBuy('acc1', 'SPRXX', 5000, '2024-01-01', 'contribution');
+      });
+
+      it('draws from reserve first', () => {
+        // SPRXX position: 1000 initial + 5000 bought = 6000 shares @ $1 = $6000
+        // Withdraw $500 — should all come from reserve
+        const result = manager.executeWithdrawal('acc1', 500, '2026-06-01');
+
+        // Only sell transactions should be for SPRXX
+        const sellSymbols = result.sellResults.flatMap((sr) =>
+          sr.lotDetails.map((ld) => ld.fundSymbol),
+        );
+        expect(sellSymbols.every((s) => s === 'SPRXX')).toBe(true);
+        expect(result.sellResults).toHaveLength(1);
+      });
+
+      it('reserve insufficient: sells investments proportionally', () => {
+        // SPRXX has 6000 shares @ $1 = $6000
+        // Withdraw $8000 — $6000 from reserve, $2000 from other funds proportionally
+        const result = manager.executeWithdrawal('acc1', 8000, '2026-06-01');
+
+        // Should have sells from SPRXX plus other funds
+        expect(result.sellResults.length).toBeGreaterThan(1);
+
+        // SPRXX should sell $6000 worth
+        const sprxxResult = result.sellResults.find((sr) =>
+          sr.lotDetails.some((ld) => ld.fundSymbol === 'SPRXX'),
+        );
+        expect(sprxxResult).toBeDefined();
+
+        // Other funds should sell $2000 total, proportionally by value
+        const nonReserveResults = result.sellResults.filter((sr) =>
+          sr.lotDetails.some((ld) => ld.fundSymbol !== 'SPRXX'),
+        );
+        expect(nonReserveResults.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('without bucket config', () => {
+      beforeEach(() => {
+        manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+        // Create lots so sells have something to consume
+        const state = manager.getAccountState('acc1')!;
+        state.uninvestedCash = 30000;
+        manager.executeBuy('acc1', 'FXAIX', 20000, '2024-01-01', 'contribution');
+        manager.executeBuy('acc1', 'FXNAX', 5000, '2024-01-01', 'contribution');
+        manager.executeBuy('acc1', 'SPRXX', 1000, '2024-01-01', 'contribution');
+      });
+
+      it('sells proportionally by value weight across all funds', () => {
+        // FXAIX: 100+100=200 shares @ $200 = $40000
+        // FXNAX: 50+500=550 shares @ $10 = $5500
+        // SPRXX: 1000+1000=2000 shares @ $1 = $2000
+        // Total = $47500
+        // Withdraw $4750 (10% of total)
+        const result = manager.executeWithdrawal('acc1', 4750, '2026-06-01');
+
+        // Should sell from all 3 funds proportionally
+        const fundSymbols = new Set(
+          result.sellResults.flatMap((sr) => sr.lotDetails.map((ld) => ld.fundSymbol)),
+        );
+        expect(fundSymbols.size).toBe(3);
+      });
+    });
+
+    describe('insufficient balance', () => {
+      beforeEach(() => {
+        manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+        const state = manager.getAccountState('acc1')!;
+        state.uninvestedCash = 2000;
+        manager.executeBuy('acc1', 'FXAIX', 2000, '2024-01-01', 'contribution');
+      });
+
+      it('sells everything available when withdrawal exceeds balance', () => {
+        // FXAIX: 100+10=110 shares @ $200 = $22000
+        // FXNAX: 50 shares @ $10 = $500
+        // SPRXX: 1000 shares @ $1 = $1000
+        // Total = $23500
+        // Try to withdraw $50000
+        const result = manager.executeWithdrawal('acc1', 50000, '2026-06-01');
+
+        // Should have sell results (sold what was available)
+        expect(result.sellResults.length).toBeGreaterThan(0);
+
+        // The total proceeds should be less than 50000 (sold everything)
+        const totalProceeds = result.sellResults.reduce((sum, sr) => sum + sr.totalProceeds, 0);
+        expect(totalProceeds).toBeLessThan(50000);
+        expect(totalProceeds).toBeGreaterThan(0);
+      });
+    });
+
+    describe('withdrawal returns correct structure', () => {
+      beforeEach(() => {
+        manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+        const state = manager.getAccountState('acc1')!;
+        state.uninvestedCash = 5000;
+        manager.executeBuy('acc1', 'FXAIX', 5000, '2024-01-01', 'contribution');
+      });
+
+      it('returns transactions and sellResults with capital gains details', () => {
+        // Apply returns to generate gains
+        manager.applyAnnualReturns('acc1', 2025, simpleReturns);
+
+        const result = manager.executeWithdrawal('acc1', 1000, '2026-06-01');
+
+        expect(result.transactions).toBeDefined();
+        expect(result.sellResults).toBeDefined();
+        expect(result.transactions.length).toBeGreaterThan(0);
+
+        // Each sell result should have gain details
+        for (const sr of result.sellResults) {
+          expect(sr.totalProceeds).toBeDefined();
+          expect(sr.totalBasis).toBeDefined();
+          expect(sr.shortTermGain).toBeDefined();
+          expect(sr.longTermGain).toBeDefined();
+        }
+      });
+    });
+  });
+
   describe('checkpoint/restore with lots and projectedTransactions', () => {
     it('round-trip preserves lots and projectedTransactions', () => {
       manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
