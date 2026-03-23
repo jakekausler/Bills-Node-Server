@@ -148,13 +148,29 @@ export class MonteCarloHandler {
         ? yearData.highYield / 100
         : this.drawRandomSample(this.historicRates?.savings?.highYield) / 100;
 
+      // Store per-asset-class returns for PortfolioManager (#25)
+      yearSamples[MonteCarloSampleType.STOCK_RETURN] = stockReturn;
+      yearSamples[MonteCarloSampleType.BOND_RETURN] = bondReturn;
+      yearSamples[MonteCarloSampleType.CASH_RETURN] = cashReturn;
+
+      // Proxy asset class returns using existing calculateProxyReturn logic
+      // TODO(#25): calculateProxyReturn draws an uncorrelated cash sample internally
+      // instead of using the already-computed cashReturn. Fix the correlation issue.
+      const preferredReturn = this.calculateProxyReturn(this.historicRates?.investment?.preferred, stockReturn, bondReturn);
+      const convertibleReturn = this.calculateProxyReturn(this.historicRates?.investment?.convertible, stockReturn, bondReturn);
+      const otherReturn = this.calculateProxyReturn(this.historicRates?.investment?.other, stockReturn, bondReturn);
+
+      yearSamples[MonteCarloSampleType.PREFERRED_RETURN] = preferredReturn;
+      yearSamples[MonteCarloSampleType.CONVERTIBLE_RETURN] = convertibleReturn;
+      yearSamples[MonteCarloSampleType.OTHER_RETURN] = otherReturn;
+
       yearSamples[MonteCarloSampleType.PORTFOLIO] =
         stockReturn * (composition.stock || 0) +
         bondReturn * (composition.bond || 0) +
         cashReturn * (composition.cash || 0) +
-        this.calculateProxyReturn(this.historicRates?.investment?.preferred, stockReturn, bondReturn) * (composition.preferred || 0) +
-        this.calculateProxyReturn(this.historicRates?.investment?.convertible, stockReturn, bondReturn) * (composition.convertible || 0) +
-        this.calculateProxyReturn(this.historicRates?.investment?.other, stockReturn, bondReturn) * (composition.other || 0);
+        preferredReturn * (composition.preferred || 0) +
+        convertibleReturn * (composition.convertible || 0) +
+        otherReturn * (composition.other || 0);
 
       // Reuse same samples for ALL 12 months of this year
       for (let month = 0; month < 12; month++) {

@@ -336,6 +336,12 @@ export enum MonteCarloSampleType {
   AWI_GROWTH = 'AWI_GROWTH',
   UNEMPLOYMENT_RATE = 'UnemploymentRate',
   UNEMPLOYMENT_DURATION = 'UnemploymentDuration',
+  STOCK_RETURN = 'StockReturn',
+  BOND_RETURN = 'BondReturn',
+  CASH_RETURN = 'CashReturn',
+  PREFERRED_RETURN = 'PreferredReturn',
+  CONVERTIBLE_RETURN = 'ConvertibleReturn',
+  OTHER_RETURN = 'OtherReturn',
 }
 
 /**
