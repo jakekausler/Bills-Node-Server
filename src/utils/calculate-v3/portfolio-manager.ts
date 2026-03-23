@@ -13,6 +13,7 @@ import type {
   AccountPortfolioConfig,
   AccountPortfolioState,
   FundPosition,
+  PortfolioMode,
 } from './portfolio-types';
 
 export class PortfolioManager {
@@ -57,7 +58,7 @@ export class PortfolioManager {
    * Returns 'estimated' | 'fund-level' | null.
    * null means the account is not in portfolio config (interest mode).
    */
-  getAccountMode(accountId: string): string | null {
+  getAccountMode(accountId: string): PortfolioMode | null {
     const config = this.configs.get(accountId);
     if (!config) return null;
     return config.mode;

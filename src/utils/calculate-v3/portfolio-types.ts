@@ -1,5 +1,7 @@
 // portfolio-types.ts — All types for the portfolio modeling system
 
+export type PortfolioMode = 'estimated' | 'fund-level';
+
 export interface AssetAllocation {
   stock?: number;
   bond?: number;
