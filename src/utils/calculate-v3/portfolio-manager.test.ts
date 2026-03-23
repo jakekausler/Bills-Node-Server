@@ -473,6 +473,171 @@ describe('PortfolioManager', () => {
     });
   });
 
+  describe('executeBuy', () => {
+    beforeEach(() => {
+      manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+    });
+
+    it('decreases uninvested cash by amount', () => {
+      // Set some uninvested cash first
+      const state = manager.getAccountState('acc1')!;
+      state.uninvestedCash = 5000;
+
+      manager.executeBuy('acc1', 'FXAIX', 2000, '2026-01-15', 'contribution');
+
+      expect(state.uninvestedCash).toBe(3000);
+    });
+
+    it('increases fund position shares by amount / price', () => {
+      const state = manager.getAccountState('acc1')!;
+      state.uninvestedCash = 5000;
+
+      const positionBefore = manager.getPositions('acc1').find((p) => p.symbol === 'FXAIX')!;
+      const sharesBefore = positionBefore.shares; // 100
+
+      manager.executeBuy('acc1', 'FXAIX', 2000, '2026-01-15', 'contribution');
+
+      const positionAfter = manager.getPositions('acc1').find((p) => p.symbol === 'FXAIX')!;
+      // Price is 200, so 2000/200 = 10 new shares
+      expect(positionAfter.shares).toBe(sharesBefore + 10);
+    });
+
+    it('creates a lot with correct source', () => {
+      const state = manager.getAccountState('acc1')!;
+      state.uninvestedCash = 5000;
+
+      manager.executeBuy('acc1', 'FXAIX', 2000, '2026-01-15', 'transfer');
+
+      const lots = state.lots.filter((l) => l.fundSymbol === 'FXAIX');
+      expect(lots.length).toBeGreaterThanOrEqual(1);
+      const lastLot = lots[lots.length - 1];
+      expect(lastLot.source).toBe('transfer');
+      expect(lastLot.shares).toBe(10); // 2000 / 200
+      expect(lastLot.costBasisPerShare).toBe(200);
+      expect(lastLot.purchaseDate).toBe('2026-01-15');
+    });
+
+    it('updates fund position value', () => {
+      const state = manager.getAccountState('acc1')!;
+      state.uninvestedCash = 5000;
+
+      manager.executeBuy('acc1', 'FXAIX', 2000, '2026-01-15', 'contribution');
+
+      const position = manager.getPositions('acc1').find((p) => p.symbol === 'FXAIX')!;
+      // 110 shares * 200 = 22000
+      expect(position.value).toBe(22000);
+    });
+
+    it('returns a PortfolioTransaction entry with type buy', () => {
+      const state = manager.getAccountState('acc1')!;
+      state.uninvestedCash = 5000;
+
+      const tx = manager.executeBuy('acc1', 'FXAIX', 2000, '2026-01-15', 'contribution');
+
+      expect(tx.type).toBe('buy');
+      expect(tx.fundSymbol).toBe('FXAIX');
+      expect(tx.shares).toBe(10);
+      expect(tx.pricePerShare).toBe(200);
+      expect(tx.totalAmount).toBe(2000);
+      expect(tx.date).toBe('2026-01-15');
+      expect(tx.isProjected).toBe(true);
+    });
+  });
+
+  describe('executeSell', () => {
+    beforeEach(() => {
+      manager = new PortfolioManager({ acc1: makeFundLevelConfig() });
+    });
+
+    it('increases uninvested cash by proceeds', () => {
+      const state = manager.getAccountState('acc1')!;
+      state.uninvestedCash = 0;
+
+      // Create lots first via executeBuy
+      state.uninvestedCash = 5000;
+      manager.executeBuy('acc1', 'FXAIX', 2000, '2024-01-01', 'contribution');
+      const cashAfterBuy = state.uninvestedCash; // 3000
+
+      // Sell 5 shares at current price (200)
+      manager.executeSell('acc1', 'FXAIX', 5, '2026-06-01');
+
+      // Proceeds = 5 * 200 = 1000
+      expect(state.uninvestedCash).toBe(cashAfterBuy + 1000);
+    });
+
+    it('decreases fund position shares', () => {
+      const state = manager.getAccountState('acc1')!;
+      state.uninvestedCash = 5000;
+      manager.executeBuy('acc1', 'FXAIX', 2000, '2024-01-01', 'contribution');
+
+      const sharesBefore = manager.getPositions('acc1').find((p) => p.symbol === 'FXAIX')!.shares;
+
+      manager.executeSell('acc1', 'FXAIX', 5, '2026-06-01');
+
+      const sharesAfter = manager.getPositions('acc1').find((p) => p.symbol === 'FXAIX')!.shares;
+      expect(sharesAfter).toBe(sharesBefore - 5);
+    });
+
+    it('consumes lots per strategy (FIFO)', () => {
+      const state = manager.getAccountState('acc1')!;
+      state.uninvestedCash = 10000;
+
+      // Buy at two different times (lots will have price 200 both times since price unchanged)
+      manager.executeBuy('acc1', 'FXAIX', 2000, '2024-01-01', 'contribution'); // 10 shares @ 200
+      manager.executeBuy('acc1', 'FXAIX', 2000, '2025-01-01', 'contribution'); // 10 shares @ 200
+
+      const result = manager.executeSell('acc1', 'FXAIX', 15, '2026-06-01');
+
+      // FIFO: should consume oldest lot first (all 10), then 5 from next
+      expect(result.lotDetails).toHaveLength(2);
+      expect(result.lotDetails[0].shares).toBe(10);
+      expect(result.lotDetails[1].shares).toBe(5);
+    });
+
+    it('returns SellResult with gain/loss details', () => {
+      const state = manager.getAccountState('acc1')!;
+      state.uninvestedCash = 5000;
+
+      // Buy 10 shares at price 200
+      manager.executeBuy('acc1', 'FXAIX', 2000, '2024-01-01', 'contribution');
+
+      // Apply returns to increase price
+      manager.applyAnnualReturns('acc1', 2025, simpleReturns);
+
+      // Sell 5 shares at new (higher) price
+      const result = manager.executeSell('acc1', 'FXAIX', 5, '2026-06-01');
+
+      expect(result.totalProceeds).toBeGreaterThan(0);
+      expect(result.totalBasis).toBeGreaterThan(0);
+      // Since price went up, there should be a gain
+      expect(result.longTermGain + result.shortTermGain).toBeGreaterThan(0);
+      expect(result.lotDetails).toHaveLength(1);
+      expect(result.transactions).toHaveLength(1);
+    });
+
+    it('edge case: sell when no lots exist returns zero-result', () => {
+      // The config starts with 100 shares of FXAIX in positions but no lots
+      // executeSell should gracefully handle this (consumeLots returns empty)
+      const state = manager.getAccountState('acc1')!;
+      state.uninvestedCash = 0;
+
+      const result = manager.executeSell('acc1', 'FXAIX', 5, '2026-06-01');
+
+      expect(result.totalProceeds).toBe(0);
+      expect(result.totalBasis).toBe(0);
+      expect(result.shortTermGain).toBe(0);
+      expect(result.longTermGain).toBe(0);
+      expect(result.lotDetails).toHaveLength(0);
+
+      // Position shares should still decrease (shares exist even without lots)
+      const position = manager.getPositions('acc1').find((p) => p.symbol === 'FXAIX')!;
+      expect(position.shares).toBe(95); // 100 - 5
+
+      // Uninvested cash increases by proceeds (5 * 200 = 1000)
+      expect(state.uninvestedCash).toBe(1000);
+    });
+  });
+
   describe('checkpoint/restore with lots and projectedTransactions', () => {
     it('round-trip preserves lots and projectedTransactions', () => {
       manager = new PortfolioManager({ acc1: makeFundLevelConfig() });

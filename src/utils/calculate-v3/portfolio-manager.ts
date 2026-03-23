@@ -489,6 +489,126 @@ export class PortfolioManager {
     };
   }
 
+  /**
+   * Execute a buy order: purchase shares of a fund with uninvested cash.
+   * Creates a lot, updates the fund position, and decreases uninvested cash.
+   */
+  executeBuy(
+    accountId: string,
+    fundSymbol: string,
+    amount: number,
+    date: string,
+    source: Lot['source'],
+  ): PortfolioTransaction {
+    const state = this.states.get(accountId);
+    if (!state) {
+      throw new Error(`No portfolio state for account ${accountId}`);
+    }
+
+    // Get the fund's current simulated price
+    const price = state.simulatedPrices.get(fundSymbol);
+    if (price === undefined || price === 0) {
+      throw new Error(`No simulated price for fund ${fundSymbol} in account ${accountId}`);
+    }
+
+    // Compute shares
+    const shares = amount / price;
+
+    // Create lot
+    const lot = this.createLot(accountId, fundSymbol, shares, price, date, source);
+
+    // Update fund position
+    const position = state.fundPositions.get(fundSymbol);
+    if (position) {
+      position.shares += shares;
+      position.value = position.shares * position.currentPrice;
+    }
+
+    // Decrease uninvested cash
+    state.uninvestedCash -= amount;
+
+    // Create and store transaction
+    const tx: PortfolioTransaction = {
+      id: `buy-${lot.id}`,
+      date,
+      type: 'buy',
+      fundSymbol,
+      shares,
+      pricePerShare: price,
+      totalAmount: amount,
+      fees: 0,
+      lotId: lot.id,
+      source,
+      isProjected: true,
+      isEstimated: state.mode === 'estimated',
+    };
+    state.projectedTransactions.push(tx);
+
+    this.log('buy-executed', {
+      accountId,
+      fundSymbol,
+      shares,
+      price,
+      amount,
+      lotId: lot.id,
+    });
+
+    return tx;
+  }
+
+  /**
+   * Execute a sell order: sell shares of a fund, consuming lots per strategy.
+   * Updates the fund position, increases uninvested cash by proceeds.
+   * Takes SHARES (not dollars) — dollar-to-share conversion happens in executeWithdrawal.
+   */
+  executeSell(
+    accountId: string,
+    fundSymbol: string,
+    shares: number,
+    date: string,
+  ): SellResult {
+    const state = this.states.get(accountId);
+    if (!state) {
+      throw new Error(`No portfolio state for account ${accountId}`);
+    }
+
+    // Get the fund's current simulated price
+    const price = state.simulatedPrices.get(fundSymbol);
+    if (price === undefined || price === 0) {
+      throw new Error(`No simulated price for fund ${fundSymbol} in account ${accountId}`);
+    }
+
+    // Consume lots
+    const sellResult = this.consumeLots(accountId, fundSymbol, shares, price, date);
+
+    // Update fund position
+    const position = state.fundPositions.get(fundSymbol);
+    if (position) {
+      position.shares -= shares;
+      position.value = position.shares * position.currentPrice;
+    }
+
+    // Increase uninvested cash by total proceeds (shares * price)
+    const proceeds = shares * price;
+    state.uninvestedCash += proceeds;
+
+    // Create and store a summary sell transaction (lot-level txs already stored by consumeLots)
+    // Note: consumeLots already stores per-lot sell transactions in projectedTransactions
+
+    this.log('sell-executed', {
+      accountId,
+      fundSymbol,
+      shares,
+      price,
+      proceeds,
+      shortTermGain: sellResult.shortTermGain,
+      longTermGain: sellResult.longTermGain,
+      lotsConsumed: sellResult.lotDetails.length,
+    });
+
+    return sellResult;
+  }
+
   // ---- Private helpers ----
 
   /**
