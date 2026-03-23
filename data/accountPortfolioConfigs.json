@@ -1,0 +1,251 @@
+{
+  "ba1af043-c75c-4a7d-9a81-99574bded9c5": {
+    "mode": "fund-level",
+    "allocation": { "stock": 0.75, "bond": 0.10, "cash": 0.15 },
+    "glidePath": "none",
+    "lotSelectionStrategy": "fifo",
+    "bucket": {
+      "reserveAsset": "SPRXX",
+      "reserveTarget": 60000
+    },
+    "funds": [
+      {
+        "symbol": "SPRXX",
+        "name": "Fidelity Government Money Market",
+        "assetClassMapping": { "cash": 1.0 },
+        "currentShares": 41877.17,
+        "currentPrice": 1.00,
+        "expenseRatio": 0.0042,
+        "contributionWeight": 0,
+        "dividends": {
+          "frequency": "monthly",
+          "dividendType": "ordinary",
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "FXAIX",
+        "name": "Fidelity 500 Index Fund",
+        "assetClassMapping": { "stock": 1.0 },
+        "currentShares": 4.062,
+        "currentPrice": 226.59,
+        "expenseRatio": 0.00015,
+        "contributionWeight": 0.60,
+        "dividends": {
+          "frequency": "quarterly",
+          "dividendType": "qualified",
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "FSKAX",
+        "name": "Fidelity Total Market Index Fund",
+        "assetClassMapping": { "stock": 1.0 },
+        "currentShares": 2.519,
+        "currentPrice": 178.40,
+        "expenseRatio": 0.00015,
+        "contributionWeight": 0.15,
+        "dividends": {
+          "frequency": "quarterly",
+          "dividendType": "qualified",
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "FTIHX",
+        "name": "Fidelity Total International Index Fund",
+        "assetClassMapping": { "stock": 1.0 },
+        "currentShares": 19.113,
+        "currentPrice": 17.18,
+        "expenseRatio": 0.00055,
+        "contributionWeight": 0.15,
+        "dividends": {
+          "frequency": "quarterly",
+          "dividendType": "qualified",
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "FXNAX",
+        "name": "Fidelity US Bond Index Fund",
+        "assetClassMapping": { "bond": 1.0 },
+        "currentShares": 5,
+        "currentPrice": 10.42,
+        "expenseRatio": 0.00025,
+        "contributionWeight": 0.10,
+        "dividends": {
+          "frequency": "semiannually",
+          "dividendType": "ordinary",
+          "reinvest": true,
+          "history": []
+        }
+      }
+    ]
+  },
+  "8a06d434-8cab-4607-875d-e1cbab574534": {
+    "mode": "fund-level",
+    "allocation": { "stock": 0.85, "bond": 0.15 },
+    "glidePath": "none",
+    "lotSelectionStrategy": "fifo",
+    "funds": [
+      {
+        "symbol": "VTINX",
+        "name": "Vanguard Target Retirement Income Fund",
+        "assetClassMapping": { "bond": 0.70, "stock": 0.30 },
+        "currentShares": 159.022,
+        "currentPrice": 13.72,
+        "expenseRatio": 0.0012,
+        "contributionWeight": 0.02,
+        "dividends": {
+          "frequency": "quarterly",
+          "dividendType": "mixed",
+          "qualifiedPercent": 0.30,
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "VTWNX",
+        "name": "Vanguard Target Retirement 2020 Fund",
+        "assetClassMapping": { "bond": 0.55, "stock": 0.45 },
+        "currentShares": 123.714,
+        "currentPrice": 27.13,
+        "expenseRatio": 0.0012,
+        "contributionWeight": 0.03,
+        "dividends": {
+          "frequency": "quarterly",
+          "dividendType": "mixed",
+          "qualifiedPercent": 0.45,
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "VTHRX",
+        "name": "Vanguard Target Retirement 2030 Fund",
+        "assetClassMapping": { "bond": 0.35, "stock": 0.65 },
+        "currentShares": 140.957,
+        "currentPrice": 41.50,
+        "expenseRatio": 0.0012,
+        "contributionWeight": 0.05,
+        "dividends": {
+          "frequency": "quarterly",
+          "dividendType": "mixed",
+          "qualifiedPercent": 0.65,
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "VFORX",
+        "name": "Vanguard Target Retirement 2040 Fund",
+        "assetClassMapping": { "bond": 0.20, "stock": 0.80 },
+        "currentShares": 247.264,
+        "currentPrice": 48.82,
+        "expenseRatio": 0.0012,
+        "contributionWeight": 0.10,
+        "dividends": {
+          "frequency": "quarterly",
+          "dividendType": "mixed",
+          "qualifiedPercent": 0.80,
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "VFIFX",
+        "name": "Vanguard Target Retirement 2050 Fund",
+        "assetClassMapping": { "bond": 0.10, "stock": 0.90 },
+        "currentShares": 322.578,
+        "currentPrice": 57.74,
+        "expenseRatio": 0.0012,
+        "contributionWeight": 0.15,
+        "dividends": {
+          "frequency": "quarterly",
+          "dividendType": "mixed",
+          "qualifiedPercent": 0.90,
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "VTTSX",
+        "name": "Vanguard Target Retirement 2060 Fund",
+        "assetClassMapping": { "bond": 0.10, "stock": 0.90 },
+        "currentShares": 417.993,
+        "currentPrice": 59.38,
+        "expenseRatio": 0.0012,
+        "contributionWeight": 0.20,
+        "dividends": {
+          "frequency": "quarterly",
+          "dividendType": "mixed",
+          "qualifiedPercent": 0.90,
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "VSVNX",
+        "name": "Vanguard Target Retirement 2070 Fund",
+        "assetClassMapping": { "bond": 0.10, "stock": 0.90 },
+        "currentShares": 1002.065,
+        "currentPrice": 30.98,
+        "expenseRatio": 0.0012,
+        "contributionWeight": 0.25,
+        "dividends": {
+          "frequency": "quarterly",
+          "dividendType": "mixed",
+          "qualifiedPercent": 0.90,
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "5021",
+        "name": "Vanguard Total Bond Market Index Trust",
+        "assetClassMapping": { "bond": 1.0 },
+        "currentShares": 5237.47,
+        "currentPrice": 1.00,
+        "expenseRatio": 0.0003,
+        "contributionWeight": 0.05,
+        "dividends": {
+          "frequency": "semiannually",
+          "dividendType": "ordinary",
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
+        "symbol": "5019",
+        "name": "Vanguard Total Stock Market Index Trust",
+        "assetClassMapping": { "stock": 1.0 },
+        "currentShares": 17956.67,
+        "currentPrice": 1.00,
+        "expenseRatio": 0.0003,
+        "contributionWeight": 0.15,
+        "dividends": {
+          "frequency": "quarterly",
+          "dividendType": "qualified",
+          "reinvest": true,
+          "history": []
+        }
+      }
+    ]
+  },
+  "141c272a-a655-4144-a2f2-56a1ff6f6172": {
+    "mode": "estimated",
+    "allocation": { "stock": 0.79, "bond": 0.20, "cash": 0.01 },
+    "glidePath": "global",
+    "lotSelectionStrategy": "fifo"
+  },
+  "9005ec8d-1d71-46ce-82ba-f1781e28a1cb": {
+    "mode": "estimated",
+    "allocation": { "stock": 0.79, "bond": 0.20, "cash": 0.01 },
+    "glidePath": "global",
+    "lotSelectionStrategy": "fifo"
+  }
+}
