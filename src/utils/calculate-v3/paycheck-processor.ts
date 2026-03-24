@@ -122,6 +122,7 @@ export class PaycheckProcessor {
     const depositActivities: { accountId: string; amount: number; label: string }[] = [];
 
     let totalPreTax = 0;
+    let totalPreTaxForWithholding = 0;
     let traditional401k = 0;
     let roth401k = 0;
     let hsa = 0;
@@ -150,6 +151,7 @@ export class PaycheckProcessor {
           this.contributionLimitManager.recordContribution(accountOwnerDOB, year, '401k', amount401k);
           traditional401k = amount401k;
           totalPreTax += amount401k;
+          totalPreTaxForWithholding += amount401k;
           depositActivities.push({
             accountId: profile.traditional401k.destinationAccount,
             amount: amount401k,
@@ -178,6 +180,7 @@ export class PaycheckProcessor {
           this.contributionLimitManager.recordContribution(accountOwnerDOB, year, 'hsa', hsaAmount);
           hsa = hsaAmount;
           totalPreTax += hsaAmount;
+          totalPreTaxForWithholding += hsaAmount;
           this.log('hsa-employee-deducted', { amount: hsaAmount });
           // HSA deposit handled below (combined with employer)
         }
@@ -195,6 +198,8 @@ export class PaycheckProcessor {
         this.contributionLimitManager.recordContribution(accountOwnerDOB, year, 'hsa', hsaEmployer);
       }
       this.log('hsa-employer-added', { amount: hsaEmployer, annual: profile.hsaEmployerContribution, paychecksPerYear });
+      // HSA employer contributions reduce federal/state taxable wages (Section 125/223)
+      totalPreTaxForWithholding += hsaEmployer;
     }
 
     // HSA deposit (employee + employer combined)
@@ -213,6 +218,9 @@ export class PaycheckProcessor {
           const freq = ded.frequency ?? 'perPaycheck';
           if (this.paycheckStateTracker.shouldApplyDeduction(freq, paycheckIndex, isFirstPaycheckOfYear)) {
             totalPreTax += ded.amount;
+            if (!ded.imputed) {
+              totalPreTaxForWithholding += ded.amount;
+            }
             preTaxDeductions.push({ label: ded.label, amount: ded.amount });
             if (ded.destinationAccount) {
               depositActivities.push({
@@ -273,7 +281,7 @@ export class PaycheckProcessor {
     // Step 4b: Federal withholding
     let federalWithholding = 0;
     if (this.withholdingCalculator && taxProfile && standardDeduction !== undefined && standardDeduction !== null && bracketLookup) {
-      const taxableWagesPerPeriod = grossPay - totalPreTax; // gross minus pre-tax deductions
+      const taxableWagesPerPeriod = grossPay - totalPreTaxForWithholding; // gross minus pre-tax deductions
       federalWithholding = this.withholdingCalculator.computeFederalWithholding(
         taxableWagesPerPeriod,
         paychecksPerYear,
@@ -288,7 +296,7 @@ export class PaycheckProcessor {
     // Step 4c: State withholding (NC formula: apply rate to wages minus standard deduction and allowances, round to nearest dollar)
     let stateWithholding = 0;
     if (taxProfile) {
-      const stateWages = grossPay - totalPreTax;
+      const stateWages = grossPay - totalPreTaxForWithholding;
       const stateDeduction = (taxProfile.stateStandardDeduction ?? 0) + (taxProfile.stateAllowances ?? 0) * 96.15;
       const netStateWages = Math.max(0, stateWages - stateDeduction);
       stateWithholding = Math.round(netStateWages * taxProfile.stateTaxRate);
