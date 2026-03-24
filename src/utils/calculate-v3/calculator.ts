@@ -771,6 +771,104 @@ export class Calculator {
   }
 
   /**
+   * Creates an inflated copy of a paycheck profile based on years elapsed and variable rates.
+   * Each component's increaseByVariable is resolved and compounded annually.
+   */
+  private inflatePaycheckProfile(
+    profile: any,
+    bill: any,
+    currentDate: Date,
+  ): any {
+    // Calculate years of inflation using bill's increaseByDate
+    const increaseByDate = bill.increaseByDate;
+    if (!increaseByDate) return profile;
+
+    const startDate = bill.startDate;
+    const yearsDiff = this.countYearIncreases(startDate, currentDate, increaseByDate);
+    if (yearsDiff <= 0) return profile;
+
+    const inflated = JSON.parse(JSON.stringify(profile)); // deep copy
+
+    const resolveRate = (item: any): number => {
+      if (!item) return 0;
+      if (item.increaseByIsVariable && item.increaseByVariable) {
+        try {
+          return loadVariable(item.increaseByVariable, this.simulation) as number;
+        } catch {
+          return item.increaseBy || 0;
+        }
+      }
+      return item.increaseBy || 0;
+    };
+
+    const compound = (value: number, rate: number, years: number): number => {
+      if (rate === 0 || years <= 0) return value;
+      return value * Math.pow(1 + rate, years);
+    };
+
+    // Inflate gross pay using bill-level increaseBy (already resolved)
+    // Note: grossPay inflation is handled separately via calculateBillAmount in timeline,
+    // but the profile.grossPay should match so the processor uses the right value
+    const grossRate = bill.increaseBy || 0;
+    inflated.grossPay = compound(profile.grossPay, grossRate, yearsDiff);
+
+    // Inflate 401k contribution value
+    if (inflated.traditional401k) {
+      const rate = resolveRate(profile.traditional401k);
+      inflated.traditional401k.value = compound(profile.traditional401k.value, rate, yearsDiff);
+    }
+
+    // Inflate Roth 401k contribution value
+    if (inflated.roth401k) {
+      const rate = resolveRate(profile.roth401k);
+      inflated.roth401k.value = compound(profile.roth401k.value, rate, yearsDiff);
+    }
+
+    // Inflate HSA contribution value
+    if (inflated.hsa) {
+      const rate = resolveRate(profile.hsa);
+      inflated.hsa.value = compound(profile.hsa.value, rate, yearsDiff);
+    }
+
+    // Inflate HSA employer contribution
+    if (inflated.hsaEmployerContribution) {
+      // HSA employer follows the same rate as HSA employee
+      const rate = profile.hsa ? resolveRate(profile.hsa) : 0;
+      inflated.hsaEmployerContribution = compound(profile.hsaEmployerContribution, rate, yearsDiff);
+    }
+
+    // Inflate custom deductions
+    if (inflated.deductions) {
+      for (let i = 0; i < inflated.deductions.length; i++) {
+        const rate = resolveRate(profile.deductions[i]);
+        inflated.deductions[i].amount = compound(profile.deductions[i].amount, rate, yearsDiff);
+      }
+    }
+
+    // Inflate bonus percent (if it has an increaseBy)
+    // Bonus percent typically doesn't inflate, skip unless configured
+
+    return inflated;
+  }
+
+  /**
+   * Count number of year-increase milestones between startDate and currentDate.
+   * Matches the logic in timeline.ts yearIncreases.
+   */
+  private countYearIncreases(startDate: Date, endDate: Date, increaseDate: { day: number; month: number }): number {
+    let count = 0;
+    const startYear = startDate.getUTCFullYear();
+    const endYear = endDate.getUTCFullYear();
+    for (let year = startYear; year <= endYear; year++) {
+      const milestone = new Date(Date.UTC(year, increaseDate.month, increaseDate.day));
+      if (milestone >= startDate && milestone <= endDate) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
    * Process a paycheck bill event using the PaycheckProcessor
    */
   private processPaycheckBill(
@@ -800,8 +898,11 @@ export class Calculator {
     // Compute paychecks per year from bill frequency
     const paychecksPerYear = this.computePaychecksPerYear(bill.everyN, bill.periods);
 
-    // Compute gross pay from paycheck profile (not from bill amount)
-    let grossPay = profile.grossPay;
+    // Inflate paycheck profile components for years elapsed
+    const inflatedProfile = this.inflatePaycheckProfile(profile, bill, event.date);
+
+    // Compute gross pay from inflated paycheck profile
+    let grossPay = inflatedProfile.grossPay;
 
     // Apply raise correction for missed raises during unemployment years
     if (this.jobLossManager) {
@@ -832,7 +933,7 @@ export class Calculator {
     const dynamicFilingStatus = this.mortalityManager?.getFilingStatus(event.date) ?? this.filingStatus;
     const paycheckResult = computeNetPay({
       grossPay,
-      profile,
+      profile: inflatedProfile,
       billName: bill.name,
       date: event.date,
       accountOwnerDOB: account.accountOwnerDOB,
