@@ -55,6 +55,9 @@ export interface AccountPortfolioConfig {
 
 export interface PortfolioTransaction {
   id: string;
+  sourceId?: string;    // dedup key from brokerage import (e.g., "goretire:FITID123")
+  accountId?: string;   // app account ID for ledger storage
+  memo?: string;        // original brokerage description
   date: string;
   type: 'buy' | 'sell' | 'reinvest' | 'dividend' | 'transfer-in' | 'transfer-out' | 'split' | 'fee';
   fundSymbol: string;

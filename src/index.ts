@@ -82,6 +82,8 @@ import {
 import { getTaxSummary } from './api/tax-summary';
 import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
 import type { PaycheckProfile } from './data/bill/paycheck-types';
+import { importQfx, importCsv, getLedger } from './api/portfolio/import';
+import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint } from './api/portfolio/prices';
 
 declare global {
   namespace Express {
@@ -863,6 +865,24 @@ app.post('/api/cache/clear', verifyToken, (_req: Request, res: Response) => {
   clearAllGraphCache();
   res.json({ success: true });
 });
+
+// Portfolio import routes
+app.post('/api/portfolio/import/qfx', express.text({ limit: '50mb', type: '*/*' }), importQfx);
+app.post('/api/portfolio/import/csv', express.text({ limit: '50mb', type: '*/*' }), importCsv);
+app.get('/api/portfolio/ledger/:accountId', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  res.json(await getLedger(req));
+}));
+
+// Portfolio price routes (note: /current must come before /:symbol)
+app.get('/api/prices/current', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  await getCurrentPricesEndpoint(req, res);
+}));
+app.get('/api/prices/:symbol', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  await getPriceEndpoint(req, res);
+}));
+app.post('/api/prices/refresh', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  await refreshPricesEndpoint(req, res);
+}));
 
 // Dev-only frontend logging endpoints
 const FRONTEND_LOG_FILE = '/tmp/frontend.log';
