@@ -914,6 +914,67 @@ describe('Calculator', () => {
         expect((bonusActivity as any).paycheckDetails.grossPay).toBeGreaterThan(0);
         expect((bonusActivity as any).paycheckDetails.netPay).toBeGreaterThan(0);
       });
+
+      it('skips bonus virtual activity when actual bonus activity already exists', () => {
+        // Setup: paycheck bill with a bonus firing in March (month 3)
+        const paycheckProfile: PaycheckProfile = {
+          grossPay: 5000,
+          bonus: {
+            percent: 0.10,
+            month: 3,
+            subjectTo401k: false,
+          },
+        };
+
+        const billData = {
+          ...makeBillData({
+            id: 'paycheck-bill-dedup',
+            name: 'My Salary',
+            amount: 5000,
+            startDate: '2026-01-01',
+            everyN: 2,
+            periods: 'week' as const,
+          }),
+          paycheckProfile,
+        };
+        const bill = new Bill(billData as any);
+
+        // Account with an actual bonus activity already in account.activity
+        const account = makeAccount({
+          id: 'checking-dedup',
+          accountOwnerDOB: new Date('1985-06-15'),
+        });
+        // Simulate the user having already actualized the bonus
+        (account.activity as any[]).push({ id: 'paycheck-bill-dedup-bonus-2026', name: 'My Salary Bonus', amount: 4000 });
+
+        const retirementManager = makeRetirementManager();
+        const balanceTracker = makeBalanceTracker({
+          findAccountById: vi.fn(() => account),
+          getAccountBalance: vi.fn(() => 10000),
+        });
+
+        const calculator = makeCalculator({ retirementManager, balanceTracker });
+        const segmentResult = makeSegmentResult();
+
+        // Fire a bill event in March 2026 (the bonus month)
+        const event: BillEvent = {
+          id: 'evt-paycheck-march-dedup',
+          type: EventType.bill,
+          date: new Date('2026-03-06'),
+          accountId: 'checking-dedup',
+          priority: 1,
+          originalBill: bill,
+          amount: 5000,
+          firstBill: false,
+        };
+
+        calculator.processBillEvent(event, segmentResult, 'Default');
+
+        // No virtual bonus activity should have been generated
+        const activities = segmentResult.activitiesAdded.get('checking-dedup') ?? [];
+        const bonusActivity = activities.find((a) => a.name.includes('Bonus'));
+        expect(bonusActivity).toBeUndefined();
+      });
     });
   });
 
