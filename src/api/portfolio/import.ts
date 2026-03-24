@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { parseQfx } from '../../utils/import/qfx-parser';
 import { parseFidelityCsv } from '../../utils/import/csv-parser';
 import { appendTransactions, loadLedger } from '../../utils/io/portfolioLedger';
+import { getCurrentPrices } from '../../utils/prices/price-service';
 
 /**
  * Import QFX file into portfolio ledger.
@@ -137,18 +138,30 @@ export async function getPositions(req: Request, res: Response) {
       }
     }
 
+    // Fetch live prices for all symbols
+    const symbols = Object.keys(positions).filter(s => positions[s].shares > 0.0001);
+    let livePrices: Record<string, number> = {};
+    try {
+      livePrices = await getCurrentPrices(symbols);
+    } catch (err) {
+      console.warn('Failed to fetch live prices, using last transaction prices:', (err as Error).message);
+    }
+
     // Build response
     const result = Object.values(positions)
       .filter(p => p.shares > 0.0001)
-      .map(p => ({
-        symbol: p.symbol,
-        shares: Math.round(p.shares * 10000) / 10000,
-        avgCostPerShare: p.shares > 0 ? Math.round((p.totalCost / p.shares) * 100) / 100 : 0,
-        totalCost: Math.round(p.totalCost * 100) / 100,
-        lastPrice: Math.round(p.lastPrice * 100) / 100,
-        currentValue: Math.round(p.shares * p.lastPrice * 100) / 100,
-        unrealizedGain: Math.round((p.shares * p.lastPrice - p.totalCost) * 100) / 100,
-      }))
+      .map(p => {
+        const currentPrice = livePrices[p.symbol] || p.lastPrice;
+        return {
+          symbol: p.symbol,
+          shares: Math.round(p.shares * 10000) / 10000,
+          avgCostPerShare: p.shares > 0 ? Math.round((p.totalCost / p.shares) * 100) / 100 : 0,
+          totalCost: Math.round(p.totalCost * 100) / 100,
+          lastPrice: Math.round(currentPrice * 100) / 100,
+          currentValue: Math.round(p.shares * currentPrice * 100) / 100,
+          unrealizedGain: Math.round((p.shares * currentPrice - p.totalCost) * 100) / 100,
+        };
+      })
       .sort((a, b) => b.currentValue - a.currentValue);
 
     const totalCost = result.reduce((sum, p) => sum + p.totalCost, 0);

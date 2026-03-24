@@ -151,6 +151,23 @@ export class Calculator {
     this.debugLogger.log(this.simNumber, { component: 'calculator', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
   }
 
+  /**
+   * Stamp the current portfolio total value onto the last activity for a portfolio account.
+   */
+  private stampPortfolioBalance(segmentResult: SegmentResult, accountId: string): void {
+    if (!this.portfolioManager) return;
+    const mode = this.portfolioManager.getAccountMode(accountId);
+    if (mode !== 'estimated' && mode !== 'fund-level') return;
+
+    const activities = segmentResult.activitiesAdded.get(accountId);
+    if (!activities || activities.length === 0) return;
+
+    const totalValue = this.portfolioManager.getTotalValue(accountId);
+    const lastActivity = activities[activities.length - 1];
+    (lastActivity as any).investmentValue = totalValue;
+    (lastActivity as any).cashBalance = 0;
+  }
+
   /** Set the current simulation date for debug log entries and propagate to child managers */
   setCurrentDate(date: string): void {
     this.currentDate = date;
@@ -365,6 +382,7 @@ export class Calculator {
       segmentResult.activitiesAdded.set(accountId, []);
     }
     segmentResult.activitiesAdded.get(accountId)?.push(new ConsolidatedActivity(activity.serialize()));
+    this.stampPortfolioBalance(segmentResult, accountId);
 
     // Route through PortfolioManager if this is a portfolio account
     if (this.portfolioManager && !activity.isTransfer && !(activity.category?.startsWith('Banking.Interest')) && activity.name !== 'Opening Balance' && activity.name !== 'Balance Adjustment') {
@@ -445,6 +463,7 @@ export class Calculator {
             segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
           }
           segmentResult.activitiesAdded.get(resolvedDepositAccountId)?.push(depositActivity);
+          this.stampPortfolioBalance(segmentResult, resolvedDepositAccountId);
 
           // Route through PortfolioManager for investment/HSA accounts
           if (this.portfolioManager) {
@@ -1196,6 +1215,7 @@ export class Calculator {
       segmentResult.activitiesAdded.set(event.accountId, []);
     }
     segmentResult.activitiesAdded.get(event.accountId)?.push(mainActivity);
+    this.stampPortfolioBalance(segmentResult, event.accountId);
 
     // AIME: feed gross wages, not net (Option A from spec — fixes #8)
     this.retirementManager.tryAddToAnnualIncomes(bill.name, event.date, paycheckResult.grossPay);
@@ -1250,6 +1270,7 @@ export class Calculator {
         segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
       }
       segmentResult.activitiesAdded.get(resolvedDepositAccountId)?.push(depositActivity);
+      this.stampPortfolioBalance(segmentResult, resolvedDepositAccountId);
 
       // Update deposit account balance
       const currentDepositChange = segmentResult.balanceChanges.get(resolvedDepositAccountId) || 0;
@@ -1657,6 +1678,7 @@ export class Calculator {
       segmentResult.activitiesAdded.set(accountId, []);
     }
     segmentResult.activitiesAdded.get(accountId)?.push(interestActivity);
+    this.stampPortfolioBalance(segmentResult, accountId);
 
     // Add taxable occurrence for taxable accounts
     const account = this.balanceTracker.findAccountById(accountId);
@@ -1966,6 +1988,8 @@ export class Calculator {
 
     segmentResult.activitiesAdded.get(fromAccountId)?.push(fromActivity);
     segmentResult.activitiesAdded.get(toAccountId)?.push(toActivity);
+    this.stampPortfolioBalance(segmentResult, fromAccountId);
+    this.stampPortfolioBalance(segmentResult, toAccountId);
 
     // Apply withdrawal tax on transfers FROM pre-tax retirement accounts TO non-retirement accounts
     // Pre-tax account: usesRMD=true (Traditional 401k, Traditional IRA, etc)

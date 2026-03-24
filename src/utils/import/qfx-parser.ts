@@ -154,7 +154,7 @@ function parseBuyTransaction(
   }
 
   // Determine transaction type and source based on memo
-  const { type, source } = mapMemoToTypeAndSource(raw.memo);
+  const { type, source } = mapMemoToTypeAndSource(raw.memo, raw.units);
 
   return {
     id: randomUUID(),
@@ -192,9 +192,7 @@ function parseSellTransaction(
     return null;
   }
 
-  // For sells: units will be negative, convert to positive
-  const absUnits = Math.abs(raw.units);
-  const { type, source } = mapMemoToTypeAndSource(raw.memo);
+  const { type, source } = mapMemoToTypeAndSource(raw.memo, raw.units);
 
   return {
     id: randomUUID(),
@@ -204,9 +202,9 @@ function parseSellTransaction(
     date: formatDate(raw.tradeDate),
     type,
     fundSymbol: security.ticker,
-    shares: absUnits,
+    shares: raw.units,  // Keep negative for sells
     pricePerShare: raw.unitPrice,
-    totalAmount: Math.abs(raw.total), // Make absolute for consistency
+    totalAmount: raw.total,  // Keep negative for sells
     fees: 0,
     source,
     isProjected: false,
@@ -267,7 +265,8 @@ function extractTransactionFields(block: string): RawTransaction | null {
  * Map MEMO text to transaction type and source
  */
 function mapMemoToTypeAndSource(
-  memo: string
+  memo: string,
+  units?: number
 ): { type: PortfolioTransaction['type']; source: PortfolioTransaction['source'] } {
   const upperMemo = memo.toUpperCase();
 
@@ -297,10 +296,7 @@ function mapMemoToTypeAndSource(
   }
 
   if (upperMemo.includes('ASSET ALLOCATION')) {
-    // For ASSET ALLOCATION, the sign of units tells us buy vs sell
-    // But we don't have access to units here, so we default to 'buy'
-    // The caller must check the units field
-    return { type: 'buy', source: 'rebalance' };
+    return { type: units !== undefined && units < 0 ? 'sell' : 'buy', source: 'rebalance' };
   }
 
   if (upperMemo.includes('TRUSTEE FEE')) {

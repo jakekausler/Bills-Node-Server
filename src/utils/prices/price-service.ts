@@ -72,10 +72,10 @@ function isCurrentPriceStale(): boolean {
  */
 async function fetchCurrentPriceFromAPI(symbol: string): Promise<number | null> {
   try {
-    // Dynamic import to handle case where package isn't installed yet
-    const yahooFinance = await import('yahoo-finance2');
-    const yf = yahooFinance.default || yahooFinance;
-    const quote = await yf.quote(symbol) as any;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const YahooFinance = require('yahoo-finance2').default;
+    const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+    const quote = await yf.quote(symbol);
     return quote?.regularMarketPrice ?? null;
   } catch (err) {
     console.warn(`[PriceService] Failed to fetch price for ${symbol}:`, (err as Error).message);
@@ -88,8 +88,9 @@ async function fetchCurrentPriceFromAPI(symbol: string): Promise<number | null> 
  */
 async function fetchHistoricalPriceFromAPI(symbol: string, date: string): Promise<number | null> {
   try {
-    const yahooFinance = await import('yahoo-finance2');
-    const yf = yahooFinance.default || yahooFinance;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const YahooFinance = require('yahoo-finance2').default;
+    const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
     const targetDate = new Date(date + 'T00:00:00Z');
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 5); // buffer for weekends/holidays
@@ -97,7 +98,7 @@ async function fetchHistoricalPriceFromAPI(symbol: string, date: string): Promis
       period1: targetDate,
       period2: nextDay,
       interval: '1d',
-    }) as any[];
+    });
     if (result && result.length > 0) {
       return result[0].close;
     }
@@ -237,13 +238,14 @@ export async function getHistoricalPrices(
   // If we have sparse data, try bulk API fetch
   if (Object.keys(result).length === 0) {
     try {
-      const yahooFinance = await import('yahoo-finance2');
-      const yf = yahooFinance.default || yahooFinance;
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const YahooFinance = require('yahoo-finance2').default;
+      const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
       const history = await yf.historical(symbol, {
         period1: new Date(startDate + 'T00:00:00Z'),
         period2: new Date(endDate + 'T00:00:00Z'),
         interval: '1mo',
-      }) as any[];
+      });
 
       const priceHistory = loadPriceHistory();
       if (!priceHistory[symbol]) priceHistory[symbol] = {};
