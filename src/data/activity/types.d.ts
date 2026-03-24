@@ -1,5 +1,5 @@
 import { DateString } from '../../utils/date/types';
-import { PaycheckDetails } from '../bill/paycheck-types';
+import { PaycheckDetails, PaycheckProfile } from '../bill/paycheck-types';
 
 export type ActivityData = {
   id: string;
@@ -32,6 +32,7 @@ export type ActivityData = {
   // Paycheck fields
   paycheckDetails?: PaycheckDetails | null;
   isPaycheckActivity?: boolean;
+  paycheckProfile?: PaycheckProfile | null;
 };
 
 export type ConsolidatedActivityData = ActivityData & {
