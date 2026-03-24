@@ -150,7 +150,6 @@ export class PaycheckProcessor {
           this.contributionLimitManager.recordContribution(accountOwnerDOB, year, '401k', amount401k);
           traditional401k = amount401k;
           totalPreTax += amount401k;
-          preTaxDeductions.push({ label: 'Traditional 401k', amount: amount401k });
           depositActivities.push({
             accountId: profile.traditional401k.destinationAccount,
             amount: amount401k,
@@ -179,7 +178,6 @@ export class PaycheckProcessor {
           this.contributionLimitManager.recordContribution(accountOwnerDOB, year, 'hsa', hsaAmount);
           hsa = hsaAmount;
           totalPreTax += hsaAmount;
-          preTaxDeductions.push({ label: 'HSA Employee', amount: hsaAmount });
           this.log('hsa-employee-deducted', { amount: hsaAmount });
           // HSA deposit handled below (combined with employer)
         }
@@ -321,7 +319,6 @@ export class PaycheckProcessor {
           this.contributionLimitManager.recordContribution(accountOwnerDOB, year, '401k', roth401kAmount);
           roth401k = roth401kAmount;
           totalPostTax += roth401kAmount;
-          postTaxDeductions.push({ label: 'Roth 401k', amount: roth401kAmount });
           depositActivities.push({
             accountId: profile.roth401k.destinationAccount,
             amount: roth401kAmount,
