@@ -366,6 +366,42 @@ export class Calculator {
     }
     segmentResult.activitiesAdded.get(accountId)?.push(new ConsolidatedActivity(activity.serialize()));
 
+    // Route through PortfolioManager if this is a portfolio account
+    if (this.portfolioManager && !activity.isTransfer) {
+      const mode = this.portfolioManager.getAccountMode(accountId);
+      if (mode === 'estimated' || mode === 'fund-level') {
+        const dateString = formatDate(event.date);
+        const amount = activity.amount as number;
+        if (amount > 0) {
+          // Positive amount = deposit into this account
+          const buyTxns = this.portfolioManager.executeDeposit(accountId, amount, dateString, 'contribution');
+          const lastActivity = segmentResult.activitiesAdded.get(accountId)?.slice(-1)[0];
+          if (lastActivity && buyTxns && buyTxns.length > 0) {
+            (lastActivity as any).investmentActivityType = 'buy';
+            (lastActivity as any).investmentActions = buyTxns.map(t => ({
+              symbol: t.fundSymbol,
+              shares: t.shares,
+              pricePerShare: t.pricePerShare,
+              totalPrice: t.totalAmount,
+            }));
+          }
+        } else if (amount < 0) {
+          // Negative amount = withdrawal from this account
+          const { transactions: sellTxns } = this.portfolioManager.executeWithdrawal(accountId, Math.abs(amount), dateString);
+          const lastActivity = segmentResult.activitiesAdded.get(accountId)?.slice(-1)[0];
+          if (lastActivity && sellTxns && sellTxns.length > 0) {
+            (lastActivity as any).investmentActivityType = 'sell';
+            (lastActivity as any).investmentActions = sellTxns.map(t => ({
+              symbol: t.fundSymbol,
+              shares: t.shares,
+              pricePerShare: t.pricePerShare,
+              totalPrice: t.totalAmount,
+            }));
+          }
+        }
+      }
+    }
+
     // For paycheck activities, use netPay as the effective amount
     let balanceChange = activity.amount as number;
     const paycheckDetails = (activity as any).paycheckDetails;
@@ -409,6 +445,26 @@ export class Calculator {
             segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
           }
           segmentResult.activitiesAdded.get(resolvedDepositAccountId)?.push(depositActivity);
+
+          // Route through PortfolioManager for investment/HSA accounts
+          if (this.portfolioManager) {
+            const destMode = this.portfolioManager.getAccountMode(resolvedDepositAccountId);
+            if (destMode === 'estimated' || destMode === 'fund-level') {
+              const dateString = formatDate(event.date);
+              const buyTransactions = this.portfolioManager.executeDeposit(
+                resolvedDepositAccountId, deposit.amount, dateString, 'contribution',
+              );
+              if (buyTransactions && buyTransactions.length > 0) {
+                (depositActivity as any).investmentActivityType = 'buy';
+                (depositActivity as any).investmentActions = buyTransactions.map(t => ({
+                  symbol: t.fundSymbol,
+                  shares: t.shares,
+                  pricePerShare: t.pricePerShare,
+                  totalPrice: t.totalAmount,
+                }));
+              }
+            }
+          }
 
           const currentDepositChange = segmentResult.balanceChanges.get(resolvedDepositAccountId) || 0;
           segmentResult.balanceChanges.set(resolvedDepositAccountId, currentDepositChange + deposit.amount);
