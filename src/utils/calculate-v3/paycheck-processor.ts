@@ -235,43 +235,44 @@ export class PaycheckProcessor {
       }
     }
 
-    // Step 2: Compute SS wages
-    // Note: 401k contributions do NOT reduce SS wages (they're FICA wages)
-    // Only certain pre-tax deductions like HSA reduce SS wages (employer HSA does NOT reduce SS wages)
-    let ssWageReduction = 0;
-    // HSA reduces SS wages (employee contribution only, not employer)
-    if (hsa > 0) ssWageReduction += hsa;
-    // Check custom deductions with reducesSSWages flag
+    // Step 2: Compute FICA wages (SS and Medicare)
+    // Section 125 cafeteria plan deductions (HSA, dental, medical, vision) reduce FICA wages
+    // 401k contributions do NOT reduce FICA wages
+    let ficaWageReduction = 0;
+    // HSA employee and employer contributions reduce FICA wages (Section 125/223)
+    if (hsa > 0) ficaWageReduction += hsa;
+    if (hsaEmployer > 0) ficaWageReduction += hsaEmployer;
+    // Check custom deductions with reducesSSWages flag (Section 125 cafeteria plan items)
     if (profile.deductions) {
       for (const ded of profile.deductions) {
-        if (ded.type === 'preTax' && ded.reducesSSWages) {
-          ssWageReduction += ded.amount;
+        if (ded.type === 'preTax' && ded.reducesSSWages && !ded.imputed) {
+          ficaWageReduction += ded.amount;
         }
       }
     }
-    const ssWages = grossPay - ssWageReduction;
+    const ficaWages = grossPay - ficaWageReduction;
 
     // Step 3: Compute FICA
     // NOTE: personKey must match the format used in ContributionLimitManager.createPersonKey()
     const personKey = accountOwnerDOB ? accountOwnerDOB.getTime().toString() : 'unknown';
 
     // SS Tax: 6.2% of SS wages, capped at annual wage base
-    const taxableSS = this.paycheckStateTracker.addSSWages(personKey, year, ssWages, ssWageBaseCap);
+    const taxableSS = this.paycheckStateTracker.addSSWages(personKey, year, ficaWages, ssWageBaseCap);
     const ssTax = taxableSS * 0.062;
 
     // Medicare Tax: 1.45% + additional 0.9% above threshold
     const medicareResult = this.paycheckStateTracker.addMedicareWages(
       personKey,
       year,
-      grossPay,
+      ficaWages,
       additionalMedicareThreshold,
     );
-    const baseMedicare = grossPay * 0.0145;
+    const baseMedicare = ficaWages * 0.0145;
     const additionalMedicare = medicareResult.wagesAboveThreshold * 0.009;
     const medicareTax = baseMedicare + additionalMedicare;
 
     this.log('fica-computed', {
-      ssWages,
+      ficaWages,
       taxableSS,
       ssTax,
       medicareWages: grossPay,
