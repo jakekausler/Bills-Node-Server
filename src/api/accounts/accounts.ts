@@ -70,7 +70,7 @@ function updateAccountTaxSettings(account: Account, newAccount: AccountData): vo
     account.earlyWithdrawalPenalty = newAccount.earlyWithdrawalPenalty ?? 0;
   }
   if (newAccount.earlyWithdrawalDate !== account.earlyWithdrawalDate) {
-    account.earlyWithdrawalDate = newAccount.earlyWithdrawalDate || null;
+    account.earlyWithdrawalDate = newAccount.earlyWithdrawalDate ? parseDate(newAccount.earlyWithdrawalDate as DateString) : null;
   }
   if (newAccount.interestAppliesToPositiveBalance !== account.interestAppliesToPositiveBalance) {
     account.interestAppliesToPositiveBalance = newAccount.interestAppliesToPositiveBalance ?? account.interestAppliesToPositiveBalance;
