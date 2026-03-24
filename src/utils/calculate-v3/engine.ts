@@ -542,9 +542,10 @@ export class Engine {
       this.calculator.setLifeInsuranceManager(this.lifeInsuranceManager);
     }
 
-    // Pass portfolio manager to calculator
+    // Pass portfolio manager to calculator and balance tracker
     if (this.portfolioManager) {
       this.calculator.setPortfolioManager(this.portfolioManager);
+      this.balanceTracker.setPortfolioManager(this.portfolioManager);
     }
 
     // Initialize push-pull handler

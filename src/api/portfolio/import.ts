@@ -85,51 +85,81 @@ export async function getPositions(req: Request, res: Response) {
   try {
     const accountId = req.params.accountId;
     const ledger = loadLedger();
-    const accountTxns = ledger.filter(t => t.accountId === accountId);
+    const accountTxns = ledger
+      .filter(t => t.accountId === accountId)
+      .sort((a, b) => a.date.localeCompare(b.date));
 
     if (accountTxns.length === 0) {
-      return res.json({ accountId, positions: [], totalValue: 0 });
+      return res.json({ accountId, positions: [], totalValue: 0, totalCost: 0 });
     }
 
-    // Reconstruct positions from ledger transactions
-    const positions: Record<string, { symbol: string; shares: number; totalCost: number }> = {};
+    // Reconstruct positions using lot-like tracking
+    const positions: Record<string, {
+      symbol: string;
+      shares: number;
+      totalCost: number; // sum of (shares × price) for buys
+      lastPrice: number; // most recent transaction price
+    }> = {};
 
     for (const txn of accountTxns) {
       if (!txn.fundSymbol || txn.fundSymbol === 'CASH') continue;
 
       if (!positions[txn.fundSymbol]) {
-        positions[txn.fundSymbol] = { symbol: txn.fundSymbol, shares: 0, totalCost: 0 };
+        positions[txn.fundSymbol] = { symbol: txn.fundSymbol, shares: 0, totalCost: 0, lastPrice: txn.pricePerShare };
       }
+
+      const pos = positions[txn.fundSymbol];
+      pos.lastPrice = txn.pricePerShare; // always update to latest price
 
       switch (txn.type) {
         case 'buy':
-        case 'reinvest':
-          positions[txn.fundSymbol].shares += Math.abs(txn.shares);
-          positions[txn.fundSymbol].totalCost += Math.abs(txn.totalAmount);
+        case 'reinvest': {
+          const buyShares = Math.abs(txn.shares);
+          const buyCost = buyShares * txn.pricePerShare;
+          pos.shares += buyShares;
+          pos.totalCost += buyCost;
           break;
-        case 'sell':
-          positions[txn.fundSymbol].shares -= Math.abs(txn.shares);
-          // Don't reduce totalCost on sell (cost basis stays)
+        }
+        case 'sell': {
+          const sellShares = Math.abs(txn.shares);
+          if (pos.shares > 0) {
+            // Reduce cost basis proportionally
+            const costPerShare = pos.totalCost / pos.shares;
+            pos.shares -= sellShares;
+            pos.totalCost -= sellShares * costPerShare;
+            if (pos.shares < 0.0001) {
+              pos.shares = 0;
+              pos.totalCost = 0;
+            }
+          }
           break;
+        }
       }
     }
 
-    // Build response with current positions (shares > 0)
+    // Build response
     const result = Object.values(positions)
       .filter(p => p.shares > 0.0001)
       .map(p => ({
         symbol: p.symbol,
         shares: Math.round(p.shares * 10000) / 10000,
-        avgCostPerShare: p.totalCost / p.shares,
+        avgCostPerShare: p.shares > 0 ? Math.round((p.totalCost / p.shares) * 100) / 100 : 0,
         totalCost: Math.round(p.totalCost * 100) / 100,
-        // Note: currentPrice and currentValue would need PriceService lookup
+        lastPrice: Math.round(p.lastPrice * 100) / 100,
+        currentValue: Math.round(p.shares * p.lastPrice * 100) / 100,
+        unrealizedGain: Math.round((p.shares * p.lastPrice - p.totalCost) * 100) / 100,
       }))
-      .sort((a, b) => b.totalCost - a.totalCost);
+      .sort((a, b) => b.currentValue - a.currentValue);
+
+    const totalCost = result.reduce((sum, p) => sum + p.totalCost, 0);
+    const totalValue = result.reduce((sum, p) => sum + p.currentValue, 0);
 
     res.json({
       accountId,
       positions: result,
-      totalCost: result.reduce((sum, p) => sum + p.totalCost, 0),
+      totalCost: Math.round(totalCost * 100) / 100,
+      totalValue: Math.round(totalValue * 100) / 100,
+      unrealizedGain: Math.round((totalValue - totalCost) * 100) / 100,
     });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });

@@ -7,6 +7,7 @@ import { AccountsAndTransfers } from '../../data/account/types';
 import { minDate } from '../io/minDate';
 import { isSame } from '../date/date';
 import type { DebugLogger } from './debug-logger';
+import { PortfolioManager } from './portfolio-manager';
 
 dayjs.extend(utc);
 
@@ -15,6 +16,7 @@ export class BalanceTracker {
   private cache: CacheManager;
   private startDate: Date | null;
   private accountMap: Map<string, Account>;
+  private portfolioManager: PortfolioManager | null = null;
 
   // Current state
   private balances: Record<string, number> = {};
@@ -44,6 +46,11 @@ export class BalanceTracker {
   /** Set the current simulation date for debug log entries */
   setCurrentDate(date: string): void {
     this.currentDate = date;
+  }
+
+  /** Set the PortfolioManager for accessing investment data during balance calculations */
+  setPortfolioManager(pm: PortfolioManager | null): void {
+    this.portfolioManager = pm;
   }
 
   async initializeBalances(
@@ -157,12 +164,29 @@ export class BalanceTracker {
 
       let runningBalance = 0;
 
+      // Check if this is a portfolio account with PortfolioManager data
+      const isPortfolioAccount = this.portfolioManager && this.portfolioManager.getAccountMode(clonedAccount.id) != null;
+
       const allActivitiesWithBalances = clonedAccount.consolidatedActivity.map((activity, index) => {
         const effectiveAmount = (activity as any).isPaycheckActivity && (activity as any).paycheckDetails?.netPay
           ? (activity as any).paycheckDetails.netPay
           : Number(activity.amount);
         activity.balance = runningBalance + effectiveAmount;
         runningBalance = activity.balance;
+
+        // For portfolio accounts, populate investment breakdown from PortfolioManager data
+        if (isPortfolioAccount) {
+          const ca = activity as any;
+          // If not already populated during calculation, default to total balance as investment value
+          if (!ca.investmentValue && !ca.cashBalance) {
+            ca.investmentValue = activity.balance;
+            ca.cashBalance = 0;
+            ca.costBasis = 0;
+            ca.unrealizedGain = 0;
+            ca.unrealizedGainPercent = 0;
+          }
+        }
+
         return activity;
       });
 
