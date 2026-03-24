@@ -2,6 +2,8 @@ export type TaxProfile = {
   filingStatus: 'single' | 'mfj' | 'mfs' | 'hoh';
   state: string;
   stateTaxRate: number;
+  stateStandardDeduction?: number; // Per-period standard deduction (e.g., biweekly portion)
+  stateAllowances?: number; // Number of allowances claimed on state W-4
   dependents?: Dependent[];
   itemizationMode: 'standard' | 'itemized' | 'auto';
 };

@@ -285,10 +285,13 @@ export class PaycheckProcessor {
       );
     }
 
-    // Step 4c: State withholding
+    // Step 4c: State withholding (NC formula: apply rate to wages minus standard deduction and allowances, round to nearest dollar)
     let stateWithholding = 0;
     if (taxProfile) {
-      stateWithholding = taxProfile.stateTaxRate * (grossPay - totalPreTax);
+      const stateWages = grossPay - totalPreTax;
+      const stateDeduction = (taxProfile.stateStandardDeduction ?? 0) + (taxProfile.stateAllowances ?? 0) * 96.15;
+      const netStateWages = Math.max(0, stateWages - stateDeduction);
+      stateWithholding = Math.round(netStateWages * taxProfile.stateTaxRate);
     }
 
     this.log('withholding-computed', {

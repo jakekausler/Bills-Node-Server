@@ -109,8 +109,10 @@ export function computeNetPay(params: ComputeNetPayParams): PaycheckResult {
   // Create tax profile for withholding
   const taxProfile: TaxProfile = {
     filingStatus,
-    state: 'NC', // TODO: load from account config or simulation profile
-    stateTaxRate: 0.0475, // NC state tax rate (4.75%)
+    state: 'NC',
+    stateTaxRate: 0.0409,
+    stateStandardDeduction: 490.38,
+    stateAllowances: 0,
     itemizationMode: 'standard' as const,
   };
 

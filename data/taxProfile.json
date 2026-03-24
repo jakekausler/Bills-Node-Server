@@ -1,7 +1,9 @@
 {
   "filingStatus": "mfj",
   "state": "NC",
-  "stateTaxRate": 0.045,
+  "stateTaxRate": 0.0409,
+  "stateStandardDeduction": 490.38,
+  "stateAllowances": 0,
   "dependents": [],
   "itemizationMode": "auto"
 }

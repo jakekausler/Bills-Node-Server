@@ -136,7 +136,9 @@ export class Calculator {
     this.taxProfile = {
       filingStatus,
       state: 'NC',
-      stateTaxRate: 0.0475,
+      stateTaxRate: 0.0409,
+      stateStandardDeduction: 490.38,
+      stateAllowances: 0,
       itemizationMode: 'standard' as const,
     };
   }
