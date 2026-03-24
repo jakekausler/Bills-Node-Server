@@ -1110,9 +1110,15 @@ export class Calculator {
     if (profile.bonus &&
         event.date.getUTCMonth() + 1 === profile.bonus.month &&
         !this.paycheckStateTracker.hasBonusFired(bill.name, year)) {
+      // Always mark fired to prevent re-checking on subsequent paychecks this month
       this.paycheckStateTracker.markBonusFired(bill.name, year);
 
-      bonusResult = this.paycheckProcessor.processBonusPaycheck(
+      // Check if bonus has already been actualized (exists in account.activity)
+      const bonusId = `${bill.id}-bonus-${year}`;
+      const alreadyActualized = account?.activity?.some((a: any) => a.id === bonusId) ?? false;
+
+      if (!alreadyActualized) {
+        bonusResult = this.paycheckProcessor.processBonusPaycheck(
         grossPay,
         paychecksPerYear,
         profile,
@@ -1241,15 +1247,16 @@ export class Calculator {
       });
 
       this.log('bonus-paycheck-processed', {
-        name: bill.name,
-        bonusGross: bonusResult.grossPay,
-        bonusNetPay: bonusResult.netPay,
-        traditional401k: bonusResult.traditional401k,
-        roth401k: bonusResult.roth401k,
-        employerMatch: bonusResult.employerMatch,
-        ssTax: bonusResult.ssTax,
-        medicareTax: bonusResult.medicareTax,
-      });
+          name: bill.name,
+          bonusGross: bonusResult.grossPay,
+          bonusNetPay: bonusResult.netPay,
+          traditional401k: bonusResult.traditional401k,
+          roth401k: bonusResult.roth401k,
+          employerMatch: bonusResult.employerMatch,
+          ssTax: bonusResult.ssTax,
+          medicareTax: bonusResult.medicareTax,
+        });
+      } // end if (!alreadyActualized)
     }
 
     // Return balance changes for all affected accounts
