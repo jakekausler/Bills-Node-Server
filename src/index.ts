@@ -870,7 +870,7 @@ app.post('/api/cache/clear', verifyToken, (_req: Request, res: Response) => {
 app.post('/api/portfolio/import/qfx', express.text({ limit: '50mb', type: '*/*' }), importQfx);
 app.post('/api/portfolio/import/csv', express.text({ limit: '50mb', type: '*/*' }), importCsv);
 app.get('/api/portfolio/ledger/:accountId', verifyToken, asyncHandler(async (req: Request, res: Response) => {
-  res.json(await getLedger(req));
+  await getLedger(req, res);
 }));
 
 // Portfolio price routes (note: /current must come before /:symbol)
