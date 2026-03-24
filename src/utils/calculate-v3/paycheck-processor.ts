@@ -188,7 +188,7 @@ export class PaycheckProcessor {
     }
 
     // HSA employer contribution (pro-rated per paycheck)
-    // NOTE: Employer HSA contribution does NOT reduce net pay or SS wages (employer pays separately)
+    // Imputed: added to gross then deducted as pre-tax (reduces net pay, FICA, and withholding)
     if (profile.hsaEmployerContribution && profile.hsaEmployerContribution > 0) {
       hsaEmployer = profile.hsaEmployerContribution / paychecksPerYear;
       // Cap employer HSA to remaining limit
@@ -198,7 +198,8 @@ export class PaycheckProcessor {
         this.contributionLimitManager.recordContribution(accountOwnerDOB, year, 'hsa', hsaEmployer);
       }
       this.log('hsa-employer-added', { amount: hsaEmployer, annual: profile.hsaEmployerContribution, paychecksPerYear });
-      // HSA employer contributions reduce federal/state taxable wages (Section 125/223)
+      // HSA employer is imputed pre-tax: reduces net pay and all tax bases
+      totalPreTax += hsaEmployer;
       totalPreTaxForWithholding += hsaEmployer;
     }
 
