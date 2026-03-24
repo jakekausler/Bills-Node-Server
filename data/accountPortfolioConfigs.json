@@ -25,6 +25,21 @@
         }
       },
       {
+        "symbol": "SPAXX",
+        "name": "Fidelity Government Money Market",
+        "assetClassMapping": { "cash": 1.0 },
+        "currentShares": 0,
+        "currentPrice": 1.00,
+        "expenseRatio": 0.0042,
+        "contributionWeight": 0,
+        "dividends": {
+          "frequency": "monthly",
+          "dividendType": "ordinary",
+          "reinvest": true,
+          "history": []
+        }
+      },
+      {
         "symbol": "FXAIX",
         "name": "Fidelity 500 Index Fund",
         "assetClassMapping": { "stock": 1.0 },
@@ -246,6 +261,18 @@
     "mode": "estimated",
     "allocation": { "stock": 0.79, "bond": 0.20, "cash": 0.01 },
     "glidePath": "global",
+    "lotSelectionStrategy": "fifo"
+  },
+  "b5c36881-a28e-476b-8734-8067a319f63c": {
+    "mode": "estimated",
+    "allocation": { "stock": 0.85, "bond": 0.14, "cash": 0.01 },
+    "glidePath": "global",
+    "lotSelectionStrategy": "fifo"
+  },
+  "2be562a4-e082-48ea-9094-ed865d207376": {
+    "mode": "estimated",
+    "allocation": { "stock": 0.50, "bond": 0.30, "cash": 0.20 },
+    "glidePath": "none",
     "lotSelectionStrategy": "fifo"
   }
 }
