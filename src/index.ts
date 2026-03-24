@@ -82,7 +82,7 @@ import {
 import { getTaxSummary } from './api/tax-summary';
 import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
 import type { PaycheckProfile } from './data/bill/paycheck-types';
-import { importQfx, importCsv, getLedger } from './api/portfolio/import';
+import { importQfx, importCsv, getLedger, getPositions } from './api/portfolio/import';
 import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint } from './api/portfolio/prices';
 
 declare global {
@@ -871,6 +871,9 @@ app.post('/api/portfolio/import/qfx', express.text({ limit: '50mb', type: '*/*' 
 app.post('/api/portfolio/import/csv', express.text({ limit: '50mb', type: '*/*' }), importCsv);
 app.get('/api/portfolio/ledger/:accountId', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   await getLedger(req, res);
+}));
+app.get('/api/portfolio/positions/:accountId', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  await getPositions(req, res);
 }));
 
 // Portfolio price routes (note: /current must come before /:symbol)

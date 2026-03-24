@@ -75,3 +75,63 @@ export async function getLedger(req: Request, res: Response) {
     res.status(500).json({ error: (err as Error).message });
   }
 }
+
+/**
+ * Get current fund positions for a specific account.
+ * This requires a calculation to have run (to initialize PortfolioManager).
+ * As a fallback, reconstruct positions from the ledger.
+ */
+export async function getPositions(req: Request, res: Response) {
+  try {
+    const accountId = req.params.accountId;
+    const ledger = loadLedger();
+    const accountTxns = ledger.filter(t => t.accountId === accountId);
+
+    if (accountTxns.length === 0) {
+      return res.json({ accountId, positions: [], totalValue: 0 });
+    }
+
+    // Reconstruct positions from ledger transactions
+    const positions: Record<string, { symbol: string; shares: number; totalCost: number }> = {};
+
+    for (const txn of accountTxns) {
+      if (!txn.fundSymbol || txn.fundSymbol === 'CASH') continue;
+
+      if (!positions[txn.fundSymbol]) {
+        positions[txn.fundSymbol] = { symbol: txn.fundSymbol, shares: 0, totalCost: 0 };
+      }
+
+      switch (txn.type) {
+        case 'buy':
+        case 'reinvest':
+          positions[txn.fundSymbol].shares += Math.abs(txn.shares);
+          positions[txn.fundSymbol].totalCost += Math.abs(txn.totalAmount);
+          break;
+        case 'sell':
+          positions[txn.fundSymbol].shares -= Math.abs(txn.shares);
+          // Don't reduce totalCost on sell (cost basis stays)
+          break;
+      }
+    }
+
+    // Build response with current positions (shares > 0)
+    const result = Object.values(positions)
+      .filter(p => p.shares > 0.0001)
+      .map(p => ({
+        symbol: p.symbol,
+        shares: Math.round(p.shares * 10000) / 10000,
+        avgCostPerShare: p.totalCost / p.shares,
+        totalCost: Math.round(p.totalCost * 100) / 100,
+        // Note: currentPrice and currentValue would need PriceService lookup
+      }))
+      .sort((a, b) => b.totalCost - a.totalCost);
+
+    res.json({
+      accountId,
+      positions: result,
+      totalCost: result.reduce((sum, p) => sum + p.totalCost, 0),
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
