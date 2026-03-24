@@ -367,7 +367,7 @@ export class Calculator {
     segmentResult.activitiesAdded.get(accountId)?.push(new ConsolidatedActivity(activity.serialize()));
 
     // Route through PortfolioManager if this is a portfolio account
-    if (this.portfolioManager && !activity.isTransfer) {
+    if (this.portfolioManager && !activity.isTransfer && !(activity.category?.startsWith('Banking.Interest'))) {
       const mode = this.portfolioManager.getAccountMode(accountId);
       if (mode === 'estimated' || mode === 'fund-level') {
         const dateString = formatDate(event.date);
