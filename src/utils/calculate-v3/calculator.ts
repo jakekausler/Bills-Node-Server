@@ -1169,6 +1169,27 @@ export class Calculator {
       });
 
       const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+
+      // Route through PortfolioManager for investment/HSA accounts
+      if (this.portfolioManager) {
+        const destMode = this.portfolioManager.getAccountMode(resolvedDepositAccountId);
+        if (destMode === 'estimated' || destMode === 'fund-level') {
+          const dateString = formatDate(event.date);
+          const buyTransactions = this.portfolioManager.executeDeposit(
+            resolvedDepositAccountId, deposit.amount, dateString, 'contribution',
+          );
+          if (buyTransactions && buyTransactions.length > 0) {
+            (depositActivity as any).investmentActivityType = 'buy';
+            (depositActivity as any).investmentActions = buyTransactions.map(t => ({
+              symbol: t.fundSymbol,
+              shares: t.shares,
+              pricePerShare: t.pricePerShare,
+              totalPrice: t.totalAmount,
+            }));
+          }
+        }
+      }
+
       if (!segmentResult.activitiesAdded.has(resolvedDepositAccountId)) {
         segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
       }
