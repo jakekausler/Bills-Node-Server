@@ -137,6 +137,8 @@ export function computeNetPay(params: ComputeNetPayParams): PaycheckResult {
     taxProfile,
     standardDeduction,
     bracketLookup,
+    bracketInflationRate,
+    mcRateGetter,
   );
 }
 

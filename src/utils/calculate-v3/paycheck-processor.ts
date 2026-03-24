@@ -1,5 +1,5 @@
 import { PaycheckProfile, EmployerMatchConfig } from '../../data/bill/paycheck-types';
-import { PaycheckResult } from './types';
+import { PaycheckResult, MCRateGetter } from './types';
 import { PaycheckStateTracker } from './paycheck-state-tracker';
 import { ContributionLimitManager } from './contribution-limit-manager';
 import { WithholdingCalculator, BracketLookup } from './withholding-calculator';
@@ -7,6 +7,8 @@ import { TaxManager } from './tax-manager';
 import type { TaxProfile } from './tax-profile-types';
 import type { DebugLogger } from './debug-logger';
 import { JobLossManager } from './job-loss-manager';
+import { compoundMCInflation } from './mc-utils';
+import { MonteCarloSampleType } from './types';
 
 /**
  * Create an empty paycheck result (used when paychecks are suppressed during unemployment)
@@ -90,6 +92,8 @@ export class PaycheckProcessor {
    * @param taxProfile - Optional tax profile for withholding calculations
    * @param standardDeduction - Optional standard deduction amount
    * @param bracketLookup - Optional callback to compute federal tax from taxable income
+   * @param bracketInflationRate - Optional inflation rate for tax brackets
+   * @param mcRateGetterRaw - Optional MC rate getter for bracket inflation
    */
   processPaycheck(
     grossPay: number,
@@ -104,6 +108,8 @@ export class PaycheckProcessor {
     taxProfile?: TaxProfile | null,
     standardDeduction?: number,
     bracketLookup?: BracketLookup,
+    bracketInflationRate?: number,
+    mcRateGetterRaw?: MCRateGetter | null,
   ): PaycheckResult {
     // Check for unemployment and skip paycheck if unemployed
     if (this.jobLossManager?.isUnemployed(billName, date)) {
@@ -292,6 +298,8 @@ export class PaycheckProcessor {
         date.getUTCFullYear(),
         standardDeduction,
         bracketLookup,
+        bracketInflationRate ?? 0.03,
+        mcRateGetterRaw,
       );
     }
 
@@ -299,7 +307,22 @@ export class PaycheckProcessor {
     let stateWithholding = 0;
     if (taxProfile) {
       const stateWages = grossPay - totalPreTaxForWithholding;
-      const stateDeduction = (taxProfile.stateStandardDeduction ?? 0) + (taxProfile.stateAllowances ?? 0) * 96.15;
+      // Inflate state deduction for future years (base year 2026)
+      const stateBaseYear = 2026;
+      const currentYear = date.getUTCFullYear();
+      let stateInflationMultiplier = 1;
+      if (currentYear > stateBaseYear) {
+        stateInflationMultiplier = compoundMCInflation(
+          stateBaseYear,
+          currentYear,
+          bracketInflationRate ?? 0.03,
+          mcRateGetterRaw ?? null,
+          MonteCarloSampleType.INFLATION,
+        );
+      }
+      const inflatedDeduction = (taxProfile.stateStandardDeduction ?? 0) * stateInflationMultiplier;
+      const inflatedAllowanceAmount = 96.15 * stateInflationMultiplier;
+      const stateDeduction = inflatedDeduction + (taxProfile.stateAllowances ?? 0) * inflatedAllowanceAmount;
       const netStateWages = Math.max(0, stateWages - stateDeduction);
       stateWithholding = Math.round(netStateWages * taxProfile.stateTaxRate);
     }

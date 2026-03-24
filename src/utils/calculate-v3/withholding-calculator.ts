@@ -2,6 +2,8 @@ import { W4Config } from '../../data/bill/paycheck-types';
 import { DebugLogger } from './debug-logger';
 import * as fs from 'fs';
 import * as path from 'path';
+import { compoundMCInflation } from './mc-utils';
+import { MonteCarloSampleType } from './types';
 
 type FilingStatus = 'single' | 'mfj' | 'mfs' | 'hoh';
 
@@ -32,6 +34,8 @@ export type BracketLookup = (
   year: number,
 ) => number;
 
+type MCRateGetter = (type: MonteCarloSampleType, year: number) => number | null;
+
 let cachedTables: Record<string, YearTables> | null = null;
 
 function loadWithholdingTables(): Record<string, YearTables> {
@@ -53,13 +57,60 @@ function loadWithholdingTables(): Record<string, YearTables> {
   }
 }
 
-function getTablesForYear(year: number): YearTables | null {
+function getInflatedTablesForYear(
+  year: number,
+  bracketInflationRate: number,
+  mcRateGetter?: MCRateGetter | null,
+): YearTables | null {
   const tables = loadWithholdingTables();
-  // Try exact year, then fall back to most recent available
+
+  // Try exact year first
   if (tables[String(year)]) return tables[String(year)];
+
+  // Find most recent available year as base
   const available = Object.keys(tables).map(Number).sort((a, b) => b - a);
-  const closest = available.find(y => y <= year) || available[0];
-  return closest ? tables[String(closest)] : null;
+  const baseYear = available.find(y => y <= year) || available[0];
+  if (!baseYear || !tables[String(baseYear)]) return null;
+
+  const baseData = tables[String(baseYear)];
+  const yearsToInflate = year - baseYear;
+  if (yearsToInflate <= 0) return baseData;
+
+  // Compute inflation multiplier
+  const multiplier = compoundMCInflation(
+    baseYear,
+    year,
+    bracketInflationRate,
+    mcRateGetter ?? null,
+    MonteCarloSampleType.INFLATION,
+  );
+
+  // Inflate both table sets
+  const inflated: YearTables = {
+    standard: inflateTableSet(baseData.standard, multiplier),
+    step2: inflateTableSet(baseData.step2, multiplier),
+  };
+
+  return inflated;
+}
+
+function inflateTableSet(
+  tableSet: Record<string, WithholdingSchedule>,
+  multiplier: number,
+): Record<string, WithholdingSchedule> {
+  const result: Record<string, WithholdingSchedule> = {};
+  for (const [status, schedule] of Object.entries(tableSet)) {
+    result[status] = {
+      standardDeduction: Math.round(schedule.standardDeduction * multiplier / 50) * 50,
+      brackets: schedule.brackets.map(b => ({
+        min: Math.round(b.min * multiplier / 50) * 50,
+        max: b.max ? Math.round(b.max * multiplier / 50) * 50 : null,
+        base: Math.round(b.base * multiplier * 100) / 100, // round base to cents
+        rate: b.rate, // rates don't inflate
+      })),
+    };
+  }
+  return result;
 }
 
 function lookupBracketTax(adjustedAnnualWage: number, brackets: WithholdingBracket[]): number {
@@ -107,6 +158,8 @@ export class WithholdingCalculator {
    * @param year - tax year
    * @param standardDeduction - unused, retained for backward compatibility
    * @param bracketLookup - unused, retained for backward compatibility
+   * @param bracketInflationRate - annual inflation rate for tax brackets (default 0.03)
+   * @param mcRateGetter - optional function to get Monte Carlo inflation rates
    */
   computeFederalWithholding(
     taxableWagesPerPeriod: number,
@@ -116,8 +169,10 @@ export class WithholdingCalculator {
     year: number,
     standardDeduction?: number,
     bracketLookup?: BracketLookup,
+    bracketInflationRate: number = 0.03,
+    mcRateGetter?: MCRateGetter | null,
   ): number {
-    const yearTables = getTablesForYear(year);
+    const yearTables = getInflatedTablesForYear(year, bracketInflationRate, mcRateGetter);
     if (!yearTables) {
       // Fallback to old method if no tables available
       if (bracketLookup && standardDeduction !== undefined) {
