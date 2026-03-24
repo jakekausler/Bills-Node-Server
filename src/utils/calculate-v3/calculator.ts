@@ -1006,6 +1006,8 @@ export class Calculator {
       depositActivities: paycheckResult.depositActivities,
     };
 
+    mainActivityData.paycheckProfile = bill.paycheckProfile ? { ...bill.paycheckProfile } : null;
+
     const mainActivity = new ConsolidatedActivity(
       mainActivityData,
       { billId: bill.id, firstBill: event.firstBill },
@@ -1170,6 +1172,7 @@ export class Calculator {
           depositActivities: bonusResult.depositActivities,
         },
         isPaycheckActivity: true,
+        paycheckProfile: bill.paycheckProfile ? { ...bill.paycheckProfile } : null,
       };
       const bonusActivity = new ConsolidatedActivity(bonusActivityData);
 
