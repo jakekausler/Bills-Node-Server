@@ -1732,15 +1732,19 @@ export class Calculator {
     }
 
     // Portfolio delegation — track fund-level positions for portfolio-mode accounts
+    let sellResults: any[] = [];
+    let depositTransactions: any[] = [];
+
     if (this.portfolioManager) {
       const dateString = formatDate(event.date);
 
       // Withdrawal from source account
       const sourceMode = this.portfolioManager.getAccountMode(fromAccountId);
       if (sourceMode === 'estimated' || sourceMode === 'fund-level') {
-        const { sellResults } = this.portfolioManager.executeWithdrawal(
+        const withdrawal = this.portfolioManager.executeWithdrawal(
           fromAccountId, internalAmount, dateString,
         );
+        sellResults = withdrawal.sellResults;
         this.log('portfolio-withdrawal', {
           accountId: fromAccountId,
           amount: internalAmount,
@@ -1787,13 +1791,13 @@ export class Calculator {
       if (destMode === 'estimated' || destMode === 'fund-level') {
         const isAutoTransfer = original.id?.startsWith('AUTO-PULL_') || original.id?.startsWith('AUTO-PUSH_');
         const source: 'transfer' | 'contribution' = isAutoTransfer ? 'transfer' : 'contribution';
-        const transactions = this.portfolioManager.executeDeposit(
+        depositTransactions = this.portfolioManager.executeDeposit(
           toAccountId, internalAmount, dateString, source,
         );
         this.log('portfolio-deposit', {
           accountId: toAccountId,
           amount: internalAmount,
-          buyCount: transactions.length,
+          buyCount: depositTransactions.length,
         });
       }
     }
@@ -1850,6 +1854,30 @@ export class Calculator {
         firstBill,
       },
     );
+
+    // Populate investment metadata for portfolio withdrawals
+    if (sellResults && sellResults.length > 0) {
+      (fromActivity as any).investmentActivityType = 'sell';
+      (fromActivity as any).investmentActions = sellResults.flatMap(sr =>
+        sr.transactions.map((t: any) => ({
+          symbol: t.fundSymbol,
+          shares: t.shares,
+          pricePerShare: t.pricePerShare,
+          totalPrice: t.totalAmount,
+        }))
+      );
+    }
+
+    // Populate investment metadata for portfolio deposits
+    if (depositTransactions && depositTransactions.length > 0) {
+      (toActivity as any).investmentActivityType = 'buy';
+      (toActivity as any).investmentActions = depositTransactions.map((t: any) => ({
+        symbol: t.fundSymbol,
+        shares: t.shares,
+        pricePerShare: t.pricePerShare,
+        totalPrice: t.totalAmount,
+      }));
+    }
 
     // Add activities to segment result
     if (!segmentResult.activitiesAdded.has(fromAccountId)) {

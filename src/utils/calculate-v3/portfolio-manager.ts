@@ -796,6 +796,62 @@ export class PortfolioManager {
     return { transactions: allTransactions, sellResults: allSellResults };
   }
 
+  /**
+   * Replay historical ledger transactions to reconstruct portfolio state.
+   * Must be called after account initialization and before the calculation loop.
+   */
+  replayLedger(transactions: PortfolioTransaction[]): void {
+    // Filter to only transactions for accounts we manage
+    const configuredAccounts = new Set(this.getConfiguredAccountIds());
+    const relevant = transactions
+      .filter(t => t.accountId && configuredAccounts.has(t.accountId))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    this.log('replay-ledger-start', { total: transactions.length, relevant: relevant.length });
+
+    for (const txn of relevant) {
+      const accountId = txn.accountId!;
+      const state = this.states.get(accountId);
+      if (!state) continue;
+
+      try {
+        switch (txn.type) {
+          case 'buy':
+          case 'reinvest':
+            this.executeBuy(accountId, txn.fundSymbol, txn.totalAmount, txn.date, txn.source || 'contribution');
+            break;
+          case 'sell':
+            this.executeSell(accountId, txn.fundSymbol, Math.abs(txn.shares), txn.date);
+            break;
+          case 'dividend':
+            // Record as cash income — will be handled by tax manager later
+            state.uninvestedCash += txn.totalAmount;
+            break;
+          case 'transfer-in':
+            state.uninvestedCash += Math.abs(txn.totalAmount);
+            break;
+          case 'transfer-out':
+            state.uninvestedCash -= Math.abs(txn.totalAmount);
+            break;
+          case 'fee':
+            state.uninvestedCash -= Math.abs(txn.totalAmount);
+            break;
+        }
+      } catch (err) {
+        this.log('replay-ledger-error', {
+          accountId,
+          txnId: txn.id,
+          type: txn.type,
+          error: String(err),
+        });
+      }
+    }
+
+    this.log('replay-ledger-complete', {
+      accountsProcessed: configuredAccounts.size,
+    });
+  }
+
   // ---- Roth Conversion Support ----
 
   /**

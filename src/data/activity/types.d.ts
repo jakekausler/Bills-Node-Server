@@ -33,6 +33,15 @@ export type ActivityData = {
   paycheckDetails?: PaycheckDetails | null;
   isPaycheckActivity?: boolean;
   paycheckProfile?: PaycheckProfile | null;
+
+  // Investment fields
+  investmentActivityType?: 'buy' | 'sell' | 'dividend' | 'fee' | null;
+  investmentActions?: { symbol: string; shares: number; pricePerShare: number; totalPrice: number }[];
+  cashBalance?: number;
+  investmentValue?: number;
+  costBasis?: number;
+  unrealizedGain?: number;
+  unrealizedGainPercent?: number;
 };
 
 export type ConsolidatedActivityData = ActivityData & {
@@ -43,4 +52,9 @@ export type ConsolidatedActivityData = ActivityData & {
   spendingTrackerId: string | null;
   firstSpendingTracker: boolean;
   balance: number;
+  cashBalance: number;
+  investmentValue: number;
+  costBasis: number;
+  unrealizedGain: number;
+  unrealizedGainPercent: number;
 };

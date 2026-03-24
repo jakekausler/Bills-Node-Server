@@ -28,3 +28,6 @@ data/ltcConfig.json
 data/monteCarloMappings.json
 data/rothConversionConfig.json
 data/taxConfig.json
+data/portfolioLedger.json
+data/priceHistory.json
+data/currentPrices.json

@@ -26,6 +26,7 @@ import { ManagerPayout } from './manager-payout';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { loadAllHealthcareConfigs } from '../io/virtualHealthcarePlans';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
+import { loadLedger } from '../../utils/io/portfolioLedger';
 import { MonteCarloHandler } from './monte-carlo-handler';
 import { computePeriodBoundaries } from './period-utils';
 import dayjs from 'dayjs';
@@ -636,6 +637,14 @@ export class Engine {
           const balance = this.balanceTracker.getAccountBalance(accountId);
           this.portfolioManager.initializeEstimatedAccount(accountId, balance);
         }
+      }
+    }
+
+    // Replay imported portfolio ledger transactions
+    if (this.portfolioManager) {
+      const ledger = loadLedger();
+      if (ledger.length > 0) {
+        this.portfolioManager.replayLedger(ledger);
       }
     }
 

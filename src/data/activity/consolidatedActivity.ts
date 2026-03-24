@@ -20,6 +20,16 @@ export class ConsolidatedActivity extends Activity {
   firstSpendingTracker: boolean;
   /** Running balance after this activity is applied */
   balance: number;
+  /** Cash balance in the account */
+  cashBalance: number;
+  /** Total investment value */
+  investmentValue: number;
+  /** Cost basis for tax purposes */
+  costBasis: number;
+  /** Unrealized gain or loss */
+  unrealizedGain: number;
+  /** Unrealized gain or loss as a percentage */
+  unrealizedGainPercent: number;
 
   /**
    * Creates a new consolidated activity
@@ -57,6 +67,11 @@ export class ConsolidatedActivity extends Activity {
     this.spendingTrackerId = spendingTrackerId;
     this.firstSpendingTracker = firstSpendingTracker;
     this.balance = activity.balance || 0;
+    this.cashBalance = activity.cashBalance ?? 0;
+    this.investmentValue = activity.investmentValue ?? 0;
+    this.costBasis = activity.costBasis ?? 0;
+    this.unrealizedGain = activity.unrealizedGain ?? 0;
+    this.unrealizedGainPercent = activity.unrealizedGainPercent ?? 0;
     if (reverseAmount && typeof this.amount === 'number') {
       this.amount *= -1;
       // Convert -0 to 0 for cleaner semantics
@@ -80,6 +95,11 @@ export class ConsolidatedActivity extends Activity {
       firstInterest: this.firstInterest,
       spendingTrackerId: this.spendingTrackerId,
       firstSpendingTracker: this.firstSpendingTracker,
+      cashBalance: this.cashBalance,
+      investmentValue: this.investmentValue,
+      costBasis: this.costBasis,
+      unrealizedGain: this.unrealizedGain,
+      unrealizedGainPercent: this.unrealizedGainPercent,
     };
 
     return serialized;

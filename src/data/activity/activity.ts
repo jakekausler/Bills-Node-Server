@@ -45,6 +45,10 @@ export class Activity {
   isPaycheckActivity: boolean;
   paycheckProfile: PaycheckProfile | null;
 
+  // Investment properties
+  investmentActivityType: 'buy' | 'sell' | 'dividend' | 'fee' | null;
+  investmentActions: { symbol: string; shares: number; pricePerShare: number; totalPrice: number }[];
+
   /**
    * Creates a new Activity instance
    * @param data - Activity data object
@@ -100,6 +104,10 @@ export class Activity {
     this.paycheckDetails = data.paycheckDetails ?? null;
     this.isPaycheckActivity = data.isPaycheckActivity ?? false;
     this.paycheckProfile = data.paycheckProfile ?? null;
+
+    // Investment properties
+    this.investmentActivityType = data.investmentActivityType ?? null;
+    this.investmentActions = data.investmentActions ?? [];
   }
 
   /**
@@ -138,6 +146,10 @@ export class Activity {
       paycheckDetails: this.paycheckDetails,
       isPaycheckActivity: this.isPaycheckActivity,
       paycheckProfile: this.paycheckProfile,
+
+      // Investment fields
+      investmentActivityType: this.investmentActivityType,
+      investmentActions: this.investmentActions,
     };
   }
 }
