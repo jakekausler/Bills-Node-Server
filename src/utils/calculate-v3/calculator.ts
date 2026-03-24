@@ -1124,15 +1124,48 @@ export class Calculator {
         this.taxProfile,
       );
 
-      // Create bonus net pay activity on main account
-      const bonusActivity = new ConsolidatedActivity(
-        bill
-          .toActivity(`${bill.id}-bonus-${year}`, simulation, bonusResult.netPay, event.date)
-          .serialize(),
-        { billId: bill.id, firstBill: false },
-      );
-      // Mark as paycheck activity to prevent AIME double-counting in segment-processor
-      (bonusActivity as any).isPaycheckActivity = true;
+      // Create bonus net pay activity on main account (standalone — no billId so it's independently editable)
+      const bonusActivityData = {
+        id: `${bill.id}-bonus-${year}`,
+        name: `${bill.name} Bonus`,
+        category: bill.category,
+        amount: bonusResult.netPay,
+        amountIsVariable: false,
+        amountVariable: null,
+        date: formatDate(event.date),
+        dateIsVariable: false,
+        dateVariable: null,
+        flag: false,
+        flagColor: null,
+        from: bill.fro,
+        to: bill.to,
+        isTransfer: bill.isTransfer,
+        isHealthcare: false,
+        healthcarePerson: null,
+        copayAmount: null,
+        coinsurancePercent: null,
+        countsTowardDeductible: false,
+        countsTowardOutOfPocket: false,
+        spendingCategory: bill.spendingCategory,
+        paycheckDetails: {
+          grossPay: bonusResult.grossPay,
+          netPay: bonusResult.netPay,
+          traditional401k: bonusResult.traditional401k,
+          roth401k: bonusResult.roth401k,
+          employerMatch: bonusResult.employerMatch,
+          hsa: bonusResult.hsa,
+          hsaEmployer: bonusResult.hsaEmployer,
+          ssTax: bonusResult.ssTax,
+          medicareTax: bonusResult.medicareTax,
+          federalWithholding: bonusResult.federalWithholding,
+          stateWithholding: bonusResult.stateWithholding,
+          preTaxDeductions: bonusResult.preTaxDeductions,
+          postTaxDeductions: bonusResult.postTaxDeductions,
+          depositActivities: bonusResult.depositActivities,
+        },
+        isPaycheckActivity: true,
+      };
+      const bonusActivity = new ConsolidatedActivity(bonusActivityData);
 
       if (!segmentResult.activitiesAdded.has(event.accountId)) {
         segmentResult.activitiesAdded.set(event.accountId, []);
@@ -1150,7 +1183,7 @@ export class Calculator {
           date: formatDate(event.date),
           dateIsVariable: false,
           dateVariable: null,
-          name: `${deposit.label} from ${bill.name} (Bonus)`,
+          name: `${deposit.label} from ${bill.name} Bonus`,
           category: 'Paycheck',
           amount: deposit.amount,
           amountIsVariable: false,
