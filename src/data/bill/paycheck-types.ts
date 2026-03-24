@@ -44,8 +44,11 @@ export type BonusConfig = {
 
 export type W4Config = {
   filingStatus: 'single' | 'mfj' | 'mfs' | 'hoh';
-  extraWithholding?: number;
-  multipleJobs?: boolean;
+  multipleJobs?: boolean; // Step 2 checkbox
+  dependentCredit?: number; // Step 3: total dependent credit amount
+  otherIncome?: number; // Step 4(a): other income
+  deductions?: number; // Step 4(b): additional deductions
+  extraWithholding?: number; // Step 4(c): extra withholding per period
 };
 
 export type DeductionFrequency = 'perPaycheck' | 'monthly' | 'annual';
@@ -80,8 +83,11 @@ export type PaycheckDetails = {
   hsaEmployer: number;
   ssTax: number;
   medicareTax: number;
+  federalWithholding: number;
+  stateWithholding: number;
   preTaxDeductions: { label: string; amount: number }[];
   postTaxDeductions: { label: string; amount: number }[];
   netPay: number;
   parentPaycheckId?: string;
+  depositActivities?: { accountId: string; amount: number; label: string }[];
 };

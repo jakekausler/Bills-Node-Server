@@ -173,6 +173,7 @@ async function updateBillAsBill(request: Request, data: any) {
   bill.countsTowardDeductible = data.data.countsTowardDeductible ?? true;
   bill.countsTowardOutOfPocket = data.data.countsTowardOutOfPocket ?? true;
   bill.spendingCategory = data.data.spendingCategory ?? null;
+  bill.paycheckProfile = data.data.paycheckProfile ?? null;
 
   if (bill.isTransfer && !originalIsTransfer) {
     data.accountsAndTransfers.transfers.bills.push(bill);

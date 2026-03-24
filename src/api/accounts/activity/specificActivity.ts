@@ -85,6 +85,9 @@ export async function updateSpecificActivity(request: Request) {
   activity.countsTowardDeductible = data.data.countsTowardDeductible ?? true;
   activity.countsTowardOutOfPocket = data.data.countsTowardOutOfPocket ?? true;
   activity.spendingCategory = data.data.spendingCategory ?? null;
+  activity.paycheckDetails = data.data.paycheckDetails ?? null;
+  activity.isPaycheckActivity = data.data.isPaycheckActivity ?? false;
+  activity.paycheckProfile = data.data.paycheckProfile ?? null;
   activity.isTransfer = data.data.isTransfer;
   if (activity.isTransfer) {
     activity.fro = data.data.from;

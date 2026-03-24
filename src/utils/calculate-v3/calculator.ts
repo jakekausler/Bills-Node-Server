@@ -52,6 +52,7 @@ import {
   LTCCheckEvent,
 } from './types';
 import { computeAnnualFederalTax } from './bracket-calculator';
+import { computeNetPay } from './compute-net-pay';
 
 dayjs.extend(utc);
 
@@ -138,7 +139,9 @@ export class Calculator {
     this.taxProfile = {
       filingStatus,
       state: 'NC',
-      stateTaxRate: 0.0475,
+      stateTaxRate: 0.0409,
+      stateStandardDeduction: 490.38,
+      stateAllowances: 0,
       itemizationMode: 'standard' as const,
     };
   }
@@ -363,8 +366,56 @@ export class Calculator {
     }
     segmentResult.activitiesAdded.get(accountId)?.push(new ConsolidatedActivity(activity.serialize()));
 
-    // Update balance in segment result
-    const balanceChange = activity.amount as number;
+    // For paycheck activities, use netPay as the effective amount
+    let balanceChange = activity.amount as number;
+    const paycheckDetails = (activity as any).paycheckDetails;
+    if ((activity as any).isPaycheckActivity && paycheckDetails) {
+      balanceChange = paycheckDetails.netPay;
+
+      // Record withholding in TaxManager
+      const year = event.date.getUTCFullYear();
+      if (paycheckDetails.federalWithholding > 0 || paycheckDetails.stateWithholding > 0) {
+        this.taxManager.addWithholdingOccurrence({
+          date: event.date,
+          year,
+          federalAmount: paycheckDetails.federalWithholding || 0,
+          stateAmount: paycheckDetails.stateWithholding || 0,
+          source: activity.name,
+        });
+      }
+
+      // Generate deposit activities for 401k/HSA/employer match
+      if (paycheckDetails.depositActivities) {
+        for (const deposit of paycheckDetails.depositActivities) {
+          const depositActivity = new ConsolidatedActivity({
+            id: `${activity.id}-${event.date}-${deposit.label}`,
+            date: formatDate(event.date),
+            dateIsVariable: false,
+            dateVariable: null,
+            name: `${deposit.label} from ${activity.name}`,
+            category: 'Paycheck',
+            amount: deposit.amount,
+            amountIsVariable: false,
+            amountVariable: null,
+            flag: false,
+            flagColor: null,
+            isTransfer: false,
+            from: null,
+            to: null,
+          });
+
+          const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+          if (!segmentResult.activitiesAdded.has(resolvedDepositAccountId)) {
+            segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
+          }
+          segmentResult.activitiesAdded.get(resolvedDepositAccountId)?.push(depositActivity);
+
+          const currentDepositChange = segmentResult.balanceChanges.get(resolvedDepositAccountId) || 0;
+          segmentResult.balanceChanges.set(resolvedDepositAccountId, currentDepositChange + deposit.amount);
+        }
+      }
+    }
+
     const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
     segmentResult.balanceChanges.set(accountId, currentChange + balanceChange);
     this.log('activity-processed', { name: activity.name, accountId, amount: balanceChange });
@@ -379,7 +430,16 @@ export class Calculator {
       }
     }
 
-    return new Map([[accountId, balanceChange]]);
+    // Return balance changes for all affected accounts
+    const allChanges = new Map([[accountId, balanceChange]]);
+    if (paycheckDetails?.depositActivities) {
+      for (const deposit of paycheckDetails.depositActivities) {
+        const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+        const existing = allChanges.get(resolvedDepositAccountId) || 0;
+        allChanges.set(resolvedDepositAccountId, existing + deposit.amount);
+      }
+    }
+    return allChanges;
   }
 
   /**
@@ -729,6 +789,104 @@ export class Calculator {
   }
 
   /**
+   * Creates an inflated copy of a paycheck profile based on years elapsed and variable rates.
+   * Each component's increaseByVariable is resolved and compounded annually.
+   */
+  private inflatePaycheckProfile(
+    profile: any,
+    bill: any,
+    currentDate: Date,
+  ): any {
+    // Calculate years of inflation using bill's increaseByDate
+    const increaseByDate = bill.increaseByDate;
+    if (!increaseByDate) return profile;
+
+    const startDate = bill.startDate;
+    const yearsDiff = this.countYearIncreases(startDate, currentDate, increaseByDate);
+    if (yearsDiff <= 0) return profile;
+
+    const inflated = JSON.parse(JSON.stringify(profile)); // deep copy
+
+    const resolveRate = (item: any): number => {
+      if (!item) return 0;
+      if (item.increaseByIsVariable && item.increaseByVariable) {
+        try {
+          return loadVariable(item.increaseByVariable, this.simulation) as number;
+        } catch {
+          return item.increaseBy || 0;
+        }
+      }
+      return item.increaseBy || 0;
+    };
+
+    const compound = (value: number, rate: number, years: number): number => {
+      if (rate === 0 || years <= 0) return value;
+      return value * Math.pow(1 + rate, years);
+    };
+
+    // Inflate gross pay using bill-level increaseBy (already resolved)
+    // Note: grossPay inflation is handled separately via calculateBillAmount in timeline,
+    // but the profile.grossPay should match so the processor uses the right value
+    const grossRate = bill.increaseBy || 0;
+    inflated.grossPay = compound(profile.grossPay, grossRate, yearsDiff);
+
+    // Inflate 401k contribution value
+    if (inflated.traditional401k) {
+      const rate = resolveRate(profile.traditional401k);
+      inflated.traditional401k.value = compound(profile.traditional401k.value, rate, yearsDiff);
+    }
+
+    // Inflate Roth 401k contribution value
+    if (inflated.roth401k) {
+      const rate = resolveRate(profile.roth401k);
+      inflated.roth401k.value = compound(profile.roth401k.value, rate, yearsDiff);
+    }
+
+    // Inflate HSA contribution value
+    if (inflated.hsa) {
+      const rate = resolveRate(profile.hsa);
+      inflated.hsa.value = compound(profile.hsa.value, rate, yearsDiff);
+    }
+
+    // Inflate HSA employer contribution
+    if (inflated.hsaEmployerContribution) {
+      // HSA employer follows the same rate as HSA employee
+      const rate = profile.hsa ? resolveRate(profile.hsa) : 0;
+      inflated.hsaEmployerContribution = compound(profile.hsaEmployerContribution, rate, yearsDiff);
+    }
+
+    // Inflate custom deductions
+    if (inflated.deductions) {
+      for (let i = 0; i < inflated.deductions.length; i++) {
+        const rate = resolveRate(profile.deductions[i]);
+        inflated.deductions[i].amount = compound(profile.deductions[i].amount, rate, yearsDiff);
+      }
+    }
+
+    // Inflate bonus percent (if it has an increaseBy)
+    // Bonus percent typically doesn't inflate, skip unless configured
+
+    return inflated;
+  }
+
+  /**
+   * Count number of year-increase milestones between startDate and currentDate.
+   * Matches the logic in timeline.ts yearIncreases.
+   */
+  private countYearIncreases(startDate: Date, endDate: Date, increaseDate: { day: number; month: number }): number {
+    let count = 0;
+    const startYear = startDate.getUTCFullYear();
+    const endYear = endDate.getUTCFullYear();
+    for (let year = startYear; year <= endYear; year++) {
+      const milestone = new Date(Date.UTC(year, increaseDate.month, increaseDate.day));
+      if (milestone >= startDate && milestone <= endDate) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
    * Process a paycheck bill event using the PaycheckProcessor
    */
   private processPaycheckBill(
@@ -758,8 +916,11 @@ export class Calculator {
     // Compute paychecks per year from bill frequency
     const paychecksPerYear = this.computePaychecksPerYear(bill.everyN, bill.periods);
 
-    // Compute gross pay (typically from profile or from bill amount)
-    let grossPay = typeof event.amount === 'number' ? event.amount : profile.grossPay;
+    // Inflate paycheck profile components for years elapsed
+    const inflatedProfile = this.inflatePaycheckProfile(profile, bill, event.date);
+
+    // Compute gross pay from inflated paycheck profile
+    let grossPay = inflatedProfile.grossPay;
 
     // Apply raise correction for missed raises during unemployment years
     if (this.jobLossManager) {
@@ -786,49 +947,21 @@ export class Calculator {
       }
     }
 
-    // Process the paycheck
-    const mcGetter = this.getMCRateGetter();
-    const mcRateGetterFunc: ((type: string) => number | undefined) | undefined = mcGetter
-      ? (type: string) => {
-          const result = mcGetter(type as MonteCarloSampleType, event.date.getUTCFullYear());
-          return result ?? undefined;
-        }
-      : undefined;
-
-    // Get standard deduction for this year and filing status
-    const yearForBrackets = year;
+    // Process the paycheck using shared utility
     const dynamicFilingStatus = this.mortalityManager?.getFilingStatus(event.date) ?? this.filingStatus;
-    const bracketDataForYear = computeAnnualFederalTax(0, 0, dynamicFilingStatus, yearForBrackets, this.bracketInflationRate, mcGetter);
-    const standardDeduction = bracketDataForYear.standardDeduction;
-
-    // Create bracket lookup callback
-    const bracketLookup = (taxableIncome: number, filingStatus: FilingStatus, year: number): number => {
-      const result = computeAnnualFederalTax(taxableIncome, 0, filingStatus, year, this.bracketInflationRate, mcGetter);
-      return result.tax;
-    };
-
-    // Create tax profile for withholding (use account config if available, fallback to defaults)
-    const taxProfile: TaxProfile = {
-      filingStatus: dynamicFilingStatus,
-      state: 'NC', // TODO: load from account config or simulation profile
-      stateTaxRate: 0.0475, // NC state tax rate (4.75%)
-      itemizationMode: 'standard' as const,
-    };
-
-    const paycheckResult = this.paycheckProcessor.processPaycheck(
+    const paycheckResult = computeNetPay({
       grossPay,
-      profile,
-      bill.name,
-      event.date,
-      account.accountOwnerDOB,
-      ssWageBaseCap,
-      additionalMedicareThreshold,
+      profile: inflatedProfile,
+      billName: bill.name,
+      date: event.date,
+      accountOwnerDOB: account.accountOwnerDOB,
       paychecksPerYear,
-      mcRateGetterFunc,
-      taxProfile,
-      standardDeduction,
-      bracketLookup,
-    );
+      filingStatus: dynamicFilingStatus,
+      bracketInflationRate: this.bracketInflationRate,
+      ssWageBaseCap,
+      mcRateGetter: this.getMCRateGetter(),
+      processor: this.paycheckProcessor,
+    });
 
     // Skip downstream processing if paycheck is empty (suppressed during unemployment)
     if (paycheckResult.grossPay === 0) {
@@ -972,10 +1105,32 @@ export class Calculator {
     }
 
     // Create main net pay activity for the primary account
+    const mainActivityData = bill
+      .toActivity(`${bill.id}-${event.date}`, simulation, paycheckResult.netPay, event.date)
+      .serialize();
+
+    // Populate paycheckDetails with the full breakdown
+    mainActivityData.paycheckDetails = {
+      grossPay: paycheckResult.grossPay,
+      netPay: paycheckResult.netPay,
+      traditional401k: paycheckResult.traditional401k,
+      roth401k: paycheckResult.roth401k,
+      employerMatch: paycheckResult.employerMatch,
+      hsa: paycheckResult.hsa,
+      hsaEmployer: paycheckResult.hsaEmployer,
+      ssTax: paycheckResult.ssTax,
+      medicareTax: paycheckResult.medicareTax,
+      federalWithholding: paycheckResult.federalWithholding,
+      stateWithholding: paycheckResult.stateWithholding,
+      preTaxDeductions: paycheckResult.preTaxDeductions,
+      postTaxDeductions: paycheckResult.postTaxDeductions,
+      depositActivities: paycheckResult.depositActivities,
+    };
+
+    mainActivityData.paycheckProfile = bill.paycheckProfile ? { ...bill.paycheckProfile } : null;
+
     const mainActivity = new ConsolidatedActivity(
-      bill
-        .toActivity(`${bill.id}-${event.date}`, simulation, paycheckResult.netPay, event.date)
-        .serialize(),
+      mainActivityData,
       { billId: bill.id, firstBill: event.firstBill },
     );
     // Mark as paycheck activity to prevent AIME double-counting in segment-processor
@@ -1013,14 +1168,15 @@ export class Calculator {
         to: null,
       });
 
-      if (!segmentResult.activitiesAdded.has(deposit.accountId)) {
-        segmentResult.activitiesAdded.set(deposit.accountId, []);
+      const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+      if (!segmentResult.activitiesAdded.has(resolvedDepositAccountId)) {
+        segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
       }
-      segmentResult.activitiesAdded.get(deposit.accountId)?.push(depositActivity);
+      segmentResult.activitiesAdded.get(resolvedDepositAccountId)?.push(depositActivity);
 
       // Update deposit account balance
-      const currentDepositChange = segmentResult.balanceChanges.get(deposit.accountId) || 0;
-      segmentResult.balanceChanges.set(deposit.accountId, currentDepositChange + deposit.amount);
+      const currentDepositChange = segmentResult.balanceChanges.get(resolvedDepositAccountId) || 0;
+      segmentResult.balanceChanges.set(resolvedDepositAccountId, currentDepositChange + deposit.amount);
     }
 
     // Record flow for income and taxes
@@ -1077,29 +1233,69 @@ export class Calculator {
     if (profile.bonus &&
         event.date.getUTCMonth() + 1 === profile.bonus.month &&
         !this.paycheckStateTracker.hasBonusFired(bill.name, year)) {
+      // Always mark fired to prevent re-checking on subsequent paychecks this month
       this.paycheckStateTracker.markBonusFired(bill.name, year);
 
-      bonusResult = this.paycheckProcessor.processBonusPaycheck(
-        grossPay,
-        paychecksPerYear,
-        profile,
-        bill.name,
-        event.date,
-        account.accountOwnerDOB ?? null,
-        ssWageBaseCap,
-        additionalMedicareThreshold,
-        taxProfile,
-      );
+      // Check if bonus has already been actualized (exists in account.activity)
+      const bonusId = `${bill.id}-bonus-${year}`;
+      const alreadyActualized = account?.activity?.some((a) => a.id === bonusId) ?? false;
 
-      // Create bonus net pay activity on main account
-      const bonusActivity = new ConsolidatedActivity(
-        bill
-          .toActivity(`${bill.id}-bonus-${year}`, simulation, bonusResult.netPay, event.date)
-          .serialize(),
-        { billId: bill.id, firstBill: false },
-      );
-      // Mark as paycheck activity to prevent AIME double-counting in segment-processor
-      (bonusActivity as any).isPaycheckActivity = true;
+      if (!alreadyActualized) {
+        bonusResult = this.paycheckProcessor.processBonusPaycheck(
+          grossPay,
+          paychecksPerYear,
+          profile,
+          bill.name,
+          event.date,
+          account.accountOwnerDOB ?? null,
+          ssWageBaseCap,
+          additionalMedicareThreshold,
+          this.taxProfile,
+        );
+
+      // Create bonus net pay activity on main account (standalone — no billId so it's independently editable)
+      const bonusActivityData = {
+        id: `${bill.id}-bonus-${year}`,
+        name: `${bill.name} Bonus`,
+        category: bill.category,
+        amount: bonusResult.netPay,
+        amountIsVariable: false,
+        amountVariable: null,
+        date: formatDate(event.date),
+        dateIsVariable: false,
+        dateVariable: null,
+        flag: false,
+        flagColor: null,
+        from: bill.fro,
+        to: bill.to,
+        isTransfer: bill.isTransfer,
+        isHealthcare: false,
+        healthcarePerson: null,
+        copayAmount: null,
+        coinsurancePercent: null,
+        countsTowardDeductible: false,
+        countsTowardOutOfPocket: false,
+        spendingCategory: bill.spendingCategory,
+        paycheckDetails: {
+          grossPay: bonusResult.grossPay,
+          netPay: bonusResult.netPay,
+          traditional401k: bonusResult.traditional401k,
+          roth401k: bonusResult.roth401k,
+          employerMatch: bonusResult.employerMatch,
+          hsa: bonusResult.hsa,
+          hsaEmployer: bonusResult.hsaEmployer,
+          ssTax: bonusResult.ssTax,
+          medicareTax: bonusResult.medicareTax,
+          federalWithholding: bonusResult.federalWithholding,
+          stateWithholding: bonusResult.stateWithholding,
+          preTaxDeductions: bonusResult.preTaxDeductions,
+          postTaxDeductions: bonusResult.postTaxDeductions,
+          depositActivities: bonusResult.depositActivities,
+        },
+        isPaycheckActivity: true,
+        paycheckProfile: bill.paycheckProfile ? { ...bill.paycheckProfile } : null,
+      };
+      const bonusActivity = new ConsolidatedActivity(bonusActivityData);
 
       if (!segmentResult.activitiesAdded.has(event.accountId)) {
         segmentResult.activitiesAdded.set(event.accountId, []);
@@ -1117,7 +1313,7 @@ export class Calculator {
           date: formatDate(event.date),
           dateIsVariable: false,
           dateVariable: null,
-          name: `${deposit.label} from ${bill.name} (Bonus)`,
+          name: `${deposit.label} from ${bill.name} Bonus`,
           category: 'Paycheck',
           amount: deposit.amount,
           amountIsVariable: false,
@@ -1129,14 +1325,15 @@ export class Calculator {
           to: null,
         });
 
-        if (!segmentResult.activitiesAdded.has(deposit.accountId)) {
-          segmentResult.activitiesAdded.set(deposit.accountId, []);
+        const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+        if (!segmentResult.activitiesAdded.has(resolvedDepositAccountId)) {
+          segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
         }
-        segmentResult.activitiesAdded.get(deposit.accountId)?.push(depositActivity);
+        segmentResult.activitiesAdded.get(resolvedDepositAccountId)?.push(depositActivity);
 
         // Update deposit account balance
-        const currentDepositChange = segmentResult.balanceChanges.get(deposit.accountId) || 0;
-        segmentResult.balanceChanges.set(deposit.accountId, currentDepositChange + deposit.amount);
+        const currentDepositChange = segmentResult.balanceChanges.get(resolvedDepositAccountId) || 0;
+        segmentResult.balanceChanges.set(resolvedDepositAccountId, currentDepositChange + deposit.amount);
       }
 
       // AIME: feed gross bonus wages
@@ -1183,14 +1380,16 @@ export class Calculator {
         ssTax: bonusResult.ssTax,
         medicareTax: bonusResult.medicareTax,
       });
+      } // end if (!alreadyActualized)
     }
 
     // Return balance changes for all affected accounts
     const allChanges = new Map<string, number>();
     allChanges.set(event.accountId, paycheckResult.netPay);
     for (const deposit of paycheckResult.depositActivities) {
-      const existing = allChanges.get(deposit.accountId) || 0;
-      allChanges.set(deposit.accountId, existing + deposit.amount);
+      const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+      const existing = allChanges.get(resolvedDepositAccountId) || 0;
+      allChanges.set(resolvedDepositAccountId, existing + deposit.amount);
     }
 
     // Merge bonus balance changes
@@ -1198,8 +1397,9 @@ export class Calculator {
       const existingMainBonus = allChanges.get(event.accountId) || 0;
       allChanges.set(event.accountId, existingMainBonus + bonusResult.netPay);
       for (const deposit of bonusResult.depositActivities) {
-        const existing = allChanges.get(deposit.accountId) || 0;
-        allChanges.set(deposit.accountId, existing + deposit.amount);
+        const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+        const existing = allChanges.get(resolvedDepositAccountId) || 0;
+        allChanges.set(resolvedDepositAccountId, existing + deposit.amount);
       }
     }
 

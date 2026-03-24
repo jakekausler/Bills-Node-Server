@@ -31,7 +31,7 @@ export class BalanceTracker {
     this.cache = cache;
     this.startDate = startDate;
     // Build index map for O(1) account lookups
-    this.accountMap = new Map(this.accounts.map((acc) => [acc.id, acc]));
+    this.accountMap = new Map(this.accounts.flatMap((acc) => [[acc.id, acc], [acc.name, acc]]));
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
   }
@@ -158,7 +158,10 @@ export class BalanceTracker {
       let runningBalance = 0;
 
       const allActivitiesWithBalances = clonedAccount.consolidatedActivity.map((activity, index) => {
-        activity.balance = runningBalance + Number(activity.amount);
+        const effectiveAmount = (activity as any).isPaycheckActivity && (activity as any).paycheckDetails?.netPay
+          ? (activity as any).paycheckDetails.netPay
+          : Number(activity.amount);
+        activity.balance = runningBalance + effectiveAmount;
         runningBalance = activity.balance;
         return activity;
       });
@@ -189,17 +192,19 @@ export class BalanceTracker {
     }
     this.log('segment-applied', { balanceChangesCount: segmentResult.balanceChanges.size, activitiesAddedCount });
 
-    // Apply balance changes
+    // Apply balance changes (resolve name to ID if needed)
     for (const [accountId, change] of segmentResult.balanceChanges) {
-      this.updateBalance(accountId, change, date);
+      const resolvedAccount = this.findAccountById(accountId);
+      const resolvedId = resolvedAccount ? resolvedAccount.id : accountId;
+      this.updateBalance(resolvedId, change, date);
     }
 
-    // Apply activity additions
+    // Apply activity additions (resolve name to ID if needed)
     for (const [accountId, activities] of segmentResult.activitiesAdded) {
       const account = this.findAccountById(accountId);
       if (account) {
         account.consolidatedActivity.push(...activities);
-        this.updateActivityIndex(accountId, activities.length);
+        this.updateActivityIndex(account.id, activities.length);
       } else {
         this.log('account-not-found-for-activities', { accountId });
       }

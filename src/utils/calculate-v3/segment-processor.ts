@@ -154,8 +154,9 @@ export class SegmentProcessor {
     let segmentResult = this.processSegmentEvents(segment, options);
 
     // Deal with pushes and pulls
-    // Use the calculation options start date (or today if null) as the reference date for deterministic behavior
-    const referenceDate = options.startDate ?? new Date();
+    // Use today (or options.startDate if it's in the future) as the reference date to prevent auto-push/pull before the current date
+    const today = new Date();
+    const referenceDate = options.startDate && options.startDate > today ? options.startDate : today;
     const pushPullEventsAdded = this.pushPullHandler.handleAccountPushPulls(segmentResult, segment, referenceDate);
     this.log('push-pull-executed', { eventsAdded: pushPullEventsAdded });
 

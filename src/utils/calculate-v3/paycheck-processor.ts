@@ -1,5 +1,5 @@
 import { PaycheckProfile, EmployerMatchConfig } from '../../data/bill/paycheck-types';
-import { PaycheckResult } from './types';
+import { PaycheckResult, MCRateGetter } from './types';
 import { PaycheckStateTracker } from './paycheck-state-tracker';
 import { ContributionLimitManager } from './contribution-limit-manager';
 import { WithholdingCalculator, BracketLookup } from './withholding-calculator';
@@ -7,6 +7,8 @@ import { TaxManager } from './tax-manager';
 import type { TaxProfile } from './tax-profile-types';
 import type { DebugLogger } from './debug-logger';
 import { JobLossManager } from './job-loss-manager';
+import { compoundMCInflation } from './mc-utils';
+import { MonteCarloSampleType } from './types';
 
 /**
  * Create an empty paycheck result (used when paychecks are suppressed during unemployment)
@@ -90,6 +92,8 @@ export class PaycheckProcessor {
    * @param taxProfile - Optional tax profile for withholding calculations
    * @param standardDeduction - Optional standard deduction amount
    * @param bracketLookup - Optional callback to compute federal tax from taxable income
+   * @param bracketInflationRate - Optional inflation rate for tax brackets
+   * @param mcRateGetterRaw - Optional MC rate getter for bracket inflation
    */
   processPaycheck(
     grossPay: number,
@@ -104,6 +108,8 @@ export class PaycheckProcessor {
     taxProfile?: TaxProfile | null,
     standardDeduction?: number,
     bracketLookup?: BracketLookup,
+    bracketInflationRate?: number,
+    mcRateGetterRaw?: MCRateGetter | null,
   ): PaycheckResult {
     // Check for unemployment and skip paycheck if unemployed
     if (this.jobLossManager?.isUnemployed(billName, date)) {
@@ -122,6 +128,7 @@ export class PaycheckProcessor {
     const depositActivities: { accountId: string; amount: number; label: string }[] = [];
 
     let totalPreTax = 0;
+    let totalPreTaxForWithholding = 0;
     let traditional401k = 0;
     let roth401k = 0;
     let hsa = 0;
@@ -150,7 +157,7 @@ export class PaycheckProcessor {
           this.contributionLimitManager.recordContribution(accountOwnerDOB, year, '401k', amount401k);
           traditional401k = amount401k;
           totalPreTax += amount401k;
-          preTaxDeductions.push({ label: 'Traditional 401k', amount: amount401k });
+          totalPreTaxForWithholding += amount401k;
           depositActivities.push({
             accountId: profile.traditional401k.destinationAccount,
             amount: amount401k,
@@ -179,7 +186,7 @@ export class PaycheckProcessor {
           this.contributionLimitManager.recordContribution(accountOwnerDOB, year, 'hsa', hsaAmount);
           hsa = hsaAmount;
           totalPreTax += hsaAmount;
-          preTaxDeductions.push({ label: 'HSA Employee', amount: hsaAmount });
+          totalPreTaxForWithholding += hsaAmount;
           this.log('hsa-employee-deducted', { amount: hsaAmount });
           // HSA deposit handled below (combined with employer)
         }
@@ -187,7 +194,7 @@ export class PaycheckProcessor {
     }
 
     // HSA employer contribution (pro-rated per paycheck)
-    // NOTE: Employer HSA contribution does NOT reduce net pay or SS wages (employer pays separately)
+    // Imputed: added to gross then deducted as pre-tax (reduces net pay, FICA, and withholding)
     if (profile.hsaEmployerContribution && profile.hsaEmployerContribution > 0) {
       hsaEmployer = profile.hsaEmployerContribution / paychecksPerYear;
       // Cap employer HSA to remaining limit
@@ -197,6 +204,9 @@ export class PaycheckProcessor {
         this.contributionLimitManager.recordContribution(accountOwnerDOB, year, 'hsa', hsaEmployer);
       }
       this.log('hsa-employer-added', { amount: hsaEmployer, annual: profile.hsaEmployerContribution, paychecksPerYear });
+      // HSA employer is imputed pre-tax: reduces net pay and all tax bases
+      totalPreTax += hsaEmployer;
+      totalPreTaxForWithholding += hsaEmployer;
     }
 
     // HSA deposit (employee + employer combined)
@@ -215,6 +225,9 @@ export class PaycheckProcessor {
           const freq = ded.frequency ?? 'perPaycheck';
           if (this.paycheckStateTracker.shouldApplyDeduction(freq, paycheckIndex, isFirstPaycheckOfYear)) {
             totalPreTax += ded.amount;
+            if (!ded.imputed) {
+              totalPreTaxForWithholding += ded.amount;
+            }
             preTaxDeductions.push({ label: ded.label, amount: ded.amount });
             if (ded.destinationAccount) {
               depositActivities.push({
@@ -229,43 +242,44 @@ export class PaycheckProcessor {
       }
     }
 
-    // Step 2: Compute SS wages
-    // Note: 401k contributions do NOT reduce SS wages (they're FICA wages)
-    // Only certain pre-tax deductions like HSA reduce SS wages (employer HSA does NOT reduce SS wages)
-    let ssWageReduction = 0;
-    // HSA reduces SS wages (employee contribution only, not employer)
-    if (hsa > 0) ssWageReduction += hsa;
-    // Check custom deductions with reducesSSWages flag
+    // Step 2: Compute FICA wages (SS and Medicare)
+    // Section 125 cafeteria plan deductions (HSA, dental, medical, vision) reduce FICA wages
+    // 401k contributions do NOT reduce FICA wages
+    let ficaWageReduction = 0;
+    // HSA employee and employer contributions reduce FICA wages (Section 125/223)
+    if (hsa > 0) ficaWageReduction += hsa;
+    if (hsaEmployer > 0) ficaWageReduction += hsaEmployer;
+    // Check custom deductions with reducesSSWages flag (Section 125 cafeteria plan items)
     if (profile.deductions) {
       for (const ded of profile.deductions) {
-        if (ded.type === 'preTax' && ded.reducesSSWages) {
-          ssWageReduction += ded.amount;
+        if (ded.type === 'preTax' && ded.reducesSSWages && !ded.imputed) {
+          ficaWageReduction += ded.amount;
         }
       }
     }
-    const ssWages = grossPay - ssWageReduction;
+    const ficaWages = grossPay - ficaWageReduction;
 
     // Step 3: Compute FICA
     // NOTE: personKey must match the format used in ContributionLimitManager.createPersonKey()
     const personKey = accountOwnerDOB ? accountOwnerDOB.getTime().toString() : 'unknown';
 
     // SS Tax: 6.2% of SS wages, capped at annual wage base
-    const taxableSS = this.paycheckStateTracker.addSSWages(personKey, year, ssWages, ssWageBaseCap);
+    const taxableSS = this.paycheckStateTracker.addSSWages(personKey, year, ficaWages, ssWageBaseCap);
     const ssTax = taxableSS * 0.062;
 
     // Medicare Tax: 1.45% + additional 0.9% above threshold
     const medicareResult = this.paycheckStateTracker.addMedicareWages(
       personKey,
       year,
-      grossPay,
+      ficaWages,
       additionalMedicareThreshold,
     );
-    const baseMedicare = grossPay * 0.0145;
+    const baseMedicare = ficaWages * 0.0145;
     const additionalMedicare = medicareResult.wagesAboveThreshold * 0.009;
     const medicareTax = baseMedicare + additionalMedicare;
 
     this.log('fica-computed', {
-      ssWages,
+      ficaWages,
       taxableSS,
       ssTax,
       medicareWages: grossPay,
@@ -275,7 +289,7 @@ export class PaycheckProcessor {
     // Step 4b: Federal withholding
     let federalWithholding = 0;
     if (this.withholdingCalculator && taxProfile && standardDeduction !== undefined && standardDeduction !== null && bracketLookup) {
-      const taxableWagesPerPeriod = grossPay - totalPreTax; // gross minus pre-tax deductions
+      const taxableWagesPerPeriod = grossPay - totalPreTaxForWithholding; // gross minus pre-tax deductions
       federalWithholding = this.withholdingCalculator.computeFederalWithholding(
         taxableWagesPerPeriod,
         paychecksPerYear,
@@ -284,13 +298,33 @@ export class PaycheckProcessor {
         date.getUTCFullYear(),
         standardDeduction,
         bracketLookup,
+        bracketInflationRate ?? 0.03,
+        mcRateGetterRaw,
       );
     }
 
-    // Step 4c: State withholding
+    // Step 4c: State withholding (NC formula: apply rate to wages minus standard deduction and allowances, round to nearest dollar)
     let stateWithholding = 0;
     if (taxProfile) {
-      stateWithholding = taxProfile.stateTaxRate * (grossPay - totalPreTax);
+      const stateWages = grossPay - totalPreTaxForWithholding;
+      // Inflate state deduction for future years (base year 2026)
+      const stateBaseYear = 2026;
+      const currentYear = date.getUTCFullYear();
+      let stateInflationMultiplier = 1;
+      if (currentYear > stateBaseYear) {
+        stateInflationMultiplier = compoundMCInflation(
+          stateBaseYear,
+          currentYear,
+          bracketInflationRate ?? 0.03,
+          mcRateGetterRaw ?? null,
+          MonteCarloSampleType.INFLATION,
+        );
+      }
+      const inflatedDeduction = (taxProfile.stateStandardDeduction ?? 0) * stateInflationMultiplier;
+      const inflatedAllowanceAmount = 96.15 * stateInflationMultiplier;
+      const stateDeduction = inflatedDeduction + (taxProfile.stateAllowances ?? 0) * inflatedAllowanceAmount;
+      const netStateWages = Math.max(0, stateWages - stateDeduction);
+      stateWithholding = Math.round(netStateWages * taxProfile.stateTaxRate);
     }
 
     this.log('withholding-computed', {
@@ -321,7 +355,6 @@ export class PaycheckProcessor {
           this.contributionLimitManager.recordContribution(accountOwnerDOB, year, '401k', roth401kAmount);
           roth401k = roth401kAmount;
           totalPostTax += roth401kAmount;
-          postTaxDeductions.push({ label: 'Roth 401k', amount: roth401kAmount });
           depositActivities.push({
             accountId: profile.roth401k.destinationAccount,
             amount: roth401kAmount,
