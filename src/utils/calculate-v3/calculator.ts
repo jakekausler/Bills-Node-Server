@@ -1115,20 +1115,20 @@ export class Calculator {
 
       // Check if bonus has already been actualized (exists in account.activity)
       const bonusId = `${bill.id}-bonus-${year}`;
-      const alreadyActualized = account?.activity?.some((a: any) => a.id === bonusId) ?? false;
+      const alreadyActualized = account?.activity?.some((a) => a.id === bonusId) ?? false;
 
       if (!alreadyActualized) {
         bonusResult = this.paycheckProcessor.processBonusPaycheck(
-        grossPay,
-        paychecksPerYear,
-        profile,
-        bill.name,
-        event.date,
-        account.accountOwnerDOB ?? null,
-        ssWageBaseCap,
-        additionalMedicareThreshold,
-        this.taxProfile,
-      );
+          grossPay,
+          paychecksPerYear,
+          profile,
+          bill.name,
+          event.date,
+          account.accountOwnerDOB ?? null,
+          ssWageBaseCap,
+          additionalMedicareThreshold,
+          this.taxProfile,
+        );
 
       // Create bonus net pay activity on main account (standalone — no billId so it's independently editable)
       const bonusActivityData = {
@@ -1247,15 +1247,15 @@ export class Calculator {
       });
 
       this.log('bonus-paycheck-processed', {
-          name: bill.name,
-          bonusGross: bonusResult.grossPay,
-          bonusNetPay: bonusResult.netPay,
-          traditional401k: bonusResult.traditional401k,
-          roth401k: bonusResult.roth401k,
-          employerMatch: bonusResult.employerMatch,
-          ssTax: bonusResult.ssTax,
-          medicareTax: bonusResult.medicareTax,
-        });
+        name: bill.name,
+        bonusGross: bonusResult.grossPay,
+        bonusNetPay: bonusResult.netPay,
+        traditional401k: bonusResult.traditional401k,
+        roth401k: bonusResult.roth401k,
+        employerMatch: bonusResult.employerMatch,
+        ssTax: bonusResult.ssTax,
+        medicareTax: bonusResult.medicareTax,
+      });
       } // end if (!alreadyActualized)
     }
 
