@@ -77,6 +77,7 @@ import { Account } from '../../data/account/account';
 import { Interest } from '../../data/interest/interest';
 import { loadVariable } from '../simulation/variable';
 import { FlowAggregator } from './flow-aggregator';
+import type { PaycheckProfile } from '../../data/bill/paycheck-types';
 
 // ---------------------------------------------------------------------------
 // Test data factories
@@ -108,6 +109,7 @@ function makeAccount(overrides: Partial<{
   usesRMD: boolean;
   rmdAccount: string | null;
   pullPriority: number;
+  accountOwnerDOB: Date | null;
 }> = {}): Account {
   // Use a plain object mock that satisfies Account shape without invoking the
   // real constructor (which would try to parse bills/activities).
@@ -127,6 +129,7 @@ function makeAccount(overrides: Partial<{
     usesRMD: overrides.usesRMD ?? false,
     rmdAccount: overrides.rmdAccount ?? null,
     pullPriority: overrides.pullPriority ?? -1,
+    accountOwnerDOB: overrides.accountOwnerDOB !== undefined ? overrides.accountOwnerDOB : null,
     activity: [],
     bills: [],
     interests: [],
@@ -314,6 +317,8 @@ function makeTaxManager(overrides: Partial<{
     computeReconciliation: reconciliationFn,
     addTaxableOccurrences: vi.fn(),
     getAllOccurrencesForYear: vi.fn(() => []),
+    addWithholdingOccurrence: vi.fn(),
+    setCurrentDate: vi.fn(),
   };
 }
 
@@ -337,6 +342,8 @@ function makeRetirementManager(overrides: Partial<{
     setSocialSecurityFirstPaymentYear: overrides.setSocialSecurityFirstPaymentYear ?? vi.fn(),
     rmd: overrides.rmd ?? vi.fn(() => 5000),
     tryAddToAnnualIncomes: vi.fn(),
+    getWageBaseCapForYear: vi.fn(() => 176100),
+    setCurrentDate: vi.fn(),
   };
 }
 
@@ -827,6 +834,85 @@ describe('Calculator', () => {
         // This is deferred to integration tests where the full paycheck processor
         // is available and can process real paycheck profiles.
         expect(true).toBe(true); // Placeholder to document the testing approach
+      });
+    });
+
+    // ─── Bonus activity shape ──────────────────────────────────────────────────
+    describe('bonus activity shape', () => {
+      it('creates bonus as standalone activity with distinct name and no billId', () => {
+        // Setup: paycheck bill with a bonus firing in March (month 3)
+        const paycheckProfile: PaycheckProfile = {
+          grossPay: 5000, // biweekly
+          bonus: {
+            percent: 0.10, // 10% of annual gross
+            month: 3,      // fires in March
+            subjectTo401k: false,
+          },
+        };
+
+        const billData = {
+          ...makeBillData({
+            id: 'paycheck-bill-1',
+            name: 'My Salary',
+            amount: 5000,
+            startDate: '2026-01-01',
+            everyN: 2,
+            periods: 'week' as const,
+          }),
+          paycheckProfile,
+        };
+        const bill = new Bill(billData as any);
+
+        // Account needs accountOwnerDOB for the paycheck processor
+        const account = makeAccount({
+          id: 'checking-1',
+          accountOwnerDOB: new Date('1985-06-15'),
+        });
+
+        const retirementManager = makeRetirementManager();
+        const balanceTracker = makeBalanceTracker({
+          findAccountById: vi.fn(() => account),
+          getAccountBalance: vi.fn(() => 10000),
+        });
+
+        const calculator = makeCalculator({ retirementManager, balanceTracker });
+        const segmentResult = makeSegmentResult();
+
+        // Fire a bill event in March 2026 (the bonus month)
+        const event: BillEvent = {
+          id: 'evt-paycheck-march',
+          type: EventType.bill,
+          date: new Date('2026-03-06'), // first paycheck of March
+          accountId: 'checking-1',
+          priority: 1,
+          originalBill: bill,
+          amount: 5000,
+          firstBill: false,
+        };
+
+        calculator.processBillEvent(event, segmentResult, 'Default');
+
+        // Find the bonus activity in the consolidated activities for the checking account
+        const activities = segmentResult.activitiesAdded.get('checking-1') ?? [];
+        const bonusActivity = activities.find(
+          (a) => a.name.includes('Bonus'),
+        );
+
+        expect(bonusActivity).toBeDefined();
+
+        // The bonus activity name should be "{billName} Bonus"
+        expect(bonusActivity!.name).toBe('My Salary Bonus');
+
+        // The bonus activity should NOT be linked to the bill (billId must be null)
+        expect(bonusActivity!.billId).toBeNull();
+
+        // The bonus activity should be flagged as a paycheck activity
+        expect((bonusActivity as any).isPaycheckActivity).toBe(true);
+
+        // The bonus activity should carry its own paycheckDetails breakdown
+        expect((bonusActivity as any).paycheckDetails).toBeDefined();
+        expect((bonusActivity as any).paycheckDetails.grossPay).toBeGreaterThan(0);
+        expect((bonusActivity as any).paycheckDetails.netPay).toBeGreaterThan(0);
       });
     });
   });
