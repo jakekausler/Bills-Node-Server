@@ -657,12 +657,7 @@ export class Engine {
       }
     }
 
-    const segments = this.timeline.getSegments();
-
-    // Initialize accounts with starting balances
-    await this.balanceTracker.initializeBalances(accountsAndTransfers, options.forceRecalculation);
-
-    // Apply cutoff dates to timeline to skip events before portfolio anchor dates
+    // Apply cutoff dates BEFORE generating segments (events)
     if (this.portfolioAnchors.size > 0) {
       const cutoffDates = new Map(
         Array.from(this.portfolioAnchors).map(([accountId, anchor]) => [accountId, anchor.cutoffDate])
@@ -670,6 +665,11 @@ export class Engine {
       this.timeline.setCutoffDates(cutoffDates);
       this.calculator.setPortfolioCutoffDates(cutoffDates);
     }
+
+    const segments = this.timeline.getSegments();
+
+    // Initialize accounts with starting balances
+    await this.balanceTracker.initializeBalances(accountsAndTransfers, options.forceRecalculation);
 
     // Track year boundaries for flow aggregator balance recording
     // Note: if segments skip entire years (no events), those years will have no FlowSummary entry.
