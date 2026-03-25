@@ -158,6 +158,12 @@ export class BalanceTracker {
       let runningBalance = 0;
 
       const allActivitiesWithBalances = clonedAccount.consolidatedActivity.map((activity) => {
+        // If balance was pre-set (e.g., by LedgerPrecomputer), use it
+        if (activity.balance && activity.balance !== 0) {
+          runningBalance = activity.balance;
+          return activity;
+        }
+
         const effectiveAmount = (activity as any).isPaycheckActivity && (activity as any).paycheckDetails?.netPay
           ? (activity as any).paycheckDetails.netPay
           : Number(activity.amount);
