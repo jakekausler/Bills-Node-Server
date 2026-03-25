@@ -681,7 +681,9 @@ export class Engine {
         if (!isTaxablePortfolio) continue;
 
         const config = this.portfolioConfigs[accountId];
-        if (!config || !config.funds) continue;
+        if (!config || !config.funds) {
+          continue;
+        }
 
         futureLotTracker.seedFromHistory(
           accountId,
@@ -691,11 +693,18 @@ export class Engine {
           anchor.cutoffDate,
           anchor.fundPrices,
         );
+        this.log('future-lot-tracker-seeded', {
+          accountId,
+          costBasis: futureLotTracker.getCostBasis(accountId),
+          marketValue: futureLotTracker.getMarketValue(accountId),
+          gainRatio: futureLotTracker.getGainRatio(accountId),
+        });
         hasTrackedAccounts = true;
       }
 
       if (hasTrackedAccounts) {
         this.calculator.setFutureLotTracker(futureLotTracker);
+        this.log('future-lot-tracker-set', {});
       }
     }
 
