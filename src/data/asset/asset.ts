@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { AssetData, Asset } from './types';
+import { AssetData, Asset, ReplacementCycleData } from './types';
 import { formatDate, parseDate } from '../../utils/date/date';
 import { DateString } from '../../utils/date/types';
 
@@ -22,7 +22,7 @@ export class Asset implements Asset {
   appreciationVariable: string | null;
 
   depreciationSchedule: number[] | null;
-  replacementCycle: any; // ReplacementCycleData | null
+  replacementCycle: ReplacementCycleData | null;
 
   linkedAccounts: string[];
   linkedBills: string[];

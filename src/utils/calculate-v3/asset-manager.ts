@@ -15,6 +15,7 @@ import type { MCRateGetter } from './types';
 import { MonteCarloSampleType } from './types';
 import { ManagerPayout, createPayoutActivity } from './manager-payout';
 import { Asset } from '../../data/asset/asset';
+import type { FailureDistribution, ReplacementCycleData } from '../../data/asset/types';
 import { loadVariable } from '../simulation/variable';
 import { formatDate } from '../date/date';
 
@@ -241,7 +242,7 @@ export class AssetManager {
   /**
    * Compute conditional failure probability for current age
    */
-  private getConditionalFailureProbability(dist: any, age: number): number {
+  private getConditionalFailureProbability(dist: FailureDistribution, age: number): number {
     switch (dist.type) {
       case 'weibull': {
         const cdfNow = 1 - Math.exp(-Math.pow(age / dist.eta, dist.beta));
@@ -270,7 +271,7 @@ export class AssetManager {
   /**
    * Execute replacement: compute cost, create activity, buffer as payout
    */
-  private executeReplacement(asset: Asset, state: AssetState, year: number, cycle: any): void {
+  private executeReplacement(asset: Asset, state: AssetState, year: number, cycle: ReplacementCycleData): void {
     // Compute base cost with inflation adjustment if needed
     let cost = cycle.cost;
 
@@ -312,7 +313,7 @@ export class AssetManager {
 
     // Create expense activity
     const activityId = uuidv4();
-    const activityDate = formatDate(new Date(year, 0, 1)); // January 1 of replacement year
+    const activityDate = formatDate(new Date(Date.UTC(year, 0, 1))); // January 1 of replacement year
 
     const activity = createPayoutActivity(
       activityId,
