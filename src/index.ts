@@ -86,6 +86,7 @@ import { importQfx, importCsv, getLedger, getPositions } from './api/portfolio/i
 import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint } from './api/portfolio/prices';
 import { addTransaction, listTransactions, editTransaction, deleteTransaction } from './api/portfolio/transactions';
 import { reconcileHoldings } from './api/portfolio/reconcile';
+import { getAssets, addAsset, updateAsset, deleteAsset } from './api/assets/assets';
 
 declare global {
   namespace Express {
@@ -901,6 +902,25 @@ app.delete('/api/portfolio/transactions/:accountId/:id', verifyToken, asyncHandl
 
 // Portfolio reconciliation
 app.post('/api/portfolio/reconcile/:accountId', verifyToken, express.json(), reconcileHoldings);
+
+// Asset routes
+app
+  .route('/api/assets')
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
+    res.json(await getAssets(req));
+  }))
+  .post(verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+    res.json(await addAsset(req));
+  }));
+
+app
+  .route('/api/assets/:assetId')
+  .put(verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+    res.json(await updateAsset(req));
+  }))
+  .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
+    res.json(await deleteAsset(req));
+  }));
 
 // Dev-only frontend logging endpoints
 const FRONTEND_LOG_FILE = '/tmp/frontend.log';

@@ -164,6 +164,12 @@ export class MonteCarloHandler {
       yearSamples[MonteCarloSampleType.CONVERTIBLE_RETURN] = convertibleReturn;
       yearSamples[MonteCarloSampleType.OTHER_RETURN] = otherReturn;
 
+      // Home Appreciation - correlated draw from same historical year
+      const homeAppreciation = yearData.homeAppreciation !== undefined
+        ? yearData.homeAppreciation / 100
+        : this.drawRandomSample(this.historicRates?.homeAppreciation) / 100;
+      yearSamples[MonteCarloSampleType.HOME_APPRECIATION] = homeAppreciation;
+
       yearSamples[MonteCarloSampleType.PORTFOLIO] =
         stockReturn * (composition.stock || 0) +
         bondReturn * (composition.bond || 0) +

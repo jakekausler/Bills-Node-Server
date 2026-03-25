@@ -353,6 +353,7 @@ export enum MonteCarloSampleType {
   PREFERRED_RETURN = 'PreferredReturn',
   CONVERTIBLE_RETURN = 'ConvertibleReturn',
   OTHER_RETURN = 'OtherReturn',
+  HOME_APPRECIATION = 'homeAppreciation',
 }
 
 /**
@@ -380,6 +381,7 @@ export interface HistoricRates {
   limitIncrease401k: number[];
   ssCola?: number[];
   ssWageBase?: Record<string, number>;
+  homeAppreciation: number[];
   contributionLimits?: {
     '401k'?: Record<string, number>;
     'ira'?: Record<string, number>;
@@ -429,6 +431,7 @@ export interface HistoricRates {
     awiGrowthRatio: number;
     unemploymentRate: number;
     unemploymentDuration: number;
+    homeAppreciation: number;
   }>>;
   awi?: Record<string, number>;
   awiGrowthRatio?: Record<string, number>;
