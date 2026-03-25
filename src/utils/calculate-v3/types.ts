@@ -342,6 +342,9 @@ export enum MonteCarloSampleType {
   PREFERRED_RETURN = 'PreferredReturn',
   CONVERTIBLE_RETURN = 'ConvertibleReturn',
   OTHER_RETURN = 'OtherReturn',
+  STOCK_DIVIDEND_YIELD = 'StockDividendYield',
+  BOND_DIVIDEND_YIELD = 'BondDividendYield',
+  CASH_DIVIDEND_YIELD = 'CashDividendYield',
 }
 
 /**
@@ -418,6 +421,9 @@ export interface HistoricRates {
     awiGrowthRatio: number;
     unemploymentRate: number;
     unemploymentDuration: number;
+    stockDividendYield: number;
+    bondDividendYield: number;
+    cashDividendYield: number;
   }>>;
   awi?: Record<string, number>;
   awiGrowthRatio?: Record<string, number>;

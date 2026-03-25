@@ -153,6 +153,22 @@ export class MonteCarloHandler {
       yearSamples[MonteCarloSampleType.BOND_RETURN] = bondReturn;
       yearSamples[MonteCarloSampleType.CASH_RETURN] = cashReturn;
 
+      // Dividend yields (correlated with same drawn year)
+      const stockDividendYield = yearData.stockDividendYield !== undefined
+        ? yearData.stockDividendYield / 100
+        : 0.013; // Default 1.3% S&P 500 dividend yield
+      yearSamples[MonteCarloSampleType.STOCK_DIVIDEND_YIELD] = stockDividendYield;
+
+      const bondDividendYield = yearData.bondDividendYield !== undefined
+        ? yearData.bondDividendYield / 100
+        : 0.03; // Default 3% bond yield
+      yearSamples[MonteCarloSampleType.BOND_DIVIDEND_YIELD] = bondDividendYield;
+
+      const cashDividendYield = yearData.cashDividendYield !== undefined
+        ? yearData.cashDividendYield / 100
+        : 0.04; // Default 4% money market yield
+      yearSamples[MonteCarloSampleType.CASH_DIVIDEND_YIELD] = cashDividendYield;
+
       // Proxy asset class returns using existing calculateProxyReturn logic
       // TODO(#25): calculateProxyReturn draws an uncorrelated cash sample internally
       // instead of using the already-computed cashReturn. Fix the correlation issue.

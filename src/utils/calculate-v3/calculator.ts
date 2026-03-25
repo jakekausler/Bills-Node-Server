@@ -54,7 +54,8 @@ import {
 } from './types';
 import { computeAnnualFederalTax } from './bracket-calculator';
 import { computeNetPay } from './compute-net-pay';
-import { getBlendedInterestRate } from './glide-path-blender';
+import { getBlendedInterestRate, getAllocationForYear, getExpectedDividendYields } from './glide-path-blender';
+import { DividendGenerator } from './dividend-generator';
 
 dayjs.extend(utc);
 
@@ -89,6 +90,8 @@ export class Calculator {
   private portfolioCutoffDates: Map<string, string> = new Map();
   private pendingPayouts: ManagerPayout[] = [];
   private taxProfile: TaxProfile;
+  private dividendGenerator = new DividendGenerator();
+  private dividendsGeneratedForYear: Map<string, number> = new Map(); // accountId-year → 1
 
   constructor(
     balanceTracker: BalanceTracker,
@@ -283,6 +286,7 @@ export class Calculator {
     this.paycheckStateTracker.restore();
     this.jobLossManager.restore();
     this.mortalityManager.restore();
+    this.dividendsGeneratedForYear = new Map();
     const restored = JSON.parse(this.pendingPayoutsCheckpoint) as Array<{
       activity: Record<string, unknown>;
       targetAccountId: string;
@@ -1490,6 +1494,76 @@ export class Calculator {
       const blendedRate = getBlendedInterestRate(portfolioConfig, year, mcReturns);
       // Override the event rate with blended rate, then fall through to standard interest calc
       event.rate = blendedRate;
+
+      // Generate annual dividends (once per year per account)
+      const dividendKey = `${event.accountId}-${year}`;
+      if (!this.dividendsGeneratedForYear.has(dividendKey)) {
+        this.dividendsGeneratedForYear.set(dividendKey, 1);
+
+        const currentBalance = this.getCurrentAccountBalance(event.accountId, segmentResult);
+        const allocation = getAllocationForYear(portfolioConfig, year);
+
+        // Get dividend yields (MC or deterministic)
+        let dividendYields: Record<string, number>;
+        if (mcGetter) {
+          dividendYields = {
+            stock: mcGetter(MonteCarloSampleType.STOCK_DIVIDEND_YIELD, year) ?? 0.013,
+            bond: mcGetter(MonteCarloSampleType.BOND_DIVIDEND_YIELD, year) ?? 0.03,
+            cash: mcGetter(MonteCarloSampleType.CASH_DIVIDEND_YIELD, year) ?? 0.04,
+          };
+        } else {
+          dividendYields = getExpectedDividendYields();
+        }
+
+        // Determine if tax-advantaged
+        const account = this.balanceTracker.findAccountById(event.accountId);
+        const isTaxAdvantaged = !!(account && account.type === 'Investment' &&
+          (account.withdrawalTaxRate > 0 || account.usesRMD)); // 401k/IRA have withdrawal tax or RMD
+
+        const dividendResult = this.dividendGenerator.generateAnnualDividends(
+          event.accountId, year, currentBalance, allocation, dividendYields, isTaxAdvantaged,
+        );
+
+        // Add dividend activities to segment result
+        if (dividendResult.activities.length > 0) {
+          if (!segmentResult.activitiesAdded.has(event.accountId)) {
+            segmentResult.activitiesAdded.set(event.accountId, []);
+          }
+          segmentResult.activitiesAdded.get(event.accountId)!.push(...dividendResult.activities);
+
+          // Add dividend amount to balance
+          const currentChange = segmentResult.balanceChanges.get(event.accountId) || 0;
+          segmentResult.balanceChanges.set(event.accountId, currentChange + dividendResult.totalAmount);
+
+          // Report to TaxManager for taxable accounts
+          if (!isTaxAdvantaged && this.taxManager) {
+            if (dividendResult.qualifiedAmount > 0) {
+              const taxOccurrence = {
+                date: event.date,
+                year,
+                amount: dividendResult.qualifiedAmount,
+                incomeType: 'qualifiedDividend' as any,
+              };
+              if (!segmentResult.taxableOccurrences.has(event.accountId)) {
+                segmentResult.taxableOccurrences.set(event.accountId, []);
+              }
+              segmentResult.taxableOccurrences.get(event.accountId)!.push(taxOccurrence);
+            }
+            if (dividendResult.ordinaryAmount > 0) {
+              const taxOccurrence = {
+                date: event.date,
+                year,
+                amount: dividendResult.ordinaryAmount,
+                incomeType: 'ordinaryDividend' as any,
+              };
+              if (!segmentResult.taxableOccurrences.has(event.accountId)) {
+                segmentResult.taxableOccurrences.set(event.accountId, []);
+              }
+              segmentResult.taxableOccurrences.get(event.accountId)!.push(taxOccurrence);
+            }
+          }
+        }
+      }
     }
 
     const interest = event.originalInterest;
