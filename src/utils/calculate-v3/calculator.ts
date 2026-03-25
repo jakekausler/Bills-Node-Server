@@ -21,6 +21,7 @@ import { ManagerPayout } from './manager-payout';
 import { WithholdingCalculator } from './withholding-calculator';
 import type { TaxProfile } from './tax-profile-types';
 import type { PaycheckResult } from './types';
+import type { AccountPortfolioConfig } from './portfolio-types';
 import { RothConversionManager, ConversionResult } from './roth-conversion-manager';
 import { DeductionTracker } from './deduction-tracker';
 import { loadVariable } from '../simulation/variable';
@@ -53,6 +54,7 @@ import {
 } from './types';
 import { computeAnnualFederalTax } from './bracket-calculator';
 import { computeNetPay } from './compute-net-pay';
+import { getBlendedInterestRate } from './glide-path-blender';
 
 dayjs.extend(utc);
 
@@ -1468,12 +1470,26 @@ export class Calculator {
   }
 
   processInterestEvent(event: InterestEvent, segmentResult: SegmentResult): Map<string, number> {
-    // Check if this account uses portfolio mode — delegate to PortfolioManager
-    if (this.portfolioManager) {
-      const mode = this.portfolioManager.getAccountMode(event.accountId);
-      if (mode === 'estimated' || mode === 'fund-level') {
-        return this.processPortfolioInterestEvent(event, segmentResult);
+    // For portfolio accounts, compute blended interest rate from allocation
+    const portfolioConfig = this.getPortfolioConfig(event.accountId);
+    if (portfolioConfig) {
+      const year = event.date.getUTCFullYear();
+      // In MC mode, build per-asset-class returns from samples
+      let mcReturns: Record<string, number> | null = null;
+      const mcGetter = this.getMCRateGetter();
+      if (mcGetter) {
+        mcReturns = {
+          stock: mcGetter(MonteCarloSampleType.STOCK_RETURN, year) ?? 0,
+          bond: mcGetter(MonteCarloSampleType.BOND_RETURN, year) ?? 0,
+          cash: mcGetter(MonteCarloSampleType.CASH_RETURN, year) ?? 0,
+          preferred: mcGetter(MonteCarloSampleType.PREFERRED_RETURN, year) ?? 0,
+          convertible: mcGetter(MonteCarloSampleType.CONVERTIBLE_RETURN, year) ?? 0,
+          other: mcGetter(MonteCarloSampleType.OTHER_RETURN, year) ?? 0,
+        };
       }
+      const blendedRate = getBlendedInterestRate(portfolioConfig, year, mcReturns);
+      // Override the event rate with blended rate, then fall through to standard interest calc
+      event.rate = blendedRate;
     }
 
     const interest = event.originalInterest;
@@ -1567,95 +1583,14 @@ export class Calculator {
    * PortfolioManager gates annual returns internally (lastReturnYear), so this
    * can be called multiple times per year (e.g., monthly compounding) safely.
    */
-  private processPortfolioInterestEvent(event: InterestEvent, segmentResult: SegmentResult): Map<string, number> {
-    if (!this.portfolioManager) return new Map();
-
-    const accountId = event.accountId;
-    const interest = event.originalInterest;
-    const year = event.date.getUTCFullYear();
-
-    // Build per-asset-class returns
-    const assetClassReturns: Record<string, number> = {};
-    const mcGetter = this.getMCRateGetter();
-
-    if (mcGetter) {
-      // MC mode: use stored per-asset-class returns
-      assetClassReturns.stock = mcGetter(MonteCarloSampleType.STOCK_RETURN, year) ?? 0;
-      assetClassReturns.bond = mcGetter(MonteCarloSampleType.BOND_RETURN, year) ?? 0;
-      assetClassReturns.cash = mcGetter(MonteCarloSampleType.CASH_RETURN, year) ?? 0;
-      assetClassReturns.preferred = mcGetter(MonteCarloSampleType.PREFERRED_RETURN, year) ?? 0;
-      assetClassReturns.convertible = mcGetter(MonteCarloSampleType.CONVERTIBLE_RETURN, year) ?? 0;
-      assetClassReturns.other = mcGetter(MonteCarloSampleType.OTHER_RETURN, year) ?? 0;
-    } else {
-      // Deterministic mode: apply the blended event rate uniformly across all asset classes.
-      // TODO(#25): In a later phase, decompose the blended rate using allocation weights
-      // from the account's glide path for the current year.
-      assetClassReturns.stock = event.rate;
-      assetClassReturns.bond = event.rate;
-      assetClassReturns.cash = event.rate;
-      assetClassReturns.preferred = event.rate;
-      assetClassReturns.convertible = event.rate;
-      assetClassReturns.other = event.rate;
+private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
+    if (!this.portfolioManager) return null;
+    const mode = this.portfolioManager.getAccountMode(accountId);
+    if (mode === 'estimated' || mode === 'fund-level') {
+      // Access config through PM's public interface
+      return (this.portfolioManager as any).configs?.[accountId] ?? null;
     }
-
-    // Apply returns — PortfolioManager gates by lastReturnYear internally
-    const interestEarned = this.portfolioManager.applyAnnualReturns(
-      accountId,
-      year,
-      assetClassReturns,
-    );
-
-    // Only create activities for non-zero amounts
-    if (Math.abs(interestEarned) <= 0.001) {
-      return new Map();
-    }
-
-    // Create consolidated activity for the interest (same pattern as processInterestEvent)
-    const interestActivity = new ConsolidatedActivity(
-      interest.toActivity(`${interest.id}-${event.date}`, this.simulation, interestEarned, event.date).serialize(),
-      { interestId: interest.id, firstInterest: event.firstInterest },
-    );
-    interestActivity.flagColor = 'orange';
-    interestActivity.flag = true;
-
-    // Add activity to segment result
-    if (!segmentResult.activitiesAdded.has(accountId)) {
-      segmentResult.activitiesAdded.set(accountId, []);
-    }
-    segmentResult.activitiesAdded.get(accountId)?.push(interestActivity);
-
-    // Add taxable occurrence for taxable accounts
-    const account = this.balanceTracker.findAccountById(accountId);
-    if (account?.interestPayAccount) {
-      const taxableOccurrence: TaxableOccurrence = {
-        date: event.date,
-        year,
-        amount: interestEarned,
-        incomeType: 'interest' as IncomeType,
-      };
-      if (!segmentResult.taxableOccurrences.has(account.interestPayAccount)) {
-        segmentResult.taxableOccurrences.set(account.interestPayAccount, []);
-      }
-      segmentResult.taxableOccurrences.get(account.interestPayAccount)?.push(taxableOccurrence);
-    }
-
-    this.log('portfolio-interest-calculated', { accountId, year, interestEarned });
-
-    // Record interest flow
-    if (this.flowAggregator) {
-      if (interestEarned > 0) {
-        this.flowAggregator.recordInterest(year, interestEarned);
-      } else if (interestEarned < 0) {
-        if (account && account.type !== 'Loan') {
-          this.flowAggregator.recordExpense(year, 'Interest Charges', Math.abs(interestEarned));
-        }
-      }
-    }
-
-    // Update balance in segment result
-    const currentChange = segmentResult.balanceChanges.get(accountId) || 0;
-    segmentResult.balanceChanges.set(accountId, currentChange + interestEarned);
-    return new Map([[accountId, interestEarned]]);
+    return null;
   }
 
   processActivityTransferEvent(event: ActivityTransferEvent, segmentResult: SegmentResult): Map<string, number> {
