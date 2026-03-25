@@ -75,8 +75,8 @@ export class FutureLotTracker {
   ): void {
     const fundConfigMap = new Map(fundConfigs.map(fc => [fc.symbol.toLowerCase(), fc]));
 
-    // Accumulate per-asset-class values and cost basis
-    const perClassAccumulator: Record<string, { value: number; costBasis: number }> = {};
+    // Accumulate per-asset-class values
+    const perClassAccumulator: Record<string, { value: number }> = {};
 
     let totalComputedValue = 0;
 
@@ -98,7 +98,7 @@ export class FutureLotTracker {
         if (!weight) continue;
         const collapsed = this.collapseAssetClass(className);
         if (!perClassAccumulator[collapsed]) {
-          perClassAccumulator[collapsed] = { value: 0, costBasis: 0 };
+          perClassAccumulator[collapsed] = { value: 0 };
         }
         perClassAccumulator[collapsed].value += fundValue * weight;
       }

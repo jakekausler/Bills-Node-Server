@@ -37,6 +37,7 @@ import { load } from '../io/io';
 import type { TaxScenario } from './tax-profile-types';
 import { loadVariable } from '../simulation/variable';
 import { LedgerPrecomputer, AnchorPoint } from './ledger-precomputer';
+import { FutureLotTracker } from './future-lot-tracker';
 import { loadLedger } from '../io/portfolioLedger';
 
 dayjs.extend(utc);
@@ -662,6 +663,40 @@ export class Engine {
       );
       this.timeline.setCutoffDates(cutoffDates);
       this.calculator.setPortfolioCutoffDates(cutoffDates);
+    }
+
+    // Initialize FutureLotTracker for taxable portfolio accounts
+    if (this.portfolioAnchors.size > 0) {
+      const futureLotTracker = new FutureLotTracker();
+      let hasTrackedAccounts = false;
+
+      for (const [accountId, anchor] of this.portfolioAnchors) {
+        const account = this.balanceTracker.findAccountById(accountId);
+        if (!account) continue;
+
+        // Only track taxable portfolio accounts (not 401k, IRA, HSA)
+        const isTaxablePortfolio = account.type === 'Investment' &&
+          !account.withdrawalTaxRate && !account.usesRMD;
+
+        if (!isTaxablePortfolio) continue;
+
+        const config = this.portfolioConfigs[accountId];
+        if (!config || !config.funds) continue;
+
+        futureLotTracker.seedFromHistory(
+          accountId,
+          anchor.sharesByFund,
+          anchor.costBasis,
+          config.funds,
+          anchor.cutoffDate,
+          anchor.fundPrices,
+        );
+        hasTrackedAccounts = true;
+      }
+
+      if (hasTrackedAccounts) {
+        this.calculator.setFutureLotTracker(futureLotTracker);
+      }
     }
 
     const segments = this.timeline.getSegments();

@@ -17,6 +17,7 @@ import { PaycheckProcessor } from './paycheck-processor';
 import { JobLossManager } from './job-loss-manager';
 import { LifeInsuranceManager } from './life-insurance-manager';
 import { PortfolioManager } from './portfolio-manager';
+import { FutureLotTracker } from './future-lot-tracker';
 import { ManagerPayout } from './manager-payout';
 import { WithholdingCalculator } from './withholding-calculator';
 import type { TaxProfile } from './tax-profile-types';
@@ -54,7 +55,7 @@ import {
 } from './types';
 import { computeAnnualFederalTax } from './bracket-calculator';
 import { computeNetPay } from './compute-net-pay';
-import { getBlendedInterestRate, getAllocationForYear, getExpectedDividendYields } from './glide-path-blender';
+import { getBlendedInterestRate, getAllocationForYear, getExpectedDividendYields, getExpectedReturns } from './glide-path-blender';
 import { DividendGenerator } from './dividend-generator';
 
 dayjs.extend(utc);
@@ -86,6 +87,7 @@ export class Calculator {
   private mcRateGetterRef: MCRateGetter | null = null;
   private lifeInsuranceManager: LifeInsuranceManager | null = null;
   private portfolioManager: PortfolioManager | null = null;
+  private futureLotTracker: FutureLotTracker | null = null;
   private portfolioCutoffDates: Map<string, string> = new Map();
   private pendingPayouts: ManagerPayout[] = [];
   private taxProfile: TaxProfile;
@@ -224,6 +226,10 @@ export class Calculator {
     this.portfolioCutoffDates = cutoffs;
   }
 
+  setFutureLotTracker(tracker: FutureLotTracker): void {
+    this.futureLotTracker = tracker;
+  }
+
   /**
    * Set pending payouts from inheritance/life insurance managers for injection into segments.
    */
@@ -277,6 +283,9 @@ export class Calculator {
     if (this.lifeInsuranceManager) {
       this.lifeInsuranceManagerCheckpoint = this.lifeInsuranceManager.checkpoint();
     }
+    if (this.futureLotTracker) {
+      this.futureLotTracker.checkpoint();
+    }
   }
 
   /**
@@ -303,6 +312,9 @@ export class Calculator {
     }));
     if (this.lifeInsuranceManager && this.lifeInsuranceManagerCheckpoint) {
       this.lifeInsuranceManager.restore(this.lifeInsuranceManagerCheckpoint);
+    }
+    if (this.futureLotTracker) {
+      this.futureLotTracker.restore();
     }
   }
 
@@ -1499,6 +1511,12 @@ export class Calculator {
       // Override the event rate with blended rate, then fall through to standard interest calc
       event.rate = blendedRate;
 
+      // Update FutureLotTracker virtual prices with per-asset-class returns
+      if (this.futureLotTracker && this.isTaxablePortfolioAccount(event.accountId)) {
+        const assetClassReturns = mcReturns || getExpectedReturns();
+        this.futureLotTracker.applyAnnualReturns(year, assetClassReturns);
+      }
+
       // Generate annual dividends (once per year per account)
       const dividendKey = `${event.accountId}-${year}`;
       if (!this.dividendsGeneratedForYear.has(dividendKey)) {
@@ -1547,6 +1565,11 @@ export class Calculator {
             const filteredTotal = filteredActivities.reduce((sum, a) => sum + Number(a.amount), 0);
             const currentChange = segmentResult.balanceChanges.get(event.accountId) || 0;
             segmentResult.balanceChanges.set(event.accountId, currentChange + filteredTotal);
+
+            // Create dividend lots in FutureLotTracker for taxable accounts
+            if (this.futureLotTracker && !isTaxAdvantaged && filteredTotal > 0) {
+              this.futureLotTracker.deposit(event.accountId, filteredTotal, formatDate(event.date), allocation, 'dividend');
+            }
 
             // Report to TaxManager for taxable accounts — only report filtered amounts
             if (!isTaxAdvantaged && this.taxManager) {
@@ -1687,6 +1710,13 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
       return (this.portfolioManager as any).configs?.get(accountId) ?? null;
     }
     return null;
+  }
+
+  private isTaxablePortfolioAccount(accountId: string): boolean {
+    const account = this.balanceTracker.findAccountById(accountId);
+    if (!account || account.type !== 'Investment') return false;
+    if (account.withdrawalTaxRate || account.usesRMD) return false;
+    return this.getPortfolioConfig(accountId) !== null;
   }
 
   processActivityTransferEvent(event: ActivityTransferEvent, segmentResult: SegmentResult): Map<string, number> {
@@ -1930,6 +1960,59 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
     const toCutoff = this.portfolioCutoffDates.get(toAccountId);
     if (!toCutoff || eventDate > toCutoff) {
       segmentResult.balanceChanges.set(toAccountId, toCurrentChange + internalAmount);
+    }
+
+    // Capital gains tracking for taxable portfolio accounts
+    if (this.futureLotTracker) {
+      // Withdrawal from taxable portfolio → compute capital gains
+      if (this.isTaxablePortfolioAccount(fromAccountId)) {
+        if (!fromCutoff || eventDate > fromCutoff) {
+          const portfolioConfig = this.getPortfolioConfig(fromAccountId);
+          const strategy = portfolioConfig?.lotSelectionStrategy ?? 'fifo';
+          const gainsResult = this.futureLotTracker.withdraw(fromAccountId, internalAmount, eventDate, strategy);
+
+          // Report capital gains to TaxManager via taxable occurrences
+          const taxPayAccount = toAccount?.name;
+          if (!taxPayAccount) {
+            this.log('capital-gains-no-tax-account', { fromAccountId, toAccountId, gain: gainsResult.netGain });
+          } else {
+            if (gainsResult.shortTermGain !== 0) {
+              if (!segmentResult.taxableOccurrences.has(taxPayAccount)) {
+                segmentResult.taxableOccurrences.set(taxPayAccount, []);
+              }
+              segmentResult.taxableOccurrences.get(taxPayAccount)!.push({
+                date: event.date,
+                year: event.date.getUTCFullYear(),
+                amount: gainsResult.shortTermGain,
+                incomeType: 'shortTermCapitalGain' as IncomeType,
+              });
+            }
+            if (gainsResult.longTermGain !== 0) {
+              if (!segmentResult.taxableOccurrences.has(taxPayAccount)) {
+                segmentResult.taxableOccurrences.set(taxPayAccount, []);
+              }
+              segmentResult.taxableOccurrences.get(taxPayAccount)!.push({
+                date: event.date,
+                year: event.date.getUTCFullYear(),
+                amount: gainsResult.longTermGain,
+                incomeType: 'longTermCapitalGain' as IncomeType,
+              });
+            }
+          }
+        }
+      }
+
+      // Deposit to taxable portfolio → create new lots
+      if (this.isTaxablePortfolioAccount(toAccountId)) {
+        if (!toCutoff || eventDate > toCutoff) {
+          const portfolioConfig = this.getPortfolioConfig(toAccountId);
+          if (portfolioConfig) {
+            const year = event.date.getUTCFullYear();
+            const allocation = getAllocationForYear(portfolioConfig, year);
+            this.futureLotTracker.deposit(toAccountId, internalAmount, eventDate, allocation);
+          }
+        }
+      }
     }
 
     this.log('transfer-processed', { from: fromAccountId, to: toAccountId, amount: internalAmount, name: original.name });

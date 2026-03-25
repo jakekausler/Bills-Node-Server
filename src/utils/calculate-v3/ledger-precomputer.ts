@@ -10,6 +10,7 @@ export interface AnchorPoint {
   totalValue: number;
   costBasis: number;
   sharesByFund: Record<string, number>;
+  fundPrices: Record<string, number>;  // symbol → price at cutoff date
 }
 
 interface FundState {
@@ -132,12 +133,22 @@ export class LedgerPrecomputer {
       ? this.computePortfolioValue(fundStates, cutoffDate)
       : 0;
 
+    // Get prices at cutoff for each fund
+    const fundPrices: Record<string, number> = {};
+    for (const symbol of Object.keys(sharesByFund)) {
+      const price = this.lookupPrice(symbol, cutoffDate);
+      if (price > 0) {
+        fundPrices[symbol] = price;
+      }
+    }
+
     const anchor: AnchorPoint = {
       accountId,
       cutoffDate,
       totalValue: finalValue,
       costBasis: Math.round(totalCost * 100) / 100,
       sharesByFund,
+      fundPrices,
     };
 
     return { activities: activityList, anchor };
