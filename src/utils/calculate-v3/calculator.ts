@@ -86,7 +86,6 @@ export class Calculator {
   private mcRateGetterRef: MCRateGetter | null = null;
   private lifeInsuranceManager: LifeInsuranceManager | null = null;
   private portfolioManager: PortfolioManager | null = null;
-  private portfolioManagerCheckpoint: string = '';
   private portfolioCutoffDates: Map<string, string> = new Map();
   private pendingPayouts: ManagerPayout[] = [];
   private taxProfile: TaxProfile;
