@@ -10,6 +10,7 @@ import {
   BalanceSnapshotData,
   SegmentResultData,
   TaxableOccurrence,
+  WithholdingOccurrence,
   SpendingTrackerUpdateData,
 } from './types';
 import { join } from 'path';
@@ -93,6 +94,18 @@ class SegmentResultSerializer extends Serializer {
           })),
         ]),
       ),
+      withholdingOccurrences: Object.fromEntries(
+        Array.from(data.data.withholdingOccurrences.entries()).map(([k, v]) => [
+          k,
+          v.map((occ) => ({
+            date: formatDate(occ.date),
+            year: occ.year,
+            federalAmount: occ.federalAmount,
+            stateAmount: occ.stateAmount,
+            source: occ.source,
+          })),
+        ]),
+      ),
       spendingTrackerUpdates: (data.data.spendingTrackerUpdates || []).map((u) => ({
         categoryId: u.categoryId,
         totalSpent: u.totalSpent,
@@ -139,6 +152,18 @@ class SegmentResultSerializer extends Serializer {
         })),
       ]),
     );
+    const withholdingOccurrences = new Map<string, WithholdingOccurrence[]>(
+      Object.entries(segmentResultData.withholdingOccurrences || {}).map(([k, v]) => [
+        k,
+        v.map((occ) => ({
+          date: parseDate(occ.date),
+          year: occ.year,
+          federalAmount: occ.federalAmount,
+          stateAmount: occ.stateAmount,
+          source: occ.source,
+        })),
+      ]),
+    );
 
     const spendingTrackerUpdates = (segmentResultData.spendingTrackerUpdates || []).map(
       (u: SpendingTrackerUpdateData) => ({
@@ -157,6 +182,7 @@ class SegmentResultSerializer extends Serializer {
       balanceMinimums,
       balanceMaximums,
       taxableOccurrences,
+      withholdingOccurrences,
       spendingTrackerUpdates,
     };
 

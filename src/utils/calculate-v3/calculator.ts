@@ -398,14 +398,37 @@ export class Calculator {
       // Record withholding in TaxManager
       const year = event.date.getUTCFullYear();
       if (paycheckDetails.federalWithholding > 0 || paycheckDetails.stateWithholding > 0) {
-        this.taxManager.addWithholdingOccurrence({
+        const withholdingOcc = {
           date: event.date,
           year,
           federalAmount: paycheckDetails.federalWithholding || 0,
           stateAmount: paycheckDetails.stateWithholding || 0,
           source: activity.name,
-        });
+        };
+        this.taxManager.addWithholdingOccurrence(withholdingOcc);
+
+        // Also store in segmentResult for caching
+        if (!segmentResult.withholdingOccurrences.has(accountId)) {
+          segmentResult.withholdingOccurrences.set(accountId, []);
+        }
+        segmentResult.withholdingOccurrences.get(accountId)!.push(withholdingOcc);
       }
+
+      // Report gross income minus pre-tax deductions as ordinary taxable income
+      let taxableWages = paycheckDetails.grossPay - (paycheckDetails.traditional401k || 0) - (paycheckDetails.hsa || 0) - (paycheckDetails.hsaEmployer || 0);
+      for (const ded of (paycheckDetails.preTaxDeductions || [])) {
+        taxableWages -= ded.amount;
+      }
+      const accountName = this.balanceTracker.findAccountById(accountId)?.name || accountId;
+      if (!segmentResult.taxableOccurrences.has(accountName)) {
+        segmentResult.taxableOccurrences.set(accountName, []);
+      }
+      segmentResult.taxableOccurrences.get(accountName)!.push({
+        date: event.date,
+        year,
+        amount: taxableWages,
+        incomeType: 'ordinary' as IncomeType,
+      });
 
       // Generate deposit activities for 401k/HSA/employer match
       if (paycheckDetails.depositActivities) {
@@ -1000,6 +1023,21 @@ export class Calculator {
       processor: this.paycheckProcessor,
     });
 
+    // Store withholding in segmentResult for caching
+    if (paycheckResult.federalWithholding > 0 || paycheckResult.stateWithholding > 0) {
+      const whKey = account.name || event.accountId;
+      if (!segmentResult.withholdingOccurrences.has(whKey)) {
+        segmentResult.withholdingOccurrences.set(whKey, []);
+      }
+      segmentResult.withholdingOccurrences.get(whKey)!.push({
+        date: event.date,
+        year,
+        federalAmount: paycheckResult.federalWithholding,
+        stateAmount: paycheckResult.stateWithholding,
+        source: bill.name,
+      });
+    }
+
     // Skip downstream processing if paycheck is empty (suppressed during unemployment)
     if (paycheckResult.grossPay === 0) {
       this.log('paycheck-empty-skip-downstream', { billName: bill.name, date: event.date.toISOString() });
@@ -1296,6 +1334,21 @@ export class Calculator {
           additionalMedicareThreshold,
           this.taxProfile,
         );
+
+        // Store bonus withholding in segmentResult for caching
+        if (bonusResult.federalWithholding > 0 || bonusResult.stateWithholding > 0) {
+          const whKey = account.name || event.accountId;
+          if (!segmentResult.withholdingOccurrences.has(whKey)) {
+            segmentResult.withholdingOccurrences.set(whKey, []);
+          }
+          segmentResult.withholdingOccurrences.get(whKey)!.push({
+            date: event.date,
+            year,
+            federalAmount: bonusResult.federalWithholding,
+            stateAmount: bonusResult.stateWithholding,
+            source: `${bill.name} Bonus`,
+          });
+        }
 
       // Create bonus net pay activity on main account (standalone — no billId so it's independently editable)
       const bonusActivityData = {
@@ -1716,7 +1769,9 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
     const account = this.balanceTracker.findAccountById(accountId);
     if (!account || account.type !== 'Investment') return false;
     if (account.withdrawalTaxRate || account.usesRMD) return false;
-    return this.getPortfolioConfig(accountId) !== null;
+    const hasConfig = this.getPortfolioConfig(accountId) !== null;
+    this.log('taxable-portfolio-check', { accountId, type: account.type, withdrawalTaxRate: account.withdrawalTaxRate, usesRMD: account.usesRMD, hasConfig });
+    return hasConfig;
   }
 
   processActivityTransferEvent(event: ActivityTransferEvent, segmentResult: SegmentResult): Map<string, number> {
@@ -1963,13 +2018,39 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
     }
 
     // Capital gains tracking for taxable portfolio accounts
+    // TEMP DEBUG
+    if (this.futureLotTracker) console.log('[CG-DEBUG] transfer-eval', { from: fromAccountId, to: toAccountId, amount: internalAmount, eventDate, hasFLT: true });
+    this.log('transfer-cg-eval', { from: fromAccountId, to: toAccountId, amount: internalAmount, hasFLT: !!this.futureLotTracker });
     if (this.futureLotTracker) {
+      const fromIsTaxable = this.isTaxablePortfolioAccount(fromAccountId);
+      const toIsTaxable = this.isTaxablePortfolioAccount(toAccountId);
+      this.log('transfer-cg-check', {
+        fromIsTaxable,
+        toIsTaxable,
+        fromCutoff,
+        eventDate,
+      });
+      // TEMP DEBUG
+      console.log('[CG-DEBUG] taxable-check', { fromIsTaxable, toIsTaxable, fromCutoff, eventDate });
       // Withdrawal from taxable portfolio → compute capital gains
-      if (this.isTaxablePortfolioAccount(fromAccountId)) {
+      if (fromIsTaxable) {
         if (!fromCutoff || eventDate > fromCutoff) {
           const portfolioConfig = this.getPortfolioConfig(fromAccountId);
           const strategy = portfolioConfig?.lotSelectionStrategy ?? 'fifo';
           const gainsResult = this.futureLotTracker.withdraw(fromAccountId, internalAmount, eventDate, strategy);
+          // TEMP DEBUG
+          console.log('[CG-DEBUG] withdraw-result', { accountId: fromAccountId, amount: internalAmount, stGain: gainsResult.shortTermGain, ltGain: gainsResult.longTermGain, lots: gainsResult.lotsConsumed.length, taxPayAccount: toAccount?.name });
+
+          this.log('transfer-cg-withdraw', {
+            accountId: fromAccountId,
+            amount: internalAmount,
+            strategy,
+            shortTermGain: gainsResult.shortTermGain,
+            longTermGain: gainsResult.longTermGain,
+            netGain: gainsResult.netGain,
+            lotsConsumed: gainsResult.lotsConsumed.length,
+            taxPayAccount: toAccount?.name,
+          });
 
           // Report capital gains to TaxManager via taxable occurrences
           const taxPayAccount = toAccount?.name;
@@ -2003,7 +2084,7 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
       }
 
       // Deposit to taxable portfolio → create new lots
-      if (this.isTaxablePortfolioAccount(toAccountId)) {
+      if (toIsTaxable) {
         if (!toCutoff || eventDate > toCutoff) {
           const portfolioConfig = this.getPortfolioConfig(toAccountId);
           if (portfolioConfig) {

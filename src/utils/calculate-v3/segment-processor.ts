@@ -15,6 +15,7 @@ import {
   SpendingTrackerEvent,
   TimelineEvent,
   TaxableOccurrence,
+  WithholdingOccurrence,
   RothConversionEvent,
   MedicarePremiumEvent,
   MedicareHospitalEvent,
@@ -150,6 +151,15 @@ export class SegmentProcessor {
           }
         }
 
+        // Replay withholding occurrences from cached segments into TaxManager
+        if (cachedResult.withholdingOccurrences) {
+          for (const [_key, withholdingOccurrences] of cachedResult.withholdingOccurrences) {
+            for (const wh of withholdingOccurrences) {
+              this.taxManager.addWithholdingOccurrence(wh);
+            }
+          }
+        }
+
         return;
       }
     }
@@ -228,6 +238,7 @@ export class SegmentProcessor {
       balanceMinimums: new Map<string, number>(),
       balanceMaximums: new Map<string, number>(),
       taxableOccurrences: new Map<string, TaxableOccurrence[]>(),
+      withholdingOccurrences: new Map<string, WithholdingOccurrence[]>(),
       spendingTrackerUpdates: [],
     };
 

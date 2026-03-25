@@ -65,6 +65,14 @@ export type WithholdingOccurrence = {
   source: string;
 };
 
+export type WithholdingOccurrenceData = {
+  date: string;
+  year: number;
+  federalAmount: number;
+  stateAmount: number;
+  source: string;
+};
+
 /**
  * Records a spending tracker period completion for cache replay.
  */
@@ -100,6 +108,8 @@ export interface SegmentResult {
   balanceMaximums: Map<string, number>;
   /** Taxable occurrences indexed by account name */
   taxableOccurrences: Map<string, TaxableOccurrence[]>;
+  /** Withholding occurrences indexed by account name */
+  withholdingOccurrences: Map<string, WithholdingOccurrence[]>;
   /** Spending tracker period completions for cache replay */
   spendingTrackerUpdates: SpendingTrackerUpdate[];
   /** Accounts and Transfers */
@@ -113,6 +123,7 @@ export type SegmentResultData = {
   balanceMinimums: Record<string, number>;
   balanceMaximums: Record<string, number>;
   taxableOccurrences: Record<string, TaxableOccurrenceData[]>;
+  withholdingOccurrences: Record<string, WithholdingOccurrenceData[]>;
   spendingTrackerUpdates: SpendingTrackerUpdateData[];
 };
 
