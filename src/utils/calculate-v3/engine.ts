@@ -651,8 +651,10 @@ export class Engine {
 
         for (const [accountId, anchor] of anchors) {
           this.portfolioAnchors.set(accountId, anchor);
-          // Don't call updateBalance — historical activities carry precomputed balances,
-          // and getAccountsWithFilteredDates uses those as the running balance base.
+          // Set starting balance for the engine's internal tracking (interest calc, push/pull).
+          // The display balance comes from precomputed activities, but the engine needs this
+          // for computations that query getCurrentAccountBalance().
+          this.balanceTracker.updateBalance(accountId, anchor.totalValue, new Date(anchor.cutoffDate + 'T00:00:00Z'));
         }
       }
     }

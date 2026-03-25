@@ -1489,6 +1489,19 @@ export class Timeline {
   }
 
   getSegments(): Segment[] {
-    return [...this.segments];
+    if (!this.cutoffDates || this.cutoffDates.size === 0) {
+      return [...this.segments];
+    }
+
+    // Filter out events for portfolio accounts that fall before their cutoff date
+    return this.segments.map(segment => ({
+      ...segment,
+      events: segment.events.filter(event => {
+        const cutoff = this.cutoffDates!.get(event.accountId);
+        if (!cutoff) return true; // No cutoff for this account
+        const eventDate = event.date.toISOString().substring(0, 10);
+        return eventDate > cutoff; // Only keep events AFTER cutoff
+      }),
+    }));
   }
 }
