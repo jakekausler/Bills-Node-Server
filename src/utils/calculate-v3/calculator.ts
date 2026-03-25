@@ -258,7 +258,7 @@ export class Calculator {
    */
   private pendingPayoutsCheckpoint: string = '[]';
   private lifeInsuranceManagerCheckpoint: string = '';
-  private dividendsGeneratedCheckpoint: string = '{}';
+  private dividendsGeneratedCheckpoint: string = '[]';
 
   checkpoint(): void {
     this.contributionLimitManager.checkpoint();
@@ -271,7 +271,9 @@ export class Calculator {
       targetAccountId: p.targetAccountId,
       incomeSourceName: p.incomeSourceName,
     })));
-    this.dividendsGeneratedCheckpoint = JSON.stringify(Array.from(this.dividendsGeneratedForYear.entries()));
+    // NOTE: dividendsGeneratedForYear is intentionally NOT checkpointed.
+    // Dividends are annual events — once generated for a year, they persist
+    // regardless of segment reprocessing from push/pull handling.
     if (this.lifeInsuranceManager) {
       this.lifeInsuranceManagerCheckpoint = this.lifeInsuranceManager.checkpoint();
     }
@@ -287,9 +289,8 @@ export class Calculator {
     this.paycheckStateTracker.restore();
     this.jobLossManager.restore();
     this.mortalityManager.restore();
-    // Restore dividends generated state from checkpoint
-    const dividendEntries = JSON.parse(this.dividendsGeneratedCheckpoint) as Array<[string, number]>;
-    this.dividendsGeneratedForYear = new Map(dividendEntries);
+    // NOTE: dividendsGeneratedForYear is intentionally NOT restored.
+    // See comment in checkpoint().
     const restored = JSON.parse(this.pendingPayoutsCheckpoint) as Array<{
       activity: Record<string, unknown>;
       targetAccountId: string;
