@@ -856,20 +856,22 @@ export class Timeline {
 
     // Calculate bill occurrences up to end date
     while (currentDate <= endDate && (!bill.endDate || currentDate <= bill.endDate)) {
-      // Skip transfer bill events before portfolio cutoff date (check both accounts)
-      let shouldSkip = false;
+      // Skip transfer bill events only if BOTH accounts have cutoffs and date is before both
+      let fromBeforeCutoff = false;
+      let toBeforeCutoff = false;
       if (fromAccount && this.cutoffDates?.has(fromAccount.id)) {
         const cutoffDate = this.cutoffDates.get(fromAccount.id);
         if (cutoffDate && currentDate <= new Date(cutoffDate + 'T00:00:00Z')) {
-          shouldSkip = true;
+          fromBeforeCutoff = true;
         }
       }
-      if (!shouldSkip && toAccount && this.cutoffDates?.has(toAccount.id)) {
+      if (toAccount && this.cutoffDates?.has(toAccount.id)) {
         const cutoffDate = this.cutoffDates.get(toAccount.id);
         if (cutoffDate && currentDate <= new Date(cutoffDate + 'T00:00:00Z')) {
-          shouldSkip = true;
+          toBeforeCutoff = true;
         }
       }
+      const shouldSkip = fromBeforeCutoff && toBeforeCutoff;
 
       if (!shouldSkip) {
         // Calculate the amount of the bill
@@ -1493,14 +1495,29 @@ export class Timeline {
       return [...this.segments];
     }
 
-    // Filter out events for portfolio accounts that fall before their cutoff date
     return this.segments.map(segment => ({
       ...segment,
       events: segment.events.filter(event => {
+        // Transfer events: allow through if the NON-portfolio side exists
+        // (the calculator handles skipping balance changes for the portfolio side)
+        if (event.type === EventType.activityTransfer || event.type === EventType.billTransfer) {
+          const transferEvent = event as any;
+          const fromCutoff = this.cutoffDates!.get(transferEvent.fromAccountId);
+          const toCutoff = this.cutoffDates!.get(transferEvent.toAccountId);
+          // If BOTH sides have cutoffs and event is before both, skip
+          if (fromCutoff && toCutoff) {
+            const eventDate = event.date.toISOString().substring(0, 10);
+            return eventDate > fromCutoff || eventDate > toCutoff;
+          }
+          // If only one side has cutoff, always allow (non-portfolio side needs the event)
+          return true;
+        }
+
+        // Non-transfer events: standard cutoff filter
         const cutoff = this.cutoffDates!.get(event.accountId);
-        if (!cutoff) return true; // No cutoff for this account
+        if (!cutoff) return true;
         const eventDate = event.date.toISOString().substring(0, 10);
-        return eventDate > cutoff; // Only keep events AFTER cutoff
+        return eventDate > cutoff;
       }),
     }));
   }

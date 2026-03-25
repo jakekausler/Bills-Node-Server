@@ -1920,8 +1920,17 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
     const fromCurrentChange = segmentResult.balanceChanges.get(fromAccountId) || 0;
     const toCurrentChange = segmentResult.balanceChanges.get(toAccountId) || 0;
 
-    segmentResult.balanceChanges.set(fromAccountId, fromCurrentChange - internalAmount);
-    segmentResult.balanceChanges.set(toAccountId, toCurrentChange + internalAmount);
+    // Skip balance change for portfolio accounts before their cutoff (historical data handles these)
+    const fromCutoff = this.portfolioCutoffDates.get(fromAccountId);
+    const eventDate = formatDate(event.date);
+    if (!fromCutoff || eventDate > fromCutoff) {
+      segmentResult.balanceChanges.set(fromAccountId, fromCurrentChange - internalAmount);
+    }
+
+    const toCutoff = this.portfolioCutoffDates.get(toAccountId);
+    if (!toCutoff || eventDate > toCutoff) {
+      segmentResult.balanceChanges.set(toAccountId, toCurrentChange + internalAmount);
+    }
 
     this.log('transfer-processed', { from: fromAccountId, to: toAccountId, amount: internalAmount, name: original.name });
 
