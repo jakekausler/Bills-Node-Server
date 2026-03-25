@@ -1622,6 +1622,15 @@ export class Calculator {
             // Create dividend lots in FutureLotTracker for taxable accounts
             if (this.futureLotTracker && !isTaxAdvantaged && filteredTotal > 0) {
               this.futureLotTracker.deposit(event.accountId, filteredTotal, formatDate(event.date), allocation, 'dividend');
+
+              // Populate cost basis on dividend activities
+              const cb = this.futureLotTracker.getCostBasis(event.accountId);
+              const mv = this.futureLotTracker.getMarketValue(event.accountId);
+              for (const divAct of filteredActivities) {
+                divAct.costBasis = Math.round(cb * 100) / 100;
+                divAct.unrealizedGain = Math.round((mv - cb) * 100) / 100;
+                divAct.unrealizedGainPercent = cb > 0 ? Math.round(((mv - cb) / cb) * 10000) / 10000 : 0;
+              }
             }
 
             // Report to TaxManager for taxable accounts — only report filtered amounts
@@ -1713,6 +1722,15 @@ export class Calculator {
       segmentResult.activitiesAdded.set(accountId, []);
     }
     segmentResult.activitiesAdded.get(accountId)?.push(interestActivity);
+
+    // Populate cost basis on interest activities for taxable portfolio accounts
+    if (this.futureLotTracker && this.isTaxablePortfolioAccount(accountId)) {
+      const cb = this.futureLotTracker.getCostBasis(accountId);
+      const mv = this.futureLotTracker.getMarketValue(accountId);
+      interestActivity.costBasis = Math.round(cb * 100) / 100;
+      interestActivity.unrealizedGain = Math.round((mv - cb) * 100) / 100;
+      interestActivity.unrealizedGainPercent = cb > 0 ? Math.round(((mv - cb) / cb) * 10000) / 10000 : 0;
+    }
 
     // Add taxable occurrence to segment result
     if (account.interestPayAccount) {
@@ -2018,28 +2036,17 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
     }
 
     // Capital gains tracking for taxable portfolio accounts
-    // TEMP DEBUG
-    if (this.futureLotTracker) console.log('[CG-DEBUG] transfer-eval', { from: fromAccountId, to: toAccountId, amount: internalAmount, eventDate, hasFLT: true });
     this.log('transfer-cg-eval', { from: fromAccountId, to: toAccountId, amount: internalAmount, hasFLT: !!this.futureLotTracker });
     if (this.futureLotTracker) {
       const fromIsTaxable = this.isTaxablePortfolioAccount(fromAccountId);
       const toIsTaxable = this.isTaxablePortfolioAccount(toAccountId);
-      this.log('transfer-cg-check', {
-        fromIsTaxable,
-        toIsTaxable,
-        fromCutoff,
-        eventDate,
-      });
-      // TEMP DEBUG
-      console.log('[CG-DEBUG] taxable-check', { fromIsTaxable, toIsTaxable, fromCutoff, eventDate });
+
       // Withdrawal from taxable portfolio → compute capital gains
       if (fromIsTaxable) {
         if (!fromCutoff || eventDate > fromCutoff) {
           const portfolioConfig = this.getPortfolioConfig(fromAccountId);
           const strategy = portfolioConfig?.lotSelectionStrategy ?? 'fifo';
           const gainsResult = this.futureLotTracker.withdraw(fromAccountId, internalAmount, eventDate, strategy);
-          // TEMP DEBUG
-          console.log('[CG-DEBUG] withdraw-result', { accountId: fromAccountId, amount: internalAmount, stGain: gainsResult.shortTermGain, ltGain: gainsResult.longTermGain, lots: gainsResult.lotsConsumed.length, taxPayAccount: toAccount?.name });
 
           this.log('transfer-cg-withdraw', {
             accountId: fromAccountId,
@@ -2093,6 +2100,22 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
             this.futureLotTracker.deposit(toAccountId, internalAmount, eventDate, allocation);
           }
         }
+      }
+
+      // Populate cost basis on activities for taxable portfolio accounts
+      if (fromIsTaxable) {
+        const cb = this.futureLotTracker.getCostBasis(fromAccountId);
+        const mv = this.futureLotTracker.getMarketValue(fromAccountId);
+        fromActivity.costBasis = Math.round(cb * 100) / 100;
+        fromActivity.unrealizedGain = Math.round((mv - cb) * 100) / 100;
+        fromActivity.unrealizedGainPercent = cb > 0 ? Math.round(((mv - cb) / cb) * 10000) / 10000 : 0;
+      }
+      if (toIsTaxable) {
+        const cb = this.futureLotTracker.getCostBasis(toAccountId);
+        const mv = this.futureLotTracker.getMarketValue(toAccountId);
+        toActivity.costBasis = Math.round(cb * 100) / 100;
+        toActivity.unrealizedGain = Math.round((mv - cb) * 100) / 100;
+        toActivity.unrealizedGainPercent = cb > 0 ? Math.round(((mv - cb) / cb) * 10000) / 10000 : 0;
       }
     }
 
