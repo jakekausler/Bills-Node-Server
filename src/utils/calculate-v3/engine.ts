@@ -36,6 +36,8 @@ import { setTaxScenario } from './bracket-calculator';
 import { load } from '../io/io';
 import type { TaxScenario } from './tax-profile-types';
 import { loadVariable } from '../simulation/variable';
+import { LedgerPrecomputer, AnchorPoint } from './ledger-precomputer';
+import { loadLedger } from '../io/portfolioLedger';
 
 dayjs.extend(utc);
 
@@ -61,6 +63,8 @@ export class Engine {
   private inheritanceManager: InheritanceManager | null = null;
   private lifeInsuranceManager: LifeInsuranceManager | null = null;
   private portfolioManager: PortfolioManager | null = null;
+  private portfolioConfigs: Record<string, AccountPortfolioConfig> = {};
+  private portfolioAnchors: Map<string, AnchorPoint> = new Map();
   private calculationBegin: number;
   private monteCarloConfig: MonteCarloConfig | null = null;
   private debugLogger: DebugLogger | null;
@@ -546,6 +550,9 @@ export class Engine {
       this.calculator.setPortfolioManager(this.portfolioManager);
     }
 
+    // Store portfolioConfigs on the engine for use during performCalculations
+    this.portfolioConfigs = portfolioConfigs;
+
     // Initialize push-pull handler
     if (options.enableLogging) {
       console.log('Initializing push-pull handler...', Date.now() - this.calculationBegin, 'ms');
@@ -624,10 +631,39 @@ export class Engine {
       console.log('Performing calculations...', Date.now() - this.calculationBegin, 'ms');
     }
 
+    // Pre-compute historical activities for fund-level portfolio accounts
+    if (this.portfolioManager) {
+      const ledger = loadLedger();
+      if (ledger.length > 0) {
+        const precomputer = new LedgerPrecomputer(ledger, this.portfolioConfigs);
+        const { activities: historicalActivities, anchors } = await precomputer.precompute();
+
+        // Inject historical activities and set starting balances
+        for (const [accountId, acts] of historicalActivities) {
+          const account = this.balanceTracker.findAccountById(accountId);
+          if (account) {
+            account.consolidatedActivity = [...acts, ...account.consolidatedActivity];
+          }
+        }
+
+        for (const [accountId, anchor] of anchors) {
+          this.portfolioAnchors.set(accountId, anchor);
+          this.balanceTracker.updateBalance(accountId, anchor.totalValue, new Date(anchor.cutoffDate + 'T00:00:00Z'));
+        }
+      }
+    }
+
     const segments = this.timeline.getSegments();
 
     // Initialize accounts with starting balances
     await this.balanceTracker.initializeBalances(accountsAndTransfers, options.forceRecalculation);
+
+    // Apply cutoff dates to timeline to skip events before portfolio anchor dates
+    if (this.portfolioAnchors.size > 0) {
+      this.timeline.setCutoffDates(new Map(
+        Array.from(this.portfolioAnchors).map(([accountId, anchor]) => [accountId, anchor.cutoffDate])
+      ));
+    }
 
     // Track year boundaries for flow aggregator balance recording
     // Note: if segments skip entire years (no events), those years will have no FlowSummary entry.

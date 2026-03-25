@@ -53,6 +53,7 @@ export class Timeline {
   private simNumber: number;
   private currentDate: string = '';
   private portfolioMakeup: PortfolioMakeupOverTime | null = null;
+  private cutoffDates: Map<string, string> | null = null;
 
   constructor(
     accountManager: AccountManager,
@@ -148,6 +149,10 @@ export class Timeline {
 
   setPortfolioMakeup(makeup: PortfolioMakeupOverTime | null): void {
     this.portfolioMakeup = makeup;
+  }
+
+  setCutoffDates(cutoffs: Map<string, string>): void {
+    this.cutoffDates = cutoffs;
   }
 
   /**
@@ -256,6 +261,14 @@ export class Timeline {
       for (const activity of account.activity) {
         if (activity.isTransfer) {
           continue;
+        }
+
+        // Skip activities before portfolio cutoff date
+        if (this.cutoffDates?.has(account.id)) {
+          const cutoffDate = this.cutoffDates.get(account.id);
+          if (cutoffDate && activity.date <= new Date(cutoffDate + 'T00:00:00Z')) {
+            continue;
+          }
         }
 
         if (activity.date <= endDate) {
@@ -713,6 +726,18 @@ export class Timeline {
 
     // Calculate bill occurrences up to end date
     while (currentDate <= endDate && (!bill.endDate || currentDate <= bill.endDate)) {
+      // Skip bill events before portfolio cutoff date
+      if (this.cutoffDates?.has(account.id)) {
+        const cutoffDate = this.cutoffDates.get(account.id);
+        if (cutoffDate && currentDate <= new Date(cutoffDate + 'T00:00:00Z')) {
+          // Calculate next occurrence
+          currentDate = nextDate(currentDate, bill.periods, bill.everyN);
+          currentDate = bill.checkAnnualDates(currentDate);
+          eventCount++;
+          continue;
+        }
+      }
+
       // Calculate the amount of the bill
       const amount = this.calculateBillAmount(bill, currentDate);
       const event: BillEvent = {
@@ -755,6 +780,17 @@ export class Timeline {
       // The last config uses <= since there's no next config to hand off to
       const isLastConfig = i === account.interests.length - 1;
       while (isLastConfig ? currentDate <= nextApplicableDate : currentDate < nextApplicableDate) {
+        // Skip interest events before portfolio cutoff date
+        if (this.cutoffDates?.has(account.id)) {
+          const cutoffDate = this.cutoffDates.get(account.id);
+          if (cutoffDate && currentDate <= new Date(cutoffDate + 'T00:00:00Z')) {
+            // Calculate next interest application date
+            currentDate = nextDate(currentDate, interest.compounded, 1);
+            eventCount++;
+            continue;
+          }
+        }
+
         // Calculate the rate of the interest
         const rate = interest.apr;
         const event: InterestEvent = {
@@ -820,22 +856,39 @@ export class Timeline {
 
     // Calculate bill occurrences up to end date
     while (currentDate <= endDate && (!bill.endDate || currentDate <= bill.endDate)) {
-      // Calculate the amount of the bill
-      const amount = this.calculateBillAmount(bill, currentDate);
-      const event: BillTransferEvent = {
-        id: `bill_from_${fromAccount?.id}_to_${toAccount?.id}_${bill.id}_${eventCount}`,
-        type: EventType.billTransfer,
-        date: new Date(currentDate),
-        accountId: fromAccount?.id || toAccount?.id || '',
-        priority: 2,
-        originalBill: bill,
-        amount,
-        fromAccountId: fromAccount?.id || '',
-        toAccountId: toAccount?.id || '',
-        firstBill: isSame(currentDate, bill.startDate),
-      };
+      // Skip transfer bill events before portfolio cutoff date (check both accounts)
+      let shouldSkip = false;
+      if (fromAccount && this.cutoffDates?.has(fromAccount.id)) {
+        const cutoffDate = this.cutoffDates.get(fromAccount.id);
+        if (cutoffDate && currentDate <= new Date(cutoffDate + 'T00:00:00Z')) {
+          shouldSkip = true;
+        }
+      }
+      if (!shouldSkip && toAccount && this.cutoffDates?.has(toAccount.id)) {
+        const cutoffDate = this.cutoffDates.get(toAccount.id);
+        if (cutoffDate && currentDate <= new Date(cutoffDate + 'T00:00:00Z')) {
+          shouldSkip = true;
+        }
+      }
 
-      this.addEvent(event);
+      if (!shouldSkip) {
+        // Calculate the amount of the bill
+        const amount = this.calculateBillAmount(bill, currentDate);
+        const event: BillTransferEvent = {
+          id: `bill_from_${fromAccount?.id}_to_${toAccount?.id}_${bill.id}_${eventCount}`,
+          type: EventType.billTransfer,
+          date: new Date(currentDate),
+          accountId: fromAccount?.id || toAccount?.id || '',
+          priority: 2,
+          originalBill: bill,
+          amount,
+          fromAccountId: fromAccount?.id || '',
+          toAccountId: toAccount?.id || '',
+          firstBill: isSame(currentDate, bill.startDate),
+        };
+
+        this.addEvent(event);
+      }
 
       // Calculate next occurrence
       currentDate = nextDate(currentDate, bill.periods, bill.everyN);
