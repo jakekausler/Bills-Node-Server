@@ -121,7 +121,8 @@ export async function getPositions(req: Request, res: Response) {
           pos.totalCost += buyCost;
           break;
         }
-        case 'sell': {
+        case 'sell':
+        case 'fee': {
           const sellShares = Math.abs(txn.shares);
           if (pos.shares > 0) {
             // Reduce cost basis proportionally
