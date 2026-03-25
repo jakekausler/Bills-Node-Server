@@ -155,41 +155,79 @@ export class FutureLotTracker {
     date: string,
     allocation: AssetAllocation,
     source: 'contribution' | 'dividend' = 'contribution',
+    cashReserve?: { amount: number },
   ): FutureLot[] {
     const created: FutureLot[] = [];
-
-    // Normalize allocation weights
-    const weights = Object.entries(allocation).filter(([_, weight]) => weight > 0);
-    const totalWeight = weights.reduce((sum, [_, weight]) => sum + weight, 0);
-
-    if (totalWeight <= 0) {
-      return created;
-    }
 
     if (!this.lots.has(accountId)) {
       this.lots.set(accountId, []);
     }
 
-    for (const [className, weight] of weights) {
-      if (!weight) continue;
-      const normalizedWeight = weight / totalWeight;
-      const collapsed = this.collapseAssetClass(className);
-      const classAmount = amount * normalizedWeight;
-      const virtualPrice = this.virtualPrices.get(collapsed) ?? 100;
-      const shares = classAmount / virtualPrice;
+    const accountLots = this.lots.get(accountId)!;
+    let depositAmount = amount;
 
-      const lot: FutureLot = {
-        id: this.generateLotId(),
-        accountId,
-        assetClass: collapsed,
-        shares,
-        costBasisPerShare: virtualPrice,
-        purchaseDate: date,
-        source,
-      };
+    // Handle cash reserve: fill cash first if target not met
+    if (cashReserve) {
+      // Compute current cash lot value
+      const currentCashValue = accountLots
+        .filter(lot => lot.assetClass === 'cash')
+        .reduce((sum, lot) => sum + lot.shares * (this.virtualPrices.get('cash') ?? 100), 0);
 
-      this.lots.get(accountId)!.push(lot);
-      created.push(lot);
+      const cashShortfall = Math.max(0, cashReserve.amount - currentCashValue);
+      const cashAmount = Math.min(depositAmount, cashShortfall);
+
+      if (cashAmount > 0) {
+        const virtualPrice = this.virtualPrices.get('cash') ?? 100;
+        const shares = cashAmount / virtualPrice;
+
+        const lot: FutureLot = {
+          id: this.generateLotId(),
+          accountId,
+          assetClass: 'cash',
+          shares,
+          costBasisPerShare: virtualPrice,
+          purchaseDate: date,
+          source,
+        };
+
+        accountLots.push(lot);
+        created.push(lot);
+        depositAmount -= cashAmount;
+      }
+    }
+
+    // Allocate remaining amount per allocation weights (excluding cash if already handled)
+    if (depositAmount > 0) {
+      let weights = Object.entries(allocation).filter(([_, weight]) => weight > 0);
+      // If cashReserve was applied, exclude cash from allocation
+      if (cashReserve) {
+        weights = weights.filter(([className]) => className !== 'cash');
+      }
+      const totalWeight = weights.reduce((sum, [_, weight]) => sum + weight, 0);
+
+      if (totalWeight > 0) {
+        for (const [className, weight] of weights) {
+          if (!weight) continue;
+          const normalizedWeight = weight / totalWeight;
+          const collapsed = this.collapseAssetClass(className);
+          const classAmount = depositAmount * normalizedWeight;
+          const virtualPrice = this.virtualPrices.get(collapsed) ?? 100;
+          const shares = classAmount / virtualPrice;
+
+          const lot: FutureLot = {
+            id: this.generateLotId(),
+            accountId,
+            assetClass: collapsed,
+            shares,
+            costBasisPerShare: virtualPrice,
+            purchaseDate: date,
+            source,
+          };
+
+          accountLots.push(lot);
+          created.push(lot);
+        }
+      }
     }
 
     return created;
@@ -228,6 +266,7 @@ export class FutureLotTracker {
     amount: number,
     date: string,
     strategy: 'fifo' | 'highest-cost' = 'fifo',
+    cashFirst: boolean = false,
   ): CapitalGainsResult {
     const result: CapitalGainsResult = {
       shortTermGain: 0,
@@ -252,7 +291,7 @@ export class FutureLotTracker {
       return result;
     }
 
-    // Calculate amount to sell per asset class (proportional)
+    // Calculate amount to sell per asset class (proportional or cashFirst)
     const perClassAmounts: Record<string, number> = {};
     for (const lot of accountLots) {
       if (!perClassAmounts[lot.assetClass]) {
@@ -263,8 +302,27 @@ export class FutureLotTracker {
     }
 
     const remainingByClass: Record<string, number> = {};
-    for (const [assetClass, classValue] of Object.entries(perClassAmounts)) {
-      remainingByClass[assetClass] = amount * (classValue / totalValue);
+
+    if (cashFirst) {
+      // Consume all cash first up to the withdrawal amount
+      const cashValue = perClassAmounts['cash'] ?? 0;
+      remainingByClass['cash'] = Math.min(amount, cashValue);
+      const remaining = amount - remainingByClass['cash'];
+
+      // Distribute remaining among non-cash classes proportionally
+      const nonCashValue = totalValue - cashValue;
+      if (nonCashValue > 0) {
+        for (const [assetClass, classValue] of Object.entries(perClassAmounts)) {
+          if (assetClass !== 'cash' && classValue > 0) {
+            remainingByClass[assetClass] = remaining * (classValue / nonCashValue);
+          }
+        }
+      }
+    } else {
+      // Standard proportional distribution
+      for (const [assetClass, classValue] of Object.entries(perClassAmounts)) {
+        remainingByClass[assetClass] = amount * (classValue / totalValue);
+      }
     }
 
     // Track fully consumed lot IDs across all asset classes

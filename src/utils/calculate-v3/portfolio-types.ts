@@ -51,6 +51,10 @@ export interface AccountPortfolioConfig {
   rebalancing?: RebalancingConfig;
   bucket?: BucketConfig;
   funds?: FundConfig[];
+  cashReserve?: {
+    amount: number;
+    returnRate: number;
+  };
 }
 
 export interface PortfolioTransaction {

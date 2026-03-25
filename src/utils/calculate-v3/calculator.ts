@@ -55,7 +55,7 @@ import {
 } from './types';
 import { computeAnnualFederalTax } from './bracket-calculator';
 import { computeNetPay } from './compute-net-pay';
-import { getBlendedInterestRate, getAllocationForYear, getExpectedReturns } from './glide-path-blender';
+import { getBlendedInterestRate, getCashReserveAwareRate, getAllocationForYear, getExpectedReturns } from './glide-path-blender';
 
 dayjs.extend(utc);
 
@@ -1534,6 +1534,16 @@ export class Calculator {
   }
 
   processInterestEvent(event: InterestEvent, segmentResult: SegmentResult): Map<string, number> {
+    const interest = event.originalInterest;
+    const accountId = event.accountId;
+    const account = this.balanceTracker.findAccountById(accountId);
+    if (!account) {
+      throw new Error(`Account ${accountId} not found`);
+    }
+
+    // Get the current balance of the account
+    const currentBalance = this.getCurrentAccountBalance(accountId, segmentResult);
+
     // For portfolio accounts, compute blended interest rate from allocation
     const portfolioConfig = this.getPortfolioConfig(event.accountId);
     if (portfolioConfig) {
@@ -1551,7 +1561,7 @@ export class Calculator {
           other: mcGetter(MonteCarloSampleType.OTHER_RETURN, year) ?? 0,
         };
       }
-      const blendedRate = getBlendedInterestRate(portfolioConfig, year, mcReturns);
+      const blendedRate = getCashReserveAwareRate(portfolioConfig, year, currentBalance, mcReturns);
       // Override the event rate with blended rate, then fall through to standard interest calc
       event.rate = blendedRate;
 
@@ -1561,16 +1571,6 @@ export class Calculator {
         this.futureLotTracker.applyAnnualReturns(year, assetClassReturns);
       }
     }
-
-    const interest = event.originalInterest;
-    const accountId = event.accountId;
-    const account = this.balanceTracker.findAccountById(accountId);
-    if (!account) {
-      throw new Error(`Account ${accountId} not found`);
-    }
-
-    // Get the current balance of the account
-    const currentBalance = this.getCurrentAccountBalance(accountId, segmentResult);
 
     // Skip interest on positive balances if account opts out
     if (account.interestAppliesToPositiveBalance === false && currentBalance > 0) {
@@ -1935,7 +1935,8 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
         if (!fromCutoff || eventDate > fromCutoff) {
           const portfolioConfig = this.getPortfolioConfig(fromAccountId);
           const strategy = portfolioConfig?.lotSelectionStrategy ?? 'fifo';
-          const gainsResult = this.futureLotTracker.withdraw(fromAccountId, internalAmount, eventDate, strategy);
+          const hasCashReserve = !!portfolioConfig?.cashReserve;
+          const gainsResult = this.futureLotTracker.withdraw(fromAccountId, internalAmount, eventDate, strategy, hasCashReserve);
 
           this.log('transfer-cg-withdraw', {
             accountId: fromAccountId,
@@ -1986,7 +1987,7 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
           if (portfolioConfig) {
             const year = event.date.getUTCFullYear();
             const allocation = getAllocationForYear(portfolioConfig, year);
-            this.futureLotTracker.deposit(toAccountId, internalAmount, eventDate, allocation);
+            this.futureLotTracker.deposit(toAccountId, internalAmount, eventDate, allocation, 'contribution', portfolioConfig?.cashReserve);
           }
         }
       }

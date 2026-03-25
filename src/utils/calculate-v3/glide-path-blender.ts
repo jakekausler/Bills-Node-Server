@@ -136,3 +136,35 @@ export function getBlendedInterestRate(
   const returns = mcAssetClassReturns || getExpectedReturns();
   return computeBlendedRate(allocation, returns);
 }
+
+/**
+ * Compute the cash-reserve-aware interest rate for an account.
+ * When a cash reserve is configured, balances up to the reserve amount earn the reserve rate.
+ * Balances above the reserve earn the blended portfolio rate.
+ */
+export function getCashReserveAwareRate(
+  config: AccountPortfolioConfig,
+  year: number,
+  balance: number,
+  mcAssetClassReturns?: Record<string, number> | null,
+): number {
+  if (!config.cashReserve) {
+    return getBlendedInterestRate(config, year, mcAssetClassReturns);
+  }
+  if (balance <= 0) return 0;
+
+  const cashPortion = Math.min(balance, config.cashReserve.amount);
+  const investedPortion = Math.max(0, balance - config.cashReserve.amount);
+
+  // Cash rate: MC-sampled or deterministic reserve rate
+  const cashRate = mcAssetClassReturns
+    ? (mcAssetClassReturns['cash'] ?? config.cashReserve.returnRate)
+    : config.cashReserve.returnRate;
+
+  // Invested rate: blended from glide path
+  const investedRate = investedPortion > 0
+    ? getBlendedInterestRate(config, year, mcAssetClassReturns)
+    : 0;
+
+  return (cashPortion * cashRate + investedPortion * investedRate) / balance;
+}
