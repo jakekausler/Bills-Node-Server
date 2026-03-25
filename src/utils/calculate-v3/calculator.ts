@@ -230,6 +230,13 @@ export class Calculator {
     this.futureLotTracker = tracker;
   }
 
+  markDividendsGenerated(accountId: string, year: number): void {
+    const key = `${accountId}-${year}`;
+    if (!this.dividendsGeneratedForYear.has(key)) {
+      this.dividendsGeneratedForYear.set(key, 1);
+    }
+  }
+
   /**
    * Set pending payouts from inheritance/life insurance managers for injection into segments.
    */
