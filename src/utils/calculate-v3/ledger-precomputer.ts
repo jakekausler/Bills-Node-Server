@@ -106,20 +106,13 @@ export class LedgerPrecomputer {
         }
       }
 
-      // Compute portfolio value at this date using EOD prices
+      // Compute portfolio value at this date and set on ALL activities for this date
       const totalValue = this.computePortfolioValue(fundStates, date);
-
-      // Set balance on the last activity of this date
-      if (activityList.length > 0) {
-        const lastIdx = activityList.length - 1;
-        // Walk back to set balance on all activities for this date
-        for (let i = lastIdx; i >= 0; i--) {
-          const act = activityList[i];
-          if (formatDate(act.date) === date || act.date.toString().startsWith(date)) {
-            act.balance = totalValue;
-          } else {
-            break;
-          }
+      for (let i = activityList.length - 1; i >= 0; i--) {
+        if (activityList[i].balance === 0 || activityList[i].balance === totalValue) {
+          activityList[i].balance = totalValue;
+        } else {
+          break; // Hit activities from a previous date that already have their balance
         }
       }
     }
