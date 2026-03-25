@@ -39,6 +39,8 @@ import { loadVariable } from '../simulation/variable';
 import { LedgerPrecomputer, AnchorPoint } from './ledger-precomputer';
 import { FutureLotTracker } from './future-lot-tracker';
 import { loadLedger } from '../io/portfolioLedger';
+import { AssetManager } from './asset-manager';
+import { loadAssets } from '../io/assets';
 
 dayjs.extend(utc);
 
@@ -63,6 +65,7 @@ export class Engine {
   private mortalityManager: MortalityManager;
   private inheritanceManager: InheritanceManager | null = null;
   private lifeInsuranceManager: LifeInsuranceManager | null = null;
+  private assetManager: AssetManager | null = null;
   private portfolioManager: PortfolioManager | null = null;
   private portfolioConfigs: Record<string, AccountPortfolioConfig> = {};
   private portfolioAnchors: Map<string, AnchorPoint> = new Map();
@@ -546,6 +549,26 @@ export class Engine {
       this.calculator.setLifeInsuranceManager(this.lifeInsuranceManager);
     }
 
+    // Initialize AssetManager
+    if (options.enableLogging) {
+      console.log('Initializing asset manager...', Date.now() - this.calculationBegin, 'ms');
+    }
+    const assets = loadAssets(options.simulation);
+    if (assets.length > 0) {
+      this.assetManager = new AssetManager(assets, options.simulation, this.debugLogger, this.simNumber);
+
+      // Wire MC rate getter and PRNG if MC mode
+      if (this.monteCarloConfig) {
+        const mcRateGetter: MCRateGetter = (type: MonteCarloSampleType, year: number): number | null => {
+          if (!this.monteCarloConfig?.handler) return null;
+          return this.monteCarloConfig.handler.getSample(type, new Date(Date.UTC(year, 0, 1)));
+        };
+        this.assetManager.setMCRateGetter(mcRateGetter);
+        const prng = this.monteCarloConfig.handler.getPRNG();
+        this.assetManager.setPRNG(prng);
+      }
+    }
+
     // Pass portfolio manager to calculator (still needed for positions endpoint)
     if (this.portfolioManager) {
       this.calculator.setPortfolioManager(this.portfolioManager);
@@ -585,6 +608,7 @@ export class Engine {
       spendingTrackerManager,
       this.debugLogger,
       this.simNumber,
+      this.assetManager,
     );
 
     this.log('components-initialized');
@@ -750,6 +774,11 @@ export class Engine {
 
         // Evaluate inheritance drawdown and trigger checks
         this.evaluateInheritanceAtYearBoundary(segmentYear);
+
+        // Process asset year-boundary events (appreciation/depreciation/replacement)
+        if (this.assetManager) {
+          this.assetManager.processYearBoundary(segmentYear);
+        }
 
         // Flush buffered payouts to calculator for injection during segment processing
         this.flushPendingPayoutsToCalculator();
@@ -938,6 +967,7 @@ export class Engine {
     const payouts: ManagerPayout[] = [
       ...(this.inheritanceManager?.getPayoutActivities() ?? []),
       ...(this.lifeInsuranceManager?.getPayoutActivities() ?? []),
+      ...(this.assetManager?.getPendingPayouts() ?? []),
     ];
 
     if (payouts.length > 0) {
@@ -985,6 +1015,13 @@ export class Engine {
    */
   getPortfolioManager(): PortfolioManager | null {
     return this.portfolioManager;
+  }
+
+  /**
+   * Get the AssetManager instance (for MC worker to extract asset values)
+   */
+  getAssetManager(): AssetManager | null {
+    return this.assetManager;
   }
 }
 
@@ -1066,4 +1103,11 @@ export function getLastLifeInsuranceManager(): LifeInsuranceManager | null {
  */
 export function getLastPortfolioManager(): PortfolioManager | null {
   return lastEngine ? lastEngine.getPortfolioManager() : null;
+}
+
+/**
+ * Get the AssetManager from the last calculation (for MC worker to extract asset values)
+ */
+export function getLastAssetManager(): AssetManager | null {
+  return lastEngine ? lastEngine.getAssetManager() : null;
 }

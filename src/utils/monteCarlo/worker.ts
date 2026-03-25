@@ -5,7 +5,7 @@ import { getAccountsAndTransfers } from '../io/accountsAndTransfers';
 import { WorkerData, WorkerMessage, FilteredActivity, FilteredAccount, AggregatedSimulationResult } from './types';
 import { Timeline } from '../calculate-v3/timeline';
 import { minDate } from '../io/minDate';
-import { calculateAllActivity, getLastPullFailures, getLastFlowAggregator, getLastMortalityManager, getLastInheritanceManager, getLastLifeInsuranceManager, getLastPortfolioManager } from '../calculate-v3/engine';
+import { calculateAllActivity, getLastPullFailures, getLastFlowAggregator, getLastMortalityManager, getLastInheritanceManager, getLastLifeInsuranceManager, getLastPortfolioManager, getLastAssetManager } from '../calculate-v3/engine';
 import { calculateYearlyMinBalances } from './statisticsGraph';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 import { MonteCarloHandler } from '../calculate-v3/monte-carlo-handler';
@@ -276,6 +276,29 @@ async function runSingleSimulation(
           ])
         )
       : undefined;
+
+    // Merge asset values into yearly account balances
+    // AssetManager stores per-asset values; we merge them with asset: prefixed keys
+    const assetManager = getLastAssetManager();
+    if (assetManager && balanceData.perAccount) {
+      const assetValues = assetManager.getAssetValues();
+      // Since AssetManager.getAssetValues() returns the current state (end of calculation),
+      // we add those values to the final year's balances
+      if (assetValues.size > 0) {
+        const endYear = endDate.getUTCFullYear();
+        if (!balanceData.perAccount[endYear]) {
+          balanceData.perAccount[endYear] = {};
+        }
+        for (const [assetId, value] of assetValues) {
+          const keyName = `asset:${assetId}`;
+          balanceData.perAccount[endYear][keyName] = value;
+          // Also add to combined balances if they exist
+          if (balanceData.combined[endYear] !== undefined) {
+            balanceData.combined[endYear] += value;
+          }
+        }
+      }
+    }
 
     // Create aggregated result with yearly data and cumulative inflation
     const aggregatedResult: AggregatedSimulationResult = {

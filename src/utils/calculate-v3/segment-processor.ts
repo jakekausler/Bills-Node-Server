@@ -34,6 +34,7 @@ import { AccountManager } from './account-manager';
 import { HealthcareManager } from './healthcare-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import type { DebugLogger } from './debug-logger';
+import { AssetManager } from './asset-manager';
 
 export class SegmentProcessor {
   private cache: CacheManager;
@@ -45,6 +46,7 @@ export class SegmentProcessor {
   private accountManager: AccountManager;
   private healthcareManager: HealthcareManager;
   private spendingTrackerManager: SpendingTrackerManager;
+  private assetManager: AssetManager | null;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
   private currentDate: string = '';
@@ -61,6 +63,7 @@ export class SegmentProcessor {
     spendingTrackerManager: SpendingTrackerManager,
     debugLogger?: DebugLogger | null,
     simNumber: number = 0,
+    assetManager?: AssetManager | null,
   ) {
     this.cache = cache;
     this.balanceTracker = balanceTracker;
@@ -71,6 +74,7 @@ export class SegmentProcessor {
     this.accountManager = accountManager;
     this.healthcareManager = healthcareManager;
     this.spendingTrackerManager = spendingTrackerManager;
+    this.assetManager = assetManager ?? null;
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
   }
@@ -168,6 +172,7 @@ export class SegmentProcessor {
     this.spendingTrackerManager.checkpoint();
     this.healthcareManager.checkpoint();
     this.calculator.checkpoint();
+    this.assetManager?.checkpoint();
 
     // Process events in the segment
     let segmentResult = this.processSegmentEvents(segment, options);
@@ -185,6 +190,7 @@ export class SegmentProcessor {
       this.spendingTrackerManager.restore();
       this.healthcareManager.restore();
       this.calculator.restore();
+      this.assetManager?.restore();
       segmentResult = this.processSegmentEvents(segment, options);
     }
 
