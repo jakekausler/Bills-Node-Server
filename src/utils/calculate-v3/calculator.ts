@@ -1661,8 +1661,8 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
     if (!this.portfolioManager) return null;
     const mode = this.portfolioManager.getAccountMode(accountId);
     if (mode === 'estimated' || mode === 'fund-level') {
-      // Access config through PM's public interface
-      return (this.portfolioManager as any).configs?.[accountId] ?? null;
+      // Access config through PM's internal Map
+      return (this.portfolioManager as any).configs?.get(accountId) ?? null;
     }
     return null;
   }
