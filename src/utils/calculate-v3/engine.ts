@@ -638,11 +638,14 @@ export class Engine {
         const precomputer = new LedgerPrecomputer(ledger, this.portfolioConfigs);
         const { activities: historicalActivities, anchors } = precomputer.precompute();
 
-        // Inject historical activities and set starting balances
+        // Replace activities for fund-level accounts with ledger-derived ones
         for (const [accountId, acts] of historicalActivities) {
           const account = this.balanceTracker.findAccountById(accountId);
           if (account) {
-            account.consolidatedActivity = [...acts, ...account.consolidatedActivity];
+            // Clear existing activities — ledger replaces data.json for fund-level accounts
+            account.consolidatedActivity = [...acts];
+            // Also clear the account's raw activities to prevent timeline from generating events
+            account.activity = [];
           }
         }
 
