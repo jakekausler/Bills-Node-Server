@@ -160,16 +160,6 @@ export class SegmentProcessor {
           }
         }
 
-        // Mark dividends from cached segments as generated to prevent re-generation
-        for (const [accountId, activities] of cachedResult.activitiesAdded) {
-          for (const activity of activities) {
-            if (typeof activity.id === 'string' && activity.id.startsWith('dividend-')) {
-              const actDate = activity.date instanceof Date ? activity.date : new Date(activity.date);
-              this.calculator.markDividendsGenerated(accountId, actDate.getUTCFullYear());
-            }
-          }
-        }
-
         return;
       }
     }

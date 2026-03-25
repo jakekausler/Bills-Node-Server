@@ -4,7 +4,6 @@ import { AssetAllocation, AccountPortfolioConfig } from './portfolio-types';
 
 interface ExpectedReturns {
   returns: Record<string, number>;
-  dividendYields: Record<string, number>;
 }
 
 type GlidePathData = Record<string, Record<string, number>>;
@@ -34,7 +33,6 @@ function loadExpectedReturns(): ExpectedReturns {
   } catch {
     cachedExpectedReturns = {
       returns: { stock: 0.07, bond: 0.03, cash: 0.015 },
-      dividendYields: { stock: 0.013, bond: 0.03, cash: 0.04 },
     };
     return cachedExpectedReturns;
   }
@@ -119,17 +117,10 @@ export function computeBlendedRate(
 }
 
 /**
- * Get deterministic expected returns (price appreciation only, excluding dividend yields).
+ * Get deterministic expected returns (price appreciation only).
  */
 export function getExpectedReturns(): Record<string, number> {
   return loadExpectedReturns().returns;
-}
-
-/**
- * Get deterministic expected dividend yields.
- */
-export function getExpectedDividendYields(): Record<string, number> {
-  return loadExpectedReturns().dividendYields;
 }
 
 /**

@@ -55,8 +55,7 @@ import {
 } from './types';
 import { computeAnnualFederalTax } from './bracket-calculator';
 import { computeNetPay } from './compute-net-pay';
-import { getBlendedInterestRate, getAllocationForYear, getExpectedDividendYields, getExpectedReturns } from './glide-path-blender';
-import { DividendGenerator } from './dividend-generator';
+import { getBlendedInterestRate, getAllocationForYear, getExpectedReturns } from './glide-path-blender';
 
 dayjs.extend(utc);
 
@@ -91,8 +90,6 @@ export class Calculator {
   private portfolioCutoffDates: Map<string, string> = new Map();
   private pendingPayouts: ManagerPayout[] = [];
   private taxProfile: TaxProfile;
-  private dividendGenerator = new DividendGenerator();
-  private dividendsGeneratedForYear: Map<string, number> = new Map(); // accountId-year → 1
 
   constructor(
     balanceTracker: BalanceTracker,
@@ -230,13 +227,6 @@ export class Calculator {
     this.futureLotTracker = tracker;
   }
 
-  markDividendsGenerated(accountId: string, year: number): void {
-    const key = `${accountId}-${year}`;
-    if (!this.dividendsGeneratedForYear.has(key)) {
-      this.dividendsGeneratedForYear.set(key, 1);
-    }
-  }
-
   /**
    * Set pending payouts from inheritance/life insurance managers for injection into segments.
    */
@@ -271,7 +261,6 @@ export class Calculator {
    */
   private pendingPayoutsCheckpoint: string = '[]';
   private lifeInsuranceManagerCheckpoint: string = '';
-  private dividendsGeneratedCheckpoint: string = '[]';
 
   checkpoint(): void {
     this.contributionLimitManager.checkpoint();
@@ -284,9 +273,6 @@ export class Calculator {
       targetAccountId: p.targetAccountId,
       incomeSourceName: p.incomeSourceName,
     })));
-    // NOTE: dividendsGeneratedForYear is intentionally NOT checkpointed.
-    // Dividends are annual events — once generated for a year, they persist
-    // regardless of segment reprocessing from push/pull handling.
     if (this.lifeInsuranceManager) {
       this.lifeInsuranceManagerCheckpoint = this.lifeInsuranceManager.checkpoint();
     }
@@ -305,8 +291,6 @@ export class Calculator {
     this.paycheckStateTracker.restore();
     this.jobLossManager.restore();
     this.mortalityManager.restore();
-    // NOTE: dividendsGeneratedForYear is intentionally NOT restored.
-    // See comment in checkpoint().
     const restored = JSON.parse(this.pendingPayoutsCheckpoint) as Array<{
       activity: Record<string, unknown>;
       targetAccountId: string;
@@ -1575,108 +1559,6 @@ export class Calculator {
       if (this.futureLotTracker && this.isTaxablePortfolioAccount(event.accountId)) {
         const assetClassReturns = mcReturns || getExpectedReturns();
         this.futureLotTracker.applyAnnualReturns(year, assetClassReturns);
-      }
-
-      // Generate annual dividends (once per year per account)
-      const dividendKey = `${event.accountId}-${year}`;
-      if (!this.dividendsGeneratedForYear.has(dividendKey)) {
-        this.dividendsGeneratedForYear.set(dividendKey, 1);
-
-        const currentBalance = this.getCurrentAccountBalance(event.accountId, segmentResult);
-        const allocation = getAllocationForYear(portfolioConfig, year);
-
-        // Get dividend yields (MC or deterministic)
-        let dividendYields: Record<string, number>;
-        if (mcGetter) {
-          dividendYields = {
-            stock: mcGetter(MonteCarloSampleType.STOCK_DIVIDEND_YIELD, year) ?? 0.013,
-            bond: mcGetter(MonteCarloSampleType.BOND_DIVIDEND_YIELD, year) ?? 0.03,
-            cash: mcGetter(MonteCarloSampleType.CASH_DIVIDEND_YIELD, year) ?? 0.04,
-          };
-        } else {
-          dividendYields = getExpectedDividendYields();
-        }
-
-        // Determine if tax-advantaged
-        const account = this.balanceTracker.findAccountById(event.accountId);
-        const isTaxAdvantaged = !!(account && account.type === 'Investment' &&
-          (account.withdrawalTaxRate > 0 || account.usesRMD)); // 401k/IRA have withdrawal tax or RMD
-
-        const dividendResult = this.dividendGenerator.generateAnnualDividends(
-          event.accountId, year, currentBalance, allocation, dividendYields, isTaxAdvantaged,
-        );
-
-        // Add dividend activities to segment result
-        if (dividendResult.activities.length > 0) {
-          // Filter out dividend dates that fall before the portfolio cutoff
-          const cutoff = this.portfolioCutoffDates.get(event.accountId);
-          const filteredActivities = dividendResult.activities.filter(a => {
-            const actDate = typeof a.date === 'string' ? a.date : a.date.toISOString().substring(0, 10);
-            return !cutoff || actDate > cutoff;
-          });
-
-          if (filteredActivities.length > 0) {
-            if (!segmentResult.activitiesAdded.has(event.accountId)) {
-              segmentResult.activitiesAdded.set(event.accountId, []);
-            }
-            segmentResult.activitiesAdded.get(event.accountId)!.push(...filteredActivities);
-
-            // Add dividend amount to balance — only count filtered dividends
-            const filteredTotal = filteredActivities.reduce((sum, a) => sum + Number(a.amount), 0);
-            const currentChange = segmentResult.balanceChanges.get(event.accountId) || 0;
-            segmentResult.balanceChanges.set(event.accountId, currentChange + filteredTotal);
-
-            // Create dividend lots in FutureLotTracker for taxable accounts
-            if (this.futureLotTracker && !isTaxAdvantaged && filteredTotal > 0) {
-              this.futureLotTracker.deposit(event.accountId, filteredTotal, formatDate(event.date), allocation, 'dividend');
-
-              // Populate cost basis on dividend activities
-              const cb = this.futureLotTracker.getCostBasis(event.accountId);
-              const mv = this.futureLotTracker.getMarketValue(event.accountId);
-              for (const divAct of filteredActivities) {
-                divAct.costBasis = Math.round(cb * 100) / 100;
-                divAct.unrealizedGain = Math.round((mv - cb) * 100) / 100;
-                divAct.unrealizedGainPercent = cb > 0 ? Math.round(((mv - cb) / cb) * 10000) / 10000 : 0;
-              }
-            }
-
-            // Report to TaxManager for taxable accounts — only report filtered amounts
-            if (!isTaxAdvantaged && this.taxManager) {
-              // Calculate tax amounts based on filtered activities
-              const qualifiedTotal = filteredActivities
-                .filter(a => (a as any).dividendType === 'qualified')
-                .reduce((sum, a) => sum + Number(a.amount), 0);
-              const ordinaryTotal = filteredActivities
-                .filter(a => (a as any).dividendType === 'ordinary')
-                .reduce((sum, a) => sum + Number(a.amount), 0);
-
-              if (qualifiedTotal > 0) {
-                const taxOccurrence = {
-                  date: event.date,
-                  year,
-                  amount: qualifiedTotal,
-                  incomeType: 'qualifiedDividend' as any,
-                };
-                if (!segmentResult.taxableOccurrences.has(event.accountId)) {
-                  segmentResult.taxableOccurrences.set(event.accountId, []);
-                }
-                segmentResult.taxableOccurrences.get(event.accountId)!.push(taxOccurrence);
-              }
-              if (ordinaryTotal > 0) {
-                const taxOccurrence = {
-                  date: event.date,
-                  year,
-                  amount: ordinaryTotal,
-                  incomeType: 'ordinaryDividend' as any,
-                };
-                if (!segmentResult.taxableOccurrences.has(event.accountId)) {
-                  segmentResult.taxableOccurrences.set(event.accountId, []);
-                }
-                segmentResult.taxableOccurrences.get(event.accountId)!.push(taxOccurrence);
-              }
-            }
-          }
-        }
       }
     }
 
