@@ -84,6 +84,8 @@ import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
 import type { PaycheckProfile } from './data/bill/paycheck-types';
 import { importQfx, importCsv, getLedger, getPositions } from './api/portfolio/import';
 import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint } from './api/portfolio/prices';
+import { addTransaction, listTransactions, editTransaction, deleteTransaction } from './api/portfolio/transactions';
+import { reconcileHoldings } from './api/portfolio/reconcile';
 
 declare global {
   namespace Express {
@@ -886,6 +888,19 @@ app.get('/api/prices/:symbol', verifyToken, asyncHandler(async (req: Request, re
 app.post('/api/prices/refresh', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   await refreshPricesEndpoint(req, res);
 }));
+
+// Portfolio transaction CRUD
+app.post('/api/portfolio/transactions/:accountId', verifyToken, express.json(), addTransaction);
+app.get('/api/portfolio/transactions/:accountId', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  await listTransactions(req, res);
+}));
+app.put('/api/portfolio/transactions/:accountId/:id', verifyToken, express.json(), editTransaction);
+app.delete('/api/portfolio/transactions/:accountId/:id', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  await deleteTransaction(req, res);
+}));
+
+// Portfolio reconciliation
+app.post('/api/portfolio/reconcile/:accountId', verifyToken, express.json(), reconcileHoldings);
 
 // Dev-only frontend logging endpoints
 const FRONTEND_LOG_FILE = '/tmp/frontend.log';

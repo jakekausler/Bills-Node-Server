@@ -35,6 +35,7 @@ export class Account {
   expenseRatio: number;
   usesRMD: boolean;
   accountOwnerDOB: Date | null;
+  rothOpenDate: Date | null;
   rmdAccount: string | null;
   minimumBalance: number | null;
   maximumBalance: number | null;
@@ -98,6 +99,7 @@ export class Account {
     this.expenseRatio = data.expenseRatio ?? 0;
     this.usesRMD = data.usesRMD || false;
     this.accountOwnerDOB = data.accountOwnerDOB ? parseDate(data.accountOwnerDOB as DateString) : null;
+    this.rothOpenDate = data.rothOpenDate ? parseDate(data.rothOpenDate as DateString) : null;
     this.rmdAccount = data.rmdAccount || null;
     this.minimumBalance = data.minimumBalance ?? null;
     this.maximumBalance = data.maximumBalance ?? null;
@@ -138,6 +140,7 @@ export class Account {
       expenseRatio: this.expenseRatio,
       usesRMD: this.usesRMD,
       accountOwnerDOB: this.accountOwnerDOB ? formatDate(this.accountOwnerDOB) : null,
+      rothOpenDate: this.rothOpenDate ? formatDate(this.rothOpenDate) : null,
       rmdAccount: this.rmdAccount,
       minimumBalance: this.minimumBalance,
       maximumBalance: this.maximumBalance,
@@ -175,6 +178,7 @@ export class Account {
       expenseRatio: this.expenseRatio,
       usesRMD: this.usesRMD,
       accountOwnerDOB: this.accountOwnerDOB ? formatDate(this.accountOwnerDOB) : null,
+      rothOpenDate: this.rothOpenDate ? formatDate(this.rothOpenDate) : null,
       rmdAccount: this.rmdAccount,
       minimumBalance: this.minimumBalance,
       maximumBalance: this.maximumBalance,
