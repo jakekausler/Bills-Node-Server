@@ -648,7 +648,8 @@ export class Engine {
 
         for (const [accountId, anchor] of anchors) {
           this.portfolioAnchors.set(accountId, anchor);
-          this.balanceTracker.updateBalance(accountId, anchor.totalValue, new Date(anchor.cutoffDate + 'T00:00:00Z'));
+          // Don't call updateBalance — historical activities carry precomputed balances,
+          // and getAccountsWithFilteredDates uses those as the running balance base.
         }
       }
     }
