@@ -4,13 +4,11 @@ import { TaxManager } from './tax-manager';
 import { BalanceTracker } from './balance-tracker';
 import { AccountManager } from './account-manager';
 import { AcaManager } from './aca-manager';
-import { PortfolioManager } from './portfolio-manager';
 import { FilingStatus, getBracketDataForYear } from './bracket-calculator';
 import { loadDateOrVariable } from '../simulation/loadVariableValue';
 import { loadVariable } from '../simulation/variable';
 import dayjs from 'dayjs';
 import type { DebugLogger } from './debug-logger';
-import type { Lot } from './portfolio-types';
 import type { MCRateGetter, SegmentResult } from './types';
 
 interface ConversionLot {
@@ -43,7 +41,6 @@ export class RothConversionManager {
   private conversionLots: Map<string, ConversionLot[]> = new Map();
   private accountManager: AccountManager;
   private acaManager: AcaManager | null = null;
-  private portfolioManager: PortfolioManager | null = null;
   private conversionsThisYear: ConversionResult[] = [];
   private debugLogger: DebugLogger | null;
   private simNumber: number;
@@ -389,46 +386,24 @@ export class RothConversionManager {
       // The push/pull handler covers any deficit created by the tax payment, so we do not
       // gate conversions on current liquid-account balances.
 
-      // Record the conversion via PortfolioManager if available, else use internal tracking
-      if (this.portfolioManager
-        && this.portfolioManager.getAccountMode(sourceAccount.id) !== null
-        && this.portfolioManager.getAccountMode(destAccount.id) !== null) {
-        // Portfolio-mode: delegate sell→buy to PortfolioManager
-        const convDate = `${year}-12-31`;
-        const { sellResults, buyTransactions } = this.portfolioManager.executeRothConversion(
-          sourceAccount.id,
-          destAccount.id,
-          conversionAmount,
-          convDate,
-        );
-
-        this.log('lot-recorded-portfolio', {
-          destination: destAccount.id,
-          amount: conversionAmount,
-          year,
-          sell_count: sellResults.length,
-          buy_count: buyTransactions.length,
-        });
-      } else {
-        // Fallback: internal lot tracking for non-portfolio accounts
-        if (!this.conversionLots.has(destAccount.id)) {
-          this.conversionLots.set(destAccount.id, []);
-        }
-
-        const lots = this.conversionLots.get(destAccount.id)!;
-        lots.push({
-          year,
-          amount: conversionAmount,
-          penaltyFreeYear: year + 5,
-        });
-
-        this.log('lot-recorded', {
-          destination: destAccount.id,
-          amount: conversionAmount,
-          year,
-          penalty_free_year: year + 5,
-        });
+      // Record the conversion via internal lot tracking
+      if (!this.conversionLots.has(destAccount.id)) {
+        this.conversionLots.set(destAccount.id, []);
       }
+
+      const lots = this.conversionLots.get(destAccount.id)!;
+      lots.push({
+        year,
+        amount: conversionAmount,
+        penaltyFreeYear: year + 5,
+      });
+
+      this.log('lot-recorded', {
+        destination: destAccount.id,
+        amount: conversionAmount,
+        year,
+        penalty_free_year: year + 5,
+      });
 
       // Track this conversion for activity creation
       this.conversionsThisYear.push({
@@ -490,23 +465,15 @@ export class RothConversionManager {
 
   /**
    * Get all conversion lots for an account.
-   * Delegates to PortfolioManager if available and the account is in portfolio mode.
    */
-  public getConversionLots(accountId: string): ConversionLot[] | Lot[] {
-    if (this.portfolioManager && this.portfolioManager.getAccountMode(accountId) !== null) {
-      return this.portfolioManager.getRothConversionLots(accountId);
-    }
+  public getConversionLots(accountId: string): ConversionLot[] {
     return this.conversionLots.get(accountId) || [];
   }
 
   /**
    * Get penalty-free balance from conversions (those past 5-year holding period).
-   * Delegates to PortfolioManager if available and the account is in portfolio mode.
    */
   public getPenaltyFreeBalance(accountId: string, currentYear: number): number {
-    if (this.portfolioManager && this.portfolioManager.getAccountMode(accountId) !== null) {
-      return this.portfolioManager.getRothPenaltyFreeBalance(accountId, `${currentYear}-01-01`);
-    }
     const lots = this.conversionLots.get(accountId) || [];
     let penaltyFreeAmount = 0;
 
@@ -521,12 +488,8 @@ export class RothConversionManager {
 
   /**
    * Get balance of conversions within 5-year period (subject to penalty).
-   * Delegates to PortfolioManager if available and the account is in portfolio mode.
    */
   public getPenaltyableBalance(accountId: string, currentYear: number): number {
-    if (this.portfolioManager && this.portfolioManager.getAccountMode(accountId) !== null) {
-      return this.portfolioManager.getRothPenaltyableBalance(accountId, `${currentYear}-01-01`);
-    }
     const lots = this.conversionLots.get(accountId) || [];
     let penaltyableAmount = 0;
 
@@ -555,14 +518,6 @@ export class RothConversionManager {
       }
     }
     return null;
-  }
-
-  /**
-   * Set the PortfolioManager for portfolio-mode delegation.
-   * When set, Roth conversion lot tracking and queries delegate to PortfolioManager.
-   */
-  public setPortfolioManager(manager: PortfolioManager | null): void {
-    this.portfolioManager = manager;
   }
 
   /** @deprecated No longer needed — kept for API compatibility */

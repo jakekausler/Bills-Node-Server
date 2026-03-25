@@ -151,22 +151,6 @@ export class Calculator {
     this.debugLogger.log(this.simNumber, { component: 'calculator', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
   }
 
-  /**
-   * Stamp the current portfolio total value onto the last activity for a portfolio account.
-   */
-  private stampPortfolioBalance(segmentResult: SegmentResult, accountId: string): void {
-    if (!this.portfolioManager) return;
-    const mode = this.portfolioManager.getAccountMode(accountId);
-    if (mode !== 'estimated' && mode !== 'fund-level') return;
-
-    const activities = segmentResult.activitiesAdded.get(accountId);
-    if (!activities || activities.length === 0) return;
-
-    const totalValue = this.portfolioManager.getTotalValue(accountId);
-    const lastActivity = activities[activities.length - 1];
-    (lastActivity as any).investmentValue = totalValue;
-    (lastActivity as any).cashBalance = 0;
-  }
 
   /** Set the current simulation date for debug log entries and propagate to child managers */
   setCurrentDate(date: string): void {
@@ -226,8 +210,6 @@ export class Calculator {
    */
   setPortfolioManager(manager: PortfolioManager | null): void {
     this.portfolioManager = manager;
-    // Also wire PortfolioManager to RothConversionManager for ledger delegation
-    this.rothConversionManager.setPortfolioManager(manager);
   }
 
   /**
@@ -279,9 +261,6 @@ export class Calculator {
     if (this.lifeInsuranceManager) {
       this.lifeInsuranceManagerCheckpoint = this.lifeInsuranceManager.checkpoint();
     }
-    if (this.portfolioManager) {
-      this.portfolioManagerCheckpoint = this.portfolioManager.checkpoint();
-    }
   }
 
   /**
@@ -306,9 +285,6 @@ export class Calculator {
     }));
     if (this.lifeInsuranceManager && this.lifeInsuranceManagerCheckpoint) {
       this.lifeInsuranceManager.restore(this.lifeInsuranceManagerCheckpoint);
-    }
-    if (this.portfolioManager && this.portfolioManagerCheckpoint) {
-      this.portfolioManager.restore(this.portfolioManagerCheckpoint);
     }
   }
 
@@ -382,43 +358,6 @@ export class Calculator {
       segmentResult.activitiesAdded.set(accountId, []);
     }
     segmentResult.activitiesAdded.get(accountId)?.push(new ConsolidatedActivity(activity.serialize()));
-    this.stampPortfolioBalance(segmentResult, accountId);
-
-    // Route through PortfolioManager if this is a portfolio account
-    if (this.portfolioManager && !activity.isTransfer && !(activity.category?.startsWith('Banking.Interest')) && activity.name !== 'Opening Balance' && activity.name !== 'Balance Adjustment') {
-      const mode = this.portfolioManager.getAccountMode(accountId);
-      if (mode === 'estimated' || mode === 'fund-level') {
-        const dateString = formatDate(event.date);
-        const amount = activity.amount as number;
-        if (amount > 0) {
-          // Positive amount = deposit into this account
-          const buyTxns = this.portfolioManager.executeDeposit(accountId, amount, dateString, 'contribution');
-          const lastActivity = segmentResult.activitiesAdded.get(accountId)?.slice(-1)[0];
-          if (lastActivity && buyTxns && buyTxns.length > 0) {
-            (lastActivity as any).investmentActivityType = 'buy';
-            (lastActivity as any).investmentActions = buyTxns.map(t => ({
-              symbol: t.fundSymbol,
-              shares: t.shares,
-              pricePerShare: t.pricePerShare,
-              totalPrice: t.totalAmount,
-            }));
-          }
-        } else if (amount < 0) {
-          // Negative amount = withdrawal from this account
-          const { transactions: sellTxns } = this.portfolioManager.executeWithdrawal(accountId, Math.abs(amount), dateString);
-          const lastActivity = segmentResult.activitiesAdded.get(accountId)?.slice(-1)[0];
-          if (lastActivity && sellTxns && sellTxns.length > 0) {
-            (lastActivity as any).investmentActivityType = 'sell';
-            (lastActivity as any).investmentActions = sellTxns.map(t => ({
-              symbol: t.fundSymbol,
-              shares: t.shares,
-              pricePerShare: t.pricePerShare,
-              totalPrice: t.totalAmount,
-            }));
-          }
-        }
-      }
-    }
 
     // For paycheck activities, use netPay as the effective amount
     let balanceChange = activity.amount as number;
@@ -463,27 +402,6 @@ export class Calculator {
             segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
           }
           segmentResult.activitiesAdded.get(resolvedDepositAccountId)?.push(depositActivity);
-          this.stampPortfolioBalance(segmentResult, resolvedDepositAccountId);
-
-          // Route through PortfolioManager for investment/HSA accounts
-          if (this.portfolioManager) {
-            const destMode = this.portfolioManager.getAccountMode(resolvedDepositAccountId);
-            if (destMode === 'estimated' || destMode === 'fund-level') {
-              const dateString = formatDate(event.date);
-              const buyTransactions = this.portfolioManager.executeDeposit(
-                resolvedDepositAccountId, deposit.amount, dateString, 'contribution',
-              );
-              if (buyTransactions && buyTransactions.length > 0) {
-                (depositActivity as any).investmentActivityType = 'buy';
-                (depositActivity as any).investmentActions = buyTransactions.map(t => ({
-                  symbol: t.fundSymbol,
-                  shares: t.shares,
-                  pricePerShare: t.pricePerShare,
-                  totalPrice: t.totalAmount,
-                }));
-              }
-            }
-          }
 
           const currentDepositChange = segmentResult.balanceChanges.get(resolvedDepositAccountId) || 0;
           segmentResult.balanceChanges.set(resolvedDepositAccountId, currentDepositChange + deposit.amount);
@@ -1215,7 +1133,6 @@ export class Calculator {
       segmentResult.activitiesAdded.set(event.accountId, []);
     }
     segmentResult.activitiesAdded.get(event.accountId)?.push(mainActivity);
-    this.stampPortfolioBalance(segmentResult, event.accountId);
 
     // AIME: feed gross wages, not net (Option A from spec — fixes #8)
     this.retirementManager.tryAddToAnnualIncomes(bill.name, event.date, paycheckResult.grossPay);
@@ -1246,31 +1163,10 @@ export class Calculator {
 
       const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
 
-      // Route through PortfolioManager for investment/HSA accounts
-      if (this.portfolioManager) {
-        const destMode = this.portfolioManager.getAccountMode(resolvedDepositAccountId);
-        if (destMode === 'estimated' || destMode === 'fund-level') {
-          const dateString = formatDate(event.date);
-          const buyTransactions = this.portfolioManager.executeDeposit(
-            resolvedDepositAccountId, deposit.amount, dateString, 'contribution',
-          );
-          if (buyTransactions && buyTransactions.length > 0) {
-            (depositActivity as any).investmentActivityType = 'buy';
-            (depositActivity as any).investmentActions = buyTransactions.map(t => ({
-              symbol: t.fundSymbol,
-              shares: t.shares,
-              pricePerShare: t.pricePerShare,
-              totalPrice: t.totalAmount,
-            }));
-          }
-        }
-      }
-
       if (!segmentResult.activitiesAdded.has(resolvedDepositAccountId)) {
         segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
       }
       segmentResult.activitiesAdded.get(resolvedDepositAccountId)?.push(depositActivity);
-      this.stampPortfolioBalance(segmentResult, resolvedDepositAccountId);
 
       // Update deposit account balance
       const currentDepositChange = segmentResult.balanceChanges.get(resolvedDepositAccountId) || 0;
@@ -1678,7 +1574,6 @@ export class Calculator {
       segmentResult.activitiesAdded.set(accountId, []);
     }
     segmentResult.activitiesAdded.get(accountId)?.push(interestActivity);
-    this.stampPortfolioBalance(segmentResult, accountId);
 
     // Add taxable occurrence for taxable accounts
     const account = this.balanceTracker.findAccountById(accountId);
@@ -1830,77 +1725,6 @@ export class Calculator {
       return new Map();
     }
 
-    // Portfolio delegation — track fund-level positions for portfolio-mode accounts
-    let sellResults: any[] = [];
-    let depositTransactions: any[] = [];
-
-    if (this.portfolioManager) {
-      const dateString = formatDate(event.date);
-
-      // Withdrawal from source account
-      const sourceMode = this.portfolioManager.getAccountMode(fromAccountId);
-      if (sourceMode === 'estimated' || sourceMode === 'fund-level') {
-        const withdrawal = this.portfolioManager.executeWithdrawal(
-          fromAccountId, internalAmount, dateString,
-        );
-        sellResults = withdrawal.sellResults;
-        this.log('portfolio-withdrawal', {
-          accountId: fromAccountId,
-          amount: internalAmount,
-          sellCount: sellResults.length,
-          totalGain: sellResults.reduce((sum, r) => sum + r.shortTermGain + r.longTermGain, 0),
-        });
-
-        // Report capital gains to TaxManager for taxable brokerage accounts only.
-        // Taxable = portfolio-mode AND NOT pre-tax retirement (usesRMD) AND NOT Roth.
-        // Roth detection uses name heuristic (same as push-pull-handler.ts). TODO(#25): cleaner account type classification.
-        const isTaxableBrokerage = fromAccount
-          && !fromAccount.usesRMD
-          && !fromAccount.name.toLowerCase().includes('roth');
-        if (isTaxableBrokerage && sellResults.length > 0) {
-          const cgAccountName = fromAccount.name;
-          for (const sellResult of sellResults) {
-            for (const detail of sellResult.lotDetails) {
-              if (detail.gain !== 0) {
-                const incomeType: IncomeType = detail.holdingPeriod === 'short'
-                  ? 'shortTermCapitalGain'
-                  : 'longTermCapitalGain';
-                if (!segmentResult.taxableOccurrences.has(cgAccountName)) {
-                  segmentResult.taxableOccurrences.set(cgAccountName, []);
-                }
-                segmentResult.taxableOccurrences.get(cgAccountName)?.push({
-                  date: event.date,
-                  year: event.date.getUTCFullYear(),
-                  amount: detail.gain,
-                  incomeType,
-                });
-              }
-            }
-          }
-          this.log('capital-gains-reported', {
-            accountId: fromAccountId,
-            accountName: cgAccountName,
-            totalGain: sellResults.reduce((sum, r) => sum + r.shortTermGain + r.longTermGain, 0),
-          });
-        }
-      }
-
-      // Deposit into destination account
-      const destMode = this.portfolioManager.getAccountMode(toAccountId);
-      if (destMode === 'estimated' || destMode === 'fund-level') {
-        const isAutoTransfer = original.id?.startsWith('AUTO-PULL_') || original.id?.startsWith('AUTO-PUSH_');
-        const source: 'transfer' | 'contribution' = isAutoTransfer ? 'transfer' : 'contribution';
-        depositTransactions = this.portfolioManager.executeDeposit(
-          toAccountId, internalAmount, dateString, source,
-        );
-        this.log('portfolio-deposit', {
-          accountId: toAccountId,
-          amount: internalAmount,
-          buyCount: depositTransactions.length,
-        });
-      }
-    }
-
     const isBill = original instanceof Bill;
     const fromActivity = new ConsolidatedActivity(
       isBill
@@ -1954,30 +1778,6 @@ export class Calculator {
       },
     );
 
-    // Populate investment metadata for portfolio withdrawals
-    if (sellResults && sellResults.length > 0) {
-      (fromActivity as any).investmentActivityType = 'sell';
-      (fromActivity as any).investmentActions = sellResults.flatMap(sr =>
-        sr.transactions.map((t: any) => ({
-          symbol: t.fundSymbol,
-          shares: t.shares,
-          pricePerShare: t.pricePerShare,
-          totalPrice: t.totalAmount,
-        }))
-      );
-    }
-
-    // Populate investment metadata for portfolio deposits
-    if (depositTransactions && depositTransactions.length > 0) {
-      (toActivity as any).investmentActivityType = 'buy';
-      (toActivity as any).investmentActions = depositTransactions.map((t: any) => ({
-        symbol: t.fundSymbol,
-        shares: t.shares,
-        pricePerShare: t.pricePerShare,
-        totalPrice: t.totalAmount,
-      }));
-    }
-
     // Add activities to segment result
     if (!segmentResult.activitiesAdded.has(fromAccountId)) {
       segmentResult.activitiesAdded.set(fromAccountId, []);
@@ -1988,8 +1788,6 @@ export class Calculator {
 
     segmentResult.activitiesAdded.get(fromAccountId)?.push(fromActivity);
     segmentResult.activitiesAdded.get(toAccountId)?.push(toActivity);
-    this.stampPortfolioBalance(segmentResult, fromAccountId);
-    this.stampPortfolioBalance(segmentResult, toAccountId);
 
     // Apply withdrawal tax on transfers FROM pre-tax retirement accounts TO non-retirement accounts
     // Pre-tax account: usesRMD=true (Traditional 401k, Traditional IRA, etc)

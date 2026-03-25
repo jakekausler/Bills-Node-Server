@@ -26,7 +26,6 @@ import { ManagerPayout } from './manager-payout';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import { loadAllHealthcareConfigs } from '../io/virtualHealthcarePlans';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
-import { loadLedger } from '../../utils/io/portfolioLedger';
 import { MonteCarloHandler } from './monte-carlo-handler';
 import { computePeriodBoundaries } from './period-utils';
 import dayjs from 'dayjs';
@@ -542,10 +541,9 @@ export class Engine {
       this.calculator.setLifeInsuranceManager(this.lifeInsuranceManager);
     }
 
-    // Pass portfolio manager to calculator and balance tracker
+    // Pass portfolio manager to calculator (still needed for positions endpoint)
     if (this.portfolioManager) {
       this.calculator.setPortfolioManager(this.portfolioManager);
-      this.balanceTracker.setPortfolioManager(this.portfolioManager);
     }
 
     // Initialize push-pull handler
@@ -630,24 +628,6 @@ export class Engine {
 
     // Initialize accounts with starting balances
     await this.balanceTracker.initializeBalances(accountsAndTransfers, options.forceRecalculation);
-
-    // Initialize estimated-mode accounts with their current balance from BalanceTracker
-    if (this.portfolioManager) {
-      for (const accountId of this.portfolioManager.getConfiguredAccountIds()) {
-        if (this.portfolioManager.getAccountMode(accountId) === 'estimated') {
-          const balance = this.balanceTracker.getAccountBalance(accountId);
-          this.portfolioManager.initializeEstimatedAccount(accountId, balance);
-        }
-      }
-    }
-
-    // Replay imported portfolio ledger transactions
-    if (this.portfolioManager) {
-      const ledger = loadLedger();
-      if (ledger.length > 0) {
-        this.portfolioManager.replayLedger(ledger);
-      }
-    }
 
     // Track year boundaries for flow aggregator balance recording
     // Note: if segments skip entire years (no events), those years will have no FlowSummary entry.

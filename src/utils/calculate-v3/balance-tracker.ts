@@ -7,7 +7,6 @@ import { AccountsAndTransfers } from '../../data/account/types';
 import { minDate } from '../io/minDate';
 import { isSame } from '../date/date';
 import type { DebugLogger } from './debug-logger';
-import { PortfolioManager } from './portfolio-manager';
 
 dayjs.extend(utc);
 
@@ -16,7 +15,6 @@ export class BalanceTracker {
   private cache: CacheManager;
   private startDate: Date | null;
   private accountMap: Map<string, Account>;
-  private portfolioManager: PortfolioManager | null = null;
 
   // Current state
   private balances: Record<string, number> = {};
@@ -46,11 +44,6 @@ export class BalanceTracker {
   /** Set the current simulation date for debug log entries */
   setCurrentDate(date: string): void {
     this.currentDate = date;
-  }
-
-  /** Set the PortfolioManager for accessing investment data during balance calculations */
-  setPortfolioManager(pm: PortfolioManager | null): void {
-    this.portfolioManager = pm;
   }
 
   async initializeBalances(
@@ -164,26 +157,12 @@ export class BalanceTracker {
 
       let runningBalance = 0;
 
-      const isPortfolioAccount = this.portfolioManager?.getAccountMode(account.id) != null;
-
-      const allActivitiesWithBalances = clonedAccount.consolidatedActivity.map((activity, index) => {
+      const allActivitiesWithBalances = clonedAccount.consolidatedActivity.map((activity) => {
         const effectiveAmount = (activity as any).isPaycheckActivity && (activity as any).paycheckDetails?.netPay
           ? (activity as any).paycheckDetails.netPay
           : Number(activity.amount);
-
-        // For portfolio accounts, use the stamped investmentValue as balance
-        if (isPortfolioAccount && (activity as any).investmentValue !== undefined && (activity as any).investmentValue > 0) {
-          activity.balance = (activity as any).investmentValue;
-          runningBalance = activity.balance;
-        } else {
-          activity.balance = runningBalance + effectiveAmount;
-          runningBalance = activity.balance;
-          if (isPortfolioAccount) {
-            (activity as any).investmentValue = activity.balance;
-            (activity as any).cashBalance = 0;
-          }
-        }
-
+        activity.balance = runningBalance + effectiveAmount;
+        runningBalance = activity.balance;
         return activity;
       });
 
