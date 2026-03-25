@@ -155,6 +155,13 @@ export class BalanceTracker {
         clonedAccount.consolidatedActivity = [];
       }
 
+      // Sort activities by date to ensure correct ordering
+      clonedAccount.consolidatedActivity.sort((a, b) => {
+        const dateA = typeof a.date === 'string' ? a.date : a.date.toISOString().substring(0, 10);
+        const dateB = typeof b.date === 'string' ? b.date : b.date.toISOString().substring(0, 10);
+        return dateA.localeCompare(dateB);
+      });
+
       let runningBalance = 0;
 
       const allActivitiesWithBalances = clonedAccount.consolidatedActivity.map((activity) => {

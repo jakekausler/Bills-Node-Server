@@ -258,6 +258,7 @@ export class Calculator {
    */
   private pendingPayoutsCheckpoint: string = '[]';
   private lifeInsuranceManagerCheckpoint: string = '';
+  private dividendsGeneratedCheckpoint: string = '{}';
 
   checkpoint(): void {
     this.contributionLimitManager.checkpoint();
@@ -270,6 +271,7 @@ export class Calculator {
       targetAccountId: p.targetAccountId,
       incomeSourceName: p.incomeSourceName,
     })));
+    this.dividendsGeneratedCheckpoint = JSON.stringify(Array.from(this.dividendsGeneratedForYear.entries()));
     if (this.lifeInsuranceManager) {
       this.lifeInsuranceManagerCheckpoint = this.lifeInsuranceManager.checkpoint();
     }
@@ -285,7 +287,9 @@ export class Calculator {
     this.paycheckStateTracker.restore();
     this.jobLossManager.restore();
     this.mortalityManager.restore();
-    this.dividendsGeneratedForYear = new Map();
+    // Restore dividends generated state from checkpoint
+    const dividendEntries = JSON.parse(this.dividendsGeneratedCheckpoint) as Array<[string, number]>;
+    this.dividendsGeneratedForYear = new Map(dividendEntries);
     const restored = JSON.parse(this.pendingPayoutsCheckpoint) as Array<{
       activity: Record<string, unknown>;
       targetAccountId: string;
@@ -1525,40 +1529,58 @@ export class Calculator {
 
         // Add dividend activities to segment result
         if (dividendResult.activities.length > 0) {
-          if (!segmentResult.activitiesAdded.has(event.accountId)) {
-            segmentResult.activitiesAdded.set(event.accountId, []);
-          }
-          segmentResult.activitiesAdded.get(event.accountId)!.push(...dividendResult.activities);
+          // Filter out dividend dates that fall before the portfolio cutoff
+          const cutoff = this.portfolioCutoffDates.get(event.accountId);
+          const filteredActivities = dividendResult.activities.filter(a => {
+            const actDate = typeof a.date === 'string' ? a.date : a.date.toISOString().substring(0, 10);
+            return !cutoff || actDate > cutoff;
+          });
 
-          // Add dividend amount to balance
-          const currentChange = segmentResult.balanceChanges.get(event.accountId) || 0;
-          segmentResult.balanceChanges.set(event.accountId, currentChange + dividendResult.totalAmount);
-
-          // Report to TaxManager for taxable accounts
-          if (!isTaxAdvantaged && this.taxManager) {
-            if (dividendResult.qualifiedAmount > 0) {
-              const taxOccurrence = {
-                date: event.date,
-                year,
-                amount: dividendResult.qualifiedAmount,
-                incomeType: 'qualifiedDividend' as any,
-              };
-              if (!segmentResult.taxableOccurrences.has(event.accountId)) {
-                segmentResult.taxableOccurrences.set(event.accountId, []);
-              }
-              segmentResult.taxableOccurrences.get(event.accountId)!.push(taxOccurrence);
+          if (filteredActivities.length > 0) {
+            if (!segmentResult.activitiesAdded.has(event.accountId)) {
+              segmentResult.activitiesAdded.set(event.accountId, []);
             }
-            if (dividendResult.ordinaryAmount > 0) {
-              const taxOccurrence = {
-                date: event.date,
-                year,
-                amount: dividendResult.ordinaryAmount,
-                incomeType: 'ordinaryDividend' as any,
-              };
-              if (!segmentResult.taxableOccurrences.has(event.accountId)) {
-                segmentResult.taxableOccurrences.set(event.accountId, []);
+            segmentResult.activitiesAdded.get(event.accountId)!.push(...filteredActivities);
+
+            // Add dividend amount to balance — only count filtered dividends
+            const filteredTotal = filteredActivities.reduce((sum, a) => sum + Number(a.amount), 0);
+            const currentChange = segmentResult.balanceChanges.get(event.accountId) || 0;
+            segmentResult.balanceChanges.set(event.accountId, currentChange + filteredTotal);
+
+            // Report to TaxManager for taxable accounts — only report filtered amounts
+            if (!isTaxAdvantaged && this.taxManager) {
+              // Calculate tax amounts based on filtered activities
+              const qualifiedTotal = filteredActivities
+                .filter(a => (a as any).dividendType === 'qualified')
+                .reduce((sum, a) => sum + Number(a.amount), 0);
+              const ordinaryTotal = filteredActivities
+                .filter(a => (a as any).dividendType === 'ordinary')
+                .reduce((sum, a) => sum + Number(a.amount), 0);
+
+              if (qualifiedTotal > 0) {
+                const taxOccurrence = {
+                  date: event.date,
+                  year,
+                  amount: qualifiedTotal,
+                  incomeType: 'qualifiedDividend' as any,
+                };
+                if (!segmentResult.taxableOccurrences.has(event.accountId)) {
+                  segmentResult.taxableOccurrences.set(event.accountId, []);
+                }
+                segmentResult.taxableOccurrences.get(event.accountId)!.push(taxOccurrence);
               }
-              segmentResult.taxableOccurrences.get(event.accountId)!.push(taxOccurrence);
+              if (ordinaryTotal > 0) {
+                const taxOccurrence = {
+                  date: event.date,
+                  year,
+                  amount: ordinaryTotal,
+                  incomeType: 'ordinaryDividend' as any,
+                };
+                if (!segmentResult.taxableOccurrences.has(event.accountId)) {
+                  segmentResult.taxableOccurrences.set(event.accountId, []);
+                }
+                segmentResult.taxableOccurrences.get(event.accountId)!.push(taxOccurrence);
+              }
             }
           }
         }
