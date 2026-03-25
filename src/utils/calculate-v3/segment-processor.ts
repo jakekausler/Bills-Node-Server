@@ -141,6 +141,15 @@ export class SegmentProcessor {
           }
         }
 
+        // Replay taxable occurrences from cached segments into TaxManager
+        // Without this, tax reconciliation is missing income from cached segments
+        for (const [accountName, taxableOccurrences] of cachedResult.taxableOccurrences) {
+          const account = this.accountManager.getAccountByName(accountName);
+          if (account) {
+            this.taxManager.addTaxableOccurrences(account.id, taxableOccurrences);
+          }
+        }
+
         return;
       }
     }
