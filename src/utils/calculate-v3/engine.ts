@@ -651,10 +651,6 @@ export class Engine {
 
         for (const [accountId, anchor] of anchors) {
           this.portfolioAnchors.set(accountId, anchor);
-          // Set starting balance for the engine's internal tracking (interest calc, push/pull).
-          // The display balance comes from precomputed activities, but the engine needs this
-          // for computations that query getCurrentAccountBalance().
-          this.balanceTracker.updateBalance(accountId, anchor.totalValue, new Date(anchor.cutoffDate + 'T00:00:00Z'));
         }
       }
     }
@@ -672,6 +668,11 @@ export class Engine {
 
     // Initialize accounts with starting balances
     await this.balanceTracker.initializeBalances(accountsAndTransfers, options.forceRecalculation);
+
+    // Set portfolio anchor balances AFTER initializeBalances (which resets to 0)
+    for (const [accountId, anchor] of this.portfolioAnchors) {
+      this.balanceTracker.updateBalance(accountId, anchor.totalValue, new Date(anchor.cutoffDate + 'T00:00:00Z'));
+    }
 
     // Track year boundaries for flow aggregator balance recording
     // Note: if segments skip entire years (no events), those years will have no FlowSummary entry.
