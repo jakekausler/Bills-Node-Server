@@ -636,7 +636,7 @@ export class Engine {
       const ledger = loadLedger();
       if (ledger.length > 0) {
         const precomputer = new LedgerPrecomputer(ledger, this.portfolioConfigs);
-        const { activities: historicalActivities, anchors } = await precomputer.precompute();
+        const { activities: historicalActivities, anchors } = precomputer.precompute();
 
         // Inject historical activities and set starting balances
         for (const [accountId, acts] of historicalActivities) {

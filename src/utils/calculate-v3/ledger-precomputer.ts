@@ -1,6 +1,7 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { PortfolioTransaction, AccountPortfolioConfig } from './portfolio-types';
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
-import { getPrice } from '../prices/price-service';
 import { formatDate } from '../date/date';
 
 export interface AnchorPoint {
@@ -24,6 +25,7 @@ interface FundState {
 export class LedgerPrecomputer {
   private ledger: PortfolioTransaction[];
   private configs: Record<string, AccountPortfolioConfig>;
+  private priceCache: Record<string, Record<string, number>>;
 
   constructor(
     ledger: PortfolioTransaction[],
@@ -31,15 +33,23 @@ export class LedgerPrecomputer {
   ) {
     this.ledger = ledger;
     this.configs = configs;
+
+    // Load price history cache synchronously for fast lookups
+    const pricePath = path.join(__dirname, '../../../data/priceHistory.json');
+    try {
+      this.priceCache = JSON.parse(fs.readFileSync(pricePath, 'utf-8'));
+    } catch {
+      this.priceCache = {};
+    }
   }
 
   /**
    * Pre-compute historical activities and anchor points for all fund-level accounts.
    */
-  async precompute(): Promise<{
+  precompute(): {
     activities: Map<string, ConsolidatedActivity[]>;
     anchors: Map<string, AnchorPoint>;
-  }> {
+  } {
     const activities = new Map<string, ConsolidatedActivity[]>();
     const anchors = new Map<string, AnchorPoint>();
 
@@ -58,7 +68,7 @@ export class LedgerPrecomputer {
 
     for (const [accountId, txns] of byAccount) {
       const sorted = txns.sort((a, b) => a.date.localeCompare(b.date));
-      const result = await this.precomputeAccount(accountId, sorted);
+      const result = this.precomputeAccount(accountId, sorted);
       activities.set(accountId, result.activities);
       anchors.set(accountId, result.anchor);
     }
@@ -66,10 +76,10 @@ export class LedgerPrecomputer {
     return { activities, anchors };
   }
 
-  private async precomputeAccount(
+  private precomputeAccount(
     accountId: string,
     txns: PortfolioTransaction[],
-  ): Promise<{ activities: ConsolidatedActivity[]; anchor: AnchorPoint }> {
+  ): { activities: ConsolidatedActivity[]; anchor: AnchorPoint } {
     const fundStates: Record<string, FundState> = {};
     const activityList: ConsolidatedActivity[] = [];
 
@@ -97,7 +107,7 @@ export class LedgerPrecomputer {
       }
 
       // Compute portfolio value at this date using EOD prices
-      const totalValue = await this.computePortfolioValue(fundStates, date);
+      const totalValue = this.computePortfolioValue(fundStates, date);
 
       // Set balance on the last activity of this date
       if (activityList.length > 0) {
@@ -126,7 +136,7 @@ export class LedgerPrecomputer {
     }
 
     const finalValue = cutoffDate
-      ? await this.computePortfolioValue(fundStates, cutoffDate)
+      ? this.computePortfolioValue(fundStates, cutoffDate)
       : 0;
 
     const anchor: AnchorPoint = {
@@ -258,21 +268,33 @@ export class LedgerPrecomputer {
     return activity;
   }
 
-  private async computePortfolioValue(
+  private computePortfolioValue(
     fundStates: Record<string, FundState>,
     date: string,
-  ): Promise<number> {
+  ): number {
     let total = 0;
     for (const [symbol, state] of Object.entries(fundStates)) {
       if (state.shares <= 0.0001) continue;
-      const price = await getPrice(symbol, date);
-      if (price !== null) {
-        total += state.shares * price;
-      } else {
-        // Fallback: use cost basis as approximate value
-        total += state.totalCost;
-      }
+      const price = this.lookupPrice(symbol, date);
+      total += state.shares * price;
     }
     return Math.round(total * 100) / 100;
+  }
+
+  private lookupPrice(symbol: string, date: string): number {
+    const symbolPrices = this.priceCache[symbol];
+    if (!symbolPrices) return 0;
+
+    // Exact match
+    if (symbolPrices[date] !== undefined) return symbolPrices[date];
+
+    // Nearest date (find closest date that's <= target)
+    const dates = Object.keys(symbolPrices).sort();
+    let closest = '';
+    for (const d of dates) {
+      if (d <= date) closest = d;
+      else break;
+    }
+    return closest ? symbolPrices[closest] : (dates.length > 0 ? symbolPrices[dates[0]] : 0);
   }
 }
