@@ -84,6 +84,7 @@ export class Calculator {
   private lifeInsuranceManager: LifeInsuranceManager | null = null;
   private portfolioManager: PortfolioManager | null = null;
   private portfolioManagerCheckpoint: string = '';
+  private portfolioCutoffDates: Map<string, string> = new Map();
   private pendingPayouts: ManagerPayout[] = [];
   private taxProfile: TaxProfile;
 
@@ -210,6 +211,13 @@ export class Calculator {
    */
   setPortfolioManager(manager: PortfolioManager | null): void {
     this.portfolioManager = manager;
+  }
+
+  /**
+   * Set cutoff dates for portfolio accounts to skip deposits before anchor dates
+   */
+  setPortfolioCutoffDates(cutoffs: Map<string, string>): void {
+    this.portfolioCutoffDates = cutoffs;
   }
 
   /**
@@ -380,6 +388,14 @@ export class Calculator {
       // Generate deposit activities for 401k/HSA/employer match
       if (paycheckDetails.depositActivities) {
         for (const deposit of paycheckDetails.depositActivities) {
+          const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+
+          // Skip deposits to portfolio accounts before their cutoff date (historical data handles these)
+          const cutoff = this.portfolioCutoffDates.get(resolvedDepositAccountId);
+          if (cutoff && formatDate(event.date) <= cutoff) {
+            continue;
+          }
+
           const depositActivity = new ConsolidatedActivity({
             id: `${activity.id}-${event.date}-${deposit.label}`,
             date: formatDate(event.date),
@@ -397,7 +413,6 @@ export class Calculator {
             to: null,
           });
 
-          const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
           if (!segmentResult.activitiesAdded.has(resolvedDepositAccountId)) {
             segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
           }
@@ -428,6 +443,13 @@ export class Calculator {
     if (paycheckDetails?.depositActivities) {
       for (const deposit of paycheckDetails.depositActivities) {
         const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+
+        // Skip deposits to portfolio accounts before their cutoff date (historical data handles these)
+        const cutoff = this.portfolioCutoffDates.get(resolvedDepositAccountId);
+        if (cutoff && formatDate(event.date) <= cutoff) {
+          continue;
+        }
+
         const existing = allChanges.get(resolvedDepositAccountId) || 0;
         allChanges.set(resolvedDepositAccountId, existing + deposit.amount);
       }
@@ -1143,6 +1165,14 @@ export class Calculator {
 
     // Create deposit activities for each destination (401k, HSA, employer match, etc.)
     for (const deposit of paycheckResult.depositActivities) {
+      const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+
+      // Skip deposits to portfolio accounts before their cutoff date (historical data handles these)
+      const cutoff = this.portfolioCutoffDates.get(resolvedDepositAccountId);
+      if (cutoff && formatDate(event.date) <= cutoff) {
+        continue;
+      }
+
       // Create activity for the deposit
       const depositActivity = new ConsolidatedActivity({
         id: `${bill.id}-${event.date}-${deposit.label}`,
@@ -1160,8 +1190,6 @@ export class Calculator {
         from: null,
         to: null,
       });
-
-      const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
 
       if (!segmentResult.activitiesAdded.has(resolvedDepositAccountId)) {
         segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
@@ -1302,6 +1330,14 @@ export class Calculator {
 
       // Create bonus deposit activities (401k, employer match, etc.)
       for (const deposit of bonusResult.depositActivities) {
+        const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+
+        // Skip deposits to portfolio accounts before their cutoff date (historical data handles these)
+        const cutoff = this.portfolioCutoffDates.get(resolvedDepositAccountId);
+        if (cutoff && formatDate(event.date) <= cutoff) {
+          continue;
+        }
+
         const depositActivity = new ConsolidatedActivity({
           id: `${bill.id}-bonus-${year}-${deposit.label}`,
           date: formatDate(event.date),
@@ -1319,7 +1355,6 @@ export class Calculator {
           to: null,
         });
 
-        const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
         if (!segmentResult.activitiesAdded.has(resolvedDepositAccountId)) {
           segmentResult.activitiesAdded.set(resolvedDepositAccountId, []);
         }
@@ -1382,6 +1417,13 @@ export class Calculator {
     allChanges.set(event.accountId, paycheckResult.netPay);
     for (const deposit of paycheckResult.depositActivities) {
       const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+
+      // Skip deposits to portfolio accounts before their cutoff date (historical data handles these)
+      const cutoff = this.portfolioCutoffDates.get(resolvedDepositAccountId);
+      if (cutoff && formatDate(event.date) <= cutoff) {
+        continue;
+      }
+
       const existing = allChanges.get(resolvedDepositAccountId) || 0;
       allChanges.set(resolvedDepositAccountId, existing + deposit.amount);
     }
@@ -1392,6 +1434,13 @@ export class Calculator {
       allChanges.set(event.accountId, existingMainBonus + bonusResult.netPay);
       for (const deposit of bonusResult.depositActivities) {
         const resolvedDepositAccountId = this.balanceTracker.findAccountById(deposit.accountId)?.id ?? deposit.accountId;
+
+        // Skip deposits to portfolio accounts before their cutoff date (historical data handles these)
+        const cutoff = this.portfolioCutoffDates.get(resolvedDepositAccountId);
+        if (cutoff && formatDate(event.date) <= cutoff) {
+          continue;
+        }
+
         const existing = allChanges.get(resolvedDepositAccountId) || 0;
         allChanges.set(resolvedDepositAccountId, existing + deposit.amount);
       }

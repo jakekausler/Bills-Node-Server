@@ -660,9 +660,11 @@ export class Engine {
 
     // Apply cutoff dates to timeline to skip events before portfolio anchor dates
     if (this.portfolioAnchors.size > 0) {
-      this.timeline.setCutoffDates(new Map(
+      const cutoffDates = new Map(
         Array.from(this.portfolioAnchors).map(([accountId, anchor]) => [accountId, anchor.cutoffDate])
-      ));
+      );
+      this.timeline.setCutoffDates(cutoffDates);
+      this.calculator.setPortfolioCutoffDates(cutoffDates);
     }
 
     // Track year boundaries for flow aggregator balance recording
