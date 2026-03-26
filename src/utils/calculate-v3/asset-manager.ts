@@ -418,7 +418,7 @@ export class AssetManager {
 
     // Reset asset state after replacement
     state.age = 0;
-    state.value = cost; // New value is the replacement cost paid
+    state.value = inflatedCost; // New asset value is the full replacement cost (not reduced by trade-in or warranty)
 
     this.log('replacement-executed', { asset: asset.name, year, age: state.age, rawCost, inflatedCost, warrantyCovered, tradeInValue, finalCost, newValue: state.value });
   }
