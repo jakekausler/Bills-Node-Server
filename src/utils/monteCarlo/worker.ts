@@ -277,25 +277,30 @@ async function runSingleSimulation(
         )
       : undefined;
 
-    // Merge asset values into yearly account balances
-    // AssetManager stores per-asset values; we merge them with asset: prefixed keys
+    // Merge asset values into yearly account balances for ALL years
+    // AssetManager stores per-year snapshots; we merge them with asset: prefixed keys
     const assetManager = getLastAssetManager();
     if (assetManager && balanceData.perAccount) {
-      const assetValues = assetManager.getAssetValues();
-      // Since AssetManager.getAssetValues() returns the current state (end of calculation),
-      // we add those values to the final year's balances
-      if (assetValues.size > 0) {
-        const endYear = endDate.getUTCFullYear();
-        if (!balanceData.perAccount[endYear]) {
-          balanceData.perAccount[endYear] = {};
+      const yearlySnapshots = assetManager.getYearlySnapshots();
+      for (const [year, assetValues] of yearlySnapshots) {
+        if (!balanceData.perAccount[year]) {
+          balanceData.perAccount[year] = {};
         }
         for (const [assetId, value] of assetValues) {
           const keyName = `asset:${assetId}`;
-          balanceData.perAccount[endYear][keyName] = value;
-          // Also add to combined balances if they exist
-          if (balanceData.combined[endYear] !== undefined) {
-            balanceData.combined[endYear] += value;
+          balanceData.perAccount[year][keyName] = value;
+          // Also add to combined balances
+          if (balanceData.combined[year] !== undefined) {
+            balanceData.combined[year] += value;
           }
+        }
+      }
+
+      // Add asset names to accountNames list (once, on first simulation)
+      if (simulationNumber === 1) {
+        const assetNames = assetManager.getAssetNames();
+        for (const asset of assetNames) {
+          accountNames.push({ id: `asset:${asset.id}`, name: `${asset.name} (Asset)` });
         }
       }
     }

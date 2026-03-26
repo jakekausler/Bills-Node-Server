@@ -67,10 +67,12 @@ export class AssetManager {
   private debugLogger: DebugLogger | null = null;
   private simulation: string = '';
   private simNumber: number = 0;
+  private yearlySnapshots: Map<number, Map<string, number>> = new Map();
 
   // Checkpoint state
   private statesCheckpoint: string | null = null;
   private payoutsCheckpoint: string | null = null;
+  private yearlySnapshotsCheckpoint: string | null = null;
 
   constructor(
     assets: Asset[],
@@ -131,6 +133,18 @@ export class AssetManager {
         this.checkAndTriggerReplacement(asset, state, year);
       }
     }
+
+    // Record per-year snapshot for MC
+    const snapshot = new Map<string, number>();
+    for (const asset of this.assets) {
+      const state = this.assetStates.get(asset.id);
+      if (state && state.value > 0) {
+        snapshot.set(asset.id, state.value);
+      }
+    }
+    if (snapshot.size > 0) {
+      this.yearlySnapshots.set(year, snapshot);
+    }
   }
 
   /**
@@ -157,6 +171,22 @@ export class AssetManager {
   }
 
   /**
+   * Get yearly snapshots of asset values for MC results
+   */
+  getYearlySnapshots(): Map<number, Map<string, number>> {
+    return this.yearlySnapshots;
+  }
+
+  /**
+   * Get list of assets with trackable value (appreciation or depreciation)
+   */
+  getAssetNames(): Array<{ id: string; name: string }> {
+    return this.assets
+      .filter(a => a.appreciationIsVariable || a.appreciation !== 0 || a.depreciationSchedule !== null)
+      .map(a => ({ id: a.id, name: a.name }));
+  }
+
+  /**
    * Checkpoint mutable state for MC segment reprocessing
    */
   checkpoint(): void {
@@ -167,6 +197,12 @@ export class AssetManager {
         targetAccountId: p.targetAccountId,
         incomeSourceName: p.incomeSourceName,
       })),
+    );
+    this.yearlySnapshotsCheckpoint = JSON.stringify(
+      Array.from(this.yearlySnapshots.entries()).map(([year, map]) => [
+        year,
+        Array.from(map.entries()),
+      ]),
     );
     this.log('checkpoint', { assetCount: this.assets.length });
   }
@@ -180,6 +216,12 @@ export class AssetManager {
     }
     this.assetStates = new Map(JSON.parse(this.statesCheckpoint));
     this.pendingPayouts = [];
+    if (this.yearlySnapshotsCheckpoint !== null) {
+      const parsed = JSON.parse(this.yearlySnapshotsCheckpoint) as Array<[number, Array<[string, number]>]>;
+      this.yearlySnapshots = new Map(
+        parsed.map(([year, entries]) => [year, new Map(entries)])
+      );
+    }
     this.log('restore', { assetCount: this.assets.length });
     // Note: activities are reconstructed from serialized data if needed, but for now
     // we just clear the buffer since payouts are per-segment events

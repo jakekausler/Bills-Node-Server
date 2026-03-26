@@ -166,6 +166,22 @@ function getMedianCumulativeInflationForYear(
 }
 
 /**
+ * Filter out asset account keys from yearlyAccountBalances (keys starting with 'asset:')
+ */
+function filterOutAssets(yearlyAccountBalances: YearlyAccountBalances): YearlyAccountBalances {
+  const filtered: YearlyAccountBalances = {};
+  for (const [year, accounts] of Object.entries(yearlyAccountBalances)) {
+    filtered[parseInt(year)] = {};
+    for (const [accountId, balance] of Object.entries(accounts)) {
+      if (!accountId.startsWith('asset:')) {
+        filtered[parseInt(year)][accountId] = balance;
+      }
+    }
+  }
+  return filtered;
+}
+
+/**
  * #14: Check if at least one person is alive at a given year
  * Converts ISO date strings to year and checks if any are >= the given year
  */
@@ -225,6 +241,7 @@ function processAllSimulations(simulationId: string, separateAccounts: boolean =
 async function runDeterministicCalculation(
   simulationId: string,
   separateAccounts: boolean = false,
+  excludeAssets: boolean = false,
 ): Promise<{ combined: YearlyMinBalances; perAccount?: YearlyAccountBalances } | null> {
   const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
 
@@ -265,7 +282,11 @@ async function runDeterministicCalculation(
     );
 
     // Filter out hidden accounts to match Graph View behavior, then convert to filtered format
-    const visibleAccounts = results.accounts.filter(acc => !acc.hidden);
+    let visibleAccounts = results.accounts.filter(acc => !acc.hidden);
+    // Also filter out asset accounts if requested
+    if (excludeAssets) {
+      visibleAccounts = visibleAccounts.filter(acc => !acc.id.startsWith('asset:'));
+    }
     const filteredAccounts: FilteredAccount[] = visibleAccounts.map(
       (account): FilteredAccount => ({
         name: account.name,
@@ -326,23 +347,47 @@ function loadResultsMetadata(simulationId: string): { seed?: number; accountName
  * @param simulationId - ID of the completed simulation
  * @param accountId - Optional account ID; when provided, computes percentiles for that account only
  * @param survivingOnly - #14: If true, only include simulations where at least one person survives each year
+ * @param excludeAssets - If true, filter out asset accounts from the calculations
  * @returns Graph data formatted for Chart.js consumption with both nominal and real values
  */
 export async function computePercentileGraph(
   simulationId: string,
   accountId?: string,
   survivingOnly: boolean = false,
+  excludeAssets: boolean = false,
 ): Promise<PercentileGraphData> {
   const PERCENTILES = [0, 5, 25, 40, 50, 60, 75, 95, 100];
 
   // Determine if we need per-account data
-  const needsPerAccount = !!accountId;
+  const needsPerAccount = !!accountId || excludeAssets;
 
   // Process all simulations to get yearly data
   let simulationData = processAllSimulations(simulationId, needsPerAccount);
 
   if (simulationData.length === 0) {
     throw new Error('No simulation data found');
+  }
+
+  // Filter out asset accounts if requested
+  if (excludeAssets) {
+    simulationData = simulationData.map((sim) => {
+      const filteredBalances = sim.yearlyAccountBalances ? filterOutAssets(sim.yearlyAccountBalances) : undefined;
+
+      // Recalculate combined yearly min balances without assets
+      const newCombined: YearlyMinBalances = {};
+      if (filteredBalances) {
+        for (const [yearStr, accounts] of Object.entries(filteredBalances)) {
+          const year = parseInt(yearStr);
+          newCombined[year] = Object.values(accounts).reduce((sum, val) => sum + val, 0);
+        }
+      }
+
+      return {
+        ...sim,
+        yearlyMinBalances: newCombined,
+        yearlyAccountBalances: filteredBalances,
+      };
+    });
   }
 
   // #14: Filter to surviving simulations if requested
@@ -395,7 +440,7 @@ export async function computePercentileGraph(
   });
 
   // Run deterministic calculation
-  const deterministicData = await runDeterministicCalculation(simulationId, needsPerAccount);
+  const deterministicData = await runDeterministicCalculation(simulationId, needsPerAccount, excludeAssets);
   if (deterministicData) {
     // Add years from deterministic calculation
     Object.keys(deterministicData.combined).forEach((year) => {

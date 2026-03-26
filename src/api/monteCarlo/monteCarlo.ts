@@ -160,12 +160,14 @@ export async function getAllSimulations(_req: Request): Promise<SimulationProgre
  * Computes percentiles on-demand from raw results with in-memory caching.
  * Supports ?account={accountId} for per-account percentile data.
  * Supports ?survivingOnly=true to filter to simulations with survivors in all years.
+ * Supports ?excludeAssets=true to exclude asset accounts from calculations.
  * Returns both nominal (data) and real (realValues) in each dataset.
  */
 export async function getSimulationGraph(req: Request): Promise<PercentileGraphData> {
   const { id } = req.params;
   const accountId = req.query.account as string | undefined;
   const survivingOnly = req.query.survivingOnly === 'true';
+  const excludeAssets = req.query.excludeAssets === 'true';
 
   if (!id) {
     throw new Error('Simulation ID is required');
@@ -179,8 +181,8 @@ export async function getSimulationGraph(req: Request): Promise<PercentileGraphD
     throw new Error(`Simulation with ID ${id} is not yet completed`);
   }
 
-  // Check cache (include survivingOnly in key)
-  const cacheKey = `${id}:${accountId || 'combined'}:${survivingOnly ? 'surviving' : 'all'}`;
+  // Check cache (include survivingOnly and excludeAssets in key)
+  const cacheKey = `${id}:${accountId || 'combined'}:${survivingOnly ? 'surviving' : 'all'}:${excludeAssets ? 'noAssets' : 'assets'}`;
   const cached = graphCache.get(cacheKey);
   if (cached) {
     return cached;
@@ -188,7 +190,7 @@ export async function getSimulationGraph(req: Request): Promise<PercentileGraphD
 
   // Compute on-demand
   try {
-    const graphData = await computePercentileGraph(id, accountId, survivingOnly);
+    const graphData = await computePercentileGraph(id, accountId, survivingOnly, excludeAssets);
     graphCache.set(cacheKey, graphData);
     return graphData;
   } catch (error) {
