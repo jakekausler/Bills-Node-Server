@@ -691,7 +691,7 @@ export class Engine {
 
     // Initialize FutureLotTracker for taxable portfolio accounts
     if (this.portfolioAnchors.size > 0) {
-      const futureLotTracker = new FutureLotTracker();
+      const futureLotTracker = new FutureLotTracker(this.debugLogger, this.simNumber);
       let hasTrackedAccounts = false;
 
       for (const [accountId, anchor] of this.portfolioAnchors) {

@@ -1,3 +1,4 @@
+import type { DebugLogger } from './debug-logger';
 import { AssetAllocation, FundConfig } from './portfolio-types';
 
 export interface FutureLot {
@@ -38,6 +39,9 @@ export class FutureLotTracker {
   private nextLotId: number = 0;
   private nextLotIdCheckpoint: number = 0;
 
+  private debugLogger: DebugLogger | null = null;
+  private simNumber: number = 0;
+
   // Tolerance for floating-point dust when determining full vs partial lot consumption ($0.01)
   private static readonly CONSUMPTION_EPSILON = 0.01;
 
@@ -51,10 +55,17 @@ export class FutureLotTracker {
     cash: 'cash',
   };
 
-  constructor() {
+  constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     this.lots = new Map();
     this.virtualPrices = new Map();
     this.returnsAppliedYears = new Set();
+    this.debugLogger = debugLogger ?? null;
+    this.simNumber = simNumber;
+  }
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(this.simNumber, { component: 'future-lot-tracker', event, ...data });
   }
 
   private generateLotId(): string {
@@ -147,6 +158,8 @@ export class FutureLotTracker {
 
       this.lots.get(accountId)!.push(lot);
     }
+
+    this.log('seeded', { accountId, classCount: Object.keys(perClassAccumulator).length, totalValue: totalComputedValue, costBasis: totalCostBasis });
   }
 
   deposit(
@@ -230,6 +243,7 @@ export class FutureLotTracker {
       }
     }
 
+    this.log('deposit', { accountId, amount, date, source, lotsCreated: created.length });
     return created;
   }
 
@@ -376,6 +390,7 @@ export class FutureLotTracker {
     }
 
     result.netGain = result.shortTermGain + result.longTermGain;
+    this.log('withdraw', { accountId, amount, date, strategy, cashFirst, shortTermGain: result.shortTermGain, longTermGain: result.longTermGain, lotsConsumed: result.lotsConsumed.length });
     return result;
   }
 
@@ -401,8 +416,10 @@ export class FutureLotTracker {
         continue;
       }
 
-      const currentPrice = this.virtualPrices.get(assetClass) ?? 100;
-      this.virtualPrices.set(assetClass, currentPrice * (1 + returnRate));
+      const oldPrice = this.virtualPrices.get(assetClass) ?? 100;
+      const newPrice = oldPrice * (1 + returnRate);
+      this.virtualPrices.set(assetClass, newPrice);
+      this.log('annual-returns', { year, assetClass, oldPrice, newPrice, returnRate });
     }
   }
 
@@ -439,6 +456,7 @@ export class FutureLotTracker {
     this.pricesCheckpoint = JSON.stringify(Array.from(this.virtualPrices.entries()));
     this.returnsCheckpoint = JSON.stringify(Array.from(this.returnsAppliedYears));
     this.nextLotIdCheckpoint = this.nextLotId;
+    this.log('checkpoint', { accountCount: this.lots.size });
   }
 
   restore(): void {
@@ -449,5 +467,6 @@ export class FutureLotTracker {
     this.virtualPrices = new Map(JSON.parse(this.pricesCheckpoint!));
     this.returnsAppliedYears = new Set(JSON.parse(this.returnsCheckpoint!));
     this.nextLotId = this.nextLotIdCheckpoint;
+    this.log('restore', { accountCount: this.lots.size });
   }
 }

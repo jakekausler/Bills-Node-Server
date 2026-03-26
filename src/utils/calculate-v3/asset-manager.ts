@@ -115,14 +115,19 @@ export class AssetManager {
       const checkpointYear = asset.currentValueDate instanceof Date
         ? asset.currentValueDate.getUTCFullYear()
         : new Date(asset.currentValueDate + 'T12:00:00Z').getUTCFullYear();
-      if (year <= checkpointYear) continue;
+      if (year <= checkpointYear) {
+        this.log('year-boundary-skip', { asset: asset.name, year, checkpointYear });
+        continue;
+      }
 
       // 1. Apply appreciation or depreciation
       this.applyValueChange(asset, state, year);
 
       // 2. Process replacement cycle (if applicable)
       if (asset.replacementCycle) {
+        const oldAge = state.age;
         state.age += 1;
+        this.log('age-increment', { asset: asset.name, year, newAge: state.age });
         this.checkAndTriggerReplacement(asset, state, year);
       }
     }
@@ -163,6 +168,7 @@ export class AssetManager {
         incomeSourceName: p.incomeSourceName,
       })),
     );
+    this.log('checkpoint', { assetCount: this.assets.length });
   }
 
   /**
@@ -174,11 +180,17 @@ export class AssetManager {
     }
     this.assetStates = new Map(JSON.parse(this.statesCheckpoint));
     this.pendingPayouts = [];
+    this.log('restore', { assetCount: this.assets.length });
     // Note: activities are reconstructed from serialized data if needed, but for now
     // we just clear the buffer since payouts are per-segment events
   }
 
   // ---- Private Helpers ----
+
+  private log(event: string, data?: Record<string, unknown>): void {
+    if (!this.debugLogger) return;
+    this.debugLogger.log(this.simNumber, { component: 'asset-manager', event, ...data });
+  }
 
   /**
    * Apply appreciation or depreciation to asset value
@@ -189,11 +201,14 @@ export class AssetManager {
       return;
     }
 
+    const oldValue = state.value;
+
     if (asset.depreciationSchedule) {
       // Depreciation schedule mode
       const ageIndex = Math.min(state.age, asset.depreciationSchedule.length - 1);
       const depreciationRate = asset.depreciationSchedule[ageIndex];
       state.value *= 1 - depreciationRate;
+      this.log('depreciation-applied', { asset: asset.name, year, rate: depreciationRate, age: state.age, oldValue, newValue: state.value });
     } else if (asset.appreciationIsVariable && asset.appreciationVariable) {
       // Variable appreciation mode
       let appreciationRate = 0;
@@ -202,6 +217,7 @@ export class AssetManager {
         // MC mode: use sampled rate
         const rate = this.mcRateGetter(MonteCarloSampleType.HOME_APPRECIATION, year);
         appreciationRate = rate ?? 0;
+        this.log('mc-appreciation', { asset: asset.name, year, rate: appreciationRate });
       } else {
         // Deterministic mode: load variable value
         try {
@@ -213,12 +229,15 @@ export class AssetManager {
           // Variable not found, default to 0
           appreciationRate = 0;
         }
+        this.log('variable-appreciation', { asset: asset.name, year, variable: asset.appreciationVariable, rate: appreciationRate });
       }
 
       state.value *= 1 + appreciationRate;
+      this.log('appreciation-applied', { asset: asset.name, year, rate: appreciationRate, oldValue, newValue: state.value });
     } else if (asset.appreciation !== 0) {
       // Static appreciation mode
       state.value *= 1 + asset.appreciation;
+      this.log('appreciation-applied', { asset: asset.name, year, rate: asset.appreciation, oldValue, newValue: state.value });
     }
   }
 
@@ -232,13 +251,17 @@ export class AssetManager {
     let shouldReplace = false;
 
     if (this.prng) {
-      // MC mode: sample from failure distribution
+      // MC mode: sample from failure distribution using conditional probability
+      // Years <= checkpointYear are already skipped by processYearBoundary,
+      // so this only fires for future years where the asset has survived to current age
       const conditionalProb = this.getConditionalFailureProbability(cycle.distribution, state.age);
       const random = this.prng();
       shouldReplace = random < conditionalProb;
+      this.log('replacement-roll', { asset: asset.name, year, age: state.age, conditionalProb, random, triggered: shouldReplace });
     } else {
       // Deterministic mode: replace at expectedYears
       shouldReplace = state.age >= cycle.expectedYears;
+      this.log('replacement-deterministic', { asset: asset.name, year, age: state.age, expectedYears: cycle.expectedYears, triggered: shouldReplace });
     }
 
     if (shouldReplace) {
@@ -280,7 +303,9 @@ export class AssetManager {
    */
   private executeReplacement(asset: Asset, state: AssetState, year: number, cycle: ReplacementCycleData): void {
     // Compute base cost with inflation adjustment if needed
+    const rawCost = cycle.cost;
     let cost = cycle.cost;
+    let warrantyCovered = false;
 
     if (cycle.costIsVariable && cycle.costVariable) {
       try {
@@ -308,15 +333,21 @@ export class AssetManager {
       }
     }
 
+    const inflatedCost = cost;
+
     // Apply warranty: zero cost if still in warranty
     if (cycle.warrantyYears > 0 && state.age <= cycle.warrantyYears) {
       cost = 0;
+      warrantyCovered = true;
     }
 
     // Apply trade-in: depreciated value offsets cost
+    const tradeInValue = state.value;
     if (cycle.tradeInValue) {
       cost = Math.max(0, cost - state.value);
     }
+
+    const finalCost = cost;
 
     // Create expense activity
     const activityId = uuidv4();
@@ -346,5 +377,7 @@ export class AssetManager {
     // Reset asset state after replacement
     state.age = 0;
     state.value = cost; // New value is the replacement cost paid
+
+    this.log('replacement-executed', { asset: asset.name, year, age: state.age, rawCost, inflatedCost, warrantyCovered, tradeInValue, finalCost, newValue: state.value });
   }
 }

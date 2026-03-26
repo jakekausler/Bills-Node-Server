@@ -14,7 +14,7 @@ function createTestAsset(overrides?: Partial<Parameters<typeof Asset>[0]>): Asse
     purchaseDate: '2020-01-01',
     purchasePrice: 100000,
     currentValue: 100000,
-    currentValueDate: '2026-01-01',
+    currentValueDate: '2024-01-01',
     appreciation: 0.03,
     appreciationIsVariable: false,
     appreciationVariable: null,
