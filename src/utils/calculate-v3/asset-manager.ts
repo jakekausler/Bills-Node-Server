@@ -110,6 +110,13 @@ export class AssetManager {
       const state = this.assetStates.get(asset.id);
       if (!state) continue;
 
+      // Skip year boundaries before the asset's checkpoint date
+      // The currentAge and currentValue already reflect state as of currentValueDate
+      const checkpointYear = asset.currentValueDate instanceof Date
+        ? asset.currentValueDate.getUTCFullYear()
+        : new Date(asset.currentValueDate + 'T12:00:00Z').getUTCFullYear();
+      if (year <= checkpointYear) continue;
+
       // 1. Apply appreciation or depreciation
       this.applyValueChange(asset, state, year);
 
