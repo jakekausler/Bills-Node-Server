@@ -261,7 +261,7 @@ async function runDeterministicCalculation(
 
     // Check detCache — the deterministic result is the same for all accounts,
     // so we always request perAccount data and cache the full result.
-    const detCacheKey = `${fileData.metadata.startDate}:${fileData.metadata.endDate}:Default`;
+    const detCacheKey = `${fileData.metadata.startDate}:${fileData.metadata.endDate}:Default:${excludeAssets ? 'noAssets' : 'withAssets'}`;
     const cachedDet = detCache.get(detCacheKey);
     if (cachedDet) {
       // Return from cache, filtering perAccount based on caller's needs
