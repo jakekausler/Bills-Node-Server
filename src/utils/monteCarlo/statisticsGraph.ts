@@ -3,6 +3,7 @@ import { join } from 'path';
 import { FilteredAccount, FilteredActivity } from './types';
 import { loadData } from '../io/accountsAndTransfers';
 import { MC_RESULTS_DIR } from './paths';
+import { getLastAssetManager } from '../calculate-v3/engine';
 
 // Module-level cache for deterministic results, keyed by `{startDate}:{endDate}:{simulation}`
 // The deterministic result is the same regardless of which account is selected,
@@ -308,6 +309,29 @@ async function runDeterministicCalculation(
 
     // Always compute with perAccount so we can cache the full result
     const detResult = calculateYearlyMinBalances(filteredAccounts, true);
+
+    // Merge asset values into deterministic results (same pattern as MC worker)
+    const assetManager = getLastAssetManager();
+    if (assetManager && !excludeAssets) {
+      const yearlySnapshots = assetManager.getYearlySnapshots();
+      for (const [year, assetValues] of yearlySnapshots) {
+        // Add to perAccount
+        if (detResult.perAccount) {
+          if (!detResult.perAccount[year]) {
+            detResult.perAccount[year] = {};
+          }
+          for (const [assetId, value] of assetValues) {
+            detResult.perAccount[year][`asset:${assetId}`] = value;
+          }
+        }
+        // Add to combined
+        if (detResult.combined[year] !== undefined) {
+          for (const [_, value] of assetValues) {
+            detResult.combined[year] += value;
+          }
+        }
+      }
+    }
 
     // Cache the full result (always with perAccount)
     detCache.set(detCacheKey, detResult);
