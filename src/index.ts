@@ -15,6 +15,7 @@ import {
   changeAccountForActivity,
 } from './api/accounts/activity/specificActivity';
 import { getAccountBills, addBill } from './api/accounts/bills/bills';
+import { getAllBills } from './api/bills/bills';
 import {
   getSpecificBill,
   updateSpecificBill,
@@ -280,6 +281,11 @@ app
 // Calendar routes
 app.get('/api/calendar/bills', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getCalendarBills(req));
+}));
+
+// Cross-account bills route
+app.get('/api/bills', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  res.json(await getAllBills(req));
 }));
 
 // Interest routes
