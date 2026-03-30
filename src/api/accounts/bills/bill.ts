@@ -27,7 +27,16 @@ async function getBillAsActivity(request: Request, data: any) {
       return a.serialize();
     }
   }
-  return null;
+  // Fallback: consolidated activity window didn't include this bill occurrence.
+  // Build activity data directly from the bill.
+  let bill: Bill | undefined;
+  if (data.isTransfer) {
+    bill = data.accountsAndTransfers.transfers.bills.find((b: Bill) => b.id === request.params.billId);
+  } else {
+    bill = account.bills.find((b: Bill) => b.id === request.params.billId);
+  }
+  if (!bill) return null;
+  return bill.toActivity(bill.id, data.simulation, bill.amount as any, bill.startDate).serialize();
 }
 
 async function getBillAsBill(request: Request, data: any) {
