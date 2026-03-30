@@ -15,7 +15,7 @@ import {
   changeAccountForActivity,
 } from './api/accounts/activity/specificActivity';
 import { getAccountBills, addBill } from './api/accounts/bills/bills';
-import { getAllBills } from './api/bills/bills';
+import { getAllBills, bulkDeleteBills, bulkChangeBillAccount } from './api/bills/bills';
 import {
   getSpecificBill,
   updateSpecificBill,
@@ -286,6 +286,14 @@ app.get('/api/calendar/bills', verifyToken, asyncHandler(async (req: Request, re
 // Cross-account bills route
 app.get('/api/bills', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getAllBills(req));
+}));
+
+app.route('/api/bills/bulk-delete').post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  res.json(await bulkDeleteBills(req));
+}));
+
+app.route('/api/bills/bulk-change-account').post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  res.json(await bulkChangeBillAccount(req));
 }));
 
 // Interest routes
