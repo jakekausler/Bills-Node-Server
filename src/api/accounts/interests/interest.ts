@@ -41,6 +41,8 @@ export async function updateSpecificInterest(request: Request) {
   const data = await getData(request);
   if (data.asActivity) {
     return updateInterestAsActivity(request, data);
+  } else if (data.skip) {
+    return skipInterest(request, data);
   } else {
     return updateInterestAsInterest(request, data);
   }
@@ -50,6 +52,17 @@ async function updateInterestAsActivity(request: Request, data: any) {
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   const interest = getById<Interest>(account.interests, request.params.interestId);
   insertInterest(account, interest, data.data, data.simulation);
+  saveData(data.accountsAndTransfers);
+  return interest.id;
+}
+
+async function skipInterest(request: Request, data: any) {
+  const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
+  const interest = getById<Interest>(account.interests, request.params.interestId);
+  interest.advance();
+  account.interests = account.interests.filter(
+    (i) => i.id === interest.id || i.applicableDate > interest.applicableDate,
+  );
   saveData(data.accountsAndTransfers);
   return interest.id;
 }

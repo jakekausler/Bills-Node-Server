@@ -27,6 +27,7 @@ export async function addInterest(request: Request) {
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
   const interest = new Interest(data.data);
   account.interests.push(interest);
+  account.interests.sort((a: any, b: any) => a.applicableDate.getTime() - b.applicableDate.getTime());
   saveData(data.accountsAndTransfers);
   return interest.id;
 }
@@ -41,7 +42,9 @@ export async function updateInterest(request: Request) {
   // TODO (tech debt - no tracker item): Skip is not implemented
   const data = await getData<InterestData[]>(request);
   const account = getById<Account>(data.accountsAndTransfers.accounts, request.params.accountId);
-  account.interests = data.data.map((interest) => new Interest(interest));
+  account.interests = data.data
+    .map((interest: any) => new Interest(interest, data.simulation))
+    .sort((a: any, b: any) => a.applicableDate.getTime() - b.applicableDate.getTime());
   saveData(data.accountsAndTransfers);
   return account.interests.map((interest) => interest.id);
 }

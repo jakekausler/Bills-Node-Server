@@ -767,18 +767,19 @@ export class Timeline {
 
   private generateInterestEvents(account: Account, interests: Interest[], endDate: Date): void {
     let nextApplicableDate = endDate;
-    for (let i = 0; i < account.interests.length; i++) {
+    for (let i = 0; i < interests.length; i++) {
       if (interests[i + 1]) {
         nextApplicableDate = interests[i + 1].applicableDate;
       } else {
         nextApplicableDate = endDate;
       }
       const interest = interests[i];
+      if (!interest || !interest.compounded) continue;
       let currentDate = interest.applicableDate;
       let eventCount = 0;
       // For all but the last interest config, use strict less-than to avoid boundary overlap
       // The last config uses <= since there's no next config to hand off to
-      const isLastConfig = i === account.interests.length - 1;
+      const isLastConfig = i === interests.length - 1;
       while (isLastConfig ? currentDate <= nextApplicableDate : currentDate < nextApplicableDate) {
         // Skip interest events before portfolio cutoff date
         if (this.cutoffDates?.has(account.id)) {

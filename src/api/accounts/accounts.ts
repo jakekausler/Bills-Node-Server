@@ -1,10 +1,28 @@
 import { Request } from 'express';
+import { readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { Account, todayBalance } from '../../data/account/account';
 import { AccountData } from '../../data/account/types';
 import { saveData } from '../../utils/io/accountsAndTransfers';
 import { getData } from '../../utils/net/request';
-import { parseDate } from '../../utils/date/date';
+import { parseDate, formatDate } from '../../utils/date/date';
 import { DateString } from '../../utils/date/types';
+import { Interest } from '../../data/interest/interest';
+import type { InterestData } from '../../data/interest/types';
+
+function loadPortfolioConfigs(): Record<string, any> {
+  try {
+    const configPath = join(process.cwd(), 'data', 'accountPortfolioConfigs.json');
+    return JSON.parse(readFileSync(configPath, 'utf-8'));
+  } catch {
+    return {};
+  }
+}
+
+function savePortfolioConfigs(configs: Record<string, any>): void {
+  const configPath = join(process.cwd(), 'data', 'accountPortfolioConfigs.json');
+  writeFileSync(configPath, JSON.stringify(configs, null, 2));
+}
 
 /**
  * Retrieves simplified account data for all accounts
@@ -15,9 +33,11 @@ export async function getSimpleAccounts(request: Request) {
   const data = await getData(request, {
     defaultStartDate: new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1)),
   });
+  const configs = loadPortfolioConfigs();
   return data.accountsAndTransfers.accounts.map((account) => {
     const simpleAccount = account.simpleAccount();
     simpleAccount.balance = todayBalance(account);
+    (simpleAccount as any).portfolioConfig = configs[account.id] ?? null;
     return simpleAccount;
   });
 }
@@ -101,11 +121,11 @@ function updateAccountPullPushSettings(account: Account, newAccount: AccountData
   if (newAccount.performsPushes !== account.performsPushes) {
     account.performsPushes = newAccount.performsPushes || false;
   }
-  if (newAccount.pushStart !== account.pushStart) {
-    account.pushStart = parseDate(newAccount.pushStart as DateString) || null;
+  if (newAccount.pushStart !== undefined) {
+    account.pushStart = newAccount.pushStart ? parseDate(newAccount.pushStart as DateString) : null;
   }
-  if (newAccount.pushEnd !== account.pushEnd) {
-    account.pushEnd = parseDate(newAccount.pushEnd as DateString) || null;
+  if (newAccount.pushEnd !== undefined) {
+    account.pushEnd = newAccount.pushEnd ? parseDate(newAccount.pushEnd as DateString) : null;
   }
   if (newAccount.pushAccount !== account.pushAccount) {
     account.pushAccount = newAccount.pushAccount || null;
@@ -124,11 +144,34 @@ function updateRetirementSettings(account: Account, newAccount: AccountData): vo
   if (newAccount.usesRMD !== account.usesRMD) {
     account.usesRMD = newAccount.usesRMD || false;
   }
-  if (newAccount.accountOwnerDOB !== account.accountOwnerDOB) {
-    account.accountOwnerDOB = parseDate(newAccount.accountOwnerDOB as DateString) || null;
+  if (newAccount.accountOwnerDOB !== undefined) {
+    account.accountOwnerDOB = newAccount.accountOwnerDOB ? parseDate(newAccount.accountOwnerDOB as DateString) : null;
   }
   if (newAccount.rmdAccount !== account.rmdAccount) {
     account.rmdAccount = newAccount.rmdAccount || null;
+  }
+}
+
+/**
+ * Updates fields that were previously missing from the update handler
+ * @param account - Current account instance
+ * @param newAccount - New account data
+ */
+function updateMissingFields(account: Account, newAccount: AccountData): void {
+  if (newAccount.person !== undefined && newAccount.person !== account.person) {
+    account.person = newAccount.person;
+  }
+  if (newAccount.rothOpenDate !== undefined) {
+    const existingRothDateStr = account.rothOpenDate ? formatDate(account.rothOpenDate) : null;
+    if (newAccount.rothOpenDate !== existingRothDateStr) {
+      account.rothOpenDate = newAccount.rothOpenDate ? parseDate(newAccount.rothOpenDate as DateString) : null;
+    }
+  }
+  if (newAccount.contributionLimitType !== undefined && newAccount.contributionLimitType !== account.contributionLimitType) {
+    account.contributionLimitType = newAccount.contributionLimitType ?? null;
+  }
+  if (newAccount.expenseRatio !== undefined && newAccount.expenseRatio !== account.expenseRatio) {
+    account.expenseRatio = newAccount.expenseRatio ?? 0;
   }
 }
 
@@ -137,11 +180,32 @@ function updateRetirementSettings(account: Account, newAccount: AccountData): vo
  * @param account - Current account instance
  * @param newAccount - New account data
  */
-function updateSingleAccount(account: Account, newAccount: AccountData): void {
+function updateSingleAccount(account: Account, newAccount: AccountData, simulation: string = 'Default'): void {
   updateBasicAccountProperties(account, newAccount);
   updateAccountTaxSettings(account, newAccount);
   updateAccountPullPushSettings(account, newAccount);
   updateRetirementSettings(account, newAccount);
+  updateMissingFields(account, newAccount);
+
+  // Replace interests if provided in the update payload
+  if (newAccount.interests !== undefined) {
+    account.interests = newAccount.interests
+      .map((interest) => new Interest(interest, simulation))
+      .sort((a, b) => a.applicableDate.getTime() - b.applicableDate.getTime());
+  }
+
+  // Update portfolio config if provided
+  if ((newAccount as any).portfolioConfig !== undefined) {
+    const configs = loadPortfolioConfigs();
+    const portfolioConfig = (newAccount as any).portfolioConfig;
+    if (portfolioConfig === null || portfolioConfig.glidePath === 'none') {
+      // Remove portfolio config when set to "none" (use interest-based rates)
+      delete configs[account.id];
+    } else {
+      configs[account.id] = portfolioConfig;
+    }
+    savePortfolioConfigs(configs);
+  }
 }
 
 /**
@@ -155,7 +219,7 @@ export async function updateAccounts(request: Request) {
   data.accountsAndTransfers.accounts.forEach((account) => {
     const newAccount = data.data.find((a) => a.id === account.id);
     if (newAccount) {
-      updateSingleAccount(account, newAccount);
+      updateSingleAccount(account, newAccount, data.simulation);
     }
   });
 
