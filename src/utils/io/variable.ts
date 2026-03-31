@@ -34,7 +34,9 @@ export function loadVariables(simulation: string): Variables {
 
   for (const row of rows) {
     if (Object.keys(row).length > 1) {
-      variables[row['variable']] = loadVariableValue(row[simulation]);
+      if (row[simulation] !== undefined && row[simulation] !== '') {
+        variables[row['variable']] = loadVariableValue(row[simulation]);
+      }
     }
   }
 
