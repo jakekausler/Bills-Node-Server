@@ -27,8 +27,9 @@ import { getSpecificInterest, updateSpecificInterest, deleteSpecificInterest } f
 import { getCalendarBills } from './api/calendar/bills';
 import { getConsolidatedActivity } from './api/accounts/consolidatedActivity/consolidatedActivity';
 import { getSpecificConsolidatedActivity } from './api/accounts/consolidatedActivity/specificConsolidatedActivity';
-import { getCategories, addCategory, deleteCategory } from './api/categories/categories';
+import { getCategories, addCategory, deleteCategory, renameCategory } from './api/categories/categories';
 import { getCategoryBreakdown } from './api/categories/breakdown';
+import { getCategoryUsage } from './api/categories/usage';
 import { getCategorySectionItemTransactions } from './api/categories/section/item/transactions';
 import { getSimulations, updateSimulations } from './api/simulations/simulations';
 import { getUsedVariables } from './api/simulations/usedVariables';
@@ -343,12 +344,19 @@ app
   .post(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await addCategory(req));
   }))
+  .put(verifyToken, asyncHandler(async (req: Request, res: Response) => {
+    res.json(await renameCategory(req));
+  }))
   .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await deleteCategory(req));
   }));
 
 app.get('/api/categories/breakdown', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getCategoryBreakdown(req));
+}));
+
+app.get('/api/categories/usage', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  res.json(await getCategoryUsage(req));
 }));
 
 app.get('/api/categories/:section/transactions', verifyToken, asyncHandler(async (req: Request, res: Response) => {

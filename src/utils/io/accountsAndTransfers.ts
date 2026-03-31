@@ -111,8 +111,9 @@ export function getAccountsAndTransfers(simulation: string): AccountsAndTransfer
  * resets the cache to ensure fresh data on next load.
  *
  * @param data - The accounts and transfers data to save
+ * @param simulation - The simulation name to use (defaults to 'Default')
  */
-export function saveData(data: AccountsAndTransfers) {
+export function saveData(data: AccountsAndTransfers, simulation: string = 'Default') {
   const accounts = data.accounts.map((account) => account.serialize());
   const transfers = {
     activity: data.transfers.activity.map((transfer) => transfer.serialize()),
@@ -120,5 +121,5 @@ export function saveData(data: AccountsAndTransfers) {
   };
   save<AccountsAndTransfersData>({ accounts, transfers }, `${FILE_NAME}.json`);
   clearDataCache();
-  resetCache();
+  resetCache(simulation);
 }
