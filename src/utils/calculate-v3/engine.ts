@@ -777,7 +777,12 @@ export class Engine {
 
         // Process asset year-boundary events (appreciation/depreciation/replacement)
         if (this.assetManager) {
-          this.assetManager.processYearBoundary(segmentYear);
+          const allDead = this.mortalityManager && this.mortalityManager.allDeceased();
+          if (allDead) {
+            this.log('asset-skipped-all-deceased', { year: segmentYear });
+          } else {
+            this.assetManager.processYearBoundary(segmentYear);
+          }
         }
 
         // Flush buffered payouts to calculator for injection during segment processing
@@ -828,6 +833,10 @@ export class Engine {
    */
   private evaluateJobLossAtYearBoundary(year: number, accountsAndTransfers: AccountsAndTransfers): void {
     if (!this.monteCarloConfig || !this.calculator) return;
+    if (this.mortalityManager && this.mortalityManager.allDeceased()) {
+      this.log('job-loss-skipped-all-deceased', { year });
+      return;
+    }
 
     // Get the PRNG from the MC config
     if (!this.monteCarloConfig.handler) return;
@@ -929,12 +938,20 @@ export class Engine {
 
   private evaluateInheritanceAtYearBoundary(year: number): void {
     if (!this.inheritanceManager) return;
+    if (this.mortalityManager && this.mortalityManager.allDeceased()) {
+      this.log('inheritance-skipped-all-deceased', { year });
+      return;
+    }
     const prng = this.monteCarloConfig?.handler?.getPRNG() ?? undefined;
     this.inheritanceManager.evaluateYear(year, prng);
   }
 
   private evaluateLifeInsuranceAtYearBoundary(year: number, accountsAndTransfers: AccountsAndTransfers): void {
     if (!this.lifeInsuranceManager) return;
+    if (this.mortalityManager && this.mortalityManager.allDeceased()) {
+      this.log('life-insurance-skipped-all-deceased', { year });
+      return;
+    }
 
     const currentSalaries = new Map<string, number>();
     const retirementDates = new Map<string, Date>();
@@ -1028,6 +1045,11 @@ export class Engine {
 /**
  * Convenience function for performing calculations
  */
+export interface CalculationResult {
+  accountsAndTransfers: AccountsAndTransfers;
+  engine: Engine;
+}
+
 export async function calculateAllActivity(
   accountsAndTransfers: AccountsAndTransfers,
   startDate: Date | null,
@@ -1061,6 +1083,44 @@ export async function calculateAllActivity(
 
   const result = await engine.calculate(accountsAndTransfers, options, timeline);
   return result;
+}
+
+export async function calculateAllActivityWithEngine(
+  accountsAndTransfers: AccountsAndTransfers,
+  startDate: Date | null,
+  endDate: Date,
+  simulation: string = 'Default',
+  monteCarlo: boolean = false,
+  simulationNumber: number = 1,
+  totalSimulations: number = 1,
+  forceRecalculation: boolean = false,
+  enableLogging: boolean = false,
+  config: Partial<CalculationConfig> = {},
+  timeline?: Timeline,
+  seed?: number,
+  debugLogger?: DebugLogger | null,
+): Promise<CalculationResult> {
+  const engine = new Engine(simulation, config, monteCarlo, debugLogger);
+
+  const options: CalculationOptions = {
+    startDate,
+    endDate,
+    simulation,
+    monteCarlo,
+    simulationNumber,
+    totalSimulations,
+    forceRecalculation,
+    enableLogging,
+    config,
+    seed,
+    debugLogger: debugLogger ?? null,
+  };
+
+  const accountsAndTransfersResult = await engine.calculate(accountsAndTransfers, options, timeline);
+  return {
+    accountsAndTransfers: accountsAndTransfersResult,
+    engine,
+  };
 }
 
 /**

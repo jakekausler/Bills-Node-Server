@@ -17,6 +17,8 @@ import { LongevityDataPoint, computeLongevityAnalysis } from '../../utils/monteC
 import { SequenceOfReturnsData, loadAndComputeSequenceOfReturns } from '../../utils/monteCarlo/sequenceOfReturns';
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
+import { loadVariables } from '../../utils/io/variable';
+import dayjs from 'dayjs';
 
 // In-memory caches — cleared on simulation delete (invalidateGraphCache) and POST /api/cache/clear (clearAllGraphCache).
 // No size limit or TTL — acceptable for typical usage (few simulations, bounded key space).
@@ -168,6 +170,7 @@ export async function getSimulationGraph(req: Request): Promise<PercentileGraphD
   const accountId = req.query.account as string | undefined;
   const survivingOnly = req.query.survivingOnly === 'true';
   const excludeAssets = req.query.excludeAssets === 'true';
+  const survivingYearsOnly = req.query.survivingYearsOnly === 'true';
 
   if (!id) {
     throw new Error('Simulation ID is required');
@@ -181,8 +184,8 @@ export async function getSimulationGraph(req: Request): Promise<PercentileGraphD
     throw new Error(`Simulation with ID ${id} is not yet completed`);
   }
 
-  // Check cache (include survivingOnly and excludeAssets in key)
-  const cacheKey = `${id}:${accountId || 'combined'}:${survivingOnly ? 'surviving' : 'all'}:${excludeAssets ? 'noAssets' : 'assets'}`;
+  // Check cache (include survivingOnly, excludeAssets, and survivingYearsOnly in key)
+  const cacheKey = `${id}:${accountId || 'combined'}:${survivingOnly ? 'surviving' : 'all'}:${excludeAssets ? 'noAssets' : 'assets'}:${survivingYearsOnly ? 'survivingYears' : 'allYears'}`;
   const cached = graphCache.get(cacheKey);
   if (cached) {
     return cached;
@@ -190,7 +193,7 @@ export async function getSimulationGraph(req: Request): Promise<PercentileGraphD
 
   // Compute on-demand
   try {
-    const graphData = await computePercentileGraph(id, accountId, survivingOnly, excludeAssets);
+    const graphData = await computePercentileGraph(id, accountId, survivingOnly, excludeAssets, survivingYearsOnly);
     graphCache.set(cacheKey, graphData);
     return graphData;
   } catch (error) {
@@ -454,9 +457,32 @@ export async function getLongevityData(req: Request): Promise<LongevityDataPoint
     return cached;
   }
 
+  // Load birth years from simulation variables
+  const simulation = (req.query.simulation as string) || 'Default';
+  let personBirthYears: Record<string, number> | undefined;
+  try {
+    const variables = loadVariables(simulation);
+    const birthYearMap: Record<string, number> = {};
+    for (const [key, entry] of Object.entries(variables)) {
+      if (key.endsWith('_BIRTH_DATE') && entry.value) {
+        const rawName = key.replace('_BIRTH_DATE', '');
+        const personName = rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase();
+        const parsed = dayjs(String(entry.value));
+        if (parsed.isValid()) {
+          birthYearMap[personName] = parsed.year();
+        }
+      }
+    }
+    if (Object.keys(birthYearMap).length > 0) {
+      personBirthYears = birthYearMap;
+    }
+  } catch {
+    // Fall back to heuristic if variables can't be loaded
+  }
+
   // Compute on-demand
   try {
-    const result = await computeLongevityAnalysis(id);
+    const result = await computeLongevityAnalysis(id, personBirthYears);
     longevityCache.set(id, result);
     return result;
   } catch (error) {

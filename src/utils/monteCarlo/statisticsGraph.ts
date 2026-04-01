@@ -210,6 +210,24 @@ function hasAnyoneSurvivingInYear(deathDates: Record<string, string | null> | un
 }
 
 /**
+ * Get the year when all modeled persons have died
+ * Returns null if anyone survives to the end of the simulation
+ */
+function getYearWhenAllDead(deathDates: Record<string, string | null> | undefined): number | null {
+  if (!deathDates) return null;
+  let maxDeathYear: number | null = null;
+  for (const deathDateStr of Object.values(deathDates)) {
+    if (deathDateStr === null) return null; // Someone still alive
+    const year = parseInt(deathDateStr.substring(0, 4), 10);
+    if (isNaN(year)) return null;
+    if (maxDeathYear === null || year > maxDeathYear) {
+      maxDeathYear = year;
+    }
+  }
+  return maxDeathYear;
+}
+
+/**
  * Processes all simulations to return pre-computed yearly minimum balances
  * Results file now contains aggregated simulation data (yearly min balances only)
  */
@@ -379,6 +397,7 @@ export async function computePercentileGraph(
   accountId?: string,
   survivingOnly: boolean = false,
   excludeAssets: boolean = false,
+  survivingYearsOnly: boolean = false,
 ): Promise<PercentileGraphData> {
   const PERCENTILES = [0, 5, 25, 40, 50, 60, 75, 95, 100];
 
@@ -437,14 +456,57 @@ export async function computePercentileGraph(
     });
   }
 
+  // Truncate per-sim data at the year both persons die (remove post-death years)
+  if (survivingYearsOnly) {
+    simulationData = simulationData.map((sim) => {
+      const deathYear = getYearWhenAllDead(sim.deathDates);
+      if (deathYear === null) return sim; // Someone survives to end, keep all data
+
+      const truncatedBalances: Record<number, number> = {};
+      for (const [year, balance] of Object.entries(sim.yearlyMinBalances)) {
+        const y = parseInt(year);
+        if (y <= deathYear) {
+          truncatedBalances[y] = balance;
+        }
+      }
+
+      const truncatedAccountBalances: Record<number, Record<string, number>> = {};
+      if (sim.yearlyAccountBalances) {
+        for (const [year, accounts] of Object.entries(sim.yearlyAccountBalances)) {
+          const y = parseInt(year);
+          if (y <= deathYear) {
+            truncatedAccountBalances[y] = accounts;
+          }
+        }
+      }
+
+      return {
+        ...sim,
+        yearlyMinBalances: truncatedBalances,
+        yearlyAccountBalances: Object.keys(truncatedAccountBalances).length > 0 ? truncatedAccountBalances : sim.yearlyAccountBalances,
+      };
+    });
+  }
+
   // Load metadata for seed and account names
   const metadata = loadResultsMetadata(simulationId);
 
   // #9: Compute funded ratio and failure statistics
   const totalSims = simulationData.length;
-  const failedSims = simulationData.filter(
-    (s) => s.fundingFailureYear !== null && s.fundingFailureYear !== undefined,
-  ).length;
+  let failedSims = 0;
+  for (const sim of simulationData) {
+    if (sim.fundingFailureYear !== null && sim.fundingFailureYear !== undefined) {
+      // When survivingYearsOnly, don't count failures that occur after both persons died
+      if (survivingYearsOnly && sim.fundingFailureYear) {
+        const deathYear = getYearWhenAllDead(sim.deathDates);
+        if (deathYear !== null && sim.fundingFailureYear > deathYear) {
+          // Failure happened post-death, don't count it
+          continue;
+        }
+      }
+      failedSims++;
+    }
+  }
   const fundedRatio = ((totalSims - failedSims) / totalSims) * 100;
 
   const failureYears = simulationData

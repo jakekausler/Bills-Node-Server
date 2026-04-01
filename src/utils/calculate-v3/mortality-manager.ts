@@ -291,6 +291,21 @@ export class MortalityManager {
     monthIndex: number,
     random: () => number,
   ): void {
+    // If this person has a recorded death date, they're permanently dead
+    // This prevents segment reprocessing from re-rolling Markov transitions
+    const recordedDeath = this.deathDates.get(personName);
+    if (recordedDeath) {
+      const state = this.personStates.get(personName);
+      if (state) {
+        const previousState = state.currentState;
+        if (previousState !== 'deceased') {
+          state.currentState = 'deceased';
+          this.log('death-permanence-enforced', { person: personName, previousState });
+        }
+      }
+      return;
+    }
+
     if (this.isDeceased(personName)) return;
 
     const state = this.personStates.get(personName);
@@ -666,10 +681,43 @@ export class MortalityManager {
    */
   allDeceased(): boolean {
     if (this.personStates.size === 0) return false;
+
+    // Primary check: all person states are deceased
+    let allStatesDeceased = true;
     for (const [, state] of this.personStates) {
-      if (state.currentState !== 'deceased') return false;
+      if (state.currentState !== 'deceased') {
+        allStatesDeceased = false;
+        break;
+      }
     }
-    return true;
+    if (allStatesDeceased) return true;
+
+    // Fallback: check if all tracked persons have recorded death dates
+    // AND the current date is past all death dates
+    // This handles edge cases where state transitions may be out of sync
+    if (this.personStates.size > 0) {
+      let allHaveDeathDates = true;
+      for (const [person] of this.personStates) {
+        const deathDate = this.deathDates.get(person);
+        if (!deathDate) {
+          allHaveDeathDates = false;
+          break;
+        }
+        // If we have a current date context, check if we're past the death date
+        if (this.currentDate && this.currentDate.length > 0) {
+          const currentDateObj = new Date(this.currentDate);
+          if (deathDate > currentDateObj) {
+            allHaveDeathDates = false;
+            break;
+          }
+        }
+      }
+      // Only trust death dates if we have a current date to compare against
+      if (!this.currentDate || this.currentDate.length === 0) allHaveDeathDates = false;
+      if (allHaveDeathDates) return true;
+    }
+
+    return false;
   }
 
   /**
@@ -760,6 +808,21 @@ export class MortalityManager {
    */
   evaluateAnnualMortality(person: string, age: number, gender: 'male' | 'female', date: Date, random: () => number): void {
     this.log('annual-mortality-eval-start', { person, age, gender, isDeceased: this.isDeceased(person) });
+
+    // If this person has a recorded death date, they're permanently dead
+    // This prevents segment reprocessing from re-rolling Markov transitions
+    const recordedDeath = this.deathDates.get(person);
+    if (recordedDeath) {
+      const state = this.personStates.get(person);
+      if (state) {
+        const previousState = state.currentState;
+        if (previousState !== 'deceased') {
+          state.currentState = 'deceased';
+          this.log('death-permanence-enforced', { person, previousState });
+        }
+      }
+      return;
+    }
 
     if (this.isDeceased(person)) return;
     if (age >= 65) return; // Monthly checks handle 65+
@@ -856,10 +919,14 @@ export class MortalityManager {
         this.personStates.set(person, { ...state });
       }
 
-      // Restore death dates (convert ISO strings back to Dates)
-      this.deathDates.clear();
+      // Merge death dates — deaths are permanent, don't overwrite with pre-death checkpoint data
       for (const [person, dateStr] of Object.entries(data.deathDates)) {
-        this.deathDates.set(person, dateStr ? new Date(dateStr) : null);
+        const existing = this.deathDates.get(person);
+        if (!existing) {
+          this.deathDates.set(person, dateStr ? new Date(dateStr) : null);
+        } else {
+          this.log('death-date-preserved-on-restore', { person, existing: existing.toISOString().substring(0, 10), checkpointDate: dateStr });
+        }
       }
 
       // Restore person name mapping
@@ -895,6 +962,16 @@ export class MortalityManager {
       if (data.lastDeathCobraMonth) {
         for (const [person, month] of Object.entries(data.lastDeathCobraMonth)) {
           this.lastDeathCobraMonth.set(person, month);
+        }
+      }
+
+      // Force deceased state for anyone with a recorded death date
+      for (const [person, deathDate] of this.deathDates) {
+        if (deathDate && this.personStates.has(person)) {
+          const state = this.personStates.get(person)!;
+          if (state.currentState !== 'deceased') {
+            state.currentState = 'deceased';
+          }
         }
       }
     } catch (e) {

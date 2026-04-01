@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { DebugLogger } from './debug-logger';
 import type { MCRateGetter } from './types';
 import { MonteCarloSampleType } from './types';
+import { compoundMCInflation } from './mc-utils';
 import { ManagerPayout, createPayoutActivity } from './manager-payout';
 import { Asset } from '../../data/asset/asset';
 import type { FailureDistribution, ReplacementCycleData } from '../../data/asset/types';
@@ -351,24 +352,25 @@ export class AssetManager {
 
     if (cycle.costIsVariable && cycle.costVariable) {
       try {
-        let inflationRate = 0.0;
-
-        if (this.mcRateGetter) {
-          // MC mode: use sampled inflation rate
-          const rate = this.mcRateGetter(MonteCarloSampleType.INFLATION, year);
-          inflationRate = rate ?? 0;
-        } else {
-          // Deterministic mode: load inflation variable
+        // Load deterministic inflation rate as fallback
+        let fixedRate = 0.0;
+        try {
           const rate = loadVariable(cycle.costVariable, this.simulation);
           if (typeof rate === 'number') {
-            inflationRate = rate;
+            fixedRate = rate;
           }
+        } catch {
+          // Variable not found, default to 0
         }
 
-        // Inflate cost from asset's purchase year to current year
-        const yearsSinceBaseline = year - asset.purchaseDate.getFullYear();
-        if (yearsSinceBaseline > 0 && inflationRate !== 0) {
-          cost = cost * Math.pow(1 + inflationRate, yearsSinceBaseline);
+        // Inflate cost year-by-year from purchase year to current year
+        const baseYear = asset.purchaseDate.getFullYear();
+        if (year > baseYear) {
+          const multiplier = compoundMCInflation(
+            baseYear, year, fixedRate,
+            this.mcRateGetter ?? null, MonteCarloSampleType.INFLATION,
+          );
+          cost = cost * multiplier;
         }
       } catch (e) {
         // Variable not found, use base cost

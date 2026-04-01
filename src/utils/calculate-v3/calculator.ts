@@ -1534,6 +1534,19 @@ export class Calculator {
   }
 
   processInterestEvent(event: InterestEvent, segmentResult: SegmentResult): Map<string, number> {
+    if (this.mortalityManager && this.mortalityManager.allDeceased()) {
+      return new Map();
+    }
+
+    // Log when interest would have been processed after all persons deceased
+    if (this.mortalityManager) {
+      const deathDates = this.mortalityManager.getDeathDates();
+      const allDead = Object.values(deathDates).every(d => d !== null);
+      if (allDead && Object.keys(deathDates).length >= 2) {
+        this.log('interest-processed-with-all-deaths', { date: event.date.toISOString().substring(0, 10), allDeceased: this.mortalityManager.allDeceased() });
+      }
+    }
+
     const interest = event.originalInterest;
     const accountId = event.accountId;
     const account = this.balanceTracker.findAccountById(accountId);

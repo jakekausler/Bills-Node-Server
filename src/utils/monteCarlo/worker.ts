@@ -5,7 +5,7 @@ import { getAccountsAndTransfers } from '../io/accountsAndTransfers';
 import { WorkerData, WorkerMessage, FilteredActivity, FilteredAccount, AggregatedSimulationResult } from './types';
 import { Timeline } from '../calculate-v3/timeline';
 import { minDate } from '../io/minDate';
-import { calculateAllActivity, getLastPullFailures, getLastFlowAggregator, getLastMortalityManager, getLastInheritanceManager, getLastLifeInsuranceManager, getLastPortfolioManager, getLastAssetManager } from '../calculate-v3/engine';
+import { calculateAllActivityWithEngine } from '../calculate-v3/engine';
 import { calculateYearlyMinBalances } from './statisticsGraph';
 import { loadSpendingTrackerCategories } from '../io/spendingTracker';
 import { MonteCarloHandler } from '../calculate-v3/monte-carlo-handler';
@@ -170,7 +170,7 @@ async function runSingleSimulation(
       console.log(`🔍 [Worker] Created debug logger for sim ${simulationNumber} → ${data.debugLogDir}`);
     }
 
-    const results = await calculateAllActivity(
+    const { accountsAndTransfers: results, engine } = await calculateAllActivityWithEngine(
       accountsAndTransfers,
       startDate,
       endDate,
@@ -217,7 +217,7 @@ async function runSingleSimulation(
 
     // #9: Check for funding failure using actual pull failures from the engine
     // A pull failure occurs when the push/pull handler couldn't source enough funds
-    const pullFailures = getLastPullFailures();
+    const pullFailures = engine.getPullFailures();
     let fundingFailureYear: number | null = null;
 
     if (pullFailures.length > 0) {
@@ -248,21 +248,21 @@ async function runSingleSimulation(
     }
 
     // Extract flow aggregation data (only present in MC mode)
-    const flowAggregator = getLastFlowAggregator();
+    const flowAggregator = engine.getFlowAggregator();
     const yearlyFlows = flowAggregator ? flowAggregator.getYearlyFlows() : undefined;
 
     // Extract death dates from mortality manager
-    const mortalityManager = getLastMortalityManager();
+    const mortalityManager = engine.getMortalityManager();
     const deathDates = mortalityManager ? mortalityManager.getDeathDates() : undefined;
 
     // Extract inheritance and life insurance results
-    const inheritanceManager = getLastInheritanceManager();
-    const lifeInsuranceManager = getLastLifeInsuranceManager();
+    const inheritanceManager = engine.getInheritanceManager();
+    const lifeInsuranceManager = engine.getLifeInsuranceManager();
     const inheritanceResults = inheritanceManager ? inheritanceManager.getResults() : undefined;
     const lifeInsuranceResults = lifeInsuranceManager ? lifeInsuranceManager.getResults() : undefined;
 
     // Extract portfolio positions from PortfolioManager
-    const portfolioManager = getLastPortfolioManager();
+    const portfolioManager = engine.getPortfolioManager();
     const portfolioPositions = portfolioManager
       ? Object.fromEntries(
           Object.entries(portfolioManager.getAllPositions()).map(([accId, positions]) => [
@@ -279,7 +279,7 @@ async function runSingleSimulation(
 
     // Merge asset values into yearly account balances for ALL years
     // AssetManager stores per-year snapshots; we merge them with asset: prefixed keys
-    const assetManager = getLastAssetManager();
+    const assetManager = engine.getAssetManager();
     if (assetManager && balanceData.perAccount) {
       const yearlySnapshots = assetManager.getYearlySnapshots();
       for (const [year, assetValues] of yearlySnapshots) {
