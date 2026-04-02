@@ -86,6 +86,7 @@ import {
 } from './api/spendingTracker/spendingTracker';
 import { getTaxSummary } from './api/tax-summary';
 import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
+import { getBracketDataForYear } from './utils/calculate-v3/bracket-calculator';
 import type { PaycheckProfile } from './data/bill/paycheck-types';
 import { importQfx, importCsv, getLedger, getPositions } from './api/portfolio/import';
 import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint } from './api/portfolio/prices';
@@ -920,6 +921,24 @@ app.put('/api/tax/profile', verifyToken, asyncHandler(async (req: Request, res: 
   } catch (error) {
     console.error('Error saving tax profile:', error);
     res.status(500).json({ error: 'Failed to save tax profile' });
+  }
+}));
+
+// Tax brackets route
+app.get('/api/tax/brackets', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const year = Number(req.query.year ?? new Date().getFullYear());
+    const filingStatus = String(req.query.filingStatus ?? 'mfj') as 'single' | 'mfj' | 'mfs' | 'hoh';
+
+    const yearData = getBracketDataForYear(year, filingStatus, 0.03);
+
+    const brackets = yearData.brackets[filingStatus] ?? [];
+    const standardDeduction = yearData.standardDeduction[filingStatus] ?? 0;
+
+    res.json({ year, filingStatus, brackets, standardDeduction });
+  } catch (error) {
+    console.error('Error loading tax brackets:', error);
+    res.status(500).json({ error: 'Failed to load tax brackets' });
   }
 }));
 
