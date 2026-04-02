@@ -66,6 +66,7 @@ import { getMoneyMovementChart } from './api/moneyMovement/movement';
 import { loadHealthcareConfigs, saveHealthcareConfigs } from './utils/io/healthcareConfigs';
 import { loadAllHealthcareConfigs } from './utils/io/virtualHealthcarePlans';
 import { loadTaxProfile, saveTaxProfile } from './utils/io/taxProfile';
+import { loadTaxScenario, saveTaxScenario } from './utils/io/taxScenario';
 import { loadVariable } from './utils/simulation/variable';
 import { v4 as uuidv4 } from 'uuid';
 import { clearDataCache } from './utils/io/dataCache';
@@ -939,6 +940,27 @@ app.get('/api/tax/brackets', verifyToken, asyncHandler(async (req: Request, res:
   } catch (error) {
     console.error('Error loading tax brackets:', error);
     res.status(500).json({ error: 'Failed to load tax brackets' });
+  }
+}));
+
+app.get('/api/tax/scenario', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const scenario = loadTaxScenario();
+    res.json(scenario);
+  } catch (error) {
+    console.error('Error loading tax scenario:', error);
+    res.status(500).json({ error: 'Failed to load tax scenario' });
+  }
+}));
+
+app.put('/api/tax/scenario', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const scenario = req.body as import('./utils/io/taxScenario').TaxScenario;
+    saveTaxScenario(scenario);
+    res.json(scenario);
+  } catch (error) {
+    console.error('Error saving tax scenario:', error);
+    res.status(500).json({ error: 'Failed to save tax scenario' });
   }
 }));
 
