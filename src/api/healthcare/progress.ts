@@ -55,6 +55,12 @@ export async function getHealthcareProgress(
     return {};
   }
 
+  // Force start date to beginning of year to include all plan-year activities
+  // The progress calculation filters to the correct plan year window internally
+  if (!request.query.startDate) {
+    request.query.startDate = `${date.getUTCFullYear()}-01-01`;
+  }
+
   // Load data and run calculation
   const data = await getData(request);
   const { accountsAndTransfers, startDate, endDate } = data;
