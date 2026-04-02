@@ -67,6 +67,7 @@ import { loadHealthcareConfigs, saveHealthcareConfigs } from './utils/io/healthc
 import { loadAllHealthcareConfigs } from './utils/io/virtualHealthcarePlans';
 import { loadTaxProfile, saveTaxProfile } from './utils/io/taxProfile';
 import { loadTaxScenario, saveTaxScenario } from './utils/io/taxScenario';
+import { loadRawPensionAndSS, savePensionAndSS } from './utils/io/retirement';
 import { loadVariable } from './utils/simulation/variable';
 import { v4 as uuidv4 } from 'uuid';
 import { clearDataCache } from './utils/io/dataCache';
@@ -1024,6 +1025,224 @@ app.get('/api/tax/detail/:year', verifyToken, asyncHandler(async (req: Request, 
     res.json(await getTaxDetail(req));
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
+  }
+}));
+
+// ─── Helper: Transform pension/SS data for API responses ───
+function toApiPriorIncome(incomes: number[], years: number[]): { year: number; amount: number }[] {
+  return years.map((year, i) => ({ year, amount: incomes[i] ?? 0 }));
+}
+
+function fromApiPriorIncome(items: { year: number; amount: number }[]): { incomes: number[]; years: number[] } {
+  const sorted = [...items].sort((a, b) => a.year - b.year);
+  return {
+    incomes: sorted.map((i) => i.amount),
+    years: sorted.map((i) => i.year),
+  };
+}
+
+// ─── Pension Routes ───
+
+// GET /api/pensions — list all pensions
+app.get('/api/pensions', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const data = loadRawPensionAndSS();
+    const pensions = data.pensions.map((p) => ({
+      ...p,
+      priorIncome: toApiPriorIncome(p.priorAnnualNetIncomes, p.priorAnnualNetIncomeYears),
+    }));
+    res.json(pensions);
+  } catch (error) {
+    console.error('Error loading pensions:', error);
+    res.status(500).json({ error: 'Failed to load pensions' });
+  }
+}));
+
+// GET /api/pensions/:id — get single pension
+app.get('/api/pensions/:id', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const data = loadRawPensionAndSS();
+    const pension = data.pensions.find((p) => p.id === req.params.id);
+    if (!pension) return res.status(404).json({ error: 'Pension not found' });
+    res.json({
+      ...pension,
+      priorIncome: toApiPriorIncome(pension.priorAnnualNetIncomes, pension.priorAnnualNetIncomeYears),
+    });
+  } catch (error) {
+    console.error('Error loading pension:', error);
+    res.status(500).json({ error: 'Failed to load pension' });
+  }
+}));
+
+// POST /api/pensions — create pension
+app.post('/api/pensions', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const data = loadRawPensionAndSS();
+    const { priorIncome, ...rest } = req.body;
+    const { incomes, years } = fromApiPriorIncome(priorIncome || []);
+    const newPension = {
+      id: uuidv4(),
+      ...rest,
+      priorAnnualNetIncomes: incomes,
+      priorAnnualNetIncomeYears: years,
+    };
+    data.pensions.push(newPension);
+    savePensionAndSS(data);
+    clearRetirementCache();
+    res.json({
+      ...newPension,
+      priorIncome: toApiPriorIncome(newPension.priorAnnualNetIncomes, newPension.priorAnnualNetIncomeYears),
+    });
+  } catch (error) {
+    console.error('Error creating pension:', error);
+    res.status(500).json({ error: 'Failed to create pension' });
+  }
+}));
+
+// PUT /api/pensions/:id — update pension
+app.put('/api/pensions/:id', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const data = loadRawPensionAndSS();
+    const index = data.pensions.findIndex((p) => p.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Pension not found' });
+    const { priorIncome, ...rest } = req.body;
+    const { incomes, years } = fromApiPriorIncome(priorIncome || []);
+    data.pensions[index] = {
+      ...data.pensions[index],
+      ...rest,
+      id: req.params.id, // preserve id
+      priorAnnualNetIncomes: incomes,
+      priorAnnualNetIncomeYears: years,
+    };
+    savePensionAndSS(data);
+    clearRetirementCache();
+    res.json({
+      ...data.pensions[index],
+      priorIncome: toApiPriorIncome(data.pensions[index].priorAnnualNetIncomes, data.pensions[index].priorAnnualNetIncomeYears),
+    });
+  } catch (error) {
+    console.error('Error updating pension:', error);
+    res.status(500).json({ error: 'Failed to update pension' });
+  }
+}));
+
+// DELETE /api/pensions/:id — delete pension
+app.delete('/api/pensions/:id', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const data = loadRawPensionAndSS();
+    const index = data.pensions.findIndex((p) => p.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Pension not found' });
+    data.pensions.splice(index, 1);
+    savePensionAndSS(data);
+    clearRetirementCache();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting pension:', error);
+    res.status(500).json({ error: 'Failed to delete pension' });
+  }
+}));
+
+// ─── Social Security Routes ───
+
+// GET /api/social-securities — list all
+app.get('/api/social-securities', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const data = loadRawPensionAndSS();
+    const ssList = data.socialSecurities.map((ss) => ({
+      ...ss,
+      priorIncome: toApiPriorIncome(ss.priorAnnualNetIncomes, ss.priorAnnualNetIncomeYears),
+    }));
+    res.json(ssList);
+  } catch (error) {
+    console.error('Error loading social securities:', error);
+    res.status(500).json({ error: 'Failed to load social securities' });
+  }
+}));
+
+// GET /api/social-securities/:id — get single
+app.get('/api/social-securities/:id', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const data = loadRawPensionAndSS();
+    const ss = data.socialSecurities.find((s) => s.id === req.params.id);
+    if (!ss) return res.status(404).json({ error: 'Social Security config not found' });
+    res.json({
+      ...ss,
+      priorIncome: toApiPriorIncome(ss.priorAnnualNetIncomes, ss.priorAnnualNetIncomeYears),
+    });
+  } catch (error) {
+    console.error('Error loading social security:', error);
+    res.status(500).json({ error: 'Failed to load social security' });
+  }
+}));
+
+// POST /api/social-securities — create
+app.post('/api/social-securities', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const data = loadRawPensionAndSS();
+    const { priorIncome, ...rest } = req.body;
+    const { incomes, years } = fromApiPriorIncome(priorIncome || []);
+    const newSS = {
+      id: uuidv4(),
+      ...rest,
+      priorAnnualNetIncomes: incomes,
+      priorAnnualNetIncomeYears: years,
+    };
+    data.socialSecurities.push(newSS);
+    savePensionAndSS(data);
+    clearRetirementCache();
+    res.json({
+      ...newSS,
+      priorIncome: toApiPriorIncome(newSS.priorAnnualNetIncomes, newSS.priorAnnualNetIncomeYears),
+    });
+  } catch (error) {
+    console.error('Error creating social security:', error);
+    res.status(500).json({ error: 'Failed to create social security' });
+  }
+}));
+
+// PUT /api/social-securities/:id — update
+app.put('/api/social-securities/:id', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const data = loadRawPensionAndSS();
+    const index = data.socialSecurities.findIndex((s) => s.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Social Security config not found' });
+    const { priorIncome, ...rest } = req.body;
+    const { incomes, years } = fromApiPriorIncome(priorIncome || []);
+    data.socialSecurities[index] = {
+      ...data.socialSecurities[index],
+      ...rest,
+      id: req.params.id,
+      priorAnnualNetIncomes: incomes,
+      priorAnnualNetIncomeYears: years,
+    };
+    savePensionAndSS(data);
+    clearRetirementCache();
+    res.json({
+      ...data.socialSecurities[index],
+      priorIncome: toApiPriorIncome(
+        data.socialSecurities[index].priorAnnualNetIncomes,
+        data.socialSecurities[index].priorAnnualNetIncomeYears,
+      ),
+    });
+  } catch (error) {
+    console.error('Error updating social security:', error);
+    res.status(500).json({ error: 'Failed to update social security' });
+  }
+}));
+
+// DELETE /api/social-securities/:id — delete
+app.delete('/api/social-securities/:id', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const data = loadRawPensionAndSS();
+    const index = data.socialSecurities.findIndex((s) => s.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Social Security config not found' });
+    data.socialSecurities.splice(index, 1);
+    savePensionAndSS(data);
+    clearRetirementCache();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting social security:', error);
+    res.status(500).json({ error: 'Failed to delete social security' });
   }
 }));
 
