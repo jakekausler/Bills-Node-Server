@@ -1040,6 +1040,27 @@ export class Engine {
   getAssetManager(): AssetManager | null {
     return this.assetManager;
   }
+
+  /**
+   * Get the TaxManager instance (for projections endpoint to extract income data)
+   */
+  getTaxManager(): TaxManager {
+    return this.taxManager;
+  }
+
+  /**
+   * Get the AcaManager instance (for projections endpoint to query premiums)
+   */
+  getAcaManager(): AcaManager {
+    return this.acaManager;
+  }
+
+  /**
+   * Get the MedicareManager instance (for projections endpoint to query premiums)
+   */
+  getMedicareManager(): MedicareManager {
+    return this.medicareManager;
+  }
 }
 
 /**

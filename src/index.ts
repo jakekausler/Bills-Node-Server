@@ -55,6 +55,7 @@ import {
 import { getHealthcareProgress } from './api/healthcare/progress';
 import { getHealthcareExpenses } from './api/healthcare/expenses';
 import { getHealthcareProgressHistory } from './api/healthcare/progressHistory';
+import { getHealthcareProjections } from './api/healthcare/projections';
 import bcrypt from 'bcrypt';
 import mysql from 'mysql';
 import 'dotenv/config';
@@ -844,6 +845,22 @@ app.get('/api/healthcare/progress-history', verifyToken, asyncHandler(async (req
   } catch (error) {
     console.error('Error getting healthcare progress history:', error);
     res.status(500).json({ error: 'Failed to get healthcare progress history' });
+  }
+}));
+
+app.get('/api/healthcare/projections', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const simulation = req.query.simulation as string;
+
+    if (!simulation) {
+      return res.status(400).json({ error: 'Simulation parameter required' });
+    }
+
+    const projections = await getHealthcareProjections(req);
+    res.json(projections);
+  } catch (error) {
+    console.error('Error getting healthcare projections:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get healthcare projections' });
   }
 }));
 
