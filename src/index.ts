@@ -65,6 +65,7 @@ import rateLimit from 'express-rate-limit';
 import { getMoneyMovementChart } from './api/moneyMovement/movement';
 import { loadHealthcareConfigs, saveHealthcareConfigs } from './utils/io/healthcareConfigs';
 import { loadAllHealthcareConfigs } from './utils/io/virtualHealthcarePlans';
+import { loadTaxProfile, saveTaxProfile } from './utils/io/taxProfile';
 import { loadVariable } from './utils/simulation/variable';
 import { v4 as uuidv4 } from 'uuid';
 import { clearDataCache } from './utils/io/dataCache';
@@ -884,6 +885,41 @@ app.get('/api/tax-summary', verifyToken, asyncHandler(async (req: Request, res: 
     res.json(await getTaxSummary(req));
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to get tax summary' });
+  }
+}));
+
+// Tax profile routes
+app.get('/api/tax/profile', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const profile = loadTaxProfile();
+    res.json(profile);
+  } catch (error) {
+    console.error('Error loading tax profile:', error);
+    res.status(500).json({ error: 'Failed to load tax profile' });
+  }
+}));
+
+app.put('/api/tax/profile', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { filingStatus, state, stateTaxRate, itemizationMode } = req.body;
+    if (!filingStatus || !['single', 'mfj', 'mfs', 'hoh'].includes(filingStatus)) {
+      return res.status(400).json({ error: 'Invalid filing status' });
+    }
+    if (!state || typeof state !== 'string') {
+      return res.status(400).json({ error: 'State is required' });
+    }
+    if (typeof stateTaxRate !== 'number' || stateTaxRate < 0 || stateTaxRate > 1) {
+      return res.status(400).json({ error: 'State tax rate must be between 0 and 1' });
+    }
+    if (!itemizationMode || !['standard', 'itemized', 'auto'].includes(itemizationMode)) {
+      return res.status(400).json({ error: 'Invalid itemization mode' });
+    }
+    const profile = req.body;
+    saveTaxProfile(profile);
+    res.json(profile);
+  } catch (error) {
+    console.error('Error saving tax profile:', error);
+    res.status(500).json({ error: 'Failed to save tax profile' });
   }
 }));
 
