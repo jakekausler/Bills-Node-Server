@@ -64,6 +64,7 @@ import rateLimit from 'express-rate-limit';
 import { getMoneyMovementChart } from './api/moneyMovement/movement';
 import { loadHealthcareConfigs, saveHealthcareConfigs } from './utils/io/healthcareConfigs';
 import { loadAllHealthcareConfigs } from './utils/io/virtualHealthcarePlans';
+import { loadVariable } from './utils/simulation/variable';
 import { v4 as uuidv4 } from 'uuid';
 import { clearDataCache } from './utils/io/dataCache';
 import { DebugLogger } from './utils/calculate-v3/debug-logger';
@@ -584,6 +585,25 @@ app.get('/api/healthcare/configs', verifyToken, asyncHandler(async (req: Request
   try {
     const simulation = (req.query.simulation as string) || 'Default';
     const configs = loadAllHealthcareConfigs(simulation);
+    // Resolve variable dates to actual values
+    for (const config of configs) {
+      if (config.startDateIsVariable && config.startDateVariable) {
+        try {
+          const resolved = loadVariable(config.startDateVariable, simulation);
+          if (resolved instanceof Date) {
+            config.startDate = resolved.toISOString().split('T')[0];
+          }
+        } catch { /* variable not found, keep original */ }
+      }
+      if (config.endDateIsVariable && config.endDateVariable) {
+        try {
+          const resolved = loadVariable(config.endDateVariable, simulation);
+          if (resolved instanceof Date) {
+            config.endDate = resolved.toISOString().split('T')[0];
+          }
+        } catch { /* variable not found, keep original */ }
+      }
+    }
     res.json(configs);
   } catch (error) {
     console.error('Error loading healthcare configs:', error);
@@ -613,7 +633,10 @@ app.post('/api/healthcare/configs', verifyToken, asyncHandler(async (req: Reques
       'resetDay',
     ];
 
-    const missingFields = requiredFields.filter(field => req.body[field] === undefined || req.body[field] === null || req.body[field] === '');
+    const missingFields = requiredFields.filter(field => {
+      if (field === 'startDate' && req.body.startDateIsVariable) return false;
+      return req.body[field] === undefined || req.body[field] === null || req.body[field] === '';
+    });
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -625,8 +648,13 @@ app.post('/api/healthcare/configs', verifyToken, asyncHandler(async (req: Reques
     const {
       name,
       coveredPersons,
+      policyholder,
       startDate,
+      startDateIsVariable,
+      startDateVariable,
       endDate,
+      endDateIsVariable,
+      endDateVariable,
       individualDeductible,
       individualOutOfPocketMax,
       familyDeductible,
@@ -635,21 +663,34 @@ app.post('/api/healthcare/configs', verifyToken, asyncHandler(async (req: Reques
       hsaReimbursementEnabled,
       resetMonth,
       resetDay,
+      monthlyPremium,
+      monthlyPremiumInflationVariable,
+      deductibleInflationVariable,
+      deductibleInflationRate,
     } = req.body;
     const newConfig = {
       id: uuidv4(),
       name,
       coveredPersons,
+      policyholder: policyholder ?? null,
       startDate,
-      endDate,
+      startDateIsVariable: startDateIsVariable ?? false,
+      startDateVariable: startDateVariable ?? null,
+      endDate: endDate ?? null,
+      endDateIsVariable: endDateIsVariable ?? false,
+      endDateVariable: endDateVariable ?? null,
       individualDeductible,
       individualOutOfPocketMax,
       familyDeductible,
       familyOutOfPocketMax,
-      hsaAccountId,
-      hsaReimbursementEnabled,
+      hsaAccountId: hsaAccountId ?? null,
+      hsaReimbursementEnabled: hsaReimbursementEnabled ?? false,
       resetMonth,
       resetDay,
+      monthlyPremium: monthlyPremium ?? 0,
+      monthlyPremiumInflationVariable: monthlyPremiumInflationVariable ?? undefined,
+      deductibleInflationVariable: deductibleInflationVariable ?? undefined,
+      deductibleInflationRate: deductibleInflationRate ?? 0.05,
     };
     configs.push(newConfig);
     await saveHealthcareConfigs(configs);
@@ -677,8 +718,13 @@ app.put('/api/healthcare/configs/:id', verifyToken, asyncHandler(async (req: Req
     const {
       name,
       coveredPersons,
+      policyholder,
       startDate,
+      startDateIsVariable,
+      startDateVariable,
       endDate,
+      endDateIsVariable,
+      endDateVariable,
       individualDeductible,
       individualOutOfPocketMax,
       familyDeductible,
@@ -687,21 +733,34 @@ app.put('/api/healthcare/configs/:id', verifyToken, asyncHandler(async (req: Req
       hsaReimbursementEnabled,
       resetMonth,
       resetDay,
+      monthlyPremium,
+      monthlyPremiumInflationVariable,
+      deductibleInflationVariable,
+      deductibleInflationRate,
     } = req.body;
     configs[index] = {
       id: req.params.id,
       name,
       coveredPersons,
+      policyholder: policyholder ?? null,
       startDate,
-      endDate,
+      startDateIsVariable: startDateIsVariable ?? false,
+      startDateVariable: startDateVariable ?? null,
+      endDate: endDate ?? null,
+      endDateIsVariable: endDateIsVariable ?? false,
+      endDateVariable: endDateVariable ?? null,
       individualDeductible,
       individualOutOfPocketMax,
       familyDeductible,
       familyOutOfPocketMax,
-      hsaAccountId,
-      hsaReimbursementEnabled,
+      hsaAccountId: hsaAccountId ?? null,
+      hsaReimbursementEnabled: hsaReimbursementEnabled ?? false,
       resetMonth,
       resetDay,
+      monthlyPremium: monthlyPremium ?? 0,
+      monthlyPremiumInflationVariable: monthlyPremiumInflationVariable ?? undefined,
+      deductibleInflationVariable: deductibleInflationVariable ?? undefined,
+      deductibleInflationRate: deductibleInflationRate ?? 0.05,
     };
     await saveHealthcareConfigs(configs);
     res.json(configs[index]);

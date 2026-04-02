@@ -64,8 +64,27 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
     const retireDate = retireDateResult instanceof Date ? retireDateResult : null;
 
     if (retireDate && retireDate < laterAge65Date) {
+      // Resolve variable dates on existing configs before gap detection
+      const resolvedConfigs = existingConfigs.map(config => {
+        let startDate = config.startDate;
+        let endDate = config.endDate;
+        try {
+          if (config.startDateIsVariable && config.startDateVariable) {
+            const resolved = loadVariable(config.startDateVariable, simulation);
+            if (resolved instanceof Date) startDate = resolved.toISOString().split('T')[0];
+          }
+        } catch { /* variable not found, keep original */ }
+        try {
+          if (config.endDateIsVariable && config.endDateVariable) {
+            const resolved = loadVariable(config.endDateVariable, simulation);
+            if (resolved instanceof Date) endDate = resolved.toISOString().split('T')[0];
+          }
+        } catch { /* variable not found, keep original */ }
+        return { ...config, startDate, endDate };
+      });
+
       // Check if an existing plan already covers the retirement-to-65 gap
-      const hasCoverageDuringGap = existingConfigs.some(config => {
+      const hasCoverageDuringGap = resolvedConfigs.some(config => {
         const configStartDate = new Date(config.startDate);
         const configEndDate = config.endDate ? new Date(config.endDate) : null;
         return (
@@ -77,18 +96,52 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
       if (!hasCoverageDuringGap) {
         const acaManager = new AcaManager();
         const retireYear = retireDate.getUTCFullYear();
-        // getAcaDeductible and getAcaOOPMax already inflate forward from
-        // the latest known data year, so no additional inflation needed here.
         const acaDeductible = acaManager.getAcaDeductible(retireYear);
         const acaOOPMax = acaManager.getAcaOOPMax(retireYear);
 
+        // Check if there is an employer plan ending at/near retirement
+        const employerPlanAtRetirement = resolvedConfigs.find(config => {
+          if (!config.endDate) return false;
+          const configEnd = new Date(config.endDate);
+          const diffMs = Math.abs(configEnd.getTime() - retireDate.getTime());
+          const diffDays = diffMs / (1000 * 60 * 60 * 24);
+          return diffDays <= 31;
+        }) ?? null;
+
+        const cobraEndDate = dayjs.utc(retireDate).add(18, 'month').toDate();
+
+        if (employerPlanAtRetirement) {
+          // --- Virtual COBRA Plan ---
+          const virtualCobraPlan: HealthcareConfig = {
+            id: 'virtual-cobra',
+            name: 'COBRA (Virtual)',
+            coveredPersons: getPersonNames(),
+            startDate: retireDate.toISOString().split('T')[0],
+            startDateIsVariable: false,
+            endDate: cobraEndDate.toISOString().split('T')[0],
+            endDateIsVariable: false,
+            individualDeductible: employerPlanAtRetirement.individualDeductible ?? 0,
+            individualOutOfPocketMax: employerPlanAtRetirement.individualOutOfPocketMax ?? 0,
+            familyDeductible: employerPlanAtRetirement.familyDeductible ?? 0,
+            familyOutOfPocketMax: employerPlanAtRetirement.familyOutOfPocketMax ?? 0,
+            hsaAccountId: employerPlanAtRetirement.hsaAccountId ?? hsaAccountId,
+            hsaReimbursementEnabled: !!(employerPlanAtRetirement.hsaAccountId ?? hsaAccountId),
+            resetMonth: 1,
+            resetDay: 1,
+            deductibleInflationRate: 0.05,
+          };
+          virtualPlans.push(virtualCobraPlan);
+        }
+
+        // ACA Silver starts after COBRA ends
+        const acaStartDate = cobraEndDate;
         const virtualAcaPlan: HealthcareConfig = {
           id: 'virtual-aca-silver',
           name: 'ACA Silver Plan (Virtual)',
           coveredPersons: getPersonNames(),
-          startDate: retireDate.toISOString().split('T')[0] as any,
+          startDate: acaStartDate.toISOString().split('T')[0],
           startDateIsVariable: false,
-          endDate: laterAge65Date.toISOString().split('T')[0] as any,
+          endDate: laterAge65Date.toISOString().split('T')[0],
           endDateIsVariable: false,
           individualDeductible: Math.round(acaDeductible.individual),
           individualOutOfPocketMax: Math.round(acaOOPMax.individual),
@@ -96,9 +149,9 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
           familyOutOfPocketMax: Math.round(acaOOPMax.family),
           hsaAccountId: hsaAccountId,
           hsaReimbursementEnabled: !!hsaAccountId,
-          resetMonth: 0,
+          resetMonth: 1,
           resetDay: 1,
-          deductibleInflationRate: 0.05, // 5% healthcare inflation
+          deductibleInflationRate: 0.05,
         };
 
         virtualPlans.push(virtualAcaPlan);
@@ -130,7 +183,7 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
         id: 'virtual-medicare',
         name: 'Medicare Plan (Virtual)',
         coveredPersons: getPersonNames(),
-        startDate: earlierAge65Date.toISOString().split('T')[0] as any,
+        startDate: earlierAge65Date.toISOString().split('T')[0],
         startDateIsVariable: false,
         endDate: null,
         endDateIsVariable: false,
@@ -140,7 +193,7 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
         familyOutOfPocketMax: Math.round(10000 * medicareOOPInflator), // 2 × individual
         hsaAccountId: hsaAccountId,
         hsaReimbursementEnabled: !!hsaAccountId, // HSA can reimburse at 65+
-        resetMonth: 0,
+        resetMonth: 1,
         resetDay: 1,
         deductibleInflationRate: 0.05, // 5% healthcare CPI
       };
