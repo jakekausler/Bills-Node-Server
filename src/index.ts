@@ -943,6 +943,59 @@ app.get('/api/tax/brackets', verifyToken, asyncHandler(async (req: Request, res:
   }
 }));
 
+// Withholding tables route
+app.get('/api/tax/withholding-tables', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const year = Number(req.query.year ?? new Date().getFullYear());
+    const filingStatus = String(req.query.filingStatus ?? 'mfj') as 'single' | 'mfj' | 'mfs' | 'hoh';
+    const payPeriod = String(req.query.payPeriod ?? 'biweekly') as 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' | 'annual';
+
+    const PAY_PERIOD_DIVISORS: Record<string, number> = {
+      weekly: 52,
+      biweekly: 26,
+      semimonthly: 24,
+      monthly: 12,
+      annual: 1,
+    };
+    const divisor = PAY_PERIOD_DIVISORS[payPeriod] ?? 26;
+
+    // Read federalWithholdingTables.json directly (not getBracketDataForYear which projects future years)
+    const tablesPath = path.join(__dirname, '../data/federalWithholdingTables.json');
+    const rawData = JSON.parse(fs.readFileSync(tablesPath, 'utf-8'));
+
+    // Find closest available year (use the latest year that is <= requested year)
+    const availableYears = Object.keys(rawData).map(Number).sort((a, b) => a - b);
+    const closestYear = availableYears.filter(y => y <= year).pop() ?? availableYears[0];
+
+    const yearData = rawData[String(closestYear)];
+    const category = yearData?.standard ?? yearData?.[Object.keys(yearData)[0]];
+    const statusData = category?.[filingStatus];
+
+    if (!statusData) {
+      return res.status(404).json({ error: `No withholding data for filing status: ${filingStatus}` });
+    }
+
+    const scaleBracket = (b: { min: number; max: number | null; base: number; rate: number }) => ({
+      min: b.min / divisor,
+      max: b.max !== null ? b.max / divisor : null,
+      base: b.base / divisor,
+      rate: b.rate,
+    });
+
+    res.json({
+      year: closestYear,
+      filingStatus,
+      payPeriod,
+      periodsPerYear: divisor,
+      standardDeduction: statusData.standardDeduction / divisor,
+      brackets: statusData.brackets.map(scaleBracket),
+    });
+  } catch (error) {
+    console.error('Error loading withholding tables:', error);
+    res.status(500).json({ error: 'Failed to load withholding tables' });
+  }
+}));
+
 app.get('/api/tax/scenario', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     const scenario = loadTaxScenario();
