@@ -176,6 +176,31 @@ export function calculateProgressiveTax(taxableIncome: number, brackets: TaxBrac
   return tax;
 }
 
+export interface BracketDetail {
+  rate: number;
+  min: number;
+  max: number | null;
+  incomeInBracket: number;
+  taxInBracket: number;
+}
+
+export function calculateProgressiveTaxDetailed(taxableIncome: number, brackets: TaxBracket[]): BracketDetail[] {
+  const result: BracketDetail[] = [];
+  for (const bracket of brackets) {
+    const incomeInBracket = taxableIncome <= bracket.min
+      ? 0
+      : (bracket.max !== null ? Math.min(taxableIncome, bracket.max) : taxableIncome) - bracket.min;
+    result.push({
+      rate: bracket.rate,
+      min: bracket.min,
+      max: bracket.max,
+      incomeInBracket,
+      taxInBracket: incomeInBracket * bracket.rate,
+    });
+  }
+  return result;
+}
+
 // Calculate taxable portion of Social Security income
 export function calculateTaxableSS(
   ssIncome: number,

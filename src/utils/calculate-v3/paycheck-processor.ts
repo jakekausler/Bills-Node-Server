@@ -438,6 +438,11 @@ export class PaycheckProcessor {
       });
     }
 
+    // Record FICA in TaxManager
+    if (this.taxManager && (ssTax > 0 || medicareTax > 0)) {
+      this.taxManager.addFicaOccurrence(year, billName, ssTax, medicareTax);
+    }
+
     this.log('paycheck-processed', {
       grossPay,
       netPay,
@@ -647,6 +652,11 @@ export class PaycheckProcessor {
         stateAmount: stateWithholding,
         source: billName,
       });
+    }
+
+    // Record FICA in TaxManager
+    if (this.taxManager && (ssTax > 0 || medicareTax > 0)) {
+      this.taxManager.addFicaOccurrence(year, billName, ssTax, medicareTax);
     }
 
     this.log('bonus-paycheck-processed', {

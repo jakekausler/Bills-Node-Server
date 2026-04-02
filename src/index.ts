@@ -86,6 +86,7 @@ import {
   ApiError,
 } from './api/spendingTracker/spendingTracker';
 import { getTaxSummary } from './api/tax-summary';
+import { getTaxDetail } from './api/tax/detail';
 import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
 import { getBracketDataForYear } from './utils/calculate-v3/bracket-calculator';
 import type { PaycheckProfile } from './data/bill/paycheck-types';
@@ -1014,6 +1015,15 @@ app.put('/api/tax/scenario', verifyToken, asyncHandler(async (req: Request, res:
   } catch (error) {
     console.error('Error saving tax scenario:', error);
     res.status(500).json({ error: 'Failed to save tax scenario' });
+  }
+}));
+
+// Tax detail (reconciliation) route
+app.get('/api/tax/detail/:year', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    res.json(await getTaxDetail(req));
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
   }
 }));
 

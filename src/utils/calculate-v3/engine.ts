@@ -41,6 +41,7 @@ import { FutureLotTracker } from './future-lot-tracker';
 import { loadLedger } from '../io/portfolioLedger';
 import { AssetManager } from './asset-manager';
 import { loadAssets } from '../io/assets';
+import { loadTaxProfile } from '../io/taxProfile';
 
 dayjs.extend(utc);
 
@@ -242,6 +243,14 @@ export class Engine {
       filingStatus: options.filingStatus,
       withdrawalStrategy: options.withdrawalStrategy,
       taxAccountName: options.taxAccountName,
+    });
+
+    // Load full tax profile (includes dependents, state, rates, etc.)
+    const taxProfile = loadTaxProfile();
+    this.log('tax-profile-loaded', {
+      filingStatus: taxProfile.filingStatus,
+      state: taxProfile.state,
+      dependents: taxProfile.dependents?.length ?? 0,
     });
 
     // Load tax scenario (bracket evolution policy)
@@ -505,6 +514,9 @@ export class Engine {
       this.simNumber,
       this.flowAggregator,
     );
+
+    // Set full tax profile from loaded taxProfile.json
+    this.calculator.setTaxProfile(taxProfile);
 
     // Set Monte Carlo config if available
     if (this.monteCarloConfig) {
@@ -1060,6 +1072,13 @@ export class Engine {
    */
   getMedicareManager(): MedicareManager {
     return this.medicareManager;
+  }
+
+  /**
+   * Get the DeductionTracker instance (for tax detail endpoint to compute reconciliation)
+   */
+  getDeductionTracker(): import('./deduction-tracker').DeductionTracker {
+    return this.calculator.getDeductionTracker();
   }
 }
 

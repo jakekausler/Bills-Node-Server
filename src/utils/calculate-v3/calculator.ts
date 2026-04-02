@@ -139,15 +139,21 @@ export class Calculator {
     );
     this.rothConversionManager = new RothConversionManager(accountManager, acaManager, debugLogger, simNumber);
     this.rothConversionManager.setBalanceTracker(balanceTracker);
-    // Initialize default tax profile (can be overridden later)
+    // Initialize default tax profile (can be overridden later by setTaxProfile)
     this.taxProfile = {
       filingStatus,
       state: 'NC',
       stateTaxRate: 0.0409,
       stateStandardDeduction: 490.38,
       stateAllowances: 0,
+      dependents: [],
       itemizationMode: 'standard' as const,
     };
+  }
+
+  /** Set the full tax profile from loaded taxProfile.json */
+  setTaxProfile(profile: TaxProfile): void {
+    this.taxProfile = profile;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
@@ -2250,6 +2256,9 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
       filingStatus: taxEventFilingStatus,
       state: this.taxProfile.state,
       stateTaxRate: this.taxProfile.stateTaxRate,
+      stateStandardDeduction: this.taxProfile.stateStandardDeduction,
+      stateAllowances: this.taxProfile.stateAllowances,
+      dependents: this.taxProfile.dependents,
       itemizationMode: this.taxProfile.itemizationMode,
     };
 

@@ -11,6 +11,8 @@ export class TaxManager {
   private taxCache: Map<number, number>;
   // Map of years to withholding occurrences
   private withholdingOccurrences: Map<number, WithholdingOccurrence[]> = new Map();
+  // Map of years to FICA occurrences (Social Security + Medicare taxes)
+  private ficaOccurrences: Map<number, Array<{ source: string; ssTax: number; medicareTax: number }>> = new Map();
   private capitalLossCarryforward: number = 0;
   private debugLogger: DebugLogger | null;
   private simNumber: number;
@@ -241,6 +243,78 @@ export class TaxManager {
   }
 
   /**
+   * Get income grouped by account and income type for a given year.
+   * Returns a map of accountId -> { incomeType -> totalAmount }.
+   */
+  public getIncomeByAccount(year: number): Record<string, Record<string, number>> {
+    const yearMap = this.taxableOccurrences.get(year);
+    if (!yearMap) return {};
+    const result: Record<string, Record<string, number>> = {};
+    for (const [accountId, occurrences] of yearMap) {
+      const byType: Record<string, number> = {};
+      for (const occ of occurrences) {
+        byType[occ.incomeType] = (byType[occ.incomeType] ?? 0) + occ.amount;
+      }
+      result[accountId] = byType;
+    }
+    return result;
+  }
+
+  /**
+   * Get withholding grouped by source for a given year.
+   * Returns array of { source, federal, state } objects.
+   */
+  public getWithholdingBySource(year: number): Array<{ source: string; federal: number; state: number }> {
+    const withholdings = this.withholdingOccurrences.get(year) || [];
+    const bySource = new Map<string, { federal: number; state: number }>();
+    for (const w of withholdings) {
+      const existing = bySource.get(w.source) ?? { federal: 0, state: 0 };
+      existing.federal += w.federalAmount;
+      existing.state += w.stateAmount;
+      bySource.set(w.source, existing);
+    }
+    return Array.from(bySource.entries()).map(([source, amounts]) => ({
+      source,
+      federal: amounts.federal,
+      state: amounts.state,
+    }));
+  }
+
+  /**
+   * Record a FICA occurrence (called from paycheck processor alongside withholding)
+   */
+  public addFicaOccurrence(year: number, source: string, ssTax: number, medicareTax: number): void {
+    if (!this.ficaOccurrences.has(year)) {
+      this.ficaOccurrences.set(year, []);
+    }
+    this.ficaOccurrences.get(year)!.push({ source, ssTax, medicareTax });
+  }
+
+  /**
+   * Get FICA totals for a year
+   */
+  public getFicaTotals(year: number): { totalSSTax: number; totalMedicareTax: number; totalFICA: number; bySource: Array<{ source: string; ssTax: number; medicareTax: number }> } {
+    const occurrences = this.ficaOccurrences.get(year) || [];
+    let totalSSTax = 0;
+    let totalMedicareTax = 0;
+    const bySource = new Map<string, { ssTax: number; medicareTax: number }>();
+    for (const occ of occurrences) {
+      totalSSTax += occ.ssTax;
+      totalMedicareTax += occ.medicareTax;
+      const existing = bySource.get(occ.source) ?? { ssTax: 0, medicareTax: 0 };
+      existing.ssTax += occ.ssTax;
+      existing.medicareTax += occ.medicareTax;
+      bySource.set(occ.source, existing);
+    }
+    return {
+      totalSSTax,
+      totalMedicareTax,
+      totalFICA: totalSSTax + totalMedicareTax,
+      bySource: Array.from(bySource.entries()).map(([source, amounts]) => ({ source, ...amounts })),
+    };
+  }
+
+  /**
    * Save a checkpoint of tax manager state.
    * Used for push/pull reprocessing to restore state if segment needs to be recomputed.
    */
@@ -272,7 +346,13 @@ export class TaxManager {
       }));
     }
 
-    const checkpoint = { taxableOccurrences: taxObj, withholdingOccurrences: withObj, capitalLossCarryforward: this.capitalLossCarryforward };
+    // Serialize FICA occurrences
+    const ficaObj: Record<number, Array<{ source: string; ssTax: number; medicareTax: number }>> = {};
+    for (const [year, occurrences] of this.ficaOccurrences) {
+      ficaObj[year] = occurrences;
+    }
+
+    const checkpoint = { taxableOccurrences: taxObj, withholdingOccurrences: withObj, ficaOccurrences: ficaObj, capitalLossCarryforward: this.capitalLossCarryforward };
     this.checkpointData = JSON.stringify(checkpoint);
   }
 
@@ -286,6 +366,7 @@ export class TaxManager {
     const checkpoint = JSON.parse(this.checkpointData) as {
       taxableOccurrences: Record<number, Record<string, Array<{ date: string; year: number; amount: number; incomeType: string }>>>;
       withholdingOccurrences: Record<number, Array<{ date: string; year: number; federalAmount: number; stateAmount: number; source: string }>>;
+      ficaOccurrences?: Record<number, Array<{ source: string; ssTax: number; medicareTax: number }>>;
       capitalLossCarryforward?: number;
     };
 
@@ -318,6 +399,14 @@ export class TaxManager {
         source: w.source,
       }));
       this.withholdingOccurrences.set(year, withholdings);
+    }
+
+    // Restore FICA occurrences
+    this.ficaOccurrences = new Map();
+    if (checkpoint.ficaOccurrences) {
+      for (const yearStr of Object.keys(checkpoint.ficaOccurrences)) {
+        this.ficaOccurrences.set(Number(yearStr), checkpoint.ficaOccurrences[yearStr]);
+      }
     }
 
     // Restore capital loss carryforward (backward compatible)
