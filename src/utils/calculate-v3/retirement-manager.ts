@@ -272,6 +272,29 @@ export class RetirementManager {
     this.socialSecurityMonthlyPay.set(socialSecurity.name, monthlyPay);
   }
 
+  /**
+   * Compute SS benefit estimates at ages 62, FRA, and 70 for a given SS config.
+   * Uses the income history already loaded into this manager instance.
+   * Returns monthly benefit (pre-COLA) at each claiming age.
+   */
+  public computeBenefitEstimates(socialSecurity: SocialSecurity): {
+    fra: number;
+    at62: number;
+    atFRA: number;
+    at70: number;
+  } {
+    const birthYear = socialSecurity.birthDate.getUTCFullYear();
+    const fra = this.getFullRetirementAge(birthYear);
+    const aime = this.calculateAIME(socialSecurity);
+    const pia = this.computePIA(socialSecurity.yearTurn60 + 2, aime);
+
+    const at62 = pia * this.factorForCollectionAge(62, birthYear);
+    const atFRA = pia * this.factorForCollectionAge(fra, birthYear);
+    const at70 = pia * this.factorForCollectionAge(70, birthYear);
+
+    return { fra, at62, atFRA, at70 };
+  }
+
   public calculatePensionMonthlyPay(pension: Pension, startYear?: number): void {
     const highestCompensationAverage = this.getHighestCompensationAverage(pension);
     const monthlyPay =

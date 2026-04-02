@@ -67,13 +67,14 @@ import { loadHealthcareConfigs, saveHealthcareConfigs } from './utils/io/healthc
 import { loadAllHealthcareConfigs } from './utils/io/virtualHealthcarePlans';
 import { loadTaxProfile, saveTaxProfile } from './utils/io/taxProfile';
 import { loadTaxScenario, saveTaxScenario } from './utils/io/taxScenario';
-import { loadRawPensionAndSS, savePensionAndSS } from './utils/io/retirement';
+import { loadRawPensionAndSS, savePensionAndSS, loadPensionsAndSocialSecurity } from './utils/io/retirement';
 import { loadVariable } from './utils/simulation/variable';
 import { v4 as uuidv4 } from 'uuid';
 import { clearDataCache } from './utils/io/dataCache';
 import { DebugLogger } from './utils/calculate-v3/debug-logger';
 import { CacheManager } from './utils/calculate-v3/cache';
-import { clearRetirementCache } from './utils/calculate-v3/retirement-manager';
+import { clearRetirementCache, RetirementManager } from './utils/calculate-v3/retirement-manager';
+import { SocialSecurity } from './data/retirement/socialSecurity/socialSecurity';
 import { clearAcaCache } from './utils/calculate-v3/aca-manager';
 import { clearMedicareCache } from './utils/calculate-v3/medicare-manager';
 import { clearContributionLimitCache } from './utils/calculate-v3/contribution-limit-manager';
@@ -1243,6 +1244,41 @@ app.delete('/api/social-securities/:id', verifyToken, asyncHandler(async (req: R
   } catch (error) {
     console.error('Error deleting social security:', error);
     res.status(500).json({ error: 'Failed to delete social security' });
+  }
+}));
+
+// GET /api/social-securities/:id/estimate — compute benefit estimates at 62/FRA/70
+app.get('/api/social-securities/:id/estimate', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const simulation = (req.query.simulation as string) || 'Default';
+    const data = loadRawPensionAndSS();
+    const raw = data.socialSecurities.find((s) => s.id === req.params.id);
+    if (!raw) return res.status(404).json({ error: 'Social Security config not found' });
+
+    // Build a SocialSecurity instance for this simulation context
+    const retirement = loadPensionsAndSocialSecurity(simulation);
+    const ss = retirement.socialSecurities.find((s) => s.name === raw.name);
+    if (!ss) return res.status(404).json({ error: 'Could not resolve Social Security config for simulation' });
+
+    // Build a RetirementManager seeded with this SS's prior income
+    const mgr = new RetirementManager([ss], []);
+    const estimates = mgr.computeBenefitEstimates(ss);
+
+    res.json({
+      id: raw.id,
+      name: raw.name,
+      fra: estimates.fra,
+      monthlyAt62: Math.round(estimates.at62),
+      monthlyAtFRA: Math.round(estimates.atFRA),
+      monthlyAt70: Math.round(estimates.at70),
+      annualAt62: Math.round(estimates.at62 * 12),
+      annualAtFRA: Math.round(estimates.atFRA * 12),
+      annualAt70: Math.round(estimates.at70 * 12),
+      spouseName: raw.spouseName ?? null,
+    });
+  } catch (err) {
+    console.error('SS estimate error:', err);
+    res.status(500).json({ error: 'Failed to compute benefit estimate' });
   }
 }));
 
