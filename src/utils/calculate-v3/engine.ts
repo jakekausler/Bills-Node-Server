@@ -480,12 +480,9 @@ export class Engine {
       }
     }
 
-    // Create FlowAggregator for MC mode only (no overhead for deterministic)
-    if (options.monteCarlo) {
-      this.flowAggregator = new FlowAggregator();
-    } else {
-      this.flowAggregator = null;
-    }
+    // FlowAggregator tracks income/expense/transfer flows per year
+    // Used by MC for statistics and by deterministic for retirement projections
+    this.flowAggregator = new FlowAggregator();
 
     // Initialize balance tracker - use actual start date for processing all historical data
     if (options.enableLogging) {
@@ -1072,6 +1069,13 @@ export class Engine {
    */
   getMedicareManager(): MedicareManager {
     return this.medicareManager;
+  }
+
+  /**
+   * Get the RetirementManager instance (for retirement projections endpoint)
+   */
+  getRetirementManager(): RetirementManager {
+    return this.retirementManager;
   }
 
   /**

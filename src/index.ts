@@ -56,6 +56,8 @@ import { getHealthcareProgress } from './api/healthcare/progress';
 import { getHealthcareExpenses } from './api/healthcare/expenses';
 import { getHealthcareProgressHistory } from './api/healthcare/progressHistory';
 import { getHealthcareProjections } from './api/healthcare/projections';
+import { getRetirementProjections } from './api/retirement/projections';
+import { clearProjectionsCache } from './utils/io/projectionsCache';
 import bcrypt from 'bcrypt';
 import mysql from 'mysql';
 import 'dotenv/config';
@@ -1091,6 +1093,7 @@ app.post('/api/pensions', verifyToken, asyncHandler(async (req: Request, res: Re
     data.pensions.push(newPension);
     savePensionAndSS(data);
     clearRetirementCache();
+    clearProjectionsCache();
     res.json({
       ...newPension,
       priorIncome: toApiPriorIncome(newPension.priorAnnualNetIncomes, newPension.priorAnnualNetIncomeYears),
@@ -1118,6 +1121,7 @@ app.put('/api/pensions/:id', verifyToken, asyncHandler(async (req: Request, res:
     };
     savePensionAndSS(data);
     clearRetirementCache();
+    clearProjectionsCache();
     res.json({
       ...data.pensions[index],
       priorIncome: toApiPriorIncome(data.pensions[index].priorAnnualNetIncomes, data.pensions[index].priorAnnualNetIncomeYears),
@@ -1137,6 +1141,7 @@ app.delete('/api/pensions/:id', verifyToken, asyncHandler(async (req: Request, r
     data.pensions.splice(index, 1);
     savePensionAndSS(data);
     clearRetirementCache();
+    clearProjectionsCache();
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting pension:', error);
@@ -1192,6 +1197,7 @@ app.post('/api/social-securities', verifyToken, asyncHandler(async (req: Request
     data.socialSecurities.push(newSS);
     savePensionAndSS(data);
     clearRetirementCache();
+    clearProjectionsCache();
     res.json({
       ...newSS,
       priorIncome: toApiPriorIncome(newSS.priorAnnualNetIncomes, newSS.priorAnnualNetIncomeYears),
@@ -1219,6 +1225,7 @@ app.put('/api/social-securities/:id', verifyToken, asyncHandler(async (req: Requ
     };
     savePensionAndSS(data);
     clearRetirementCache();
+    clearProjectionsCache();
     res.json({
       ...data.socialSecurities[index],
       priorIncome: toApiPriorIncome(
@@ -1241,6 +1248,7 @@ app.delete('/api/social-securities/:id', verifyToken, asyncHandler(async (req: R
     data.socialSecurities.splice(index, 1);
     savePensionAndSS(data);
     clearRetirementCache();
+    clearProjectionsCache();
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting social security:', error);
@@ -1333,6 +1341,12 @@ app.put('/api/retirement/roth-conversion', verifyToken, asyncHandler(async (req:
   }
 }));
 
+// GET /api/retirement/projections — year-by-year retirement income projections
+app.get('/api/retirement/projections', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  const result = await getRetirementProjections(req);
+  res.json(result);
+}));
+
 // Paycheck compute route
 app.post('/api/paycheck/compute', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
@@ -1406,6 +1420,7 @@ app.post('/api/cache/clear', verifyToken, (_req: Request, res: Response) => {
   clearDataCache();
   CacheManager.clearAll();
   clearRetirementCache();
+  clearProjectionsCache();
   clearAcaCache();
   clearMedicareCache();
   clearContributionLimitCache();

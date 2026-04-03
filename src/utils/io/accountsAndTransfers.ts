@@ -8,6 +8,7 @@ import { DATA_CACHE, MAX_CACHE_SIZE, clearDataCache } from './dataCache';
 import { calculateAllActivity } from '../calculate-v3/engine';
 import { CalculationConfig } from '../calculate-v3/types';
 import type { DebugLogger } from '../calculate-v3/debug-logger';
+import { clearProjectionsCache } from './projectionsCache';
 
 export const FILE_NAME = 'data';
 
@@ -121,5 +122,6 @@ export function saveData(data: AccountsAndTransfers, simulation: string = 'Defau
   };
   save<AccountsAndTransfersData>({ accounts, transfers }, `${FILE_NAME}.json`);
   clearDataCache();
+  clearProjectionsCache();
   resetCache(simulation);
 }

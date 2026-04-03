@@ -155,6 +155,22 @@ export class FlowAggregator {
     s.endingBalance = balance;
   }
 
+  getYearSummary(year: number): YearlyFlowSummary | undefined {
+    const summary = this.years.get(year);
+    if (!summary) return undefined;
+    return {
+      ...summary,
+      income: { ...summary.income },
+      transfers: { ...summary.transfers },
+      expenses: {
+        bills: { ...summary.expenses.bills },
+        taxes: { ...summary.expenses.taxes },
+        healthcare: { ...summary.expenses.healthcare },
+      },
+      netCashFlow: summary.totalIncome - summary.totalExpenses,
+    };
+  }
+
   getYearlyFlows(): Record<string, YearlyFlowSummary> {
     const result: Record<string, YearlyFlowSummary> = {};
     for (const [year, summary] of this.years) {

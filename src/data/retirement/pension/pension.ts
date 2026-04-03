@@ -125,6 +125,11 @@ export class Pension {
    * @returns Reduction factor between 0 and 1 (1 = full benefits, 0 = no benefits)
    */
   calculateReductionFactor() {
+    // No requirements defined = full benefit (no reduction)
+    if (this.unreducedRequirements.length === 0 && this.reducedRequirements.length === 0) {
+      return 1;
+    }
+
     // Check unreduced requirements first
     for (const requirement of this.unreducedRequirements) {
       const ageRequirementMet = !requirement.age || this.startAge >= requirement.age;

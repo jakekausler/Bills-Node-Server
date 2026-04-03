@@ -326,6 +326,16 @@ export class RetirementManager {
     this.socialSecurityFirstPaymentYear.set(name, year);
   }
 
+  /** Get all social security config names */
+  public getSocialSecurityNames(): string[] {
+    return [...this.socialSecurityMonthlyPay.keys()];
+  }
+
+  /** Get all pension config names */
+  public getPensionNames(): string[] {
+    return [...this.pensionMonthlyPay.keys()];
+  }
+
   /********************
    * Social Security Calculations
    *********************/

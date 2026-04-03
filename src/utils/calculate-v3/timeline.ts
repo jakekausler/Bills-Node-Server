@@ -962,12 +962,12 @@ export class Timeline {
     }
 
     // Check if pension is vested (yearsWorked meets minimum requirement)
-    const minVestingYears = Math.min(
-      ...pension.unreducedRequirements.map(r => r.yearsWorked),
-      ...pension.reducedRequirements.map(r => r.yearsWorked)
-    );
-    if (pension.yearsWorked < minVestingYears) {
-      return; // Not vested, don't generate any pension events
+    const allRequirements = [...pension.unreducedRequirements, ...pension.reducedRequirements];
+    if (allRequirements.length > 0) {
+      const minVestingYears = Math.min(...allRequirements.map(r => r.yearsWorked));
+      if (pension.yearsWorked < minVestingYears) {
+        return; // Not vested, don't generate any pension events
+      }
     }
 
     // Add events monthly starting from the start date

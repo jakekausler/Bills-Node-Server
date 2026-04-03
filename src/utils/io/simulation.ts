@@ -5,6 +5,7 @@ import { save } from './io';
 import { load } from './io';
 import { resetCache } from './cache';
 import { clearDataCache } from './dataCache';
+import { clearProjectionsCache } from './projectionsCache';
 
 const FILE_PATH = 'simulations.json';
 
@@ -81,5 +82,6 @@ export function saveSimulations(simulations: Simulations) {
   }));
   save(toSave, FILE_PATH);
   clearDataCache();
+  clearProjectionsCache();
   resetCache();
 }
