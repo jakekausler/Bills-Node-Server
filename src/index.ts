@@ -98,7 +98,7 @@ import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
 import { getBracketDataForYear } from './utils/calculate-v3/bracket-calculator';
 import type { PaycheckProfile } from './data/bill/paycheck-types';
 import { importQfx, importCsv, getLedger, getPositions } from './api/portfolio/import';
-import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint } from './api/portfolio/prices';
+import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint, getPriceHistoryEndpoint, overridePriceEndpoint, deletePriceOverrideEndpoint, getPriceOverridesEndpoint } from './api/portfolio/prices';
 import { addTransaction, listTransactions, editTransaction, deleteTransaction } from './api/portfolio/transactions';
 import { reconcileHoldings } from './api/portfolio/reconcile';
 import { getFundMetadata, updateFundMetadata } from './api/portfolio/fund-metadata';
@@ -1442,15 +1442,27 @@ app.get('/api/portfolio/positions/:accountId', verifyToken, asyncHandler(async (
   await getPositions(req, res);
 }));
 
-// Portfolio price routes (note: /current must come before /:symbol)
+// Portfolio price routes (note: /current and /history/:symbol must come before /:symbol)
 app.get('/api/prices/current', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   await getCurrentPricesEndpoint(req, res);
+}));
+app.get('/api/prices/history/:symbol', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  await getPriceHistoryEndpoint(req, res);
 }));
 app.get('/api/prices/:symbol', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   await getPriceEndpoint(req, res);
 }));
 app.post('/api/prices/refresh', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   await refreshPricesEndpoint(req, res);
+}));
+app.post('/api/prices/override', verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+  await overridePriceEndpoint(req, res);
+}));
+app.delete('/api/prices/override', verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+  await deletePriceOverrideEndpoint(req, res);
+}));
+app.get('/api/prices/overrides/:symbol', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  await getPriceOverridesEndpoint(req, res);
 }));
 
 // Portfolio transaction CRUD
