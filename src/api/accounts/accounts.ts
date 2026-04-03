@@ -10,7 +10,7 @@ import { DateString } from '../../utils/date/types';
 import { Interest } from '../../data/interest/interest';
 import type { InterestData } from '../../data/interest/types';
 
-function loadPortfolioConfigs(): Record<string, any> {
+export function loadPortfolioConfigs(): Record<string, any> {
   try {
     const configPath = join(process.cwd(), 'data', 'accountPortfolioConfigs.json');
     return JSON.parse(readFileSync(configPath, 'utf-8'));
@@ -19,7 +19,7 @@ function loadPortfolioConfigs(): Record<string, any> {
   }
 }
 
-function savePortfolioConfigs(configs: Record<string, any>): void {
+export function savePortfolioConfigs(configs: Record<string, any>): void {
   const configPath = join(process.cwd(), 'data', 'accountPortfolioConfigs.json');
   writeFileSync(configPath, JSON.stringify(configs, null, 2));
 }
@@ -198,8 +198,8 @@ function updateSingleAccount(account: Account, newAccount: AccountData, simulati
   if ((newAccount as any).portfolioConfig !== undefined) {
     const configs = loadPortfolioConfigs();
     const portfolioConfig = (newAccount as any).portfolioConfig;
-    if (portfolioConfig === null || portfolioConfig.glidePath === 'none') {
-      // Remove portfolio config when set to "none" (use interest-based rates)
+    if (portfolioConfig === null || !portfolioConfig.glidePath) {
+      // Remove portfolio config when set to null (use interest-based rates)
       delete configs[account.id];
     } else {
       configs[account.id] = portfolioConfig;

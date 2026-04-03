@@ -10,6 +10,7 @@ type GlidePathData = Record<string, Record<string, number>>;
 // Format: { "2023": { "stock": 0.79, "bond": 0.20, "cash": 0.01 }, ... }
 
 let cachedGlidePath: GlidePathData | null = null;
+let cachedCustomGlidePaths: Record<string, GlidePathData> | null = null;
 let cachedExpectedReturns: ExpectedReturns | null = null;
 
 function loadGlidePath(): GlidePathData {
@@ -21,6 +22,18 @@ function loadGlidePath(): GlidePathData {
   } catch {
     cachedGlidePath = {};
     return cachedGlidePath;
+  }
+}
+
+function loadCustomGlidePaths(): Record<string, GlidePathData> {
+  if (cachedCustomGlidePaths) return cachedCustomGlidePaths;
+  try {
+    const filePath = path.join(__dirname, '../../../data/customGlidePaths.json');
+    cachedCustomGlidePaths = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    return cachedCustomGlidePaths!;
+  } catch {
+    cachedCustomGlidePaths = {};
+    return cachedCustomGlidePaths;
   }
 }
 
@@ -40,15 +53,15 @@ function loadExpectedReturns(): ExpectedReturns {
 
 /**
  * Get the asset allocation for an account at a given year.
- * Uses per-account custom glide path, global glide path, or static allocation.
+ * Uses global glide path, named custom glide path, or static allocation.
  */
 export function getAllocationForYear(
   config: AccountPortfolioConfig,
   year: number,
 ): AssetAllocation {
-  // Per-account custom glide path
-  if (config.glidePath === 'custom' && config.customGlidePath) {
-    return interpolateGlidePath(config.customGlidePath, year);
+  // No glide path — use static allocation
+  if (!config.glidePath) {
+    return config.allocation;
   }
 
   // Global glide path
@@ -57,9 +70,17 @@ export function getAllocationForYear(
     if (Object.keys(globalPath).length > 0) {
       return interpolateGlidePath(globalPath, year);
     }
+    return config.allocation;
   }
 
-  // Static allocation (no glide path or glidePath === 'none')
+  // Named custom glide path
+  const customPaths = loadCustomGlidePaths();
+  const namedPath = customPaths[config.glidePath];
+  if (namedPath && Object.keys(namedPath).length > 0) {
+    return interpolateGlidePath(namedPath, year);
+  }
+
+  // Fallback to static allocation if named path not found
   return config.allocation;
 }
 
@@ -167,4 +188,9 @@ export function getCashReserveAwareRate(
     : 0;
 
   return (cashPortion * cashRate + investedPortion * investedRate) / balance;
+}
+
+export function clearGlidePathCache(): void {
+  cachedGlidePath = null;
+  cachedCustomGlidePaths = null;
 }

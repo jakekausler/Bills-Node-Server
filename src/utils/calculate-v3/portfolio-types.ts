@@ -45,8 +45,7 @@ export interface RebalancingConfig {
 export interface AccountPortfolioConfig {
   mode: 'estimated' | 'fund-level';
   allocation: AssetAllocation;
-  glidePath: 'global' | 'custom' | 'none';
-  customGlidePath?: Record<number, AssetAllocation>;
+  glidePath: string | null;
   lotSelectionStrategy: 'fifo' | 'highest-cost';
   rebalancing?: RebalancingConfig;
   bucket?: BucketConfig;

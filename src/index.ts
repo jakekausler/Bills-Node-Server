@@ -2,7 +2,7 @@ import express, { Express, NextFunction, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { appendFile } from 'fs/promises';
-import { getSimpleAccounts, addAccount, updateAccounts } from './api/accounts/accounts';
+import { getSimpleAccounts, addAccount, updateAccounts, loadPortfolioConfigs, savePortfolioConfigs } from './api/accounts/accounts';
 import { getAccount, updateAccount, removeAccount } from './api/accounts/account';
 import { getGraphForAccounts } from './api/accounts/graph';
 import { getTodayBalance } from './api/accounts/todayBalance';
@@ -81,6 +81,8 @@ import { SocialSecurity } from './data/retirement/socialSecurity/socialSecurity'
 import { clearAcaCache } from './utils/calculate-v3/aca-manager';
 import { clearMedicareCache } from './utils/calculate-v3/medicare-manager';
 import { clearContributionLimitCache } from './utils/calculate-v3/contribution-limit-manager';
+import { clearGlidePathCache } from './utils/calculate-v3/glide-path-blender';
+import { load, save } from './utils/io/io';
 import {
   getSpendingTrackerCategories,
   getSpendingTrackerCategory,
@@ -1426,6 +1428,7 @@ app.post('/api/cache/clear', verifyToken, (_req: Request, res: Response) => {
   clearMedicareCache();
   clearContributionLimitCache();
   clearAllGraphCache();
+  clearGlidePathCache();
   res.json({ success: true });
 });
 
@@ -1489,6 +1492,171 @@ app
   .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await deleteAsset(req));
   }));
+
+// ─── Glide Path Routes ───
+
+// Validation function for glide path waypoints
+function validateWaypoints(waypoints: unknown): waypoints is Record<string, Record<string, number>> {
+  if (!waypoints || typeof waypoints !== 'object') return false;
+  for (const [yearStr, alloc] of Object.entries(waypoints as Record<string, unknown>)) {
+    if (isNaN(Number(yearStr))) return false;
+    if (!alloc || typeof alloc !== 'object') return false;
+    for (const val of Object.values(alloc as Record<string, unknown>)) {
+      if (typeof val !== 'number' || val < 0 || val > 1) return false;
+    }
+  }
+  return true;
+}
+
+// Validation function for glide path names
+function validatePathName(name: string): boolean {
+  return /^[\w\s\-().]+$/.test(name);
+}
+
+// Global glide path
+app.get('/api/glide-paths/global', verifyToken, asyncHandler(async (_req: Request, res: Response) => {
+  try {
+    const data = load<Record<string, Record<string, number>>>('portfolioMakeupOverTime.json');
+    res.json(data);
+  } catch (error) {
+    console.error('Error loading global glide path:', error);
+    res.status(500).json({ error: 'Failed to load global glide path' });
+  }
+}));
+
+app.put('/api/glide-paths/global', verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+  try {
+    if (!validateWaypoints(req.body)) {
+      return res.status(400).json({ error: 'Invalid waypoints format' });
+    }
+    const waypoints = req.body as Record<string, Record<string, number>>;
+    save(waypoints, 'portfolioMakeupOverTime.json');
+    clearGlidePathCache();
+    CacheManager.clearAll();
+    clearAllGraphCache();
+    res.json(waypoints);
+  } catch (error) {
+    console.error('Error saving global glide path:', error);
+    res.status(500).json({ error: 'Failed to save global glide path' });
+  }
+}));
+
+// Custom glide paths
+app.get('/api/glide-paths/custom', verifyToken, asyncHandler(async (_req: Request, res: Response) => {
+  try {
+    const data = load<Record<string, Record<string, Record<string, number>>>>('customGlidePaths.json');
+    res.json(data);
+  } catch (error) {
+    console.error('Error loading custom glide paths:', error);
+    res.status(500).json({ error: 'Failed to load custom glide paths' });
+  }
+}));
+
+app.post('/api/glide-paths/custom', verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { name, waypoints } = req.body as { name: string; waypoints: Record<string, Record<string, number>> };
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    if (!validatePathName(name)) {
+      return res.status(400).json({ error: 'Invalid path name' });
+    }
+    if (name.toLowerCase() === 'global') {
+      return res.status(400).json({ error: 'Name "global" is reserved' });
+    }
+    if (!validateWaypoints(waypoints)) {
+      return res.status(400).json({ error: 'Invalid waypoints format' });
+    }
+    const data = load<Record<string, Record<string, Record<string, number>>>>('customGlidePaths.json');
+    if (data[name]) {
+      return res.status(409).json({ error: `Custom glide path "${name}" already exists` });
+    }
+    data[name] = waypoints;
+    save(data, 'customGlidePaths.json');
+    clearGlidePathCache();
+    res.json({ name, waypoints });
+  } catch (error) {
+    console.error('Error creating custom glide path:', error);
+    res.status(500).json({ error: 'Failed to create custom glide path' });
+  }
+}));
+
+app.put('/api/glide-paths/custom/:name', verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { name } = req.params;
+    const { waypoints, newName } = req.body as { waypoints: Record<string, Record<string, number>>; newName?: string };
+    if (!validateWaypoints(waypoints)) {
+      return res.status(400).json({ error: 'Invalid waypoints format' });
+    }
+    const data = load<Record<string, Record<string, Record<string, number>>>>('customGlidePaths.json');
+    if (!data[name]) {
+      return res.status(404).json({ error: `Custom glide path "${name}" not found` });
+    }
+    // If renaming
+    if (newName && newName !== name) {
+      if (!validatePathName(newName)) {
+        return res.status(400).json({ error: 'Invalid path name' });
+      }
+      if (newName.toLowerCase() === 'global') {
+        return res.status(400).json({ error: 'Name "global" is reserved' });
+      }
+      if (data[newName]) {
+        return res.status(409).json({ error: `Custom glide path "${newName}" already exists` });
+      }
+      // Update all account references
+      const configs = loadPortfolioConfigs();
+      for (const [accountId, config] of Object.entries(configs)) {
+        if ((config as any).glidePath === name) {
+          (config as any).glidePath = newName;
+        }
+      }
+      savePortfolioConfigs(configs);
+      delete data[name];
+      data[newName] = waypoints;
+    } else {
+      data[name] = waypoints;
+    }
+    save(data, 'customGlidePaths.json');
+    clearGlidePathCache();
+    CacheManager.clearAll();
+    clearAllGraphCache();
+    res.json({ name: newName || name, waypoints });
+  } catch (error) {
+    console.error('Error updating custom glide path:', error);
+    res.status(500).json({ error: 'Failed to update custom glide path' });
+  }
+}));
+
+app.delete('/api/glide-paths/custom/:name', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { name } = req.params;
+    if (!validatePathName(name)) {
+      return res.status(400).json({ error: 'Invalid path name' });
+    }
+    const data = load<Record<string, Record<string, Record<string, number>>>>('customGlidePaths.json');
+    if (!data[name]) {
+      return res.status(404).json({ error: `Custom glide path "${name}" not found` });
+    }
+    // Check if any accounts reference this path
+    const configs = loadPortfolioConfigs();
+    const referencingAccounts = Object.entries(configs)
+      .filter(([_, config]) => (config as any).glidePath === name)
+      .map(([id]) => id);
+    if (referencingAccounts.length > 0) {
+      return res.status(409).json({
+        error: `Cannot delete: ${referencingAccounts.length} account(s) still reference this glide path`,
+        accounts: referencingAccounts,
+      });
+    }
+    delete data[name];
+    save(data, 'customGlidePaths.json');
+    clearGlidePathCache();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting custom glide path:', error);
+    res.status(500).json({ error: 'Failed to delete custom glide path' });
+  }
+}));
 
 // Dev-only frontend logging endpoints
 const FRONTEND_LOG_FILE = '/tmp/frontend.log';
