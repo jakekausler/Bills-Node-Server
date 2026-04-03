@@ -99,6 +99,7 @@ import { importQfx, importCsv, getLedger, getPositions } from './api/portfolio/i
 import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint } from './api/portfolio/prices';
 import { addTransaction, listTransactions, editTransaction, deleteTransaction } from './api/portfolio/transactions';
 import { reconcileHoldings } from './api/portfolio/reconcile';
+import { getFundMetadata, updateFundMetadata } from './api/portfolio/fund-metadata';
 import { getAssets, addAsset, updateAsset, deleteAsset } from './api/assets/assets';
 
 declare global {
@@ -1461,6 +1462,14 @@ app.delete('/api/portfolio/transactions/:accountId/:id', verifyToken, asyncHandl
 
 // Portfolio reconciliation
 app.post('/api/portfolio/reconcile/:accountId', verifyToken, express.json(), reconcileHoldings);
+
+// Fund metadata routes
+app.get('/api/portfolio/fund-metadata', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  await getFundMetadata(req, res);
+}));
+app.put('/api/portfolio/fund-metadata/:symbol', verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+  await updateFundMetadata(req, res);
+}));
 
 // Asset routes
 app
