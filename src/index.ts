@@ -68,6 +68,7 @@ import { loadAllHealthcareConfigs } from './utils/io/virtualHealthcarePlans';
 import { loadTaxProfile, saveTaxProfile } from './utils/io/taxProfile';
 import { loadTaxScenario, saveTaxScenario } from './utils/io/taxScenario';
 import { loadRawPensionAndSS, savePensionAndSS, loadPensionsAndSocialSecurity } from './utils/io/retirement';
+import { loadRMDTable, saveRMDTable, loadRothConversionConfigs, saveRothConversionConfigs, RothConversionConfigData } from './utils/io/rmdAndRothConversion';
 import { loadVariable } from './utils/simulation/variable';
 import { v4 as uuidv4 } from 'uuid';
 import { clearDataCache } from './utils/io/dataCache';
@@ -1279,6 +1280,56 @@ app.get('/api/social-securities/:id/estimate', verifyToken, asyncHandler(async (
   } catch (err) {
     console.error('SS estimate error:', err);
     res.status(500).json({ error: 'Failed to compute benefit estimate' });
+  }
+}));
+
+// ─── RMD Routes ───
+
+// GET /api/retirement/rmd — return full RMD table
+app.get('/api/retirement/rmd', verifyToken, asyncHandler(async (_req: Request, res: Response) => {
+  try {
+    const table = loadRMDTable();
+    res.json(table);
+  } catch (error) {
+    console.error('Error loading RMD table:', error);
+    res.status(500).json({ error: 'Failed to load RMD table' });
+  }
+}));
+
+// PUT /api/retirement/rmd — replace full RMD table
+app.put('/api/retirement/rmd', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const table = req.body as Record<string, number>;
+    saveRMDTable(table);
+    res.json(table);
+  } catch (error) {
+    console.error('Error saving RMD table:', error);
+    res.status(500).json({ error: 'Failed to save RMD table' });
+  }
+}));
+
+// ─── Roth Conversion Routes ───
+
+// GET /api/retirement/roth-conversion — list all configs (with UUID migration)
+app.get('/api/retirement/roth-conversion', verifyToken, asyncHandler(async (_req: Request, res: Response) => {
+  try {
+    const configs = loadRothConversionConfigs();
+    res.json(configs);
+  } catch (error) {
+    console.error('Error loading Roth conversion configs:', error);
+    res.status(500).json({ error: 'Failed to load Roth conversion configs' });
+  }
+}));
+
+// PUT /api/retirement/roth-conversion — replace full configs array
+app.put('/api/retirement/roth-conversion', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const configs = req.body as RothConversionConfigData[];
+    saveRothConversionConfigs(configs);
+    res.json(configs);
+  } catch (error) {
+    console.error('Error saving Roth conversion configs:', error);
+    res.status(500).json({ error: 'Failed to save Roth conversion configs' });
   }
 }));
 
