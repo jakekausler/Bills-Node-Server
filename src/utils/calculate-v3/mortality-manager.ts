@@ -40,8 +40,8 @@ export interface LTCTransitionData {
       healthy_to_assistedLiving: number;
       healthy_to_nursingHome: number;
       homeCare: { healthy: number; assistedLiving: number; nursingHome: number; deceased: number };
-      assistedLiving: { healthy: number; nursingHome: number; deceased: number };
-      nursingHome: { deceased: number; remain: number };
+      assistedLiving: { healthy: number; homeCare?: number; nursingHome: number; deceased: number };
+      nursingHome: { healthy?: number; homeCare?: number; assistedLiving?: number; deceased: number; remain: number };
       mortality_multiplier: { homeCare: number; assistedLiving: number; nursingHome: number };
     };
   };

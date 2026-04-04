@@ -106,6 +106,7 @@ import { reconcileHoldings } from './api/portfolio/reconcile';
 import { getFundMetadata, updateFundMetadata } from './api/portfolio/fund-metadata';
 import { getAssets, addAsset, updateAsset, deleteAsset } from './api/assets/assets';
 import { getLifeInsurancePolicies, createLifeInsurancePolicy, updateLifeInsurancePolicy, deleteLifeInsurancePolicy } from './api/insurance/life-insurance';
+import { getLTCConfigs, updateLTCConfigs, getLTCTransitions, updateLTCTransitions } from './api/insurance/ltc';
 
 declare global {
   namespace Express {
@@ -1534,6 +1535,44 @@ app
   }))
   .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await deleteLifeInsurancePolicy(req));
+  }));
+
+// ─── LTC Insurance Routes ───
+
+app
+  .route('/api/insurance/ltc/config')
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
+    res.json(await getLTCConfigs(req));
+  }))
+  .put(verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+    clearDataCache();
+    CacheManager.clearAll();
+    clearRetirementCache();
+    clearProjectionsCache();
+    clearAcaCache();
+    clearMedicareCache();
+    clearContributionLimitCache();
+    clearAllGraphCache();
+    clearGlidePathCache();
+    res.json(await updateLTCConfigs(req));
+  }));
+
+app
+  .route('/api/insurance/ltc/transitions')
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
+    res.json(await getLTCTransitions(req));
+  }))
+  .put(verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+    clearDataCache();
+    CacheManager.clearAll();
+    clearRetirementCache();
+    clearProjectionsCache();
+    clearAcaCache();
+    clearMedicareCache();
+    clearContributionLimitCache();
+    clearAllGraphCache();
+    clearGlidePathCache();
+    res.json(await updateLTCTransitions(req));
   }));
 
 // ─── Glide Path Routes ───
