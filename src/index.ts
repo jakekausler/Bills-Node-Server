@@ -107,6 +107,7 @@ import { getFundMetadata, updateFundMetadata } from './api/portfolio/fund-metada
 import { getAssets, addAsset, updateAsset, deleteAsset } from './api/assets/assets';
 import { getLifeInsurancePolicies, createLifeInsurancePolicy, updateLifeInsurancePolicy, deleteLifeInsurancePolicy } from './api/insurance/life-insurance';
 import { getLTCConfigs, updateLTCConfigs, getLTCTransitions, updateLTCTransitions } from './api/insurance/ltc';
+import { getInheritanceConfigs, updateInheritanceConfigs } from './api/inheritance/inheritance';
 
 declare global {
   namespace Express {
@@ -1573,6 +1574,26 @@ app
     clearAllGraphCache();
     clearGlidePathCache();
     res.json(await updateLTCTransitions(req));
+  }));
+
+// ─── Inheritance Routes ───
+
+app
+  .route('/api/inheritance')
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
+    res.json(await getInheritanceConfigs(req));
+  }))
+  .put(verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+    clearDataCache();
+    CacheManager.clearAll();
+    clearRetirementCache();
+    clearProjectionsCache();
+    clearAcaCache();
+    clearMedicareCache();
+    clearContributionLimitCache();
+    clearAllGraphCache();
+    clearGlidePathCache();
+    res.json(await updateInheritanceConfigs(req));
   }));
 
 // ─── Glide Path Routes ───
