@@ -105,6 +105,7 @@ import { addTransaction, listTransactions, editTransaction, deleteTransaction } 
 import { reconcileHoldings } from './api/portfolio/reconcile';
 import { getFundMetadata, updateFundMetadata } from './api/portfolio/fund-metadata';
 import { getAssets, addAsset, updateAsset, deleteAsset } from './api/assets/assets';
+import { getLifeInsurancePolicies, createLifeInsurancePolicy, updateLifeInsurancePolicy, deleteLifeInsurancePolicy } from './api/insurance/life-insurance';
 
 declare global {
   namespace Express {
@@ -406,6 +407,12 @@ app.get('/api/simulations/used_variables', verifyToken, asyncHandler(async (req:
 // Name categories route
 app.get('/api/names', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getNameCategories(req));
+}));
+
+// Persons endpoint (for UI person selectors)
+app.get('/api/persons', verifyToken, asyncHandler(async (_req: Request, res: Response) => {
+  const { getPersonNames } = await import('./utils/io/persons');
+  res.json(getPersonNames());
 }));
 
 // Flow route
@@ -1507,6 +1514,26 @@ app
   }))
   .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await deleteAsset(req));
+  }));
+
+// ─── Life Insurance Routes ───
+
+app
+  .route('/api/insurance/life')
+  .get(verifyToken, asyncHandler(async (req: Request, res: Response) => {
+    res.json(await getLifeInsurancePolicies(req));
+  }))
+  .post(verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+    res.json(await createLifeInsurancePolicy(req));
+  }));
+
+app
+  .route('/api/insurance/life/:policyId')
+  .put(verifyToken, express.json(), asyncHandler(async (req: Request, res: Response) => {
+    res.json(await updateLifeInsurancePolicy(req));
+  }))
+  .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
+    res.json(await deleteLifeInsurancePolicy(req));
   }));
 
 // ─── Glide Path Routes ───
