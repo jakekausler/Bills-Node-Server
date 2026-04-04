@@ -1,6 +1,7 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import multer from 'multer';
 import { appendFile } from 'fs/promises';
 import { getSimpleAccounts, addAccount, updateAccounts, loadPortfolioConfigs, savePortfolioConfigs } from './api/accounts/accounts';
 import { getAccount, updateAccount, removeAccount } from './api/accounts/account';
@@ -98,6 +99,7 @@ import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
 import { getBracketDataForYear } from './utils/calculate-v3/bracket-calculator';
 import type { PaycheckProfile } from './data/bill/paycheck-types';
 import { importQfx, importCsv, getLedger, getPositions } from './api/portfolio/import';
+import { getExpectedReturns, getCapitalGainsRates } from './api/reference/reference';
 import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint, getPriceHistoryEndpoint, overridePriceEndpoint, deletePriceOverrideEndpoint, getPriceOverridesEndpoint } from './api/portfolio/prices';
 import { addTransaction, listTransactions, editTransaction, deleteTransaction } from './api/portfolio/transactions';
 import { reconcileHoldings } from './api/portfolio/reconcile';
@@ -137,6 +139,8 @@ const apiErrorHandler = (fn: (req: Request) => Promise<any>) =>
 
 const app: Express = express();
 const port = process.env.PORT || 5002;
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 // Create MySQL connection pool at module level
 const pool = mysql.createPool({
@@ -1433,8 +1437,8 @@ app.post('/api/cache/clear', verifyToken, (_req: Request, res: Response) => {
 });
 
 // Portfolio import routes
-app.post('/api/portfolio/import/qfx', express.text({ limit: '50mb', type: '*/*' }), importQfx);
-app.post('/api/portfolio/import/csv', express.text({ limit: '50mb', type: '*/*' }), importCsv);
+app.post('/api/portfolio/import/qfx', verifyToken, upload.single('file'), asyncHandler(importQfx));
+app.post('/api/portfolio/import/csv', verifyToken, upload.single('file'), asyncHandler(importCsv));
 app.get('/api/portfolio/ledger/:accountId', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   await getLedger(req, res);
 }));
@@ -1669,6 +1673,10 @@ app.delete('/api/glide-paths/custom/:name', verifyToken, asyncHandler(async (req
     res.status(500).json({ error: 'Failed to delete custom glide path' });
   }
 }));
+
+// Reference data endpoints
+app.get('/api/reference/expected-returns', verifyToken, asyncHandler(getExpectedReturns));
+app.get('/api/reference/capital-gains-rates', verifyToken, asyncHandler(getCapitalGainsRates));
 
 // Dev-only frontend logging endpoints
 const FRONTEND_LOG_FILE = '/tmp/frontend.log';

@@ -6,7 +6,7 @@ import { getCurrentPrices } from '../../utils/prices/price-service';
 
 /**
  * Import QFX file into portfolio ledger.
- * Expects raw file content in request body.
+ * Expects multipart/form-data with file field.
  */
 export async function importQfx(req: Request, res: Response) {
   try {
@@ -15,11 +15,12 @@ export async function importQfx(req: Request, res: Response) {
       return res.status(400).json({ error: 'accountId query parameter required' });
     }
 
-    const fileContent = req.body;
-    if (!fileContent || typeof fileContent !== 'string') {
-      return res.status(400).json({ error: 'Request body must be raw QFX file content' });
+    const file = (req as any).file as { buffer: Buffer } | undefined;
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded. Send as multipart/form-data with field name "file".' });
     }
 
+    const fileContent = file.buffer.toString('utf-8');
     const { transactions, positions } = parseQfx(fileContent, accountId);
     const result = appendTransactions(transactions);
 
@@ -36,7 +37,7 @@ export async function importQfx(req: Request, res: Response) {
 
 /**
  * Import Fidelity CSV file into portfolio ledger.
- * Expects raw file content in request body.
+ * Expects multipart/form-data with file field.
  */
 export async function importCsv(req: Request, res: Response) {
   try {
@@ -45,11 +46,12 @@ export async function importCsv(req: Request, res: Response) {
       return res.status(400).json({ error: 'accountId query parameter required' });
     }
 
-    const fileContent = req.body;
-    if (!fileContent || typeof fileContent !== 'string') {
-      return res.status(400).json({ error: 'Request body must be raw CSV file content' });
+    const file = (req as any).file as { buffer: Buffer } | undefined;
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded. Send as multipart/form-data with field name "file".' });
     }
 
+    const fileContent = file.buffer.toString('utf-8');
     const transactions = parseFidelityCsv(fileContent, accountId);
     const result = appendTransactions(transactions);
 
