@@ -48,6 +48,7 @@ export class Account {
   defaultShowInGraph: boolean;
   contributionLimitType: '401k' | 'ira' | 'hsa' | null;
   person: string | null;
+  favorite: boolean;
 
   /**
    * Creates a new Account instance
@@ -112,6 +113,7 @@ export class Account {
     this.defaultShowInGraph = data.defaultShowInGraph || false;
     this.contributionLimitType = data.contributionLimitType || null;
     this.person = data.person ?? null;
+    this.favorite = data.favorite || false;
   }
 
   /**
@@ -154,6 +156,7 @@ export class Account {
       balance: this.todayBalance,
       contributionLimitType: this.contributionLimitType,
       person: this.person,
+      favorite: this.favorite,
     };
   }
 
@@ -191,6 +194,7 @@ export class Account {
       defaultShowInGraph: this.defaultShowInGraph,
       contributionLimitType: this.contributionLimitType,
       person: this.person,
+      favorite: this.favorite,
     };
   }
 

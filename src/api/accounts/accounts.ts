@@ -72,6 +72,9 @@ function updateBasicAccountProperties(account: Account, newAccount: AccountData)
   if (newAccount.defaultShowInGraph !== account.defaultShowInGraph) {
     account.defaultShowInGraph = newAccount.defaultShowInGraph ?? false;
   }
+  if (newAccount.favorite !== undefined && newAccount.favorite !== account.favorite) {
+    account.favorite = newAccount.favorite ?? false;
+  }
 }
 
 /**

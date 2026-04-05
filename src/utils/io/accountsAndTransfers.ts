@@ -120,7 +120,17 @@ export function saveData(data: AccountsAndTransfers, simulation: string = 'Defau
     activity: data.transfers.activity.map((transfer) => transfer.serialize()),
     bills: data.transfers.bills.map((bill) => bill.serialize()),
   };
-  save<AccountsAndTransfersData>({ accounts, transfers }, `${FILE_NAME}.json`);
+
+  // Load existing data to preserve other top-level keys (e.g., assets)
+  let existingData: Record<string, unknown> = {};
+  try {
+    existingData = load<Record<string, unknown>>(`${FILE_NAME}.json`);
+  } catch {
+    // File doesn't exist yet
+  }
+
+  // Merge: update accounts/transfers while preserving other keys
+  save({ ...existingData, accounts, transfers }, `${FILE_NAME}.json`);
   clearDataCache();
   clearProjectionsCache();
   resetCache(simulation);

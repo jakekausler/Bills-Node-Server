@@ -53,6 +53,7 @@ export type AccountData = {
   balance?: number;
   contributionLimitType?: '401k' | 'ira' | 'hsa' | null;
   person?: string | null;
+  favorite?: boolean;
 };
 
 export type TransfersData = {
