@@ -677,7 +677,7 @@ describe('RetirementManager', () => {
       // Higher earner
       const higherEarnerSS = new SocialSecurity({
         name: 'Higher Earner SS',
-        payToAccount: 'checking-1',
+        payToAccount: 'Higher Earner',
         paycheckNames: ['Higher Paycheck'],
         paycheckAccounts: ['checking-1'],
         paycheckCategories: ['Income.SocialSecurity'],
@@ -685,7 +685,7 @@ describe('RetirementManager', () => {
         birthDateVariable: 'BIRTH_DATE',
         priorAnnualNetIncomeYears: years,
         priorAnnualNetIncomes: incomes,
-        spouseName: 'Lower Earner SS',
+        spouseName: 'Lower Earner',
       } as any);
       // Override with actual date/age values
       (higherEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
@@ -696,7 +696,7 @@ describe('RetirementManager', () => {
       // Lower earner
       const lowerEarnerSS = new SocialSecurity({
         name: 'Lower Earner SS',
-        payToAccount: 'checking-1',
+        payToAccount: 'Lower Earner',
         paycheckNames: ['Lower Paycheck'],
         paycheckAccounts: ['checking-1'],
         paycheckCategories: ['Income.SocialSecurity'],
@@ -704,7 +704,7 @@ describe('RetirementManager', () => {
         birthDateVariable: 'BIRTH_DATE',
         priorAnnualNetIncomeYears: lowIncomeYears,
         priorAnnualNetIncomes: lowIncomes,
-        spouseName: 'Higher Earner SS',
+        spouseName: 'Higher Earner',
       } as any);
       // Override with actual date/age values
       (lowerEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
@@ -735,7 +735,7 @@ describe('RetirementManager', () => {
       // Higher earner
       const higherEarnerSS = new SocialSecurity({
         name: 'Higher Earner SS',
-        payToAccount: 'checking-1',
+        payToAccount: 'Higher Earner',
         paycheckNames: ['Higher Paycheck'],
         paycheckAccounts: ['checking-1'],
         paycheckCategories: ['Income.SocialSecurity'],
@@ -743,7 +743,7 @@ describe('RetirementManager', () => {
         birthDateVariable: 'BIRTH_DATE',
         priorAnnualNetIncomeYears: years,
         priorAnnualNetIncomes: incomes,
-        spouseName: 'Lower Earner SS',
+        spouseName: 'Lower Earner',
       } as any);
       // Override with actual date/age values
       (higherEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
@@ -754,7 +754,7 @@ describe('RetirementManager', () => {
       // Lower earner
       const lowerEarnerSS = new SocialSecurity({
         name: 'Lower Earner SS',
-        payToAccount: 'checking-1',
+        payToAccount: 'Lower Earner',
         paycheckNames: ['Lower Paycheck'],
         paycheckAccounts: ['checking-1'],
         paycheckCategories: ['Income.SocialSecurity'],
@@ -762,7 +762,7 @@ describe('RetirementManager', () => {
         birthDateVariable: 'BIRTH_DATE',
         priorAnnualNetIncomeYears: lowIncomeYears,
         priorAnnualNetIncomes: lowIncomes,
-        spouseName: 'Higher Earner SS',
+        spouseName: 'Higher Earner',
       } as any);
       // Override with actual date/age values
       (lowerEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
@@ -789,7 +789,7 @@ describe('RetirementManager', () => {
 
       const socialSecurityWithoutSpouse = new SocialSecurity({
         name: 'No Spouse SS',
-        payToAccount: 'checking-1',
+        payToAccount: 'No Spouse',
         paycheckNames: ['Paycheck'],
         paycheckAccounts: ['checking-1'],
         paycheckCategories: ['Income.SocialSecurity'],
@@ -819,7 +819,7 @@ describe('RetirementManager', () => {
       // Lower earner who references spouse
       const lowerEarnerSS = new SocialSecurity({
         name: 'Lower Earner SS',
-        payToAccount: 'checking-1',
+        payToAccount: 'Lower Earner',
         paycheckNames: ['Lower Paycheck'],
         paycheckAccounts: ['checking-1'],
         paycheckCategories: ['Income.SocialSecurity'],
@@ -827,7 +827,7 @@ describe('RetirementManager', () => {
         birthDateVariable: 'BIRTH_DATE',
         priorAnnualNetIncomeYears: lowIncomeYears,
         priorAnnualNetIncomes: lowIncomes,
-        spouseName: 'Higher Earner SS',
+        spouseName: 'Higher Earner',
       } as any);
       // Override with actual date/age values
       (lowerEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
@@ -838,7 +838,7 @@ describe('RetirementManager', () => {
       // Higher earner
       const higherEarnerSS = new SocialSecurity({
         name: 'Higher Earner SS',
-        payToAccount: 'checking-1',
+        payToAccount: 'Higher Earner',
         paycheckNames: ['Higher Paycheck'],
         paycheckAccounts: ['checking-1'],
         paycheckCategories: ['Income.SocialSecurity'],
@@ -846,7 +846,7 @@ describe('RetirementManager', () => {
         birthDateVariable: 'BIRTH_DATE',
         priorAnnualNetIncomeYears: years,
         priorAnnualNetIncomes: incomes,
-        spouseName: 'Lower Earner SS',
+        spouseName: 'Lower Earner',
       } as any);
       // Override with actual date/age values
       (higherEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
@@ -886,7 +886,7 @@ describe('RetirementManager', () => {
       // Create higher earner (spouse 1)
       higherEarnerSS = {
         name: 'Higher Earner SS',
-        payToAccount: 'acct-1',
+        payToAccount: 'Higher Earner',
         paycheckNames: ['Higher Earner SS'],
         paycheckAccounts: ['acct-1'],
         paycheckCategories: ['Income.Retirement'],
@@ -901,7 +901,7 @@ describe('RetirementManager', () => {
         collectionAge: 67,
         firstPaymentYear: null,
         colaVariable: null,
-        spouseName: 'Lower Earner SS',
+        spouseName: 'Lower Earner',
       } as any;
       (higherEarnerSS as any).startDate = new Date(Date.UTC(2027, 0, 1));
       (higherEarnerSS as any).birthDate = new Date(Date.UTC(1960, 0, 1));
@@ -911,7 +911,7 @@ describe('RetirementManager', () => {
       // Create lower earner (spouse 2)
       lowerEarnerSS = {
         name: 'Lower Earner SS',
-        payToAccount: 'acct-2',
+        payToAccount: 'Lower Earner',
         paycheckNames: ['Lower Earner SS'],
         paycheckAccounts: ['acct-2'],
         paycheckCategories: ['Income.Retirement'],
@@ -926,7 +926,7 @@ describe('RetirementManager', () => {
         collectionAge: 67,
         firstPaymentYear: null,
         colaVariable: null,
-        spouseName: 'Higher Earner SS',
+        spouseName: 'Higher Earner',
       } as any;
       (lowerEarnerSS as any).startDate = new Date(Date.UTC(2028, 0, 1));
       (lowerEarnerSS as any).birthDate = new Date(Date.UTC(1961, 0, 1));
@@ -955,8 +955,8 @@ describe('RetirementManager', () => {
 
     it('spouse dies: survivor gets max(own benefit, 100% of deceased locked benefit)', () => {
       // Setup: higher earner dies, locked at $2000/month
-      mortalityManager.isDeceased.mockImplementation((name: string) => name === 'Higher Earner SS');
-      mortalityManager.getLockedSurvivorBenefit.mockImplementation((name: string) => (name === 'Higher Earner SS' ? 2000 : 0));
+      mortalityManager.isDeceased.mockImplementation((name: string) => name === 'Higher Earner');
+      mortalityManager.getLockedSurvivorBenefit.mockImplementation((name: string) => (name === 'Higher Earner' ? 2000 : 0));
 
       retirementManager = new RetirementManager([higherEarnerSS, lowerEarnerSS], [], undefined, 0, mortalityManager);
 
@@ -970,13 +970,13 @@ describe('RetirementManager', () => {
 
       // Survivor should get 100% of locked spouse benefit (since it's higher than own)
       expect(survivorPay).toBeCloseTo(2000, 0);
-      expect(mortalityManager.getLockedSurvivorBenefit).toHaveBeenCalledWith('Higher Earner SS');
+      expect(mortalityManager.getLockedSurvivorBenefit).toHaveBeenCalledWith('Higher Earner');
     });
 
     it('own benefit higher than deceased benefit: survivor keeps own', () => {
       // Setup: spouse dies with locked benefit $300, own benefit will be ~$400
-      mortalityManager.isDeceased.mockImplementation((name: string) => name === 'Higher Earner SS');
-      mortalityManager.getLockedSurvivorBenefit.mockImplementation((name: string) => (name === 'Higher Earner SS' ? 300 : 0));
+      mortalityManager.isDeceased.mockImplementation((name: string) => name === 'Higher Earner');
+      mortalityManager.getLockedSurvivorBenefit.mockImplementation((name: string) => (name === 'Higher Earner' ? 300 : 0));
 
       retirementManager = new RetirementManager([higherEarnerSS, lowerEarnerSS], [], undefined, 0, mortalityManager);
 
@@ -995,7 +995,7 @@ describe('RetirementManager', () => {
     it('no spouse: normal calculation without survivor logic', () => {
       const soloSS = {
         name: 'Solo SS',
-        payToAccount: 'acct-1',
+        payToAccount: 'Solo',
         paycheckNames: ['Solo SS'],
         paycheckAccounts: ['acct-1'],
         paycheckCategories: ['Income.Retirement'],

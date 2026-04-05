@@ -102,6 +102,8 @@ export class RetirementManager {
   private pensionAnnualIncomes: Map<string, Map<number, number>> = new Map();
   // the monthly pay for each social security indexed by social security name
   private socialSecurityMonthlyPay: Map<string, number> = new Map();
+  // reverse lookup: person name (e.g. "Kendall") → SS config name (e.g. "Kendall Social Security")
+  private personNameToSSConfigName: Map<string, string> = new Map();
   // the monthly pay for each pension indexed by pension name
   private pensionMonthlyPay: Map<string, number> = new Map();
   // the first payment year for each pension indexed by pension name
@@ -161,6 +163,8 @@ export class RetirementManager {
       }
       // Initialize the monthly pay for this social security
       this.socialSecurityMonthlyPay.set(socialSecurity.name, 0);
+      // Build reverse lookup from person name to SS config name (for spousal benefit resolution)
+      this.personNameToSSConfigName.set(socialSecurity.payToAccount, socialSecurity.name);
       // Add the social security to the valid income names to social security map
       socialSecurity.paycheckNames.forEach((paycheckName) => {
         this.validIncomeNamesToSocialSecurity.set(paycheckName, socialSecurity);
@@ -248,11 +252,12 @@ export class RetirementManager {
     // TODO #26: Store raw PIA for more accurate spousal benefit calculation (currently using adjusted monthly pay as approximation)
     if (socialSecurity.spouseName) {
       const spouseName = socialSecurity.spouseName;
-      const spouseMonthlyPay = this.socialSecurityMonthlyPay.get(spouseName);
+      const spouseSSConfigName = this.personNameToSSConfigName.get(spouseName);
+      const spouseMonthlyPay = spouseSSConfigName ? this.socialSecurityMonthlyPay.get(spouseSSConfigName) : undefined;
       if (spouseMonthlyPay && spouseMonthlyPay > 0) {
         const ownBenefit = monthlyPay;
 
-        // Check if spouse is deceased
+        // Check if spouse is deceased (mortality manager uses person names)
         if (this.mortalityManager && this.mortalityManager.isDeceased(spouseName)) {
           // Survivor benefit: use max(own, 100% of deceased's locked benefit)
           const lockedBenefit = this.mortalityManager.getLockedSurvivorBenefit(spouseName);
