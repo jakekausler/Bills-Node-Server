@@ -83,7 +83,10 @@ export class HealthcareManager {
     }
     if (config.deductibleInflationVariable) {
       try {
-        return loadVariable(config.deductibleInflationVariable, this.simulation) as number;
+        const result = loadVariable(config.deductibleInflationVariable, this.simulation);
+        if (typeof result === 'number' && !isNaN(result)) {
+          return result;
+        }
       } catch {
         // fall through to fixed rate
       }
