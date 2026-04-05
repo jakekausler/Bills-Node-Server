@@ -84,17 +84,22 @@ export class AcaManager {
     if (configWithVar?.monthlyPremiumInflationVariable) {
       if (this.mcRateGetter) {
         const mcRate = this.mcRateGetter(MonteCarloSampleType.HEALTHCARE_INFLATION, year);
-        if (mcRate !== null) return mcRate;
+        if (mcRate !== null) {
+          this.log('premium-inflation-resolved', { source: 'mc', rate: mcRate, variableName: configWithVar.monthlyPremiumInflationVariable, year });
+          return mcRate;
+        }
       }
       try {
         const result = loadVariable(configWithVar.monthlyPremiumInflationVariable, this.simulation);
         if (typeof result === 'number' && !isNaN(result)) {
+          this.log('premium-inflation-resolved', { source: 'variable', rate: result, variableName: configWithVar.monthlyPremiumInflationVariable, year });
           return result;
         }
       } catch {
         // fall through to default
       }
     }
+    this.log('premium-inflation-resolved', { source: 'default', rate: this.DEFAULT_HEALTHCARE_INFLATION, variableName: null, year });
     return this.DEFAULT_HEALTHCARE_INFLATION;
   }
 

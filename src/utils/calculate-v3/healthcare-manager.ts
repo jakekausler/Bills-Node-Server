@@ -79,19 +79,25 @@ export class HealthcareManager {
   private getDeductibleInflationRate(config: HealthcareConfig, year: number): number {
     if (this.mcRateGetter && config.deductibleInflationVariable) {
       const mcRate = this.mcRateGetter(MonteCarloSampleType.HEALTHCARE_INFLATION, year);
-      if (mcRate !== null) return mcRate;
+      if (mcRate !== null) {
+        this.log('deductible-inflation-resolved', { source: 'mc', rate: mcRate, variableName: config.deductibleInflationVariable, year });
+        return mcRate;
+      }
     }
     if (config.deductibleInflationVariable) {
       try {
         const result = loadVariable(config.deductibleInflationVariable, this.simulation);
         if (typeof result === 'number' && !isNaN(result)) {
+          this.log('deductible-inflation-resolved', { source: 'variable', rate: result, variableName: config.deductibleInflationVariable, year });
           return result;
         }
       } catch {
         // fall through to fixed rate
       }
     }
-    return config.deductibleInflationRate ?? 0.05;
+    const rate = config.deductibleInflationRate ?? 0.05;
+    this.log('deductible-inflation-resolved', { source: 'default', rate, variableName: null, year });
+    return rate;
   }
 
   /**
@@ -160,7 +166,7 @@ export class HealthcareManager {
     const yearsDiff = Math.max(0, currentYear - baseYear);
     const rate = this.getDeductibleInflationRate(config, currentYear);
     const inflated = Math.round(config.individualDeductible * Math.pow(1 + rate, yearsDiff));
-    this.log('deductible-inflated', { config_name: config.name, base_year: baseYear, current_year: currentYear, base_deductible: config.individualDeductible, inflated_deductible: inflated });
+    this.log('deductible-inflated', { field: 'deductible', originalAmount: config.individualDeductible, inflatedAmount: inflated, rate, year: currentYear });
     return inflated;
   }
 
@@ -172,7 +178,9 @@ export class HealthcareManager {
     const currentYear = date.getUTCFullYear();
     const yearsDiff = Math.max(0, currentYear - baseYear);
     const rate = this.getDeductibleInflationRate(config, currentYear);
-    return Math.round(config.familyDeductible * Math.pow(1 + rate, yearsDiff));
+    const inflated = Math.round(config.familyDeductible * Math.pow(1 + rate, yearsDiff));
+    this.log('deductible-inflated', { field: 'familyDeductible', originalAmount: config.familyDeductible, inflatedAmount: inflated, rate, year: currentYear });
+    return inflated;
   }
 
   /**
@@ -183,7 +191,9 @@ export class HealthcareManager {
     const currentYear = date.getUTCFullYear();
     const yearsDiff = Math.max(0, currentYear - baseYear);
     const rate = this.getDeductibleInflationRate(config, currentYear);
-    return Math.round(config.individualOutOfPocketMax * Math.pow(1 + rate, yearsDiff));
+    const inflated = Math.round(config.individualOutOfPocketMax * Math.pow(1 + rate, yearsDiff));
+    this.log('deductible-inflated', { field: 'individualOOP', originalAmount: config.individualOutOfPocketMax, inflatedAmount: inflated, rate, year: currentYear });
+    return inflated;
   }
 
   /**
@@ -194,7 +204,9 @@ export class HealthcareManager {
     const currentYear = date.getUTCFullYear();
     const yearsDiff = Math.max(0, currentYear - baseYear);
     const rate = this.getDeductibleInflationRate(config, currentYear);
-    return Math.round(config.familyOutOfPocketMax * Math.pow(1 + rate, yearsDiff));
+    const inflated = Math.round(config.familyOutOfPocketMax * Math.pow(1 + rate, yearsDiff));
+    this.log('deductible-inflated', { field: 'familyOOP', originalAmount: config.familyOutOfPocketMax, inflatedAmount: inflated, rate, year: currentYear });
+    return inflated;
   }
 
   /**
