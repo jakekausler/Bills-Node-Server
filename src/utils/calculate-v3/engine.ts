@@ -526,6 +526,7 @@ export class Engine {
       };
       this.calculator.setMCRateGetter(mcRateGetter);
       this.acaManager.setMCRateGetter(mcRateGetter);
+      this.healthcareManager.setMCRateGetter(mcRateGetter);
       this.mortalityManager.setMCRateGetter(mcRateGetter);
       this.medicareManager.setMCRateGetter(mcRateGetter);
       this.retirementManager.setMCRateGetter(mcRateGetter);

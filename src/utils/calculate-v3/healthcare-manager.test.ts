@@ -3,6 +3,10 @@ import { HealthcareManager } from './healthcare-manager';
 import { HealthcareConfig } from '../../data/healthcare/types';
 import type { MortalityManager } from './mortality-manager';
 
+vi.mock('../../utils/simulation/variable', () => ({
+  loadVariable: vi.fn(),
+}));
+
 describe('HealthcareManager', () => {
   let manager: HealthcareManager;
   const testConfig: HealthcareConfig = {
@@ -953,6 +957,142 @@ describe('HealthcareManager', () => {
 
       // Should use family limits
       expect(progress.familyRemaining).toBe(5000);
+    });
+  });
+
+  describe('Deductible variable resolution (STAGE-020-001)', () => {
+    it('should use MC rate when mcRateGetter is set and variable is set', async () => {
+      const { MonteCarloSampleType } = await import('./types');
+
+      const configWithVariable: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-mc-variable',
+        startDate: '2024-01-01',
+        individualDeductible: 1000,
+        deductibleInflationVariable: 'healthcare_inflation_rate',
+      };
+      const manager = new HealthcareManager([configWithVariable]);
+
+      // Set MC rate getter that returns 0.08 (8% for HEALTHCARE_INFLATION)
+      const mockMCRateGetter = vi.fn((type, year) => {
+        if (type === MonteCarloSampleType.HEALTHCARE_INFLATION) {
+          return 0.08;
+        }
+        return null;
+      });
+      manager.setMCRateGetter(mockMCRateGetter);
+
+      // Year 1 (2025): 8% inflation
+      const date2025 = new Date('2025-06-15');
+      const progress = manager.getDeductibleProgress(configWithVariable, date2025, 'John');
+
+      // 1000 * (1 + 0.08) = 1080
+      expect(progress.individualRemaining).toBe(1080);
+    });
+
+    it('should use variable value when mcRateGetter is null but variable is set', async () => {
+      const { loadVariable: mockLoadVariable } = await import('../../utils/simulation/variable');
+
+      const configWithVariable: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-variable-deterministic',
+        startDate: '2024-01-01',
+        individualDeductible: 1000,
+        deductibleInflationVariable: 'custom_inflation_rate',
+      };
+      const manager = new HealthcareManager([configWithVariable], 'TestSim');
+
+      // Mock loadVariable to return 0.06
+      vi.mocked(mockLoadVariable).mockReturnValue(0.06);
+
+      // No MC rate getter set, should use variable value
+      const date2025 = new Date('2025-06-15');
+      const progress = manager.getDeductibleProgress(configWithVariable, date2025, 'John');
+
+      // 1000 * (1 + 0.06) = 1060
+      expect(progress.individualRemaining).toBe(1060);
+      expect(mockLoadVariable).toHaveBeenCalledWith('custom_inflation_rate', 'TestSim');
+    });
+
+    it('should fall back to config rate when variable resolution fails', async () => {
+      const { loadVariable: mockLoadVariable } = await import('../../utils/simulation/variable');
+
+      const configWithVariable: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-variable-fallback',
+        startDate: '2024-01-01',
+        individualDeductible: 1000,
+        deductibleInflationRate: 0.07, // Fallback rate
+        deductibleInflationVariable: 'missing_variable',
+      };
+      const manager = new HealthcareManager([configWithVariable]);
+
+      // Mock loadVariable to throw an error
+      vi.mocked(mockLoadVariable).mockImplementation(() => {
+        throw new Error('Variable not found');
+      });
+
+      // Should fall back to config.deductibleInflationRate (0.07)
+      const date2025 = new Date('2025-06-15');
+      const progress = manager.getDeductibleProgress(configWithVariable, date2025, 'John');
+
+      // 1000 * (1 + 0.07) = 1070
+      expect(progress.individualRemaining).toBe(1070);
+    });
+
+    it('should use default 5% when no variable or rate is set', () => {
+      const configDefault: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-default-rate',
+        startDate: '2024-01-01',
+        individualDeductible: 1000,
+        // No deductibleInflationRate, no deductibleInflationVariable
+      };
+      const manager = new HealthcareManager([configDefault]);
+
+      // Should use default 5%
+      const date2025 = new Date('2025-06-15');
+      const progress = manager.getDeductibleProgress(configDefault, date2025, 'John');
+
+      // 1000 * (1 + 0.05) = 1050
+      expect(progress.individualRemaining).toBe(1050);
+    });
+
+    it('should apply variable inflation to all four inflated* methods', async () => {
+      const { loadVariable: mockLoadVariable } = await import('../../utils/simulation/variable');
+
+      const configWithVariable: HealthcareConfig = {
+        ...testConfig,
+        id: 'test-all-inflation',
+        startDate: '2024-01-01',
+        individualDeductible: 1000,
+        familyDeductible: 2000,
+        individualOutOfPocketMax: 5000,
+        familyOutOfPocketMax: 10000,
+        deductibleInflationVariable: 'inflation_var',
+      };
+      const manager = new HealthcareManager([configWithVariable], 'TestSim');
+
+      // Mock loadVariable to return 0.10 (10%)
+      vi.mocked(mockLoadVariable).mockReturnValue(0.10);
+
+      const date2025 = new Date('2025-06-15');
+
+      // Check all four values use the variable inflation rate
+      const deductibleProgress = manager.getDeductibleProgress(configWithVariable, date2025, 'John');
+      const oopProgress = manager.getOOPProgress(configWithVariable, date2025, 'John');
+
+      // Individual deductible: 1000 * 1.10 = 1100
+      expect(deductibleProgress.individualRemaining).toBe(1100);
+
+      // Family deductible: 2000 * 1.10 = 2200
+      expect(deductibleProgress.familyRemaining).toBe(2200);
+
+      // Individual OOP: 5000 * 1.10 = 5500
+      expect(oopProgress.individualRemaining).toBe(5500);
+
+      // Family OOP: 10000 * 1.10 = 11000
+      expect(oopProgress.familyRemaining).toBe(11000);
     });
   });
 });

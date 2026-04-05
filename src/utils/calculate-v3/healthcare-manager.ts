@@ -5,6 +5,8 @@ import { parseDate } from '../../utils/date/date';
 import { loadDateOrVariable } from '../../utils/simulation/loadVariableValue';
 import type { DebugLogger } from './debug-logger';
 import type { MortalityManager } from './mortality-manager';
+import { MCRateGetter, MonteCarloSampleType } from './types';
+import { loadVariable } from '../../utils/simulation/variable';
 
 type YearTracker = {
   planYear: number;
@@ -31,8 +33,11 @@ export class HealthcareManager {
   private simNumber: number;
   private currentDate: string = '';
   private mortalityManager: MortalityManager | null;
+  private mcRateGetter: MCRateGetter | null = null;
+  private simulation: string = 'Default';
 
   constructor(healthcareConfigs: HealthcareConfig[], simulation: string = 'Default', debugLogger?: DebugLogger | null, simNumber: number = 0, mortalityManager?: MortalityManager | null) {
+    this.simulation = simulation;
     // Resolve date variables for each config
     this.configs = healthcareConfigs.map(config => this.resolveConfigDates(config, simulation));
     this.debugLogger = debugLogger ?? null;
@@ -55,6 +60,35 @@ export class HealthcareManager {
    */
   setMortalityManager(mortalityManager: MortalityManager): void {
     this.mortalityManager = mortalityManager;
+  }
+
+  /**
+   * Wire the MC rate getter to enable stochastic deductible inflation in MC mode.
+   */
+  setMCRateGetter(getter: MCRateGetter | null): void {
+    this.mcRateGetter = getter;
+  }
+
+  /**
+   * Resolve the deductible inflation rate for a given year.
+   * Priority:
+   *   1. MC mode + variable set → sample from MC draw
+   *   2. Variable set (deterministic) → load variable value
+   *   3. Fixed rate field → config.deductibleInflationRate ?? 0.05
+   */
+  private getDeductibleInflationRate(config: HealthcareConfig, year: number): number {
+    if (this.mcRateGetter && config.deductibleInflationVariable) {
+      const mcRate = this.mcRateGetter(MonteCarloSampleType.HEALTHCARE_INFLATION, year);
+      if (mcRate !== null) return mcRate;
+    }
+    if (config.deductibleInflationVariable) {
+      try {
+        return loadVariable(config.deductibleInflationVariable, this.simulation) as number;
+      } catch {
+        // fall through to fixed rate
+      }
+    }
+    return config.deductibleInflationRate ?? 0.05;
   }
 
   /**
@@ -121,7 +155,7 @@ export class HealthcareManager {
     const baseYear = parseDate(config.startDate).getUTCFullYear();
     const currentYear = date.getUTCFullYear();
     const yearsDiff = Math.max(0, currentYear - baseYear);
-    const rate = config.deductibleInflationRate ?? 0.05; // Default 5% healthcare inflation
+    const rate = this.getDeductibleInflationRate(config, currentYear);
     const inflated = Math.round(config.individualDeductible * Math.pow(1 + rate, yearsDiff));
     this.log('deductible-inflated', { config_name: config.name, base_year: baseYear, current_year: currentYear, base_deductible: config.individualDeductible, inflated_deductible: inflated });
     return inflated;
@@ -134,7 +168,7 @@ export class HealthcareManager {
     const baseYear = parseDate(config.startDate).getUTCFullYear();
     const currentYear = date.getUTCFullYear();
     const yearsDiff = Math.max(0, currentYear - baseYear);
-    const rate = config.deductibleInflationRate ?? 0.05; // Default 5% healthcare inflation
+    const rate = this.getDeductibleInflationRate(config, currentYear);
     return Math.round(config.familyDeductible * Math.pow(1 + rate, yearsDiff));
   }
 
@@ -145,7 +179,7 @@ export class HealthcareManager {
     const baseYear = parseDate(config.startDate).getUTCFullYear();
     const currentYear = date.getUTCFullYear();
     const yearsDiff = Math.max(0, currentYear - baseYear);
-    const rate = config.deductibleInflationRate ?? 0.05; // Default 5% healthcare inflation
+    const rate = this.getDeductibleInflationRate(config, currentYear);
     return Math.round(config.individualOutOfPocketMax * Math.pow(1 + rate, yearsDiff));
   }
 
@@ -156,7 +190,7 @@ export class HealthcareManager {
     const baseYear = parseDate(config.startDate).getUTCFullYear();
     const currentYear = date.getUTCFullYear();
     const yearsDiff = Math.max(0, currentYear - baseYear);
-    const rate = config.deductibleInflationRate ?? 0.05; // Default 5% healthcare inflation
+    const rate = this.getDeductibleInflationRate(config, currentYear);
     return Math.round(config.familyOutOfPocketMax * Math.pow(1 + rate, yearsDiff));
   }
 
