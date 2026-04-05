@@ -870,7 +870,7 @@ export class Engine {
           bill.endDate,
           unemploymentRate,
           unemploymentDuration,
-          profile.jobLoss.scaleFactor || 1.5,
+          profile.jobLoss.scaleFactor ?? 0.5,
           prng,
         );
       }
