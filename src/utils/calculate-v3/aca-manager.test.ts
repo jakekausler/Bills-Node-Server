@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AcaManager } from './aca-manager';
+import { loadVariable } from '../../utils/simulation/variable';
+
+// Mock the variable module
+vi.mock('../../utils/simulation/variable', () => ({
+  loadVariable: vi.fn(),
+}));
 
 // Mock the IO module
 vi.mock('../../utils/io/io', () => ({
@@ -372,6 +378,49 @@ describe('AcaManager', () => {
       const oop2010 = manager.getAcaOOPMax(2010);
       // Should return earliest available (2014) or reasonable default
       expect(oop2010.individual).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Premium inflation variable resolution', () => {
+    const mockConfigs = [
+      { monthlyPremiumInflationVariable: 'MY_PREMIUM_RATE' } as any,
+    ];
+
+    it('should use variable rate for COBRA premium when config has monthlyPremiumInflationVariable', () => {
+      vi.mocked(loadVariable).mockReturnValue(0.03); // 3% instead of default 5%
+      const m = new AcaManager();
+      m.setConfigs(mockConfigs, 'TestSim');
+      const premium2026 = m.getCobraMonthlyPremium(2026);
+      const premium2027 = m.getCobraMonthlyPremium(2027);
+      // Should inflate at 3%, not 5%
+      expect(premium2027).toBeCloseTo(premium2026 * 1.03, 1);
+    });
+
+    it('should use variable rate for ACA person premium when config has monthlyPremiumInflationVariable', () => {
+      vi.mocked(loadVariable).mockReturnValue(0.03);
+      const m = new AcaManager();
+      m.setConfigs(mockConfigs, 'TestSim');
+      const premium2026 = m.getAcaPremiumForPerson(40, 2026);
+      const premium2027 = m.getAcaPremiumForPerson(40, 2027);
+      expect(premium2027).toBeCloseTo(premium2026 * 1.03, 1);
+    });
+
+    it('should fall back to DEFAULT_HEALTHCARE_INFLATION when no configs set', () => {
+      const m = new AcaManager();
+      // No setConfigs call
+      const premium2026 = m.getCobraMonthlyPremium(2026);
+      const premium2027 = m.getCobraMonthlyPremium(2027);
+      expect(premium2027).toBeCloseTo(premium2026 * 1.05, 1);
+    });
+
+    it('should fall back to default when variable returns NaN', () => {
+      vi.mocked(loadVariable).mockReturnValue(NaN);
+      const m = new AcaManager();
+      m.setConfigs(mockConfigs, 'TestSim');
+      const premium2026 = m.getCobraMonthlyPremium(2026);
+      const premium2027 = m.getCobraMonthlyPremium(2027);
+      // NaN guard — falls back to default 5%
+      expect(premium2027).toBeCloseTo(premium2026 * 1.05, 1);
     });
   });
 });

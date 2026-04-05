@@ -377,6 +377,7 @@ export class Engine {
       console.log('Initializing ACA manager...', Date.now() - this.calculationBegin, 'ms');
     }
     this.acaManager = new AcaManager(this.debugLogger, this.simNumber);
+    this.acaManager.setConfigs(healthcareConfigs, this.simulation);
 
     // Initialize mortality manager
     if (options.enableLogging) {

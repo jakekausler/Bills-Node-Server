@@ -4,6 +4,8 @@ import { HistoricRates, MCRateGetter, MonteCarloSampleType } from './types';
 import { load } from '../io/io';
 import type { DebugLogger } from './debug-logger';
 import { compoundMCInflation } from './mc-utils';
+import { loadVariable } from '../../utils/simulation/variable';
+import type { HealthcareConfig } from '../../data/healthcare/types';
 
 dayjs.extend(utc);
 
@@ -40,6 +42,8 @@ export class AcaManager {
   private simNumber: number;
   private currentDate: string = '';
   private mcRateGetter: MCRateGetter | null = null;
+  private configs: HealthcareConfig[] = [];
+  private simulation: string = 'Default';
 
   constructor(debugLogger?: DebugLogger | null, simNumber: number = 0) {
     // Constructor is minimal; historicRates loaded on-demand
@@ -52,6 +56,12 @@ export class AcaManager {
     this.mcRateGetter = getter;
   }
 
+  /** Wire healthcare configs for premium inflation variable resolution */
+  setConfigs(configs: HealthcareConfig[], simulation: string): void {
+    this.configs = configs;
+    this.simulation = simulation;
+  }
+
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
     this.debugLogger.log(this.simNumber, { component: 'aca', event, ...(this.currentDate ? { ts: this.currentDate } : {}), ...data });
@@ -60,6 +70,32 @@ export class AcaManager {
   /** Set the current simulation date for debug log entries */
   setCurrentDate(date: string): void {
     this.currentDate = date;
+  }
+
+  /**
+   * Resolve the premium inflation rate for a given year.
+   * Priority:
+   *   1. MC mode + variable set → sample from MC draw
+   *   2. Variable set (deterministic) → load variable value
+   *   3. DEFAULT_HEALTHCARE_INFLATION (5%)
+   */
+  private getPremiumInflationRate(year: number): number {
+    const configWithVar = this.configs.find(c => c.monthlyPremiumInflationVariable);
+    if (configWithVar?.monthlyPremiumInflationVariable) {
+      if (this.mcRateGetter) {
+        const mcRate = this.mcRateGetter(MonteCarloSampleType.HEALTHCARE_INFLATION, year);
+        if (mcRate !== null) return mcRate;
+      }
+      try {
+        const result = loadVariable(configWithVar.monthlyPremiumInflationVariable, this.simulation);
+        if (typeof result === 'number' && !isNaN(result)) {
+          return result;
+        }
+      } catch {
+        // fall through to default
+      }
+    }
+    return this.DEFAULT_HEALTHCARE_INFLATION;
   }
 
   /**
@@ -95,8 +131,12 @@ export class AcaManager {
       return premium;
     }
 
+    const inflationRate = this.getPremiumInflationRate(year);
+    if (isNaN(inflationRate)) {
+      return Math.round(cobraPremium * 100) / 100;
+    }
     const inflationMultiplier = compoundMCInflation(
-      2026, year, this.DEFAULT_HEALTHCARE_INFLATION,
+      2026, year, inflationRate,
       this.mcRateGetter, MonteCarloSampleType.HEALTHCARE_INFLATION,
     );
     const inflatedPremium = cobraPremium * inflationMultiplier;
@@ -148,11 +188,16 @@ export class AcaManager {
     // Inflate benchmark to requested year if needed
     let benchmarkForYear = latestBenchmarkPremium;
     if (year > latestBenchmarkYear) {
-      const inflMultiplier = compoundMCInflation(
-        latestBenchmarkYear, year, this.DEFAULT_HEALTHCARE_INFLATION,
-        this.mcRateGetter, MonteCarloSampleType.HEALTHCARE_INFLATION,
-      );
-      benchmarkForYear *= inflMultiplier;
+      const inflationRate = this.getPremiumInflationRate(year);
+      if (isNaN(inflationRate)) {
+        benchmarkForYear = latestBenchmarkPremium;
+      } else {
+        const inflMultiplier = compoundMCInflation(
+          latestBenchmarkYear, year, inflationRate,
+          this.mcRateGetter, MonteCarloSampleType.HEALTHCARE_INFLATION,
+        );
+        benchmarkForYear *= inflMultiplier;
+      }
       this.log('benchmark-inflated', { year, latest_year: latestBenchmarkYear, inflated_premium: Math.round(benchmarkForYear * 100) / 100 });
     }
 
