@@ -1,4 +1,4 @@
-import { readFileSync, unlinkSync, existsSync, mkdirSync, readdirSync } from 'fs';
+import { readFileSync, unlinkSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { Worker } from 'worker_threads';
 import { randomInt } from 'crypto';
@@ -216,6 +216,15 @@ export class MonteCarloSimulationRunner {
         job.duration =
           job.completedAt.getTime() - (job.startedAt?.getTime() ?? job.createdAt.getTime());
         job.progress = 100;
+
+        // Save duration to results file
+        const resultsPath = join(MC_RESULTS_DIR, `${job.id}.json`);
+        if (existsSync(resultsPath)) {
+          const resultsData = JSON.parse(readFileSync(resultsPath, 'utf-8'));
+          resultsData.metadata.duration = job.duration;
+          writeFileSync(resultsPath, JSON.stringify(resultsData));
+        }
+
         this.activeWorker = null;
         this.activeJobId = null;
         this.processQueue();
