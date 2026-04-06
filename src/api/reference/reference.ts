@@ -149,3 +149,42 @@ export async function updateIrmaaBrackets(req: Request, res: Response) {
     res.status(500).json({ error: (err as Error).message });
   }
 }
+
+export async function getMortality(_req: Request, res: Response) {
+  try {
+    const data = load<Record<string, unknown>>('ssaLifeTable.json');
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
+export async function updateMortality(req: Request, res: Response) {
+  try {
+    const data = req.body;
+    save(data, 'ssaLifeTable.json');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
+export async function getMarketReturns(_req: Request, res: Response) {
+  try {
+    const data = load<Record<string, unknown>>('historicRates.json');
+    res.json((data as Record<string, unknown>).investment ?? {});
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
+export async function updateMarketReturns(req: Request, res: Response) {
+  try {
+    const data = load<Record<string, unknown>>('historicRates.json');
+    (data as Record<string, unknown>).investment = req.body;
+    save(data, 'historicRates.json');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}

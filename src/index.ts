@@ -99,7 +99,7 @@ import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
 import { getBracketDataForYear } from './utils/calculate-v3/bracket-calculator';
 import type { PaycheckProfile } from './data/bill/paycheck-types';
 import { importQfx, importCsv, getLedger, getPositions } from './api/portfolio/import';
-import { getExpectedReturns, updateExpectedReturns, getCapitalGainsRates, updateCapitalGainsRates, getTaxBracketsRaw, updateTaxBrackets, getWithholdingTablesRaw, updateWithholdingTables, getLifeInsuranceReferenceData, getBendPoints, updateBendPoints, getWageIndex, updateWageIndex, getIrmaaBrackets, updateIrmaaBrackets } from './api/reference/reference';
+import { getExpectedReturns, updateExpectedReturns, getCapitalGainsRates, updateCapitalGainsRates, getTaxBracketsRaw, updateTaxBrackets, getWithholdingTablesRaw, updateWithholdingTables, getLifeInsuranceReferenceData, getBendPoints, updateBendPoints, getWageIndex, updateWageIndex, getIrmaaBrackets, updateIrmaaBrackets, getMortality, updateMortality, getMarketReturns, updateMarketReturns } from './api/reference/reference';
 import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint, getPriceHistoryEndpoint, overridePriceEndpoint, deletePriceOverrideEndpoint, getPriceOverridesEndpoint } from './api/portfolio/prices';
 import { addTransaction, listTransactions, editTransaction, deleteTransaction } from './api/portfolio/transactions';
 import { reconcileHoldings } from './api/portfolio/reconcile';
@@ -1782,6 +1782,10 @@ app.get('/api/reference/wage-index', verifyToken, asyncHandler(getWageIndex));
 app.put('/api/reference/wage-index', verifyToken, asyncHandler(updateWageIndex));
 app.get('/api/reference/irmaa', verifyToken, asyncHandler(getIrmaaBrackets));
 app.put('/api/reference/irmaa', verifyToken, asyncHandler(updateIrmaaBrackets));
+app.get('/api/reference/mortality', verifyToken, asyncHandler(getMortality));
+app.put('/api/reference/mortality', verifyToken, asyncHandler(updateMortality));
+app.get('/api/reference/market-returns', verifyToken, asyncHandler(getMarketReturns));
+app.put('/api/reference/market-returns', verifyToken, asyncHandler(updateMarketReturns));
 
 // Dev-only frontend logging endpoints
 const FRONTEND_LOG_FILE = '/tmp/frontend.log';
