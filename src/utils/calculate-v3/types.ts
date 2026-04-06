@@ -354,6 +354,9 @@ export enum MonteCarloSampleType {
   CONVERTIBLE_RETURN = 'ConvertibleReturn',
   OTHER_RETURN = 'OtherReturn',
   HOME_APPRECIATION = 'homeAppreciation',
+  TERM_LIFE_PPI = 'TermLifePPI',
+  WHOLE_LIFE_PPI = 'WholeLifePPI',
+  WHOLE_LIFE_DIVIDEND = 'WholeLifeDividend',
 }
 
 /**
@@ -382,6 +385,9 @@ export interface HistoricRates {
   ssCola?: number[];
   ssWageBase?: Record<string, number>;
   homeAppreciation: number[];
+  termLifePPI?: Record<string, number>;
+  wholeLifePPI?: Record<string, number>;
+  wholeLifeDividendScale?: Record<string, number>;
   contributionLimits?: {
     '401k'?: Record<string, number>;
     'ira'?: Record<string, number>;
@@ -432,6 +438,9 @@ export interface HistoricRates {
     unemploymentRate: number;
     unemploymentDuration: number;
     homeAppreciation: number;
+    termLifePPI: number;
+    wholeLifePPI: number;
+    wholeLifeDividendScale: number;
   }>>;
   awi?: Record<string, number>;
   awiGrowthRatio?: Record<string, number>;

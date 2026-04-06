@@ -170,6 +170,33 @@ export class MonteCarloHandler {
         : this.drawRandomSample(this.historicRates?.homeAppreciation) / 100;
       yearSamples[MonteCarloSampleType.HOME_APPRECIATION] = homeAppreciation;
 
+      // Term Life PPI - correlated draw from same historical year
+      yearSamples[MonteCarloSampleType.TERM_LIFE_PPI] = yearData.termLifePPI !== undefined
+        ? yearData.termLifePPI / 100
+        : this.drawRandomSample(
+            this.historicRates?.termLifePPI
+              ? Object.values(this.historicRates.termLifePPI)
+              : undefined
+          ) / 100;
+
+      // Whole Life PPI - correlated draw from same historical year
+      yearSamples[MonteCarloSampleType.WHOLE_LIFE_PPI] = yearData.wholeLifePPI !== undefined
+        ? yearData.wholeLifePPI / 100
+        : this.drawRandomSample(
+            this.historicRates?.wholeLifePPI
+              ? Object.values(this.historicRates.wholeLifePPI)
+              : undefined
+          ) / 100;
+
+      // Whole Life Dividend Scale - correlated draw from same historical year
+      yearSamples[MonteCarloSampleType.WHOLE_LIFE_DIVIDEND] = yearData.wholeLifeDividendScale !== undefined
+        ? yearData.wholeLifeDividendScale / 100
+        : this.drawRandomSample(
+            this.historicRates?.wholeLifeDividendScale
+              ? Object.values(this.historicRates.wholeLifeDividendScale)
+              : undefined
+          ) / 100;
+
       yearSamples[MonteCarloSampleType.PORTFOLIO] =
         stockReturn * (composition.stock || 0) +
         bondReturn * (composition.bond || 0) +
