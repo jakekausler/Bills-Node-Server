@@ -17,17 +17,37 @@ function savePolicies(policies: LifeInsurancePolicyConfig[]): void {
   save(policies, FILE_NAME);
 }
 
+function validatePolicyBody(body: Record<string, unknown>): void {
+  const validTypes = ['employer', 'term', 'whole'];
+  if (!body.type || !validTypes.includes(body.type as string)) {
+    throw new Error(`Invalid policy type: ${body.type}. Must be one of: ${validTypes.join(', ')}`);
+  }
+  if (body.type === 'employer' && !body.coverage) {
+    throw new Error('coverage is required for employer policies');
+  }
+  if (body.type === 'term') {
+    if (!body.faceAmount) throw new Error('faceAmount is required for term policies');
+    if (!body.termYears) throw new Error('termYears is required for term policies');
+    if (body.premiumAmount === undefined) throw new Error('premiumAmount is required for term policies');
+  }
+  if (body.type === 'whole') {
+    if (!body.deathBenefit) throw new Error('deathBenefit is required for whole policies');
+    if (body.premiumAmount === undefined) throw new Error('premiumAmount is required for whole policies');
+    if (body.guaranteedRate === undefined) throw new Error('guaranteedRate is required for whole policies');
+  }
+}
+
 export async function getLifeInsurancePolicies(_req: Request) {
   return loadPolicies();
 }
 
 export async function createLifeInsurancePolicy(req: Request) {
+  validatePolicyBody(req.body);
   const policies = loadPolicies();
-  const body = req.body as Omit<LifeInsurancePolicyConfig, 'id'>;
-  const newPolicy: LifeInsurancePolicyConfig = {
-    ...body,
+  const newPolicy = {
+    ...req.body,
     id: uuidv4(),
-  };
+  } as LifeInsurancePolicyConfig;
   policies.push(newPolicy);
   savePolicies(policies);
   return newPolicy;
@@ -37,12 +57,13 @@ export async function updateLifeInsurancePolicy(req: Request) {
   const policyId = req.params.policyId;
   if (!policyId) throw new Error('policyId is required');
 
+  validatePolicyBody(req.body);
+
   const policies = loadPolicies();
   const index = policies.findIndex((p) => p.id === policyId);
   if (index === -1) throw new Error(`Policy ${policyId} not found`);
 
-  const body = req.body as LifeInsurancePolicyConfig;
-  policies[index] = { ...body, id: policyId };
+  policies[index] = { ...req.body, id: policyId } as LifeInsurancePolicyConfig;
   savePolicies(policies);
   return policies[index];
 }

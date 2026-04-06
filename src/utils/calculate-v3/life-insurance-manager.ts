@@ -17,26 +17,76 @@ import { loadVariable } from '../simulation/variable';
 
 // ===== Public Types =====
 
-export interface LifeInsurancePolicyConfig {
+/** Shared coverage configuration for employer policies */
+export interface LifeInsuranceCoverage {
+  formula: 'multiplier' | 'fixed';
+  multiplier?: number;
+  fixedAmount?: number;
+  maxCoverage: number;
+  maxCoverageInflationVariable: string;
+  cappedByPolicyId?: string;
+}
+
+/** Employer-sponsored life insurance (existing, must not break) */
+export interface LifeInsuranceEmployerPolicy {
   id: string;
   name: string;
   type: 'employer';
   insuredPerson: string;
   beneficiary: string;
   depositAccountId: string;
-  coverage: {
-    formula: 'multiplier' | 'fixed';
-    multiplier?: number;
-    fixedAmount?: number;
-    maxCoverage: number;
-    maxCoverageInflationVariable: string;
-    cappedByPolicyId?: string;
-  };
+  enabled: boolean;
+  coverage: LifeInsuranceCoverage;
   employmentTied: boolean;
   linkedPaycheckBillName?: string;
   employmentPerson?: string;
-  enabled: boolean;
 }
+
+/** Term life insurance (new) */
+export interface LifeInsuranceTermPolicy {
+  id: string;
+  name: string;
+  type: 'term';
+  insuredPerson: string;
+  beneficiary: string;
+  depositAccountId: string;
+  enabled: boolean;
+  faceAmount: number;
+  termYears: number;
+  startDate: string; // YYYY-MM-DD
+  premiumAmount: number;
+  premiumFrequency: 'monthly' | 'annual';
+  payFromAccountId: string;
+  renewalOption: 'expire' | 'renew' | 'convertToWhole';
+  insuredGender: 'male' | 'female';
+  insuredBirthDate: string; // YYYY-MM-DD
+}
+
+/** Whole life insurance (new) */
+export interface LifeInsuranceWholePolicy {
+  id: string;
+  name: string;
+  type: 'whole';
+  insuredPerson: string;
+  beneficiary: string;
+  depositAccountId: string;
+  enabled: boolean;
+  deathBenefit: number;
+  premiumAmount: number;
+  premiumFrequency: 'monthly' | 'annual';
+  payFromAccountId: string;
+  guaranteedRate: number; // decimal (0.02 = 2%)
+  savingsRatio: number; // decimal (~0.50)
+  surrenderChargeSchedule?: number[]; // optional, per-year decimals
+  insuredGender: 'male' | 'female';
+  insuredBirthDate: string; // YYYY-MM-DD
+}
+
+/** Discriminated union of all life insurance policy types */
+export type LifeInsurancePolicyConfig =
+  | LifeInsuranceEmployerPolicy
+  | LifeInsuranceTermPolicy
+  | LifeInsuranceWholePolicy;
 
 /** Minimal interface for the job loss manager dependency. */
 export interface EmploymentGate {
@@ -102,6 +152,7 @@ export class LifeInsuranceManager {
     // Pass 1: Process policies WITHOUT cappedByPolicyId
     for (const [, state] of this.states) {
       if (!state.config.enabled || state.payoutMade) continue;
+      if (!this.isEmployerPolicy(state.config)) continue;
       if (state.config.coverage.cappedByPolicyId) continue;
       this.evaluatePolicy(state, year, currentSalaries, retirementDates);
     }
@@ -109,6 +160,7 @@ export class LifeInsuranceManager {
     // Pass 2: Process policies WITH cappedByPolicyId
     for (const [, state] of this.states) {
       if (!state.config.enabled || state.payoutMade) continue;
+      if (!this.isEmployerPolicy(state.config)) continue;
       if (!state.config.coverage.cappedByPolicyId) continue;
       this.evaluatePolicy(state, year, currentSalaries, retirementDates);
     }
@@ -119,7 +171,9 @@ export class LifeInsuranceManager {
     for (const [, state] of this.states) {
       if (!state.config.enabled) continue;
 
-      if (state.config.insuredPerson === person && !state.payoutMade) {
+      // TODO(STAGE-028-003/004): Add term/whole death payout logic
+      // Only employer policies create payouts in this stage
+      if (state.config.insuredPerson === person && !state.payoutMade && this.isEmployerPolicy(state.config)) {
         if (state.coverageActive) {
           // Create payout
           const dateStr = `${deathDate.getUTCFullYear()}-${String(deathDate.getUTCMonth() + 1).padStart(2, '0')}-${String(deathDate.getUTCDate()).padStart(2, '0')}`;
@@ -261,11 +315,18 @@ export class LifeInsuranceManager {
 
   // ---- Private helpers ----
 
+  private isEmployerPolicy(config: LifeInsurancePolicyConfig): config is LifeInsuranceEmployerPolicy {
+    return config.type === 'employer';
+  }
+
   private createInitialState(config: LifeInsurancePolicyConfig): PolicyState {
+    // Only employer policies have maxCoverage; term and whole start at 0
+    const maxCoverage = this.isEmployerPolicy(config) ? config.coverage.maxCoverage : 0;
+
     return {
       config,
       currentCoverageAmount: 0,
-      currentMaxCoverage: config.coverage.maxCoverage,
+      currentMaxCoverage: maxCoverage,
       payoutMade: false,
       coverageActive: true,
       retiredPermanently: false,
@@ -287,6 +348,12 @@ export class LifeInsuranceManager {
     retirementDates: Map<string, Date>,
   ): void {
     const config = state.config;
+
+    // Only employer policies have coverage calculation logic
+    if (!this.isEmployerPolicy(config)) {
+      // Term and whole policies: skip for now (future stage will implement)
+      return;
+    }
 
     // Step 1: Inflate maxCoverage
     const inflationRate = this.getInflationRate(state, year);
@@ -358,6 +425,11 @@ export class LifeInsuranceManager {
   }
 
   private getInflationRate(state: PolicyState, year: number): number | null {
+    // Only employer policies have inflation rates
+    if (!this.isEmployerPolicy(state.config)) {
+      return null;
+    }
+
     // MC mode: use mcRateGetter
     if (this.mcRateGetter) {
       const mcRate = this.mcRateGetter(MonteCarloSampleType.INFLATION, year);
