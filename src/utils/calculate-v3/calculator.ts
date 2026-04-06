@@ -255,7 +255,12 @@ export class Calculator {
       const currentChange = segmentResult.balanceChanges.get(targetAccountId) ?? 0;
       segmentResult.balanceChanges.set(targetAccountId, currentChange + activity.amount);
       const year = new Date(activity.date).getUTCFullYear();
-      this.flowAggregator?.recordIncome(year, incomeSourceName, activity.amount);
+      if (activity.amount < 0) {
+        // Negative payouts are expense deductions (e.g., term life premiums)
+        this.flowAggregator?.recordExpense(year, incomeSourceName, Math.abs(activity.amount));
+      } else {
+        this.flowAggregator?.recordIncome(year, incomeSourceName, activity.amount);
+      }
     }
 
     this.pendingPayouts = [];

@@ -468,4 +468,295 @@ describe('LifeInsuranceManager', () => {
     expect(policyResult.payoutDate).toBeNull();
     expect(policyResult.payoutAmount).toBe(0);
   });
+
+  // ===== TERM LIFE INSURANCE TESTS =====
+
+  // Helper to create term policy config
+  function makeTermConfig(overrides?: Partial<LifeInsurancePolicyConfig>): LifeInsurancePolicyConfig {
+    return {
+      id: 'term-policy-1',
+      name: 'Term Life 20yr',
+      type: 'term' as const,
+      insuredPerson: 'Jake',
+      beneficiary: 'Kendall',
+      depositAccountId: 'acct-checking',
+      enabled: true,
+      faceAmount: 500_000,
+      termYears: 20,
+      startDate: '2025-01-01',
+      premiumAmount: 50, // $50/month = $600/year
+      premiumFrequency: 'monthly' as const,
+      payFromAccountId: 'acct-payment',
+      renewalOption: 'expire' as const,
+      insuredGender: 'male' as const,
+      insuredBirthDate: '1985-06-15',
+      ...overrides,
+    } as LifeInsurancePolicyConfig;
+  }
+
+  // ----- Test 11: Term premium deduction -----
+  it('deducts term premium as negative payout on evaluateYear', () => {
+    const config = makeTermConfig();
+    const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+
+    mgr.evaluateYear(2025, new Map(), new Map());
+
+    const payouts = mgr.getPayoutActivities();
+    expect(payouts).toHaveLength(1);
+    expect(payouts[0].activity.amount).toBe(-600); // $50/month * 12
+    expect(payouts[0].targetAccountId).toBe('acct-payment');
+    expect(payouts[0].incomeSourceName).toBe('Expense.Insurance.LifeInsurance');
+    expect(payouts[0].activity.date).toEqual(new Date('2025-01-01T12:00:00.000Z'));
+  });
+
+  // ----- Test 12: Term premium accumulation -----
+  it('accumulates totalPremiumsPaid over multiple years', () => {
+    const config = makeTermConfig({ premiumAmount: 100, premiumFrequency: 'annual' });
+    const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+
+    // Year 1: $100 premium
+    mgr.evaluateYear(2025, new Map(), new Map());
+    let payouts = mgr.getPayoutActivities();
+    expect(payouts).toHaveLength(1);
+    expect(payouts[0].activity.amount).toBe(-100);
+
+    // Year 2: another $100 premium, total $200
+    mgr.evaluateYear(2026, new Map(), new Map());
+    payouts = mgr.getPayoutActivities();
+    expect(payouts).toHaveLength(1);
+    expect(payouts[0].activity.amount).toBe(-100);
+
+    // Year 3: another $100 premium, total $300
+    mgr.evaluateYear(2027, new Map(), new Map());
+    payouts = mgr.getPayoutActivities();
+    expect(payouts).toHaveLength(1);
+    expect(payouts[0].activity.amount).toBe(-100);
+
+    // Verify cumulative total through checkpoint (internal state)
+    const checkpointData = mgr.checkpoint();
+    const parsed = JSON.parse(checkpointData);
+    expect(parsed['term-policy-1'].totalPremiumsPaid).toBe(300);
+  });
+
+  // ----- Test 13: Term expiration — expire option -----
+  it('expires term policy when termExpirationYear reached and renewalOption=expire', () => {
+    const config = makeTermConfig({
+      startDate: '2025-01-01',
+      termYears: 5,
+      renewalOption: 'expire',
+    });
+    const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+
+    // Years 2025-2029: policy active, premiums deducted
+    for (let year = 2025; year <= 2029; year++) {
+      mgr.evaluateYear(year, new Map(), new Map());
+      const payouts = mgr.getPayoutActivities();
+      expect(payouts).toHaveLength(1); // premium deduction
+      expect(payouts[0].activity.amount).toBe(-600);
+    }
+
+    // Year 2030: expiration year reached (2025 + 5 = 2030)
+    mgr.evaluateYear(2030, new Map(), new Map());
+    const payouts2030 = mgr.getPayoutActivities();
+    // Premium is charged, then policy expires
+    expect(payouts2030).toHaveLength(1);
+
+    // Year 2031: policy expired, no premium
+    mgr.evaluateYear(2031, new Map(), new Map());
+    const payouts2031 = mgr.getPayoutActivities();
+    expect(payouts2031).toHaveLength(0);
+
+    // Verify termActive and coverageActive are false
+    const checkpointData = mgr.checkpoint();
+    const parsed = JSON.parse(checkpointData);
+    expect(parsed['term-policy-1'].termActive).toBe(false);
+    expect(parsed['term-policy-1'].coverageActive).toBe(false);
+  });
+
+  // ----- Test 14: Term expiration — renew option -----
+  it('renews term policy when termExpirationYear reached and renewalOption=renew', () => {
+    const config = makeTermConfig({
+      startDate: '2025-01-01',
+      termYears: 10,
+      renewalOption: 'renew',
+      premiumAmount: 50, // monthly
+      premiumFrequency: 'monthly',
+    });
+
+    // Mock rate table: age 40-49 and 50-59, male, 10-year term
+    // Insured born 1985, so at year 2035 renewal they're 50 years old
+    const rateTable = [
+      { ageMin: 40, ageMax: 49, gender: 'male' as const, termYears: 10, ratePerThousandMonthly: 50 / 1000 },
+      { ageMin: 50, ageMax: 59, gender: 'male' as const, termYears: 10, ratePerThousandMonthly: 60 / 1000 },
+    ];
+
+    const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+    mgr.setTermRateTable(rateTable);
+
+    // Years 2025-2034: first term (insured born 1985, age 40-49)
+    for (let year = 2025; year <= 2034; year++) {
+      mgr.evaluateYear(year, new Map(), new Map());
+      mgr.getPayoutActivities(); // clear buffer
+    }
+
+    // Year 2035: expiration year (2025 + 10 = 2035), old premium charged then renewal triggers
+    mgr.evaluateYear(2035, new Map(), new Map());
+    const payouts2035 = mgr.getPayoutActivities();
+    // Old premium still charged in year 2035: $50/mo * 12 = $600
+    expect(payouts2035).toHaveLength(1);
+    expect(payouts2035[0].activity.amount).toBeCloseTo(-600, 0);
+
+    // Verify renewal state
+    const checkpointData = mgr.checkpoint();
+    const parsed = JSON.parse(checkpointData);
+    expect(parsed['term-policy-1'].termActive).toBe(true);
+    expect(parsed['term-policy-1'].termExpirationYear).toBe(2045); // 2035 + 10
+    expect(parsed['term-policy-1'].renewalCount).toBe(1);
+    expect(parsed['term-policy-1'].currentPremiumAmount).toBeCloseTo(360, 0);
+
+    // Year 2036: new premium applies
+    // ratePerThousandMonthly = 60 / 1000 = 0.06 per month per $1000
+    // faceAmount = 500,000
+    // Monthly premium = 0.06 * (500,000 / 1000) = 0.06 * 500 = $30/month
+    // Annual premium = $30 * 12 = $360/year
+    mgr.evaluateYear(2036, new Map(), new Map());
+    const payouts2036 = mgr.getPayoutActivities();
+    expect(payouts2036).toHaveLength(1);
+    expect(payouts2036[0].activity.amount).toBeCloseTo(-360, 0);
+  });
+
+  // ----- Test 15: Term death benefit -----
+  it('pays out faceAmount when insured dies while term is active', () => {
+    const config = makeTermConfig({
+      faceAmount: 750_000,
+      startDate: '2025-01-01',
+      termYears: 20,
+    });
+    const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+
+    mgr.evaluateYear(2025, new Map(), new Map());
+    mgr.getPayoutActivities(); // clear premium deduction
+
+    // Insured dies mid-term
+    mgr.evaluateDeath('Jake', new Date(Date.UTC(2025, 6, 15)));
+
+    const payouts = mgr.getPayoutActivities();
+    expect(payouts).toHaveLength(1);
+    expect(payouts[0].activity.amount).toBe(750_000);
+    expect(payouts[0].targetAccountId).toBe('acct-checking');
+    expect(payouts[0].incomeSourceName).toBe('Income.LifeInsurance');
+
+    const results = mgr.getResults();
+    const policyResult = results.find((r) => r.policyId === 'term-policy-1')!;
+    expect(policyResult.payoutAmount).toBe(750_000);
+    expect(policyResult.coverageActiveAtDeath).toBe(true);
+  });
+
+  // ----- Test 16: Term death after expiration -----
+  it('does not pay out when insured dies after term has expired', () => {
+    const config = makeTermConfig({
+      startDate: '2025-01-01',
+      termYears: 5,
+      renewalOption: 'expire',
+    });
+    const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+
+    // Advance to expiration year
+    for (let year = 2025; year <= 2030; year++) {
+      mgr.evaluateYear(year, new Map(), new Map());
+      mgr.getPayoutActivities(); // clear premiums
+    }
+
+    // Policy expired, now insured dies
+    mgr.evaluateDeath('Jake', new Date(Date.UTC(2031, 3, 10)));
+
+    const payouts = mgr.getPayoutActivities();
+    expect(payouts).toHaveLength(0);
+
+    const results = mgr.getResults();
+    const policyResult = results.find((r) => r.policyId === 'term-policy-1')!;
+    expect(policyResult.payoutAmount).toBe(0);
+    expect(policyResult.coverageActiveAtDeath).toBe(false);
+  });
+
+  // ----- Test 17: Term conversion to whole -----
+  it('converts term to whole life when termExpirationYear reached and renewalOption=convertToWhole', () => {
+    const config = makeTermConfig({
+      startDate: '2025-01-01',
+      termYears: 10,
+      renewalOption: 'convertToWhole',
+    });
+    const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+
+    // Years 2025-2034: policy active
+    for (let year = 2025; year <= 2034; year++) {
+      mgr.evaluateYear(year, new Map(), new Map());
+      mgr.getPayoutActivities(); // clear premiums
+    }
+
+    // Year 2035: conversion year
+    mgr.evaluateYear(2035, new Map(), new Map());
+
+    // Verify conversion state
+    const checkpointData = mgr.checkpoint();
+    const parsed = JSON.parse(checkpointData);
+    expect(parsed['term-policy-1'].termActive).toBe(false);
+    expect(parsed['term-policy-1'].convertedToWholeDate).toBe('2035-01-01');
+    expect(parsed['term-policy-1'].coverageActive).toBe(true); // coverage preserved
+  });
+
+  // ----- Test 18: Term checkpoint/restore round-trip -----
+  it('checkpoint/restore preserves all term policy state fields', () => {
+    const config = makeTermConfig({
+      startDate: '2025-01-01',
+      termYears: 10,
+      premiumAmount: 75,
+      premiumFrequency: 'monthly',
+    });
+    const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+
+    // Advance a few years to build state
+    mgr.evaluateYear(2025, new Map(), new Map());
+    mgr.getPayoutActivities();
+    mgr.evaluateYear(2026, new Map(), new Map());
+    mgr.getPayoutActivities();
+    mgr.evaluateYear(2027, new Map(), new Map());
+    mgr.getPayoutActivities();
+
+    // Checkpoint after 3 years
+    const checkpoint1 = mgr.checkpoint();
+    const parsed1 = JSON.parse(checkpoint1);
+
+    // Verify initial state
+    expect(parsed1['term-policy-1'].termActive).toBe(true);
+    expect(parsed1['term-policy-1'].termExpirationYear).toBe(2035);
+    expect(parsed1['term-policy-1'].totalPremiumsPaid).toBe(2700); // $900/year * 3
+    expect(parsed1['term-policy-1'].currentPremiumAmount).toBe(900); // $75/mo * 12
+    expect(parsed1['term-policy-1'].renewalCount).toBe(0);
+    expect(parsed1['term-policy-1'].convertedToWholeDate).toBeNull();
+
+    // Advance more years and modify state
+    mgr.evaluateYear(2028, new Map(), new Map());
+    mgr.getPayoutActivities();
+    mgr.evaluateYear(2029, new Map(), new Map());
+    mgr.getPayoutActivities();
+
+    const checkpoint2 = mgr.checkpoint();
+    const parsed2 = JSON.parse(checkpoint2);
+    expect(parsed2['term-policy-1'].totalPremiumsPaid).toBe(4500); // $900/year * 5
+
+    // Restore to checkpoint 1
+    mgr.restore(checkpoint1);
+
+    const checkpointRestored = mgr.checkpoint();
+    const parsedRestored = JSON.parse(checkpointRestored);
+
+    // Verify all 6 term fields restored correctly
+    expect(parsedRestored['term-policy-1'].termActive).toBe(parsed1['term-policy-1'].termActive);
+    expect(parsedRestored['term-policy-1'].termExpirationYear).toBe(parsed1['term-policy-1'].termExpirationYear);
+    expect(parsedRestored['term-policy-1'].totalPremiumsPaid).toBe(parsed1['term-policy-1'].totalPremiumsPaid);
+    expect(parsedRestored['term-policy-1'].currentPremiumAmount).toBe(parsed1['term-policy-1'].currentPremiumAmount);
+    expect(parsedRestored['term-policy-1'].renewalCount).toBe(parsed1['term-policy-1'].renewalCount);
+    expect(parsedRestored['term-policy-1'].convertedToWholeDate).toBe(parsed1['term-policy-1'].convertedToWholeDate);
+  });
 });

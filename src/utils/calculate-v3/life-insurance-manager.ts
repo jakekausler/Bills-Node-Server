@@ -14,6 +14,7 @@ import type { MCRateGetter } from './types';
 import { MonteCarloSampleType } from './types';
 import { ManagerPayout, createPayoutActivity } from './manager-payout';
 import { loadVariable } from '../simulation/variable';
+import type { TermRateEntry, LifeInsurancePremiumRates } from '../../types/life-insurance-rates';
 
 // ===== Public Types =====
 
@@ -108,6 +109,19 @@ interface PolicyState {
   payoutAmount: number;
   /** Whether coverage was active when death occurred */
   coverageActiveAtDeath: boolean;
+  // --- Term policy state (028-003) ---
+  /** Is this term policy currently active (paying premiums, providing coverage)? */
+  termActive: boolean;
+  /** Year when the current term expires (startDate year + termYears) */
+  termExpirationYear: number;
+  /** Cumulative premiums paid over the life of the policy */
+  totalPremiumsPaid: number;
+  /** Current annual premium amount (may change on renewal) */
+  currentPremiumAmount: number;
+  /** How many times this term has been renewed */
+  renewalCount: number;
+  /** Date when converted to whole life (028-004 picks this up), null if not converted */
+  convertedToWholeDate: string | null;
 }
 
 // ===== LifeInsuranceManager =====
@@ -120,6 +134,7 @@ export class LifeInsuranceManager {
   private simNumber: number;
   private mcRateGetter: MCRateGetter | null = null;
   private payoutBuffer: ManagerPayout[] = [];
+  private termRateTable: TermRateEntry[] = [];
 
   constructor(
     configs: LifeInsurancePolicyConfig[],
@@ -144,12 +159,16 @@ export class LifeInsuranceManager {
     this.mcRateGetter = getter;
   }
 
+  setTermRateTable(rates: TermRateEntry[]): void {
+    this.termRateTable = rates;
+  }
+
   evaluateYear(
     year: number,
     currentSalaries: Map<string, number>,
     retirementDates: Map<string, Date>,
   ): void {
-    // Pass 1: Process policies WITHOUT cappedByPolicyId
+    // Pass 1: Process employer policies WITHOUT cappedByPolicyId
     for (const [, state] of this.states) {
       if (!state.config.enabled || state.payoutMade) continue;
       if (!this.isEmployerPolicy(state.config)) continue;
@@ -157,12 +176,19 @@ export class LifeInsuranceManager {
       this.evaluatePolicy(state, year, currentSalaries, retirementDates);
     }
 
-    // Pass 2: Process policies WITH cappedByPolicyId
+    // Pass 2: Process employer policies WITH cappedByPolicyId
     for (const [, state] of this.states) {
       if (!state.config.enabled || state.payoutMade) continue;
       if (!this.isEmployerPolicy(state.config)) continue;
       if (!state.config.coverage.cappedByPolicyId) continue;
       this.evaluatePolicy(state, year, currentSalaries, retirementDates);
+    }
+
+    // Pass 3: Process term policies — premium deduction + expiration/renewal
+    for (const [, state] of this.states) {
+      if (!state.config.enabled || state.payoutMade) continue;
+      if (!this.isTermPolicy(state.config)) continue;
+      this.evaluateTermPolicy(state, year);
     }
   }
 
@@ -171,44 +197,84 @@ export class LifeInsuranceManager {
     for (const [, state] of this.states) {
       if (!state.config.enabled) continue;
 
-      // TODO(STAGE-028-003/004): Add term/whole death payout logic
-      // Only employer policies create payouts in this stage
-      if (state.config.insuredPerson === person && !state.payoutMade && this.isEmployerPolicy(state.config)) {
-        if (state.coverageActive) {
-          // Create payout
-          const dateStr = `${deathDate.getUTCFullYear()}-${String(deathDate.getUTCMonth() + 1).padStart(2, '0')}-${String(deathDate.getUTCDate()).padStart(2, '0')}`;
-          const activity = createPayoutActivity(
-            `life-insurance-${state.config.id}-${dateStr}`,
-            dateStr,
-            `Life Insurance Payout: ${state.config.name}`,
-            state.currentCoverageAmount,
-            'Income.LifeInsurance',
-          );
+      if (state.config.insuredPerson === person && !state.payoutMade) {
+        const dateStr = `${deathDate.getUTCFullYear()}-${String(deathDate.getUTCMonth() + 1).padStart(2, '0')}-${String(deathDate.getUTCDate()).padStart(2, '0')}`;
 
-          this.payoutBuffer.push({
-            activity,
-            targetAccountId: state.config.depositAccountId,
-            incomeSourceName: 'Income.LifeInsurance',
-          });
+        if (this.isEmployerPolicy(state.config)) {
+          // --- Employer policy death payout (existing logic, unchanged) ---
+          if (state.coverageActive) {
+            const activity = createPayoutActivity(
+              `life-insurance-${state.config.id}-${dateStr}`,
+              dateStr,
+              `Life Insurance Payout: ${state.config.name}`,
+              state.currentCoverageAmount,
+              'Income.LifeInsurance',
+            );
 
-          state.payoutDate = dateStr;
-          state.payoutAmount = state.currentCoverageAmount;
-          state.coverageActiveAtDeath = true;
+            this.payoutBuffer.push({
+              activity,
+              targetAccountId: state.config.depositAccountId,
+              incomeSourceName: 'Income.LifeInsurance',
+            });
 
-          this.log('payout-created', {
-            policy: state.config.name,
-            amount: state.currentCoverageAmount,
-            deathDate: deathDate.toISOString(),
-            depositAccount: state.config.depositAccountId,
-          });
-        } else {
-          state.coverageActiveAtDeath = false;
-          this.log('payout-skipped-inactive', {
-            policy: state.config.name,
-            reason: state.retiredPermanently ? 'retired' : 'unemployed',
-          });
+            state.payoutDate = dateStr;
+            state.payoutAmount = state.currentCoverageAmount;
+            state.coverageActiveAtDeath = true;
+
+            this.log('payout-created', {
+              policy: state.config.name,
+              amount: state.currentCoverageAmount,
+              deathDate: deathDate.toISOString(),
+              depositAccount: state.config.depositAccountId,
+            });
+          } else {
+            state.coverageActiveAtDeath = false;
+            this.log('payout-skipped-inactive', {
+              policy: state.config.name,
+              reason: state.retiredPermanently ? 'retired' : 'unemployed',
+            });
+          }
+          state.payoutMade = true;
+
+        } else if (this.isTermPolicy(state.config)) {
+          // --- Term policy death payout ---
+          if (state.termActive && state.coverageActive) {
+            const payoutAmount = state.config.faceAmount;
+            const activity = createPayoutActivity(
+              `life-insurance-${state.config.id}-${dateStr}`,
+              dateStr,
+              `Life Insurance Payout: ${state.config.name}`,
+              payoutAmount,
+              'Income.LifeInsurance',
+            );
+
+            this.payoutBuffer.push({
+              activity,
+              targetAccountId: state.config.depositAccountId,
+              incomeSourceName: 'Income.LifeInsurance',
+            });
+
+            state.payoutDate = dateStr;
+            state.payoutAmount = payoutAmount;
+            state.coverageActiveAtDeath = true;
+            state.termActive = false; // Policy ends on payout
+
+            this.log('term-payout-created', {
+              policy: state.config.name,
+              amount: payoutAmount,
+              deathDate: deathDate.toISOString(),
+              depositAccount: state.config.depositAccountId,
+            });
+          } else {
+            state.coverageActiveAtDeath = false;
+            this.log('term-payout-skipped-inactive', {
+              policy: state.config.name,
+              reason: !state.termActive ? 'term-expired' : 'coverage-inactive',
+            });
+          }
+          state.payoutMade = true;
         }
-        state.payoutMade = true;
+        // Whole life death payout: deferred to 028-004
       }
 
       // Find policies where person is the beneficiary → deactivate
@@ -246,6 +312,13 @@ export class LifeInsuranceManager {
         payoutDate: state.payoutDate,
         payoutAmount: state.payoutAmount,
         coverageActiveAtDeath: state.coverageActiveAtDeath,
+        // Term fields (028-003)
+        termActive: state.termActive,
+        termExpirationYear: state.termExpirationYear,
+        totalPremiumsPaid: state.totalPremiumsPaid,
+        currentPremiumAmount: state.currentPremiumAmount,
+        renewalCount: state.renewalCount,
+        convertedToWholeDate: state.convertedToWholeDate,
       };
     }
     return JSON.stringify(serialised);
@@ -263,6 +336,13 @@ export class LifeInsuranceManager {
         payoutDate: string | null;
         payoutAmount: number;
         coverageActiveAtDeath: boolean;
+        // Term fields (028-003) — optional for backward compat with old checkpoints
+        termActive?: boolean;
+        termExpirationYear?: number;
+        totalPremiumsPaid?: number;
+        currentPremiumAmount?: number;
+        renewalCount?: number;
+        convertedToWholeDate?: string | null;
       }
     >;
 
@@ -277,6 +357,13 @@ export class LifeInsuranceManager {
       state.payoutDate = snap.payoutDate;
       state.payoutAmount = snap.payoutAmount;
       state.coverageActiveAtDeath = snap.coverageActiveAtDeath;
+      // Term fields — use defaults if missing (backward compat)
+      state.termActive = snap.termActive ?? state.termActive;
+      state.termExpirationYear = snap.termExpirationYear ?? state.termExpirationYear;
+      state.totalPremiumsPaid = snap.totalPremiumsPaid ?? state.totalPremiumsPaid;
+      state.currentPremiumAmount = snap.currentPremiumAmount ?? state.currentPremiumAmount;
+      state.renewalCount = snap.renewalCount ?? state.renewalCount;
+      state.convertedToWholeDate = snap.convertedToWholeDate ?? state.convertedToWholeDate;
     }
   }
 
@@ -319,13 +406,35 @@ export class LifeInsuranceManager {
     return config.type === 'employer';
   }
 
+  private isTermPolicy(config: LifeInsurancePolicyConfig): config is LifeInsuranceTermPolicy {
+    return config.type === 'term';
+  }
+
   private createInitialState(config: LifeInsurancePolicyConfig): PolicyState {
     // Only employer policies have maxCoverage; term and whole start at 0
     const maxCoverage = this.isEmployerPolicy(config) ? config.coverage.maxCoverage : 0;
 
+    // Term-specific initial state
+    let termActive = false;
+    let termExpirationYear = 0;
+    let currentPremiumAmount = 0;
+    let currentCoverageAmount = 0;
+
+    if (this.isTermPolicy(config)) {
+      termActive = true;
+      termExpirationYear = parseInt(config.startDate.slice(0, 4), 10) + config.termYears;
+      // Normalize premium to annual total
+      currentPremiumAmount =
+        config.premiumFrequency === 'monthly'
+          ? config.premiumAmount * 12
+          : config.premiumAmount;
+      // Term policies have fixed face amount as coverage
+      currentCoverageAmount = config.faceAmount;
+    }
+
     return {
       config,
-      currentCoverageAmount: 0,
+      currentCoverageAmount,
       currentMaxCoverage: maxCoverage,
       payoutMade: false,
       coverageActive: true,
@@ -333,6 +442,13 @@ export class LifeInsuranceManager {
       payoutDate: null,
       payoutAmount: 0,
       coverageActiveAtDeath: false,
+      // Term fields
+      termActive,
+      termExpirationYear,
+      totalPremiumsPaid: 0,
+      currentPremiumAmount,
+      renewalCount: 0,
+      convertedToWholeDate: null,
     };
   }
 
@@ -424,6 +540,146 @@ export class LifeInsuranceManager {
     }
   }
 
+  /**
+   * Evaluate a term life insurance policy for the given year.
+   * Handles premium deduction, expiration checks, renewal repricing,
+   * and conversion to whole life.
+   */
+  private evaluateTermPolicy(state: PolicyState, year: number): void {
+    const config = state.config as LifeInsuranceTermPolicy;
+
+    // Skip if term is not active (expired or converted)
+    if (!state.termActive) {
+      return;
+    }
+
+    // --- Premium deduction ---
+    const premiumAmount = state.currentPremiumAmount;
+    if (premiumAmount > 0) {
+      const dateStr = `${year}-01-01`;
+      // NOTE: Annual premium deducted as lump sum on Jan 1. Monthly granularity deferred to future stage.
+      const activity = createPayoutActivity(
+        `life-insurance-premium-${config.id}-${year}`,
+        dateStr,
+        `Term Life Premium: ${config.name}`,
+        -premiumAmount, // negative = deduction from account
+        'Expense.Insurance.LifeInsurance',
+      );
+
+      this.payoutBuffer.push({
+        activity,
+        targetAccountId: config.payFromAccountId,
+        incomeSourceName: 'Expense.Insurance.LifeInsurance',
+      });
+
+      state.totalPremiumsPaid += premiumAmount;
+
+      this.log('term-premium-deducted', {
+        policy: config.name,
+        year,
+        amount: premiumAmount,
+        totalPaid: state.totalPremiumsPaid,
+        payFromAccount: config.payFromAccountId,
+      });
+    }
+
+    // --- Expiration check ---
+    // Expiration checked after premium: policy covers through expiration year, final premium is charged.
+    while (year >= state.termExpirationYear && state.termActive) {
+      this.handleTermExpiration(state, config, year);
+    }
+  }
+
+  /**
+   * Handle term expiration based on the renewalOption setting.
+   */
+  private handleTermExpiration(
+    state: PolicyState,
+    config: LifeInsuranceTermPolicy,
+    year: number,
+  ): void {
+    if (config.termYears <= 0) {
+      state.termActive = false;
+      state.coverageActive = false;
+      return;
+    }
+
+    switch (config.renewalOption) {
+      case 'expire': {
+        state.termActive = false;
+        state.coverageActive = false;
+        this.log('term-expired', {
+          policy: config.name,
+          year,
+          totalPremiumsPaid: state.totalPremiumsPaid,
+        });
+        break;
+      }
+
+      case 'renew': {
+        // Calculate insured's age at renewal
+        const birthYear = parseInt(config.insuredBirthDate.slice(0, 4), 10);
+        // Age approximation using year only — sufficient for rate table bands spanning 5-10 years
+        const currentAge = year - birthYear;
+
+        // Look up new premium from rate table
+        let newAnnualPremium = this.lookupTermPremiumFromTable(
+          currentAge,
+          config.insuredGender,
+          config.termYears,
+          config.faceAmount,
+        );
+
+        if (newAnnualPremium === null) {
+          // No rate available at this age — policy cannot renew, expires instead
+          state.termActive = false;
+          state.coverageActive = false;
+          this.log('term-renewal-failed-no-rate', {
+            policy: config.name,
+            year,
+            age: currentAge,
+          });
+          return;
+        }
+
+        // Apply MC-sampled PPI inflation if available
+        if (this.mcRateGetter) {
+          const ppiRate = this.mcRateGetter(MonteCarloSampleType.TERM_LIFE_PPI, year);
+          if (ppiRate !== null) {
+            newAnnualPremium = newAnnualPremium * (1 + ppiRate);
+          }
+        }
+
+        state.currentPremiumAmount = newAnnualPremium;
+        state.termExpirationYear += config.termYears;
+        state.renewalCount += 1;
+
+        this.log('term-renewed', {
+          policy: config.name,
+          year,
+          age: currentAge,
+          newPremium: newAnnualPremium,
+          newExpiration: state.termExpirationYear,
+          renewalCount: state.renewalCount,
+        });
+        break;
+      }
+
+      case 'convertToWhole': {
+        state.termActive = false;
+        state.convertedToWholeDate = `${year}-01-01`;
+        // coverageActive stays true — whole-life conversion preserves coverage
+        // Actual whole-life behavior (cash value, dividends) deferred to 028-004
+        this.log('term-converted-to-whole', {
+          policy: config.name,
+          year,
+          conversionDate: state.convertedToWholeDate,
+        });
+        break;
+      }
+    }
+  }
+
   private getInflationRate(state: PolicyState, year: number): number | null {
     // Only employer policies have inflation rates
     if (!this.isEmployerPolicy(state.config)) {
@@ -449,5 +705,31 @@ export class LifeInsuranceManager {
     }
 
     return null;
+  }
+
+  /**
+   * Look up term premium from the rate table for the insured's current age,
+   * gender, and term length. Returns the annual premium for the full face amount,
+   * or null if no matching rate is found.
+   */
+  private lookupTermPremiumFromTable(
+    age: number,
+    gender: 'male' | 'female',
+    termYears: number,
+    faceAmount: number,
+  ): number | null {
+    const entry = this.termRateTable.find(
+      (r) =>
+        age >= r.ageMin &&
+        age <= r.ageMax &&
+        r.gender === gender &&
+        r.termYears === termYears,
+    );
+    if (!entry) {
+      this.log('term-rate-lookup-miss', { age, gender, termYears });
+      return null;
+    }
+    // ratePerThousandMonthly * (faceAmount / 1000) * 12 = annual premium
+    return entry.ratePerThousandMonthly * (faceAmount / 1000) * 12;
   }
 }

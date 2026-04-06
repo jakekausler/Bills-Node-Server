@@ -20,6 +20,7 @@ import { AcaManager } from './aca-manager';
 import { MortalityManager } from './mortality-manager';
 import { InheritanceManager, BenefactorConfig } from './inheritance-manager';
 import { LifeInsuranceManager, LifeInsurancePolicyConfig } from './life-insurance-manager';
+import type { LifeInsurancePremiumRates } from '../../types/life-insurance-rates';
 import { PortfolioManager } from './portfolio-manager';
 import type { AccountPortfolioConfig } from './portfolio-types';
 import { ManagerPayout } from './manager-payout';
@@ -552,6 +553,19 @@ export class Engine {
           return this.monteCarloConfig.handler.getSample(type, new Date(Date.UTC(year, 0, 1)));
         };
         this.lifeInsuranceManager.setMCRateGetter(mcRateGetter);
+      }
+
+      // Load term life premium rate table for renewal repricing
+      const premiumRatesPath = join(process.cwd(), 'data', 'lifeInsurancePremiumRates.json');
+      try {
+        if (existsSync(premiumRatesPath)) {
+          const rateData = JSON.parse(readFileSync(premiumRatesPath, 'utf-8')) as LifeInsurancePremiumRates;
+          this.lifeInsuranceManager.setTermRateTable(rateData.term ?? []);
+        }
+      } catch (e) {
+        if (this.debugLogger) {
+          this.debugLogger.log(this.simNumber, { component: 'engine', event: 'premium-rates-load-error', error: String(e) });
+        }
       }
     }
 
