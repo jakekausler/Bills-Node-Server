@@ -99,7 +99,7 @@ import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
 import { getBracketDataForYear } from './utils/calculate-v3/bracket-calculator';
 import type { PaycheckProfile } from './data/bill/paycheck-types';
 import { importQfx, importCsv, getLedger, getPositions } from './api/portfolio/import';
-import { getExpectedReturns, updateExpectedReturns, getCapitalGainsRates, updateCapitalGainsRates, getTaxBracketsRaw, updateTaxBrackets, getWithholdingTablesRaw, updateWithholdingTables, getLifeInsuranceReferenceData } from './api/reference/reference';
+import { getExpectedReturns, updateExpectedReturns, getCapitalGainsRates, updateCapitalGainsRates, getTaxBracketsRaw, updateTaxBrackets, getWithholdingTablesRaw, updateWithholdingTables, getLifeInsuranceReferenceData, getBendPoints, updateBendPoints, getWageIndex, updateWageIndex, getIrmaaBrackets, updateIrmaaBrackets } from './api/reference/reference';
 import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint, getPriceHistoryEndpoint, overridePriceEndpoint, deletePriceOverrideEndpoint, getPriceOverridesEndpoint } from './api/portfolio/prices';
 import { addTransaction, listTransactions, editTransaction, deleteTransaction } from './api/portfolio/transactions';
 import { reconcileHoldings } from './api/portfolio/reconcile';
@@ -1776,6 +1776,12 @@ app.put('/api/tax/brackets', verifyToken, asyncHandler(updateTaxBrackets));
 app.get('/api/tax/withholding-tables/raw', verifyToken, asyncHandler(getWithholdingTablesRaw));
 app.put('/api/tax/withholding-tables', verifyToken, asyncHandler(updateWithholdingTables));
 app.get('/api/reference/life-insurance', verifyToken, asyncHandler(getLifeInsuranceReferenceData));
+app.get('/api/reference/bend-points', verifyToken, asyncHandler(getBendPoints));
+app.put('/api/reference/bend-points', verifyToken, asyncHandler(updateBendPoints));
+app.get('/api/reference/wage-index', verifyToken, asyncHandler(getWageIndex));
+app.put('/api/reference/wage-index', verifyToken, asyncHandler(updateWageIndex));
+app.get('/api/reference/irmaa', verifyToken, asyncHandler(getIrmaaBrackets));
+app.put('/api/reference/irmaa', verifyToken, asyncHandler(updateIrmaaBrackets));
 
 // Dev-only frontend logging endpoints
 const FRONTEND_LOG_FILE = '/tmp/frontend.log';

@@ -92,3 +92,60 @@ export async function updateWithholdingTables(req: Request, res: Response) {
     res.status(500).json({ error: (err as Error).message });
   }
 }
+
+export async function getBendPoints(_req: Request, res: Response) {
+  try {
+    const data = load<Record<string, unknown>>('bendPoints.json');
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
+export async function updateBendPoints(req: Request, res: Response) {
+  try {
+    const data = req.body;
+    save(data, 'bendPoints.json');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
+export async function getWageIndex(_req: Request, res: Response) {
+  try {
+    const data = load<Record<string, unknown>>('averageWageIndex.json');
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
+export async function updateWageIndex(req: Request, res: Response) {
+  try {
+    const data = req.body;
+    save(data, 'averageWageIndex.json');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
+export async function getIrmaaBrackets(_req: Request, res: Response) {
+  try {
+    const data = load<Record<string, unknown>>('irmaaBrackets.json');
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
+export async function updateIrmaaBrackets(req: Request, res: Response) {
+  try {
+    const data = req.body;
+    save(data, 'irmaaBrackets.json');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
