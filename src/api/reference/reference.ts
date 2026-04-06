@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { load } from '../../utils/io/io';
+import { load, save } from '../../utils/io/io';
 
 export async function getLifeInsuranceReferenceData(_req: Request, res: Response) {
   try {
@@ -21,6 +21,16 @@ export async function getExpectedReturns(_req: Request, res: Response) {
   try {
     const data = load<{ returns: Record<string, number> }>('expectedReturns.json');
     res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
+export async function updateExpectedReturns(req: Request, res: Response) {
+  try {
+    const data = req.body;
+    save(data, 'expectedReturns.json');
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
