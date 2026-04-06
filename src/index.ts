@@ -99,7 +99,7 @@ import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
 import { getBracketDataForYear } from './utils/calculate-v3/bracket-calculator';
 import type { PaycheckProfile } from './data/bill/paycheck-types';
 import { importQfx, importCsv, getLedger, getPositions } from './api/portfolio/import';
-import { getExpectedReturns, updateExpectedReturns, getCapitalGainsRates, getLifeInsuranceReferenceData } from './api/reference/reference';
+import { getExpectedReturns, updateExpectedReturns, getCapitalGainsRates, updateCapitalGainsRates, getTaxBracketsRaw, updateTaxBrackets, getWithholdingTablesRaw, updateWithholdingTables, getLifeInsuranceReferenceData } from './api/reference/reference';
 import { getPriceEndpoint, getCurrentPricesEndpoint, refreshPricesEndpoint, getPriceHistoryEndpoint, overridePriceEndpoint, deletePriceOverrideEndpoint, getPriceOverridesEndpoint } from './api/portfolio/prices';
 import { addTransaction, listTransactions, editTransaction, deleteTransaction } from './api/portfolio/transactions';
 import { reconcileHoldings } from './api/portfolio/reconcile';
@@ -1770,6 +1770,11 @@ app.delete('/api/glide-paths/custom/:name', verifyToken, asyncHandler(async (req
 app.get('/api/reference/expected-returns', verifyToken, asyncHandler(getExpectedReturns));
 app.put('/api/reference/expected-returns', verifyToken, asyncHandler(updateExpectedReturns));
 app.get('/api/reference/capital-gains-rates', verifyToken, asyncHandler(getCapitalGainsRates));
+app.put('/api/reference/capital-gains-rates', verifyToken, asyncHandler(updateCapitalGainsRates));
+app.get('/api/tax/brackets/raw', verifyToken, asyncHandler(getTaxBracketsRaw));
+app.put('/api/tax/brackets', verifyToken, asyncHandler(updateTaxBrackets));
+app.get('/api/tax/withholding-tables/raw', verifyToken, asyncHandler(getWithholdingTablesRaw));
+app.put('/api/tax/withholding-tables', verifyToken, asyncHandler(updateWithholdingTables));
 app.get('/api/reference/life-insurance', verifyToken, asyncHandler(getLifeInsuranceReferenceData));
 
 // Dev-only frontend logging endpoints
