@@ -14,7 +14,7 @@ import type { MCRateGetter } from './types';
 import { MonteCarloSampleType } from './types';
 import { ManagerPayout, createPayoutActivity } from './manager-payout';
 import { loadVariable } from '../simulation/variable';
-import type { TermRateEntry, LifeInsurancePremiumRates } from '../../types/life-insurance-rates';
+import type { TermRateEntry, WholeRateEntry, LifeInsurancePremiumRates } from '../../types/life-insurance-rates';
 
 // ===== Public Types =====
 
@@ -43,6 +43,16 @@ export interface LifeInsuranceEmployerPolicy {
   employmentPerson?: string;
 }
 
+/** Defaults used when a term policy converts to whole life */
+export interface WholeLifeConversionDefaults {
+  premiumAmount: number;
+  premiumFrequency: 'monthly' | 'annual';
+  guaranteedRate: number;
+  savingsRatio: number;
+  deathBenefit: number;
+  surrenderChargeSchedule?: number[];
+}
+
 /** Term life insurance (new) */
 export interface LifeInsuranceTermPolicy {
   id: string;
@@ -61,6 +71,7 @@ export interface LifeInsuranceTermPolicy {
   renewalOption: 'expire' | 'renew' | 'convertToWhole';
   insuredGender: 'male' | 'female';
   insuredBirthDate: string; // YYYY-MM-DD
+  wholeLifeDefaults?: WholeLifeConversionDefaults;
 }
 
 /** Whole life insurance (new) */
@@ -122,7 +133,23 @@ interface PolicyState {
   renewalCount: number;
   /** Date when converted to whole life (028-004 picks this up), null if not converted */
   convertedToWholeDate: string | null;
+  // --- Whole life policy state (028-004) ---
+  cashValue: number;
+  wholePolicyStartYear: number;
+  wholeActive: boolean;
+  surrendered: boolean;
+  lastDividendRate: number;
 }
+
+// ===== Constants =====
+
+const DEFAULT_SURRENDER_SCHEDULE: number[] = [
+  0.10, 0.10, 0.09, 0.08, 0.07,  // Years 1-5
+  0.06, 0.05, 0.05, 0.04, 0.04,  // Years 6-10
+  0.03, 0.03, 0.02, 0.02, 0.01,  // Years 11-15
+  0.01, 0.005, 0.005, 0.005, 0,   // Years 16-20
+];
+// Year 20+ = 0% (array index >= length returns 0)
 
 // ===== LifeInsuranceManager =====
 
@@ -135,6 +162,8 @@ export class LifeInsuranceManager {
   private mcRateGetter: MCRateGetter | null = null;
   private payoutBuffer: ManagerPayout[] = [];
   private termRateTable: TermRateEntry[] = [];
+  // TODO(STAGE-028-005): Used for whole life premium lookup in UI/settings display
+  private wholeRateTable: WholeRateEntry[] = [];
 
   constructor(
     configs: LifeInsurancePolicyConfig[],
@@ -163,6 +192,10 @@ export class LifeInsuranceManager {
     this.termRateTable = rates;
   }
 
+  setWholeRateTable(table: WholeRateEntry[]): void {
+    this.wholeRateTable = table;
+  }
+
   evaluateYear(
     year: number,
     currentSalaries: Map<string, number>,
@@ -189,6 +222,14 @@ export class LifeInsuranceManager {
       if (!state.config.enabled || state.payoutMade) continue;
       if (!this.isTermPolicy(state.config)) continue;
       this.evaluateTermPolicy(state, year);
+    }
+
+    // Pass 4: Process whole life policies (including converted-from-term)
+    for (const [, state] of this.states) {
+      if (!state.config.enabled || state.payoutMade || state.surrendered) continue;
+      if (state.wholeActive) {
+        this.evaluateWholePolicy(state, year);
+      }
     }
   }
 
@@ -236,7 +277,7 @@ export class LifeInsuranceManager {
           }
           state.payoutMade = true;
 
-        } else if (this.isTermPolicy(state.config)) {
+        } else if (this.isTermPolicy(state.config) && !state.wholeActive) {
           // --- Term policy death payout ---
           if (state.termActive && state.coverageActive) {
             const payoutAmount = state.config.faceAmount;
@@ -269,12 +310,37 @@ export class LifeInsuranceManager {
             state.coverageActiveAtDeath = false;
             this.log('term-payout-skipped-inactive', {
               policy: state.config.name,
-              reason: !state.termActive ? 'term-expired' : 'coverage-inactive',
+              reason: !state.termActive
+                ? (state.convertedToWholeDate ? 'converted-to-whole' : 'term-expired')
+                : 'coverage-inactive',
             });
           }
           state.payoutMade = true;
         }
-        // Whole life death payout: deferred to 028-004
+
+        // Whole life death payout: level face amount
+        if (state.wholeActive && !state.surrendered) {
+          const { deathBenefit } = this.getWholeLifeParams(state);
+          if (deathBenefit > 0) {
+            const activity = createPayoutActivity(
+              `whole-death-${state.config.id}-${dateStr}`,
+              dateStr,
+              `${state.config.name} Death Benefit`,
+              deathBenefit,  // Level face amount — cash value absorbed by insurer
+              'Income.LifeInsurance',
+            );
+            this.payoutBuffer.push({
+              activity,
+              targetAccountId: state.config.depositAccountId,
+              incomeSourceName: `${state.config.name} Death Benefit`,
+            });
+            state.payoutMade = true;
+            state.payoutDate = dateStr;
+            state.payoutAmount = deathBenefit;
+            state.coverageActiveAtDeath = true;
+            state.wholeActive = false;
+          }
+        }
       }
 
       // Find policies where person is the beneficiary → deactivate
@@ -292,6 +358,74 @@ export class LifeInsuranceManager {
     const payouts = [...this.payoutBuffer];
     this.payoutBuffer = [];
     return payouts;
+  }
+
+  public surrenderForAmount(needed: number, year: number, dateStr: string): ManagerPayout[] {
+    const payouts: ManagerPayout[] = [];
+    let remaining = needed;
+
+    // Get surrenderable policies, sorted by net surrender value ascending (drain smallest first)
+    const surrenderable = this.getSurrenderablePolicies(year);
+
+    for (const { state, netSurrenderValue } of surrenderable) {
+      if (remaining <= 0) break;
+
+      // All-or-nothing: surrender entire policy
+      const activity = createPayoutActivity(
+        `whole-surrender-${state.config.id}-${dateStr}`,
+        dateStr,
+        `${state.config.name} Surrender`,
+        netSurrenderValue,
+        'Income.LifeInsurance.Surrender',
+      );
+      payouts.push({
+        activity,
+        targetAccountId: state.config.depositAccountId,
+        incomeSourceName: `${state.config.name} Surrender`,
+      });
+
+      // Log before modifying state
+      this.log('whole-life-surrender', {
+        policy: state.config.name,
+        cashValue: state.cashValue,
+        netSurrenderValue,
+        year,
+      });
+
+      // Mark surrendered
+      state.surrendered = true;
+      state.wholeActive = false;
+      state.coverageActive = false;
+      state.cashValue = 0;
+
+      remaining -= netSurrenderValue;
+    }
+
+    return payouts;
+  }
+
+  private getSurrenderablePolicies(year: number): Array<{ state: PolicyState; netSurrenderValue: number }> {
+    const result: Array<{ state: PolicyState; netSurrenderValue: number }> = [];
+
+    for (const [, state] of this.states) {
+      if (!state.wholeActive || state.surrendered || state.payoutMade) continue;
+      if (state.cashValue <= 0) continue;
+
+      const { surrenderChargeSchedule } = this.getWholeLifeParams(state);
+      const policyYear = year - state.wholePolicyStartYear;
+      const chargeRate = policyYear < surrenderChargeSchedule.length
+        ? surrenderChargeSchedule[policyYear]
+        : 0;
+      const netSurrenderValue = state.cashValue * (1 - chargeRate);
+
+      if (netSurrenderValue > 0) {
+        result.push({ state, netSurrenderValue });
+      }
+    }
+
+    // Sort ascending by net value — drain smallest first
+    result.sort((a, b) => a.netSurrenderValue - b.netSurrenderValue);
+    return result;
   }
 
   getCurrentCoverage(policyId: string): number {
@@ -319,6 +453,12 @@ export class LifeInsuranceManager {
         currentPremiumAmount: state.currentPremiumAmount,
         renewalCount: state.renewalCount,
         convertedToWholeDate: state.convertedToWholeDate,
+        // Whole life fields (028-004)
+        cashValue: state.cashValue,
+        wholePolicyStartYear: state.wholePolicyStartYear,
+        wholeActive: state.wholeActive,
+        surrendered: state.surrendered,
+        lastDividendRate: state.lastDividendRate,
       };
     }
     return JSON.stringify(serialised);
@@ -343,6 +483,12 @@ export class LifeInsuranceManager {
         currentPremiumAmount?: number;
         renewalCount?: number;
         convertedToWholeDate?: string | null;
+        // Whole life fields (028-004) — optional for backward compat
+        cashValue?: number;
+        wholePolicyStartYear?: number;
+        wholeActive?: boolean;
+        surrendered?: boolean;
+        lastDividendRate?: number;
       }
     >;
 
@@ -364,6 +510,12 @@ export class LifeInsuranceManager {
       state.currentPremiumAmount = snap.currentPremiumAmount ?? state.currentPremiumAmount;
       state.renewalCount = snap.renewalCount ?? state.renewalCount;
       state.convertedToWholeDate = snap.convertedToWholeDate ?? state.convertedToWholeDate;
+      // Whole life fields — use defaults if missing (backward compat)
+      state.cashValue = snap.cashValue ?? 0;
+      state.wholePolicyStartYear = snap.wholePolicyStartYear ?? 0;
+      state.wholeActive = snap.wholeActive ?? false;
+      state.surrendered = snap.surrendered ?? false;
+      state.lastDividendRate = snap.lastDividendRate ?? 0;
     }
   }
 
@@ -410,6 +562,10 @@ export class LifeInsuranceManager {
     return config.type === 'term';
   }
 
+  private isWholePolicy(config: LifeInsurancePolicyConfig): config is LifeInsuranceWholePolicy {
+    return config.type === 'whole';
+  }
+
   private createInitialState(config: LifeInsurancePolicyConfig): PolicyState {
     // Only employer policies have maxCoverage; term and whole start at 0
     const maxCoverage = this.isEmployerPolicy(config) ? config.coverage.maxCoverage : 0;
@@ -432,6 +588,16 @@ export class LifeInsuranceManager {
       currentCoverageAmount = config.faceAmount;
     }
 
+    // Whole-life initial state
+    let wholeActive = false;
+    let wholePolicyStartYear = 0;
+    if (this.isWholePolicy(config)) {
+      wholeActive = true;
+      // wholePolicyStartYear tracks when cash value accumulation begins
+      // Will be set on first evaluateYear call based on year param
+      wholePolicyStartYear = 0;
+    }
+
     return {
       config,
       currentCoverageAmount,
@@ -449,12 +615,104 @@ export class LifeInsuranceManager {
       currentPremiumAmount,
       renewalCount: 0,
       convertedToWholeDate: null,
+      // Whole life fields (028-004)
+      cashValue: 0,
+      wholePolicyStartYear,
+      wholeActive,
+      surrendered: false,
+      lastDividendRate: 0,
     };
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
     if (!this.debugLogger) return;
     this.debugLogger.log(this.simNumber, { component: 'life-insurance', event, ...data });
+  }
+
+  private evaluateWholePolicy(state: PolicyState, year: number): void {
+    // Get config values — either from whole policy config or from wholeLifeDefaults (converted term)
+    const { guaranteedRate, savingsRatio, annualPremium, deathBenefit, payFromAccountId } =
+      this.getWholeLifeParams(state);
+
+    // Track start year on first evaluation
+    if (state.wholePolicyStartYear === 0) {
+      state.wholePolicyStartYear = year;
+    }
+
+    // 1. Cash value growth
+    let dividendRate = 0;
+    if (this.mcRateGetter) {
+      dividendRate = this.mcRateGetter(MonteCarloSampleType.WHOLE_LIFE_DIVIDEND, year) ?? 0;
+    }
+    state.lastDividendRate = dividendRate;
+
+    const growthRate = guaranteedRate + dividendRate;
+    // Cash value grows first, then premium contribution added (annual simplification — premium not compounded within year)
+    state.cashValue = state.cashValue * (1 + growthRate) + annualPremium * savingsRatio;
+
+    // 2. Premium deduction (same pattern as term — negative ManagerPayout)
+    // NOTE: Annual premium deducted as lump sum on Jan 1. Monthly granularity deferred.
+    if (annualPremium > 0) {
+      const premiumActivity = createPayoutActivity(
+        `whole-premium-${state.config.id}-${year}`,
+        `${year}-01-01`,
+        `${state.config.name} Premium`,
+        -annualPremium,
+        'Expense.Insurance.LifeInsurance',
+      );
+      this.payoutBuffer.push({
+        activity: premiumActivity,
+        targetAccountId: payFromAccountId,
+        incomeSourceName: `${state.config.name} Premium`,
+      });
+      state.totalPremiumsPaid += annualPremium;
+    }
+
+    this.log('whole-life-evaluated', {
+      policy: state.config.name,
+      year,
+      cashValue: state.cashValue,
+      growthRate,
+      dividendRate,
+      annualPremium,
+      deathBenefit,
+    });
+  }
+
+  private getWholeLifeParams(state: PolicyState): {
+    guaranteedRate: number;
+    savingsRatio: number;
+    annualPremium: number;
+    deathBenefit: number;
+    payFromAccountId: string;
+    surrenderChargeSchedule: number[];
+  } {
+    if (this.isWholePolicy(state.config)) {
+      const freq = state.config.premiumFrequency === 'monthly' ? 12 : 1;
+      return {
+        guaranteedRate: state.config.guaranteedRate,
+        savingsRatio: state.config.savingsRatio,
+        annualPremium: state.config.premiumAmount * freq,
+        deathBenefit: state.config.deathBenefit,
+        payFromAccountId: state.config.payFromAccountId,
+        surrenderChargeSchedule: state.config.surrenderChargeSchedule ?? DEFAULT_SURRENDER_SCHEDULE,
+      };
+    }
+    // Converted from term — use wholeLifeDefaults
+    if (this.isTermPolicy(state.config) && state.config.wholeLifeDefaults) {
+      const defaults = state.config.wholeLifeDefaults;
+      const freq = defaults.premiumFrequency === 'monthly' ? 12 : 1;
+      return {
+        guaranteedRate: defaults.guaranteedRate,
+        savingsRatio: defaults.savingsRatio,
+        annualPremium: defaults.premiumAmount * freq,
+        deathBenefit: defaults.deathBenefit,
+        payFromAccountId: state.config.payFromAccountId,
+        surrenderChargeSchedule: defaults.surrenderChargeSchedule ?? DEFAULT_SURRENDER_SCHEDULE,
+      };
+    }
+    // Fallback (should not happen)
+    return { guaranteedRate: 0.02, savingsRatio: 0.5, annualPremium: 0, deathBenefit: 0, payFromAccountId: '', surrenderChargeSchedule: DEFAULT_SURRENDER_SCHEDULE };
   }
 
   private evaluatePolicy(
@@ -668,8 +926,15 @@ export class LifeInsuranceManager {
       case 'convertToWhole': {
         state.termActive = false;
         state.convertedToWholeDate = `${year}-01-01`;
-        // coverageActive stays true — whole-life conversion preserves coverage
-        // Actual whole-life behavior (cash value, dividends) deferred to 028-004
+        // Activate whole life behavior
+        state.wholeActive = true;
+        state.wholePolicyStartYear = year;
+        state.cashValue = 0;  // Cash value starts fresh
+        // Premium for whole life comes from wholeLifeDefaults on the term config
+        if (this.isTermPolicy(state.config) && state.config.wholeLifeDefaults) {
+          const freq = state.config.wholeLifeDefaults.premiumFrequency === 'monthly' ? 12 : 1;
+          state.currentPremiumAmount = state.config.wholeLifeDefaults.premiumAmount * freq;
+        }
         this.log('term-converted-to-whole', {
           policy: config.name,
           year,

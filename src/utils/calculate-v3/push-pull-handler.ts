@@ -8,6 +8,12 @@ import { RothConversionManager } from './roth-conversion-manager';
 import { TaxManager } from './tax-manager';
 import type { DebugLogger } from './debug-logger';
 import type { FlowAggregator } from './flow-aggregator';
+import type { ManagerPayout } from './manager-payout';
+
+/** Structural type for life insurance manager to avoid circular imports */
+interface LifeInsuranceSurrenderSource {
+  surrenderForAmount(needed: number, year: number, dateStr: string): ManagerPayout[];
+}
 
 export interface PullFailure {
   date: Date;
@@ -26,6 +32,7 @@ export class PushPullHandler {
   private simNumber: number;
   private currentDate: string = '';
   private flowAggregator: FlowAggregator | null;
+  private lifeInsuranceManager: LifeInsuranceSurrenderSource | null;
 
   constructor(
     accountManager: AccountManager,
@@ -36,6 +43,7 @@ export class PushPullHandler {
     debugLogger?: DebugLogger | null,
     simNumber: number = 0,
     flowAggregator?: FlowAggregator | null,
+    lifeInsuranceManager?: LifeInsuranceSurrenderSource | null,
   ) {
     this.accountManager = accountManager;
     this.balanceTracker = balanceTracker;
@@ -45,6 +53,7 @@ export class PushPullHandler {
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
     this.flowAggregator = flowAggregator ?? null;
+    this.lifeInsuranceManager = lifeInsuranceManager ?? null;
   }
 
   private log(event: string, data?: Record<string, unknown>): void {
@@ -290,7 +299,56 @@ export class PushPullHandler {
       this.applyRothConversionPenalty(pullableAccount, availableAmount, segment.startDate, account);
     }
 
-    // Track pull failure if we couldn't get enough funds
+    // Attempt whole life surrender as last resort before logging failure
+    if (toPull > 0 && this.lifeInsuranceManager) {
+      const dateStr = formatDate(segment.startDate);
+      const year = segment.startDate.getUTCFullYear();
+      const surrenderPayouts = this.lifeInsuranceManager.surrenderForAmount(toPull, year, dateStr);
+
+      for (const payout of surrenderPayouts) {
+        // Create pull event to deposit surrender proceeds into the requesting account
+        const pullActivity = new Activity({
+          id: `surrender-transfer-${payout.activity.id}`,
+          name: `Surrender Transfer: ${payout.activity.name}`,
+          amount: payout.activity.amount,
+          amountIsVariable: false,
+          amountVariable: null,
+          date: dateStr,
+          dateIsVariable: false,
+          dateVariable: null,
+          from: '',
+          to: account.name,
+          isTransfer: false,
+          category: payout.activity.category,
+          flag: true,
+          flagColor: 'indigo',
+        });
+
+        const pullEvent: ActivityTransferEvent = {
+          id: `surrender-transfer-${payout.activity.id}`,
+          type: EventType.activityTransfer,
+          date: segment.startDate,
+          accountId: account.id,
+          fromAccountId: account.id, // Proceeds go directly to requesting account
+          toAccountId: account.id,
+          priority: 0,
+          originalActivity: pullActivity,
+        };
+
+        segment.events.push(pullEvent);
+        const surrenderAmount = Number(payout.activity.amount);
+        toPull -= surrenderAmount;
+        pullAmount += surrenderAmount;
+
+        this.log('surrender-pull', {
+          policy: payout.activity.name,
+          amount: surrenderAmount,
+          remaining_deficit: Math.max(0, toPull),
+        });
+      }
+    }
+
+    // If still short after surrender attempts
     if (toPull > 0) {
       this.log('pull-failure', {
         account: account.name,

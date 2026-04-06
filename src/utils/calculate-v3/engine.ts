@@ -561,6 +561,10 @@ export class Engine {
         if (existsSync(premiumRatesPath)) {
           const rateData = JSON.parse(readFileSync(premiumRatesPath, 'utf-8')) as LifeInsurancePremiumRates;
           this.lifeInsuranceManager.setTermRateTable(rateData.term ?? []);
+          // Wire whole rate table for convertToWhole repricing
+          if (rateData.whole) {
+            this.lifeInsuranceManager.setWholeRateTable(rateData.whole);
+          }
         }
       } catch (e) {
         if (this.debugLogger) {
@@ -615,6 +619,7 @@ export class Engine {
       this.debugLogger,
       this.simNumber,
       this.flowAggregator,
+      this.lifeInsuranceManager,  // for whole life surrender on shortfall
     );
 
     // Initialize segment processor

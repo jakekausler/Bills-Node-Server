@@ -759,4 +759,445 @@ describe('LifeInsuranceManager', () => {
     expect(parsedRestored['term-policy-1'].renewalCount).toBe(parsed1['term-policy-1'].renewalCount);
     expect(parsedRestored['term-policy-1'].convertedToWholeDate).toBe(parsed1['term-policy-1'].convertedToWholeDate);
   });
+
+  // ===== WHOLE LIFE INSURANCE TESTS =====
+
+  // Helper to create whole policy config
+  function makeWholeConfig(overrides?: Partial<LifeInsurancePolicyConfig>): LifeInsurancePolicyConfig {
+    return {
+      id: 'whole-policy-1',
+      name: 'Whole Life Policy',
+      type: 'whole' as const,
+      insuredPerson: 'Jake',
+      beneficiary: 'Kendall',
+      depositAccountId: 'acct-checking',
+      enabled: true,
+      deathBenefit: 250_000,
+      premiumAmount: 200, // $200/month = $2,400/year
+      premiumFrequency: 'monthly' as const,
+      payFromAccountId: 'acct-payment',
+      guaranteedRate: 0.02, // 2% guaranteed
+      savingsRatio: 0.50, // 50% of premium goes to cash value
+      insuredGender: 'male' as const,
+      insuredBirthDate: '1985-06-15',
+      ...overrides,
+    } as LifeInsurancePolicyConfig;
+  }
+
+  describe('Whole Life Policies', () => {
+    // ----- Test 1: Whole life premium deduction -----
+    it('deducts whole life premium as negative payout on evaluateYear', () => {
+      const config = makeWholeConfig({
+        premiumAmount: 150,
+        premiumFrequency: 'monthly',
+      });
+      const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+
+      mgr.evaluateYear(2025, new Map(), new Map());
+
+      const payouts = mgr.getPayoutActivities();
+      expect(payouts).toHaveLength(1);
+      expect(payouts[0].activity.amount).toBe(-1800); // $150/month * 12
+      expect(payouts[0].targetAccountId).toBe('acct-payment');
+      expect(payouts[0].incomeSourceName).toBe('Whole Life Policy Premium');
+      expect(payouts[0].activity.date).toEqual(new Date('2025-01-01T12:00:00.000Z'));
+    });
+
+    // ----- Test 2: Whole life cash value growth -----
+    it('grows cash value with guaranteed rate + dividend rate + premium savings', () => {
+      const config = makeWholeConfig({
+        premiumAmount: 100, // $100/month
+        premiumFrequency: 'monthly',
+        guaranteedRate: 0.03, // 3% guaranteed
+        savingsRatio: 0.60, // 60% of premium to cash value
+      });
+
+      // Mock MC rate getter to return 2% dividend rate
+      const mcGetter: MCRateGetter = (type, _year) => {
+        if (type === MonteCarloSampleType.WHOLE_LIFE_DIVIDEND) return 0.02;
+        return null;
+      };
+
+      const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+      mgr.setMCRateGetter(mcGetter);
+
+      // Year 1: cashValue = 0 * (1 + 0.03 + 0.02) + 1200 * 0.60 = 0 + 720 = 720
+      mgr.evaluateYear(2025, new Map(), new Map());
+      mgr.getPayoutActivities(); // clear premium buffer
+
+      const checkpoint1 = mgr.checkpoint();
+      const parsed1 = JSON.parse(checkpoint1);
+      expect(parsed1['whole-policy-1'].cashValue).toBeCloseTo(720, 0);
+
+      // Year 2: cashValue = 720 * (1 + 0.05) + 1200 * 0.60 = 756 + 720 = 1476
+      mgr.evaluateYear(2026, new Map(), new Map());
+      mgr.getPayoutActivities();
+
+      const checkpoint2 = mgr.checkpoint();
+      const parsed2 = JSON.parse(checkpoint2);
+      expect(parsed2['whole-policy-1'].cashValue).toBeCloseTo(1476, 0);
+
+      // Year 3: cashValue = 1476 * 1.05 + 720 = 1549.8 + 720 = 2269.8
+      mgr.evaluateYear(2027, new Map(), new Map());
+      mgr.getPayoutActivities();
+
+      const checkpoint3 = mgr.checkpoint();
+      const parsed3 = JSON.parse(checkpoint3);
+      expect(parsed3['whole-policy-1'].cashValue).toBeCloseTo(2269.8, 0);
+    });
+
+    // ----- Test 3: Whole life death benefit — level face amount -----
+    it('pays out level death benefit (not cash value) when insured dies', () => {
+      const config = makeWholeConfig({
+        deathBenefit: 300_000,
+        premiumAmount: 200,
+        premiumFrequency: 'monthly',
+        guaranteedRate: 0.03,
+        savingsRatio: 0.50,
+      });
+
+      const mcGetter: MCRateGetter = (type, _year) => {
+        if (type === MonteCarloSampleType.WHOLE_LIFE_DIVIDEND) return 0.02;
+        return null;
+      };
+
+      const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+      mgr.setMCRateGetter(mcGetter);
+
+      // Build up cash value over several years
+      for (let year = 2025; year <= 2029; year++) {
+        mgr.evaluateYear(year, new Map(), new Map());
+        mgr.getPayoutActivities(); // clear premiums
+      }
+
+      // Verify cash value is substantial
+      const checkpoint = mgr.checkpoint();
+      const parsed = JSON.parse(checkpoint);
+      const cashValue = parsed['whole-policy-1'].cashValue;
+      expect(cashValue).toBeGreaterThan(5000); // Should have meaningful cash value
+
+      // Insured dies
+      mgr.evaluateDeath('Jake', new Date(Date.UTC(2029, 6, 15)));
+
+      const payouts = mgr.getPayoutActivities();
+      expect(payouts).toHaveLength(1);
+      // Death benefit is the level face amount, NOT cash value
+      expect(payouts[0].activity.amount).toBe(300_000);
+      expect(payouts[0].targetAccountId).toBe('acct-checking');
+      expect(payouts[0].incomeSourceName).toBe('Whole Life Policy Death Benefit');
+
+      const results = mgr.getResults();
+      const policyResult = results.find((r) => r.policyId === 'whole-policy-1')!;
+      expect(policyResult.payoutAmount).toBe(300_000);
+      expect(policyResult.coverageActiveAtDeath).toBe(true);
+    });
+
+    // ----- Test 4: Whole life death after surrender -----
+    it('does not pay out when insured dies after policy is surrendered', () => {
+      const config = makeWholeConfig({
+        deathBenefit: 200_000,
+        premiumAmount: 100,
+        premiumFrequency: 'annual',
+        guaranteedRate: 0.02,
+        savingsRatio: 0.50,
+      });
+
+      const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+
+      // Build cash value
+      mgr.evaluateYear(2025, new Map(), new Map());
+      mgr.getPayoutActivities();
+      mgr.evaluateYear(2026, new Map(), new Map());
+      mgr.getPayoutActivities();
+
+      // Surrender the policy
+      const surrenderPayouts = mgr.surrenderForAmount(100, 2026, '2026-12-01');
+      expect(surrenderPayouts.length).toBeGreaterThan(0);
+
+      // Now insured dies
+      mgr.evaluateDeath('Jake', new Date(Date.UTC(2027, 3, 10)));
+
+      const payouts = mgr.getPayoutActivities();
+      expect(payouts).toHaveLength(0); // No death benefit after surrender
+
+      const results = mgr.getResults();
+      const policyResult = results.find((r) => r.policyId === 'whole-policy-1')!;
+      expect(policyResult.payoutAmount).toBe(0);
+    });
+
+    // ----- Test 5: Whole life surrender — basic all-or-nothing -----
+    it('surrenders whole policy for net cash value (all-or-nothing)', () => {
+      const config = makeWholeConfig({
+        premiumAmount: 200,
+        premiumFrequency: 'monthly',
+        guaranteedRate: 0.03,
+        savingsRatio: 0.50,
+        surrenderChargeSchedule: [0.10, 0.09, 0.08], // Year 0, 1, 2
+      });
+
+      const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+
+      // Year 1: cashValue = 0 + 2400 * 0.50 = 1200
+      mgr.evaluateYear(2025, new Map(), new Map());
+      mgr.getPayoutActivities();
+
+      // Year 2: cashValue = 1200 * 1.03 + 1200 = 1236 + 1200 = 2436
+      mgr.evaluateYear(2026, new Map(), new Map());
+      mgr.getPayoutActivities();
+
+      const checkpoint = mgr.checkpoint();
+      const parsed = JSON.parse(checkpoint);
+      expect(parsed['whole-policy-1'].cashValue).toBeCloseTo(2436, 0);
+
+      // Surrender in year 2026 (policy year 1, since start year is 2025)
+      // Surrender charge = 9% (index 1 in schedule)
+      // Net surrender = 2436 * (1 - 0.09) = 2436 * 0.91 = 2216.76
+      const payouts = mgr.surrenderForAmount(1000, 2026, '2026-06-15');
+
+      expect(payouts).toHaveLength(1);
+      expect(payouts[0].activity.amount).toBeCloseTo(2216.76, 0);
+      expect(payouts[0].targetAccountId).toBe('acct-checking');
+      expect(payouts[0].incomeSourceName).toBe('Whole Life Policy Surrender');
+
+      // Verify policy is marked surrendered and cash value zeroed
+      const checkpoint2 = mgr.checkpoint();
+      const parsed2 = JSON.parse(checkpoint2);
+      expect(parsed2['whole-policy-1'].surrendered).toBe(true);
+      expect(parsed2['whole-policy-1'].wholeActive).toBe(false);
+      expect(parsed2['whole-policy-1'].cashValue).toBe(0);
+    });
+
+    // ----- Test 6: Whole life surrender — lowest value first -----
+    it('surrenders policies in ascending order by net surrender value', () => {
+      const policy1 = makeWholeConfig({
+        id: 'whole-small',
+        name: 'Small Whole',
+        premiumAmount: 50,
+        premiumFrequency: 'monthly',
+        guaranteedRate: 0.02,
+        savingsRatio: 0.50,
+      });
+
+      const policy2 = makeWholeConfig({
+        id: 'whole-large',
+        name: 'Large Whole',
+        premiumAmount: 300,
+        premiumFrequency: 'monthly',
+        guaranteedRate: 0.02,
+        savingsRatio: 0.50,
+      });
+
+      const mgr = new LifeInsuranceManager([policy1, policy2], gate, 'test-sim');
+
+      // Build cash values
+      mgr.evaluateYear(2025, new Map(), new Map());
+      mgr.getPayoutActivities();
+
+      const checkpoint = mgr.checkpoint();
+      const parsed = JSON.parse(checkpoint);
+      // Small: 50 * 12 * 0.50 = 300
+      // Large: 300 * 12 * 0.50 = 1800
+      expect(parsed['whole-small'].cashValue).toBeCloseTo(300, 0);
+      expect(parsed['whole-large'].cashValue).toBeCloseTo(1800, 0);
+
+      // Surrender for small amount — should drain smallest policy first
+      const payouts = mgr.surrenderForAmount(100, 2025, '2025-06-01');
+
+      expect(payouts).toHaveLength(1);
+      expect(payouts[0].incomeSourceName).toBe('Small Whole Surrender');
+      // Net = 300 * (1 - 0.10) = 270 (10% charge for year 0)
+      expect(payouts[0].activity.amount).toBeCloseTo(270, 0);
+
+      // Verify only small policy is surrendered
+      const checkpoint2 = mgr.checkpoint();
+      const parsed2 = JSON.parse(checkpoint2);
+      expect(parsed2['whole-small'].surrendered).toBe(true);
+      expect(parsed2['whole-large'].surrendered).toBe(false);
+    });
+
+    // ----- Test 7: Whole life surrender — multiple policies -----
+    it('surrenders multiple policies when single policy insufficient', () => {
+      const policy1 = makeWholeConfig({
+        id: 'whole-1',
+        name: 'Policy 1',
+        premiumAmount: 100,
+        premiumFrequency: 'monthly',
+        guaranteedRate: 0.02,
+        savingsRatio: 0.50,
+      });
+
+      const policy2 = makeWholeConfig({
+        id: 'whole-2',
+        name: 'Policy 2',
+        premiumAmount: 150,
+        premiumFrequency: 'monthly',
+        guaranteedRate: 0.02,
+        savingsRatio: 0.50,
+      });
+
+      const mgr = new LifeInsuranceManager([policy1, policy2], gate, 'test-sim');
+
+      // Build cash values
+      mgr.evaluateYear(2025, new Map(), new Map());
+      mgr.getPayoutActivities();
+
+      // Policy 1: 1200 * 0.50 = 600, net = 600 * 0.90 = 540
+      // Policy 2: 1800 * 0.50 = 900, net = 900 * 0.90 = 810
+      // Need 1000 — requires both policies (540 + 810 = 1350)
+
+      const payouts = mgr.surrenderForAmount(1000, 2025, '2025-09-01');
+
+      expect(payouts).toHaveLength(2);
+      // Smallest first
+      expect(payouts[0].incomeSourceName).toBe('Policy 1 Surrender');
+      expect(payouts[0].activity.amount).toBeCloseTo(540, 0);
+      expect(payouts[1].incomeSourceName).toBe('Policy 2 Surrender');
+      expect(payouts[1].activity.amount).toBeCloseTo(810, 0);
+
+      // Both surrendered
+      const checkpoint = mgr.checkpoint();
+      const parsed = JSON.parse(checkpoint);
+      expect(parsed['whole-1'].surrendered).toBe(true);
+      expect(parsed['whole-2'].surrendered).toBe(true);
+    });
+
+    // ----- Test 8: Whole life checkpoint/restore -----
+    it('checkpoint/restore preserves all whole life state fields', () => {
+      const config = makeWholeConfig({
+        premiumAmount: 150,
+        premiumFrequency: 'monthly',
+        guaranteedRate: 0.03,
+        savingsRatio: 0.50,
+      });
+
+      const mcGetter: MCRateGetter = (type, _year) => {
+        if (type === MonteCarloSampleType.WHOLE_LIFE_DIVIDEND) return 0.02;
+        return null;
+      };
+
+      const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+      mgr.setMCRateGetter(mcGetter);
+
+      // Grow cash value over 3 years
+      mgr.evaluateYear(2025, new Map(), new Map());
+      mgr.getPayoutActivities();
+      mgr.evaluateYear(2026, new Map(), new Map());
+      mgr.getPayoutActivities();
+      mgr.evaluateYear(2027, new Map(), new Map());
+      mgr.getPayoutActivities();
+
+      const checkpoint1 = mgr.checkpoint();
+      const parsed1 = JSON.parse(checkpoint1);
+
+      // Verify initial state (all 5 whole life fields)
+      expect(parsed1['whole-policy-1'].cashValue).toBeGreaterThan(0);
+      expect(parsed1['whole-policy-1'].wholePolicyStartYear).toBe(2025);
+      expect(parsed1['whole-policy-1'].wholeActive).toBe(true);
+      expect(parsed1['whole-policy-1'].surrendered).toBe(false);
+      expect(parsed1['whole-policy-1'].lastDividendRate).toBe(0.02);
+
+      const cashValueBefore = parsed1['whole-policy-1'].cashValue;
+
+      // Continue growing
+      mgr.evaluateYear(2028, new Map(), new Map());
+      mgr.getPayoutActivities();
+
+      const checkpoint2 = mgr.checkpoint();
+      const parsed2 = JSON.parse(checkpoint2);
+      expect(parsed2['whole-policy-1'].cashValue).toBeGreaterThan(cashValueBefore);
+
+      // Restore to checkpoint 1
+      mgr.restore(checkpoint1);
+
+      const checkpointRestored = mgr.checkpoint();
+      const parsedRestored = JSON.parse(checkpointRestored);
+
+      // Verify all 5 fields restored
+      expect(parsedRestored['whole-policy-1'].cashValue).toBeCloseTo(parsed1['whole-policy-1'].cashValue, 2);
+      expect(parsedRestored['whole-policy-1'].wholePolicyStartYear).toBe(parsed1['whole-policy-1'].wholePolicyStartYear);
+      expect(parsedRestored['whole-policy-1'].wholeActive).toBe(parsed1['whole-policy-1'].wholeActive);
+      expect(parsedRestored['whole-policy-1'].surrendered).toBe(parsed1['whole-policy-1'].surrendered);
+      expect(parsedRestored['whole-policy-1'].lastDividendRate).toBe(parsed1['whole-policy-1'].lastDividendRate);
+    });
+
+    // ----- Test 9: Converted-from-term whole life -----
+    it('activates whole life behavior when term policy converts', () => {
+      const config = makeTermConfig({
+        startDate: '2025-01-01',
+        termYears: 5,
+        renewalOption: 'convertToWhole',
+        wholeLifeDefaults: {
+          premiumAmount: 250, // $250/month
+          premiumFrequency: 'monthly',
+          guaranteedRate: 0.025,
+          savingsRatio: 0.55,
+          deathBenefit: 500_000,
+          surrenderChargeSchedule: [0.10, 0.08, 0.06],
+        },
+      });
+
+      const mcGetter: MCRateGetter = (type, _year) => {
+        if (type === MonteCarloSampleType.WHOLE_LIFE_DIVIDEND) return 0.015;
+        return null;
+      };
+
+      const mgr = new LifeInsuranceManager([config], gate, 'test-sim');
+      mgr.setMCRateGetter(mcGetter);
+
+      // Advance to conversion year (2025 + 5 = 2030)
+      for (let year = 2025; year <= 2029; year++) {
+        mgr.evaluateYear(year, new Map(), new Map());
+        mgr.getPayoutActivities();
+      }
+
+      // Year 2030: conversion happens and whole life logic starts immediately
+      // Conversion triggers, then evaluateWholePolicy runs in same year
+      // cashValue = 0 * (1 + 0.025 + 0.015) + 3000 * 0.55 = 0 + 1650 = 1650
+      mgr.evaluateYear(2030, new Map(), new Map());
+      const payouts2030 = mgr.getPayoutActivities();
+
+      // Should have both term premium (last one) and whole premium (first one after conversion)
+      // Actually, on conversion year, term premium is charged first, then conversion happens,
+      // then whole life evaluation runs. So we get both premiums in conversion year.
+      // Looking at code: term premium is charged, then expiration check runs conversion,
+      // then pass 4 processes whole life.
+
+      // Verify conversion state after year 2030
+      const checkpoint1 = mgr.checkpoint();
+      const parsed1 = JSON.parse(checkpoint1);
+      expect(parsed1['term-policy-1'].termActive).toBe(false);
+      expect(parsed1['term-policy-1'].convertedToWholeDate).toBe('2030-01-01');
+      expect(parsed1['term-policy-1'].wholeActive).toBe(true);
+      // Cash value already grew in conversion year
+      expect(parsed1['term-policy-1'].cashValue).toBeCloseTo(1650, 0);
+
+      // Year 2031: continue compounding
+      // cashValue = 1650 * (1 + 0.025 + 0.015) + 3000 * 0.55 = 1650 * 1.04 + 1650 = 1716 + 1650 = 3366
+      mgr.evaluateYear(2031, new Map(), new Map());
+      const payouts2031 = mgr.getPayoutActivities();
+
+      // Should have whole life premium deduction
+      expect(payouts2031).toHaveLength(1);
+      expect(payouts2031[0].activity.amount).toBe(-3000); // $250/mo * 12
+
+      const checkpoint2 = mgr.checkpoint();
+      const parsed2 = JSON.parse(checkpoint2);
+      expect(parsed2['term-policy-1'].cashValue).toBeCloseTo(3366, 0);
+
+      // Year 2032: continue compounding
+      // cashValue = 3366 * 1.04 + 1650 = 3500.64 + 1650 = 5150.64
+      mgr.evaluateYear(2032, new Map(), new Map());
+      mgr.getPayoutActivities();
+
+      const checkpoint3 = mgr.checkpoint();
+      const parsed3 = JSON.parse(checkpoint3);
+      expect(parsed3['term-policy-1'].cashValue).toBeCloseTo(5150.64, 0);
+
+      // Death benefit should use wholeLifeDefaults value
+      mgr.evaluateDeath('Jake', new Date(Date.UTC(2032, 6, 15)));
+      const deathPayouts = mgr.getPayoutActivities();
+      expect(deathPayouts).toHaveLength(1);
+      expect(deathPayouts[0].activity.amount).toBe(500_000); // From wholeLifeDefaults
+    });
+  });
 });
