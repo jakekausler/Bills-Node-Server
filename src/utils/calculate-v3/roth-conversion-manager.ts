@@ -5,9 +5,7 @@ import { BalanceTracker } from './balance-tracker';
 import { AccountManager } from './account-manager';
 import { AcaManager } from './aca-manager';
 import { FilingStatus, getBracketDataForYear } from './bracket-calculator';
-import { loadDateOrVariable } from '../simulation/loadVariableValue';
-import { loadVariable } from '../simulation/variable';
-import { getPersonBirthDate, getPersonConfigs } from '../../api/person-config/person-config';
+import { getPersonBirthDate, getPersonConfigs, getPersonRetirementDate, getPersonSSStartDate } from '../../api/person-config/person-config';
 import dayjs from 'dayjs';
 import type { DebugLogger } from './debug-logger';
 import type { MCRateGetter, SegmentResult } from './types';
@@ -21,10 +19,9 @@ interface ConversionLot {
 
 interface RothConversionConfig {
   enabled: boolean;
+  person: string;
   sourceAccount: string;
   destinationAccount: string;
-  startDateVariable: string;
-  endDateVariable: string;
   strategy: 'fillBracket' | 'percentOfBracket';
   targetBracketRate: number;
   priority: 'largerFirst' | 'smallerFirst';
@@ -107,12 +104,20 @@ export class RothConversionManager {
     const sortedConfigs = this.sortConfigsByPriority(enabledConfigs, balanceTracker, segmentResult);
 
     for (const config of sortedConfigs) {
-      // Load start/end dates from variables
-      const startDateResult = loadDateOrVariable(null, true, config.startDateVariable, simulation);
-      const endDateResult = loadDateOrVariable(null, true, config.endDateVariable, simulation);
-
-      const startDate = startDateResult.date ? startDateResult.date.getUTCFullYear() : null;
-      const endDate = endDateResult.date ? endDateResult.date.getUTCFullYear() : null;
+      // Derive start/end dates from person config
+      let startDate: number | null = null;
+      let endDate: number | null = null;
+      try {
+        startDate = getPersonRetirementDate(config.person).getUTCFullYear();
+      } catch (e) {
+        // Person not found — skip this config
+        continue;
+      }
+      try {
+        endDate = getPersonSSStartDate(config.person).getUTCFullYear();
+      } catch (e) {
+        // SS start date not found — no end bound
+      }
 
       // Skip if current year is outside the conversion window
       const inWindow = (startDate === null || year >= startDate) && (endDate === null || year <= endDate);
@@ -228,11 +233,12 @@ export class RothConversionManager {
       // Task 6: Check ACA subsidy loss if in ACA period
       if (this.acaManager) {
         try {
-          // Determine if we're in ACA period during year+1 (when this year's MAGI affects ACA subsidy)
-          const retireDateResult = loadVariable('RETIRE_DATE', simulation);
-          const retireYear = retireDateResult instanceof Date ? retireDateResult.getUTCFullYear() : null;
+          // Reuse startDate from earlier calculation instead of re-calling getPersonRetirementDate
+          const retireYear: number | null = startDate;
 
           // Load real birth dates from person config
+          // ACA premium calculation needs all household members' birth dates (not just config.person)
+          // because ACA premiums are based on household size and ages of all covered persons
           let birthDate1: Date | null = null;
           let birthDate2: Date | null = null;
           let age65Year1: number | null = null;
@@ -267,7 +273,8 @@ export class RothConversionManager {
             // COBRA covers the first 18 months after retirement; ACA only starts after COBRA ends.
             // During COBRA years, premiums are fixed-cost with no income-based subsidy, so the
             // ACA subsidy check should not apply.
-            const retireDateObj = retireDateResult instanceof Date ? retireDateResult : null;
+            // Note: We already have the retirement date from startDate lookup above
+            const retireDateObj: Date | null = startDate !== null ? new Date(Date.UTC(startDate, 0, 1)) : null;
             const cobraEndDate = retireDateObj ? dayjs.utc(retireDateObj).add(18, 'month') : null;
             const nextYearStart = dayjs.utc(new Date(Date.UTC(nextYear, 0, 1)));
             const afterCobra = cobraEndDate ? nextYearStart.isAfter(cobraEndDate) || nextYearStart.isSame(cobraEndDate) : true;

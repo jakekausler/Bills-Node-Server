@@ -10,10 +10,9 @@ vi.mock('fs', () => ({
       return JSON.stringify([
         {
           enabled: true,
+          person: 'Jake',
           sourceAccount: 'Jake 401(k)',
           destinationAccount: 'Jake Roth IRA',
-          startDateVariable: 'RETIRE_DATE',
-          endDateVariable: 'JAKE_SOCIAL_SECURITY_START_DATE',
           strategy: 'fillBracket',
           targetBracketRate: 0.22,
           priority: 'largerFirst',
@@ -47,18 +46,27 @@ vi.mock('./bracket-calculator', () => ({
   })),
 }));
 
-// Mock simulation variable loading
-vi.mock('../simulation/loadVariableValue', () => ({
-  loadDateOrVariable: vi.fn((date: any, isVar: boolean, varName: string, simulation: string) => {
-    // Map variable names to specific dates for testing
-    if (varName === 'RETIRE_DATE') {
-      return { date: new Date('2025-01-01'), dateIsVariable: true };
-    }
-    if (varName === 'JAKE_SOCIAL_SECURITY_START_DATE') {
-      return { date: new Date('2035-01-01'), dateIsVariable: true };
-    }
-    return { date: null, dateIsVariable: false };
+// Mock person-config
+vi.mock('../../api/person-config/person-config', () => ({
+  getPersonRetirementDate: vi.fn((name: string) => {
+    if (name === 'Jake') return new Date('2025-01-01');
+    if (name === 'Kendall') return new Date('2025-01-01');
+    throw new Error(`Unknown person: ${name}`);
   }),
+  getPersonSSStartDate: vi.fn((name: string) => {
+    if (name === 'Jake') return new Date('2035-01-01');
+    if (name === 'Kendall') return new Date('2036-01-01');
+    throw new Error(`Unknown person: ${name}`);
+  }),
+  getPersonBirthDate: vi.fn((name: string) => {
+    if (name === 'Jake') return new Date('1993-07-15');
+    if (name === 'Kendall') return new Date('1994-11-16');
+    throw new Error(`Unknown person: ${name}`);
+  }),
+  getPersonConfigs: vi.fn(() => [
+    { name: 'Jake', gender: 'male', birthDate: '1993-07-15', retirementAge: { years: 62, months: 0 }, ssStartAge: 70 },
+    { name: 'Kendall', gender: 'female', birthDate: '1994-11-16', retirementAge: { years: 62, months: 0 }, ssStartAge: 70 },
+  ]),
 }));
 
 // Helper to create accounts with different configurations

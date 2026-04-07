@@ -2,7 +2,7 @@ import { HealthcareConfig } from '../../data/healthcare/types';
 import { loadPensionsAndSocialSecurity } from './retirement';
 import { loadHealthcareConfigs } from './healthcareConfigs';
 import { loadVariable } from '../simulation/variable';
-import { getPersonBirthDate } from '../../api/person-config/person-config';
+import { getPersonBirthDate, getPersonConfigs, getPersonRetirementDate } from '../../api/person-config/person-config';
 import { AcaManager } from '../calculate-v3/aca-manager';
 import { getPersonNames } from './persons';
 import dayjs from 'dayjs';
@@ -59,8 +59,15 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
 
   // --- Virtual ACA Silver Plan ---
   try {
-    const retireDateResult = loadVariable('RETIRE_DATE', simulation);
-    const retireDate = retireDateResult instanceof Date ? retireDateResult : null;
+    // Use earliest retirement date from person configs
+    const personConfigs = getPersonConfigs();
+    let retireDate: Date | null = null;
+    for (const pc of personConfigs) {
+      try {
+        const rd = getPersonRetirementDate(pc.name);
+        if (!retireDate || rd < retireDate) retireDate = rd;
+      } catch (e) { /* skip */ }
+    }
 
     if (retireDate && retireDate < laterAge65Date) {
       // Resolve variable dates on existing configs before gap detection
@@ -157,7 +164,7 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
       }
     }
   } catch (e) {
-    // If RETIRE_DATE variable loading fails, skip ACA plan
+    // If retirement date lookup fails, skip ACA plan
   }
 
   // --- Virtual Medicare Plan ---

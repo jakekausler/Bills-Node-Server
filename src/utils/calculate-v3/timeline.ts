@@ -38,7 +38,7 @@ import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
 import { computePeriodBoundaries } from './period-utils';
 import { loadVariable } from '../simulation/variable';
 import { getPersonGender } from '../io/persons';
-import { getPersonBirthDate } from '../../api/person-config/person-config';
+import { getPersonBirthDate, getPersonConfigs, getPersonRetirementDate } from '../../api/person-config/person-config';
 import type { DebugLogger } from './debug-logger';
 
 export class Timeline {
@@ -580,15 +580,21 @@ export class Timeline {
     const countBefore = this.events.length;
     const socialSecurities = this.accountManager.getSocialSecurities();
 
-    // Load retirement date
-    const retireDateResult = loadVariable('RETIRE_DATE', this.simulation);
-    if (!retireDateResult) {
+    // Load earliest retirement date from person configs
+    let retireDate: Date | null = null;
+    const personConfigs = getPersonConfigs();
+    for (const pc of personConfigs) {
+      try {
+        const rd = getPersonRetirementDate(pc.name);
+        if (!retireDate || rd < retireDate) retireDate = rd;
+      } catch (e) { /* skip */ }
+    }
+    if (!retireDate) {
       if (this.enableLogging) {
         console.log('  No retirement date found, skipping ACA events');
       }
       return;
     }
-    const retireDate = new Date(retireDateResult as string);
 
     // Find payment account using configured tax account name
     const paymentAccount = calculationOptions.taxAccountName

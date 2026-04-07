@@ -3,6 +3,7 @@ import { Bill } from '../../data/bill/bill';
 import { Activity } from '../../data/activity/activity';
 import { parseDate } from '../../utils/date/date';
 import { loadDateOrVariable } from '../../utils/simulation/loadVariableValue';
+import { getPersonRetirementDate } from '../../api/person-config/person-config';
 import type { DebugLogger } from './debug-logger';
 import type { MortalityManager } from './mortality-manager';
 import { MCRateGetter, MonteCarloSampleType } from './types';
@@ -136,8 +137,15 @@ export class HealthcareManager {
       }
     }
 
-    // Resolve end date if it's a variable
-    if (config.endDateIsVariable && config.endDateVariable && config.endDate) {
+    // Resolve end date: prefer policyholder retirement date, fall back to variable
+    if (config.policyholder && !config.endDate) {
+      try {
+        const retireDate = getPersonRetirementDate(config.policyholder);
+        resolved.endDate = retireDate.toISOString().split('T')[0] as any;
+      } catch (e) {
+        this.log('end-date-policyholder-resolution-failed', { configName: config.name, error: String(e) });
+      }
+    } else if (config.endDateIsVariable && config.endDateVariable && config.endDate) {
       try {
         const { date } = loadDateOrVariable(
           config.endDate,

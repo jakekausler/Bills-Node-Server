@@ -23,10 +23,9 @@ const ROTH_FILE = 'rothConversionConfig.json';
 export interface RothConversionConfigData {
   id: string;
   enabled: boolean;
+  person: string;
   sourceAccount: string;
   destinationAccount: string;
-  startDateVariable: string;
-  endDateVariable: string;
   strategy: 'fillBracket' | 'percentOfBracket';
   targetBracketRate: number;
   priority: 'largerFirst' | 'smallerFirst';
