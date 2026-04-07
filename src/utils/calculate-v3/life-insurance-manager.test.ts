@@ -11,6 +11,14 @@ vi.mock('../simulation/variable', () => ({
   loadVariable: vi.fn(() => 0.03),
 }));
 
+vi.mock('../../api/person-config/person-config', () => ({
+  getPersonBirthDate: vi.fn((name: string) => {
+    if (name === 'Jake') return new Date('1985-06-15');
+    if (name === 'Kendall') return new Date('1988-03-20');
+    throw new Error(`Unknown person: ${name}`);
+  }),
+}));
+
 // ===== Test helpers =====
 
 function makeConfig(overrides?: Partial<LifeInsurancePolicyConfig>): LifeInsurancePolicyConfig {

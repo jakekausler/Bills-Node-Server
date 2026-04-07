@@ -36,7 +36,6 @@ export type AccountData = {
   earlyWithdrawalDate?: Date | null;
   interestPayAccount?: string | null;
   usesRMD?: boolean;
-  accountOwnerDOB?: string | null;
   rothOpenDate?: string | null;
   rmdAccount?: string | null;
   minimumBalance?: number | null;

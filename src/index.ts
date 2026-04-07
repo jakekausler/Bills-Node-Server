@@ -97,6 +97,7 @@ import { getTaxSummary } from './api/tax-summary';
 import { getTaxDetail } from './api/tax/detail';
 import { computeNetPay } from './utils/calculate-v3/compute-net-pay';
 import { getBracketDataForYear } from './utils/calculate-v3/bracket-calculator';
+import { getPersonBirthDate } from './api/person-config/person-config';
 import type { PaycheckProfile } from './data/bill/paycheck-types';
 import { importQfx, importCsv, getLedger, getPositions } from './api/portfolio/import';
 import { getExpectedReturns, updateExpectedReturns, getCapitalGainsRates, updateCapitalGainsRates, getTaxBracketsRaw, updateTaxBrackets, getWithholdingTablesRaw, updateWithholdingTables, getLifeInsuranceReferenceData, updateLifeInsuranceReferenceData, getLtcCosts, updateLtcCosts, getBendPoints, updateBendPoints, getWageIndex, updateWageIndex, getIrmaaBrackets, updateIrmaaBrackets, getMortality, updateMortality, getMarketReturns, updateMarketReturns } from './api/reference/reference';
@@ -1377,7 +1378,7 @@ app.post('/api/paycheck/compute', verifyToken, asyncHandler(async (req: Request,
       grossPay,
       billName,
       date,
-      accountOwnerDOB,
+      person,
       paychecksPerYear,
     } = req.body;
 
@@ -1406,7 +1407,14 @@ app.post('/api/paycheck/compute', verifyToken, asyncHandler(async (req: Request,
 
     // Parse dates
     const paycheckDate = new Date(date);
-    const ownerDOB = accountOwnerDOB ? new Date(accountOwnerDOB) : null;
+    let ownerDOB: Date | null = null;
+    if (person) {
+      try {
+        ownerDOB = getPersonBirthDate(person);
+      } catch {
+        ownerDOB = null;
+      }
+    }
 
     // Get SS wage base cap for the year (2024 is 168600, 2025 is 176100, default to 2025)
     const year = paycheckDate.getUTCFullYear();

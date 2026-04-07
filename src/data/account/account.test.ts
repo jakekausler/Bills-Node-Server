@@ -106,14 +106,13 @@ describe('Account', () => {
     it('should handle date fields correctly', () => {
       const dataWithDates: AccountData = {
         ...mockAccountData,
-        accountOwnerDOB: '1990-01-01',
         pushStart: '2023-01-01',
         pushEnd: '2023-12-31',
       };
 
       const account = new Account(dataWithDates);
 
-      expect(account.accountOwnerDOB).toBeInstanceOf(Date);
+      expect(account.accountOwnerDOB).toBe(null);
       expect(account.pushStart).toBeInstanceOf(Date);
       expect(account.pushEnd).toBeInstanceOf(Date);
     });
@@ -169,7 +168,6 @@ describe('Account', () => {
     it('should format dates correctly in serialization', () => {
       const dataWithDates: AccountData = {
         ...mockAccountData,
-        accountOwnerDOB: '1990-01-01',
         pushStart: '2023-01-01',
         pushEnd: '2023-12-31',
       };
@@ -177,7 +175,6 @@ describe('Account', () => {
       const account = new Account(dataWithDates);
       const serialized = account.serialize();
 
-      expect(typeof serialized.accountOwnerDOB).toBe('string');
       expect(typeof serialized.pushStart).toBe('string');
       expect(typeof serialized.pushEnd).toBe('string');
     });

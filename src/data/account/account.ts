@@ -8,6 +8,7 @@ import { Interest } from '../interest/interest';
 import { ConsolidatedActivity } from '../activity/consolidatedActivity';
 import { formatDate, parseDate } from '../../utils/date/date';
 import { DateString } from '../../utils/date/types';
+import { getPersonBirthDate } from '../../api/person-config/person-config';
 
 dayjs.extend(utc);
 
@@ -99,7 +100,17 @@ export class Account {
     this.interestAppliesToPositiveBalance = data.interestAppliesToPositiveBalance ?? true;
     this.expenseRatio = data.expenseRatio ?? 0;
     this.usesRMD = data.usesRMD || false;
-    this.accountOwnerDOB = data.accountOwnerDOB ? parseDate(data.accountOwnerDOB as DateString) : null;
+    this.person = data.person ?? null;
+    // Derived from Person config — not stored in data
+    if (this.person) {
+      try {
+        this.accountOwnerDOB = getPersonBirthDate(this.person);
+      } catch {
+        this.accountOwnerDOB = null;
+      }
+    } else {
+      this.accountOwnerDOB = null;
+    }
     this.rothOpenDate = data.rothOpenDate ? parseDate(data.rothOpenDate as DateString) : null;
     this.rmdAccount = data.rmdAccount || null;
     this.minimumBalance = data.minimumBalance ?? null;
@@ -112,7 +123,6 @@ export class Account {
     this.pushAccount = data.pushAccount || null;
     this.defaultShowInGraph = data.defaultShowInGraph || false;
     this.contributionLimitType = data.contributionLimitType || null;
-    this.person = data.person ?? null;
     this.favorite = data.favorite || false;
   }
 
@@ -141,7 +151,6 @@ export class Account {
       interestAppliesToPositiveBalance: this.interestAppliesToPositiveBalance,
       expenseRatio: this.expenseRatio,
       usesRMD: this.usesRMD,
-      accountOwnerDOB: this.accountOwnerDOB ? formatDate(this.accountOwnerDOB) : null,
       rothOpenDate: this.rothOpenDate ? formatDate(this.rothOpenDate) : null,
       rmdAccount: this.rmdAccount,
       minimumBalance: this.minimumBalance,

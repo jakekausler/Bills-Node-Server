@@ -147,9 +147,6 @@ function updateRetirementSettings(account: Account, newAccount: AccountData): vo
   if (newAccount.usesRMD !== account.usesRMD) {
     account.usesRMD = newAccount.usesRMD || false;
   }
-  if (newAccount.accountOwnerDOB !== undefined) {
-    account.accountOwnerDOB = newAccount.accountOwnerDOB ? parseDate(newAccount.accountOwnerDOB as DateString) : null;
-  }
   if (newAccount.rmdAccount !== account.rmdAccount) {
     account.rmdAccount = newAccount.rmdAccount || null;
   }

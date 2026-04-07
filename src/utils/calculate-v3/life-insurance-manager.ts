@@ -15,6 +15,10 @@ import { MonteCarloSampleType } from './types';
 import { ManagerPayout, createPayoutActivity } from './manager-payout';
 import { loadVariable } from '../simulation/variable';
 import type { TermRateEntry, WholeRateEntry, LifeInsurancePremiumRates } from '../../types/life-insurance-rates';
+import { getPersonBirthDate } from '../../api/person-config/person-config';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+dayjs.extend(utc);
 
 // ===== Public Types =====
 
@@ -70,7 +74,6 @@ export interface LifeInsuranceTermPolicy {
   payFromAccountId: string;
   renewalOption: 'expire' | 'renew' | 'convertToWhole';
   insuredGender: 'male' | 'female';
-  insuredBirthDate: string; // YYYY-MM-DD
   wholeLifeDefaults?: WholeLifeConversionDefaults;
 }
 
@@ -91,7 +94,6 @@ export interface LifeInsuranceWholePolicy {
   savingsRatio: number; // decimal (~0.50)
   surrenderChargeSchedule?: number[]; // optional, per-year decimals
   insuredGender: 'male' | 'female';
-  insuredBirthDate: string; // YYYY-MM-DD
 }
 
 /** Discriminated union of all life insurance policy types */
@@ -876,7 +878,8 @@ export class LifeInsuranceManager {
 
       case 'renew': {
         // Calculate insured's age at renewal
-        const birthYear = parseInt(config.insuredBirthDate.slice(0, 4), 10);
+        const insuredBirthDate = getPersonBirthDate(config.insuredPerson);
+        const birthYear = dayjs.utc(insuredBirthDate).year();
         // Age approximation using year only — sufficient for rate table bands spanning 5-10 years
         const currentAge = year - birthYear;
 
