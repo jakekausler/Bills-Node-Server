@@ -43,7 +43,7 @@ export class SocialSecurity {
   firstPaymentYear: number | null;
   /** Variable name for COLA adjustment (optional) */
   colaVariable: string | null;
-  /** Person name of the linked spouse for spousal/survivor benefits calculation (e.g. "Kendall") */
+  /** Person name of the linked spouse for spousal/survivor benefits calculation */
   spouseName: string | null;
 
   /**

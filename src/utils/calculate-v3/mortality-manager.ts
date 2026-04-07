@@ -603,9 +603,9 @@ export class MortalityManager {
   /**
    * Check if the owner of an account is deceased.
    * If account has explicit person, use it. Otherwise fall back to name matching.
-   * Matches account names like "Jake 401(k)" or "Kendall Checking" to tracked person names.
+   * Matches account names like "Person 401(k)" or "Spouse Checking" to tracked person names.
    * Returns true if any tracked person's name appears in the account name and that person is deceased.
-   * Handles SS/Pension names by stripping suffixes (e.g., "Jake Social Security" → "Jake").
+   * Handles SS/Pension names by stripping suffixes (e.g., "Name Social Security" → "Name").
    */
   isAccountOwnerDeceased(accountName: string, accountPerson?: string | null): boolean {
     if (!accountName && !accountPerson) return false;

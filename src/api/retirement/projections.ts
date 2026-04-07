@@ -19,8 +19,7 @@ export interface PersonBenefit {
 
 export interface RetirementProjectionYear {
   year: number;
-  jakeAge: number;
-  kendallAge: number;
+  persons: Record<string, { age: number }>;
   socialSecurity: PersonBenefit[];
   pensions: PersonBenefit[];
   rmdTotal: number;
@@ -52,26 +51,25 @@ export async function getRetirementProjections(request: Request): Promise<Retire
   }
 
   // Load person variables
-  let jakeBirthDate: Date;
-  let kendallBirthDate: Date;
   let retireDate: Date;
 
+  const personConfigs = getPersonConfigs();
+  const personBirthYears: Record<string, number> = {};
+
   try {
-    jakeBirthDate = getPersonBirthDate('Jake');
-    kendallBirthDate = getPersonBirthDate('Kendall');
-    // Use earliest retirement date from person configs
-    const retireDates = getPersonConfigs().map(p => getPersonRetirementDate(p.name));
+    for (const p of personConfigs) {
+      personBirthYears[p.name] = getPersonBirthDate(p.name).getUTCFullYear();
+    }
+    const retireDates = personConfigs.map(p => getPersonRetirementDate(p.name));
     retireDate = new Date(Math.min(...retireDates.map(d => d.getTime())));
   } catch (e) {
-    throw new Error('Missing required variables: Jake/Kendall birth date or retirement config');
+    throw new Error('Missing required person birth date or retirement config');
   }
 
-  const jakeBirthYear = jakeBirthDate.getUTCFullYear();
-  const kendallBirthYear = kendallBirthDate.getUTCFullYear();
   const retirementYear = retireDate.getUTCFullYear();
 
-  // Project until older person reaches targetAge
-  const earlierBirthYear = Math.min(jakeBirthYear, kendallBirthYear);
+  // Project until earliest-born person reaches targetAge
+  const earlierBirthYear = Math.min(...Object.values(personBirthYears));
   const projectionEndYear = earlierBirthYear + targetAge;
 
   // Load inflation rate for real value calculation
@@ -143,8 +141,10 @@ export async function getRetirementProjections(request: Request): Promise<Retire
       cumulativeInflation *= (1 + inflationRate);
     }
 
-    const jakeAge = year - jakeBirthYear;
-    const kendallAge = year - kendallBirthYear;
+    const persons: Record<string, { age: number }> = {};
+    for (const [name, birthYear] of Object.entries(personBirthYears)) {
+      persons[name] = { age: year - birthYear };
+    }
 
     // Build SS benefits array
     const socialSecurity: PersonBenefit[] = ssNames.map((name) => {
@@ -212,8 +212,7 @@ export async function getRetirementProjections(request: Request): Promise<Retire
 
     projections.push({
       year,
-      jakeAge,
-      kendallAge,
+      persons,
       socialSecurity,
       pensions,
       rmdTotal,

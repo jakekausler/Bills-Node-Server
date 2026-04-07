@@ -3,7 +3,7 @@ import { DateString } from '../../utils/date/types';
 export type HealthcareConfig = {
   id: string;
   name: string;
-  coveredPersons: string[];  // e.g., ["Jake", "Jane"]
+  coveredPersons: string[];  // e.g., ["Person1", "Person2"]
   policyholder?: string | null;  // Whose employment provides the plan (for COBRA)
   startDate: DateString;
   startDateIsVariable?: boolean;

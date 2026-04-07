@@ -14,8 +14,7 @@ dayjs.extend(utc);
 
 export interface HealthcareProjectionYear {
   year: number;
-  jakeAge: number;
-  kendallAge: number;
+  persons: Record<string, { age: number }>;
   phase: 'cobra' | 'aca' | 'medicare' | 'split'; // split = one on ACA, one on Medicare
   estimatedMAGI: number;
 
@@ -42,8 +41,7 @@ export interface HealthcareProjectionYear {
 export interface HealthcareProjectionResponse {
   projections: HealthcareProjectionYear[];
   retirementYear: number;
-  jakeMedicareYear: number;  // year Jake turns 65
-  kendallMedicareYear: number;  // year Kendall turns 65
+  persons: Record<string, { medicareYear: number }>;
   cobraEndYear: number;  // retirement year + 1.5 years
   projectionEndYear: number;
 }
@@ -52,29 +50,31 @@ export async function getHealthcareProjections(request: Request): Promise<Health
   const simulation = (request.query.simulation as string) || 'Default';
 
   // Load person variables
-  let jakeBirthDate: Date;
-  let kendallBirthDate: Date;
   let retireDate: Date;
 
+  const personConfigs = getPersonConfigs();
+  const personBirthYears: Record<string, number> = {};
+
   try {
-    jakeBirthDate = getPersonBirthDate('Jake');
-    kendallBirthDate = getPersonBirthDate('Kendall');
-    const retireDates = getPersonConfigs().map(p => getPersonRetirementDate(p.name));
+    for (const p of personConfigs) {
+      personBirthYears[p.name] = getPersonBirthDate(p.name).getUTCFullYear();
+    }
+    const retireDates = personConfigs.map(p => getPersonRetirementDate(p.name));
     retireDate = new Date(Math.min(...retireDates.map(d => d.getTime())));
   } catch (e) {
-    throw new Error('Missing required variables: Jake/Kendall birth date or retirement config');
+    throw new Error('Missing required person birth date or retirement config');
   }
 
-  const jakeBirthYear = jakeBirthDate.getUTCFullYear();
-  const kendallBirthYear = kendallBirthDate.getUTCFullYear();
   const retirementYear = retireDate.getUTCFullYear();
 
-  // Project until both are 95 (use the younger person)
-  const laterBirthYear = Math.max(jakeBirthYear, kendallBirthYear);
+  // Project until youngest person reaches 95
+  const laterBirthYear = Math.max(...Object.values(personBirthYears));
   const projectionEndYear = laterBirthYear + 95;
 
-  const jakeMedicareYear = jakeBirthYear + 65;
-  const kendallMedicareYear = kendallBirthYear + 65;
+  const personMedicareYears: Record<string, { medicareYear: number }> = {};
+  for (const [name, birthYear] of Object.entries(personBirthYears)) {
+    personMedicareYears[name] = { medicareYear: birthYear + 65 };
+  }
 
   // COBRA ends 18 months after retirement
   const cobraEndDate = dayjs.utc(retireDate).add(18, 'month');
@@ -86,8 +86,7 @@ export async function getHealthcareProjections(request: Request): Promise<Health
     return {
       projections: [],
       retirementYear,
-      jakeMedicareYear,
-      kendallMedicareYear,
+      persons: personMedicareYears,
       cobraEndYear,
       projectionEndYear,
     };
@@ -131,11 +130,16 @@ export async function getHealthcareProjections(request: Request): Promise<Health
   } catch { /* no override */ }
 
   const projections: HealthcareProjectionYear[] = [];
-  const householdSize = 2; // Couple
+  const householdSize = personConfigs.length;
 
   for (let year = retirementYear; year <= projectionEndYear; year++) {
-    const jakeAge = year - jakeBirthYear;
-    const kendallAge = year - kendallBirthYear;
+    const persons: Record<string, { age: number }> = {};
+    const personAges: { name: string; age: number }[] = [];
+    for (const [name, birthYear] of Object.entries(personBirthYears)) {
+      const age = year - birthYear;
+      persons[name] = { age };
+      personAges.push({ name, age });
+    }
 
     // Get MAGI from prior year tax occurrences
     const priorYearOccurrences = taxManager.getAllOccurrencesForYear(year - 1);
@@ -149,17 +153,17 @@ export async function getHealthcareProjections(request: Request): Promise<Health
     // Determine phase
     const yearStart = new Date(Date.UTC(year, 0, 1));
     const isCobraPeriod = acaManager.isCobraPeriod(retireDate, yearStart);
-    const jakeMedicare = jakeAge >= 65;
-    const kendallMedicare = kendallAge >= 65;
-    const bothMedicare = jakeMedicare && kendallMedicare;
+    const medicarePersons = personAges.filter(p => p.age >= 65);
+    const nonMedicarePersons = personAges.filter(p => p.age < 65);
+    const allMedicare = medicarePersons.length === personAges.length;
 
     let phase: HealthcareProjectionYear['phase'];
     if (isCobraPeriod) {
       phase = 'cobra';
-    } else if (bothMedicare) {
+    } else if (allMedicare) {
       phase = 'medicare';
-    } else if (jakeMedicare || kendallMedicare) {
-      phase = 'split'; // one on Medicare, one on ACA
+    } else if (medicarePersons.length > 0) {
+      phase = 'split';
     } else {
       phase = 'aca';
     }
@@ -182,37 +186,42 @@ export async function getHealthcareProjections(request: Request): Promise<Health
       totalAnnualCost = cobraMonthlyPremium * 12;
     }
 
-    // ACA (neither on Medicare yet)
+    // ACA (no one on Medicare yet)
     if (phase === 'aca') {
-      acaGrossMonthlyPremium = acaManager.getAcaCoupleGrossPremium(jakeAge, kendallAge, year);
+      if (personAges.length === 1) {
+        acaGrossMonthlyPremium = acaManager.getAcaPremiumForPerson(personAges[0].age, year);
+      } else {
+        // ACA couple premium supports max 2 persons — household model is 1-2 persons
+        acaGrossMonthlyPremium = acaManager.getAcaCoupleGrossPremium(personAges[0].age, personAges[1].age, year);
+      }
       acaMonthlySubsidy = acaManager.calculateMonthlySubsidy(estimatedMAGI, householdSize, year, acaGrossMonthlyPremium);
       acaNetMonthlyPremium = Math.max(0, acaGrossMonthlyPremium - acaMonthlySubsidy);
       totalAnnualCost = acaNetMonthlyPremium * 12;
     }
 
-    // Medicare (both on Medicare)
+    // Medicare (all persons on Medicare)
     if (phase === 'medicare') {
       medicarePartBPremium = medicareManager.getPartBPremium(year);
       medicarePartDPremium = medicareManager.getPartDBasePremium(year);
       const irmaa = medicareManager.getIRMAASurcharge(estimatedMAGI, filingStatus, year);
       medicareIrmaaPartBSurcharge = irmaa.partBSurcharge;
       medicareIrmaaPartDSurcharge = irmaa.partDSurcharge;
-      // getMedigapMonthlyPremium is private — use getMonthlyMedicareCost and subtract parts
-      // Actually, let's compute total per person then multiply by 2
-      const jakeTotal = medicareManager.getMonthlyMedicareCost(jakeAge, estimatedMAGI, filingStatus, year);
-      const kendallTotal = medicareManager.getMonthlyMedicareCost(kendallAge, estimatedMAGI, filingStatus, year);
-      medicareTotalMonthly = jakeTotal + kendallTotal;
+      let totalMedicareCost = 0;
+      for (const p of medicarePersons) {
+        totalMedicareCost += medicareManager.getMonthlyMedicareCost(p.age, estimatedMAGI, filingStatus, year);
+      }
+      medicareTotalMonthly = totalMedicareCost;
       totalAnnualCost = medicareTotalMonthly * 12;
     }
 
-    // Split (one on Medicare, one on ACA)
+    // Split (some on Medicare, some on ACA)
     if (phase === 'split') {
-      const medicareAge = jakeMedicare ? jakeAge : kendallAge;
-      const acaAge = jakeMedicare ? kendallAge : jakeAge;
-
-      // Medicare person
-      const medicareCost = medicareManager.getMonthlyMedicareCost(medicareAge, estimatedMAGI, filingStatus, year);
-      medicareTotalMonthly = medicareCost;
+      // Medicare persons
+      let totalMedicareCost = 0;
+      for (const p of medicarePersons) {
+        totalMedicareCost += medicareManager.getMonthlyMedicareCost(p.age, estimatedMAGI, filingStatus, year);
+      }
+      medicareTotalMonthly = totalMedicareCost;
 
       medicarePartBPremium = medicareManager.getPartBPremium(year);
       medicarePartDPremium = medicareManager.getPartDBasePremium(year);
@@ -220,18 +229,24 @@ export async function getHealthcareProjections(request: Request): Promise<Health
       medicareIrmaaPartBSurcharge = irmaa.partBSurcharge;
       medicareIrmaaPartDSurcharge = irmaa.partDSurcharge;
 
-      // ACA person (single, skip the 65+ person)
-      acaGrossMonthlyPremium = acaManager.getAcaPremiumForPerson(acaAge, year);
-      acaMonthlySubsidy = acaManager.calculateMonthlySubsidy(estimatedMAGI, 1, year, acaGrossMonthlyPremium);
+      // ACA for non-Medicare persons
+      if (nonMedicarePersons.length === 1) {
+        acaGrossMonthlyPremium = acaManager.getAcaPremiumForPerson(nonMedicarePersons[0].age, year);
+      } else {
+        // ACA couple premium supports max 2 persons — household model is 1-2 persons
+        acaGrossMonthlyPremium = acaManager.getAcaCoupleGrossPremium(
+          nonMedicarePersons[0].age, nonMedicarePersons[1].age, year
+        );
+      }
+      acaMonthlySubsidy = acaManager.calculateMonthlySubsidy(estimatedMAGI, householdSize, year, acaGrossMonthlyPremium);
       acaNetMonthlyPremium = Math.max(0, acaGrossMonthlyPremium - acaMonthlySubsidy);
 
-      totalAnnualCost = (medicareCost + acaNetMonthlyPremium) * 12;
+      totalAnnualCost = (totalMedicareCost + acaNetMonthlyPremium) * 12;
     }
 
     projections.push({
       year,
-      jakeAge,
-      kendallAge,
+      persons,
       phase,
       estimatedMAGI,
       cobraMonthlyPremium,
@@ -251,8 +266,7 @@ export async function getHealthcareProjections(request: Request): Promise<Health
   return {
     projections,
     retirementYear,
-    jakeMedicareYear,
-    kendallMedicareYear,
+    persons: personMedicareYears,
     cobraEndYear,
     projectionEndYear,
   };

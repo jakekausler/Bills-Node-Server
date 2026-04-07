@@ -4,7 +4,7 @@ import { loadAllHealthcareConfigs } from '../../utils/io/virtualHealthcarePlans'
 
 export type ExpenseHistoryDataPoint = {
   date: string;
-  personName: string | null; // null = family level, "Jake"/"Kendall" = individual
+  personName: string | null; // null = family level, person name = individual
   totalPatientCost: number;
   totalHsaReimbursed: number;
   netCost: number;
