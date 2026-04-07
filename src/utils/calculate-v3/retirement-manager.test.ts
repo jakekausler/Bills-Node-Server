@@ -35,6 +35,14 @@ vi.mock('../../api/person-config/person-config', () => ({
   getPersonBirthDate: vi.fn((_name: string) => {
     return new Date(Date.UTC(1960, 0, 1));
   }),
+  getPersonSSStartDate: vi.fn((name: string) => {
+    // Special case for EarlyClaimant: return age 60 (2020-01-01)
+    if (name === 'EarlyClaimant') {
+      return new Date(Date.UTC(2020, 0, 1));
+    }
+    return new Date(Date.UTC(2030, 0, 1));
+  }),
+  getPersonRetirementDate: vi.fn((_name: string) => new Date(Date.UTC(2025, 0, 1))),
 }));
 
 vi.mock('../io/io', () => ({
@@ -424,6 +432,7 @@ describe('RetirementManager', () => {
       const socialSecurity = new SocialSecurity({
         id: 'ss-8',
         name: 'Too Early SS',
+        person: 'EarlyClaimant',
         payToAccount: 'checking-1',
         paycheckNames: ['Too Early Paycheck'],
         paycheckAccounts: ['checking-1'],

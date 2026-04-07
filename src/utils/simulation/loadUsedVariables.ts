@@ -195,29 +195,7 @@ export function loadUsedVariables(
       });
     }
   }
-  for (const s of socialSecurity) {
-    if (s.startDateVariable) {
-      if (!usedVariables[s.startDateVariable]) {
-        usedVariables[s.startDateVariable] = [];
-      }
-      usedVariables[s.startDateVariable].push({
-        type: 'socialSecurity',
-        name: s.name,
-        date: formatDate(s.startDate),
-      });
-    }
-  }
   for (const p of pensions) {
-    if (p.startDateVariable) {
-      if (!usedVariables[p.startDateVariable]) {
-        usedVariables[p.startDateVariable] = [];
-      }
-      usedVariables[p.startDateVariable].push({
-        type: 'pension',
-        name: p.name,
-        date: formatDate(p.startDate),
-      });
-    }
     if (p.workStartDateVariable) {
       if (!usedVariables[p.workStartDateVariable]) {
         usedVariables[p.workStartDateVariable] = [];

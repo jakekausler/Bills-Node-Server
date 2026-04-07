@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { loadVariable } from '../../../utils/simulation/variable';
-import { getPersonBirthDate } from '../../../api/person-config/person-config';
+import { getPersonBirthDate, getPersonRetirementDate } from '../../../api/person-config/person-config';
 import { BenefitRequirement, PensionData } from './types';
 
 dayjs.extend(utc);
@@ -20,8 +20,8 @@ export class Pension {
   paycheckAccounts: string[];
   /** Categories for each paycheck */
   paycheckCategories: string[];
-  /** Variable name for the pension start date */
-  startDateVariable: string;
+  /** Offset from person's retirement date for pension start */
+  retirementOffset: { years: number; months: number };
   /** Calculated pension start date */
   startDate: Date;
   /** Person name for birth date lookup */
@@ -78,10 +78,12 @@ export class Pension {
     this.paycheckNames = [...data.paycheckNames];
     this.paycheckAccounts = [...data.paycheckAccounts];
     this.paycheckCategories = [...data.paycheckCategories];
-    this.startDateVariable = data.startDateVariable;
-    const startDate = loadVariable(data.startDateVariable, simulation);
-    if (!(startDate instanceof Date)) throw new Error(`Invalid date variable: ${data.startDateVariable}`);
-    this.startDate = startDate;
+    this.retirementOffset = data.retirementOffset ?? { years: 0, months: 0 };
+    const retirementDate = getPersonRetirementDate(data.person);
+    this.startDate = dayjs.utc(retirementDate)
+      .add(this.retirementOffset.years, 'year')
+      .add(this.retirementOffset.months, 'month')
+      .toDate();
     this.person = data.person;
     const birthDate = getPersonBirthDate(data.person);
     this.birthDate = birthDate;
@@ -193,7 +195,7 @@ export class Pension {
       paycheckNames: this.paycheckNames,
       paycheckAccounts: this.paycheckAccounts,
       paycheckCategories: this.paycheckCategories,
-      startDateVariable: this.startDateVariable,
+      retirementOffset: this.retirementOffset,
       person: this.person,
       workStartDateVariable: this.workStartDateVariable,
       priorAnnualNetIncomes: this.priorAnnualNetIncomes,

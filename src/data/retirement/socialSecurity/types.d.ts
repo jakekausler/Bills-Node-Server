@@ -4,7 +4,6 @@ export type SocialSecurityData = {
   paycheckNames: string[];
   paycheckAccounts: string[];
   paycheckCategories: string[];
-  startDateVariable: string;
   person: string;
   priorAnnualNetIncomes: number[];
   priorAnnualNetIncomeYears: number[];

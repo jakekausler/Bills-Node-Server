@@ -1,7 +1,6 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { loadVariable } from '../../../utils/simulation/variable';
-import { getPersonBirthDate } from '../../../api/person-config/person-config';
+import { getPersonBirthDate, getPersonSSStartDate } from '../../../api/person-config/person-config';
 import { SocialSecurityData } from './types';
 
 dayjs.extend(utc);
@@ -20,8 +19,6 @@ export class SocialSecurity {
   paycheckAccounts: string[];
   /** Categories for each paycheck */
   paycheckCategories: string[];
-  /** Variable name for the start date */
-  startDateVariable: string;
   /** Calculated start date for benefits */
   startDate: Date;
   /** Person name for birth date lookup */
@@ -52,18 +49,14 @@ export class SocialSecurity {
   /**
    * Creates a new Social Security benefit configuration
    * @param data - Social Security configuration data
-   * @param simulation - Simulation name for variable resolution (defaults to 'Default')
    */
-  constructor(data: SocialSecurityData, simulation = 'Default') {
+  constructor(data: SocialSecurityData) {
     this.name = data.name;
     this.payToAccount = data.payToAccount ?? (data as any).payToAcccount;
     this.paycheckNames = [...data.paycheckNames];
     this.paycheckAccounts = [...data.paycheckAccounts];
     this.paycheckCategories = [...data.paycheckCategories];
-    this.startDateVariable = data.startDateVariable;
-    const startDate = loadVariable(data.startDateVariable, simulation);
-    if (!(startDate instanceof Date)) throw new Error(`Invalid date variable: ${data.startDateVariable}`);
-    this.startDate = startDate;
+    this.startDate = getPersonSSStartDate(data.person);
     this.person = data.person;
     const birthDate = getPersonBirthDate(data.person);
     this.birthDate = birthDate;
@@ -86,7 +79,6 @@ export class SocialSecurity {
       paycheckNames: this.paycheckNames,
       paycheckAccounts: this.paycheckAccounts,
       paycheckCategories: this.paycheckCategories,
-      startDateVariable: this.startDateVariable,
       person: this.person,
       priorAnnualNetIncomes: this.priorAnnualNetIncomes,
       priorAnnualNetIncomeYears: this.priorAnnualNetIncomeYears,

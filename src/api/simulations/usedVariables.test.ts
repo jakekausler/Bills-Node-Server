@@ -28,8 +28,7 @@ describe('Used Variables API', () => {
           {
             id: 'account-1',
             name: 'Checking',
-            startDateVariable: 'retirementDate',
-            endDateVariable: 'endDate',
+              endDateVariable: 'endDate',
           },
         ],
         transfers: {
@@ -41,8 +40,6 @@ describe('Used Variables API', () => {
         {
           id: 'ss-1',
           name: 'Social Security',
-          startDateVariable: 'retirementDate',
-          birthDateVariable: 'birthDate',
         },
       ];
 
@@ -50,8 +47,7 @@ describe('Used Variables API', () => {
         {
           id: 'pension-1',
           name: 'Company Pension',
-          startDateVariable: 'retirementDate',
-          birthDateVariable: 'birthDate',
+          retirementOffset: { years: 0, months: 0 },
           workStartDateVariable: 'careerStartDate',
         },
       ];
@@ -105,28 +101,24 @@ describe('Used Variables API', () => {
           {
             id: 'account-1',
             name: 'Checking',
-            startDateVariable: 'retirementDate',
-            endDateVariable: 'simulationEndDate',
+              endDateVariable: 'simulationEndDate',
           },
           {
             id: 'account-2',
             name: 'Savings',
-            startDateVariable: 'retirementDate',
-            endDateVariable: 'simulationEndDate',
+              endDateVariable: 'simulationEndDate',
           },
           {
             id: 'account-3',
             name: '401k',
-            startDateVariable: 'retirementDate',
-            endDateVariable: 'simulationEndDate',
+              endDateVariable: 'simulationEndDate',
           },
         ],
         transfers: {
           bills: [
             {
               id: 'transfer-1',
-              startDateVariable: 'retirementDate',
-              endDateVariable: 'simulationEndDate',
+                  endDateVariable: 'simulationEndDate',
             },
           ],
         },
@@ -136,14 +128,10 @@ describe('Used Variables API', () => {
         {
           id: 'ss-1',
           name: 'Primary SS',
-          startDateVariable: 'retirementDate',
-          birthDateVariable: 'birthDate',
         },
         {
           id: 'ss-2',
           name: 'Spouse SS',
-          startDateVariable: 'spouseRetirementDate',
-          birthDateVariable: 'spouseBirthDate',
         },
       ];
 
@@ -151,15 +139,11 @@ describe('Used Variables API', () => {
         {
           id: 'pension-1',
           name: 'Company Pension',
-          startDateVariable: 'retirementDate',
-          birthDateVariable: 'birthDate',
           workStartDateVariable: 'careerStartDate',
         },
         {
           id: 'pension-2',
           name: 'Military Pension',
-          startDateVariable: 'militaryRetirementDate',
-          birthDateVariable: 'birthDate',
           workStartDateVariable: 'militaryStartDate',
         },
       ];
@@ -195,8 +179,7 @@ describe('Used Variables API', () => {
           {
             id: 'account-1',
             name: 'Checking',
-            startDateVariable: 'startDate',
-            endDateVariable: 'endDate',
+              endDateVariable: 'endDate',
           },
         ],
         transfers: {
@@ -234,8 +217,6 @@ describe('Used Variables API', () => {
         {
           id: 'ss-1',
           name: 'Social Security',
-          startDateVariable: 'retirementDate',
-          birthDateVariable: 'birthDate',
         },
       ];
 
@@ -243,8 +224,6 @@ describe('Used Variables API', () => {
         {
           id: 'pension-1',
           name: 'Pension',
-          startDateVariable: 'retirementDate',
-          birthDateVariable: 'birthDate',
           workStartDateVariable: 'careerStartDate',
         },
       ];

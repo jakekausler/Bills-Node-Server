@@ -1,15 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SocialSecurity } from './socialSecurity';
 import { SocialSecurityData } from './types';
-import { loadVariable } from '../../../utils/simulation/variable';
 
 // Mock dependencies
-vi.mock('../../../utils/simulation/variable');
 vi.mock('../../../api/person-config/person-config');
 
-const mockLoadVariable = vi.mocked(loadVariable);
-import { getPersonBirthDate } from '../../../api/person-config/person-config';
+import { getPersonBirthDate, getPersonSSStartDate } from '../../../api/person-config/person-config';
 const mockGetPersonBirthDate = vi.mocked(getPersonBirthDate);
+const mockGetPersonSSStartDate = vi.mocked(getPersonSSStartDate);
 
 describe('SocialSecurity', () => {
   const mockSocialSecurityData: SocialSecurityData = {
@@ -18,7 +16,6 @@ describe('SocialSecurity', () => {
     paycheckNames: ['Social Security Payment'],
     paycheckAccounts: ['account-123'],
     paycheckCategories: ['Income'],
-    startDateVariable: 'retirementDate',
     person: 'TestPerson',
     priorAnnualNetIncomes: [50000, 52000, 54000, 56000, 58000],
     priorAnnualNetIncomeYears: [2019, 2020, 2021, 2022, 2023],
@@ -26,16 +23,13 @@ describe('SocialSecurity', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default mock for getPersonBirthDate
+    // Default mocks
     mockGetPersonBirthDate.mockReturnValue(new Date('1960-01-01T00:00:00Z'));
+    mockGetPersonSSStartDate.mockReturnValue(new Date('2024-01-01T00:00:00Z'));
   });
 
   describe('constructor', () => {
     it('should create a SocialSecurity instance with provided data', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
 
       expect(socialSecurity.name).toBe('Test Social Security');
@@ -43,35 +37,12 @@ describe('SocialSecurity', () => {
       expect(socialSecurity.paycheckNames).toEqual(['Social Security Payment']);
       expect(socialSecurity.paycheckAccounts).toEqual(['account-123']);
       expect(socialSecurity.paycheckCategories).toEqual(['Income']);
-      expect(socialSecurity.startDateVariable).toBe('retirementDate');
       expect(socialSecurity.person).toBe('TestPerson');
       expect(socialSecurity.priorAnnualNetIncomes).toEqual([50000, 52000, 54000, 56000, 58000]);
       expect(socialSecurity.priorAnnualNetIncomeYears).toEqual([2019, 2020, 2021, 2022, 2023]);
     });
 
-    it('should load variables using the simulation parameter', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-
-      new SocialSecurity(mockSocialSecurityData, 'CustomSimulation');
-
-      expect(mockLoadVariable).toHaveBeenCalledWith('retirementDate', 'CustomSimulation');
-    });
-
-    it('should use default simulation when none provided', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-
-      new SocialSecurity(mockSocialSecurityData);
-
-      expect(mockLoadVariable).toHaveBeenCalledWith('retirementDate', 'Default');
-    });
-
     it('should set loaded dates correctly', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
 
       expect(socialSecurity.startDate).toEqual(new Date('2024-01-01T00:00:00Z'));
@@ -79,10 +50,6 @@ describe('SocialSecurity', () => {
     });
 
     it('should initialize calculated properties to null', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
 
       expect(socialSecurity.average35YearPayInflationAdjusted).toBeNull();
@@ -91,10 +58,6 @@ describe('SocialSecurity', () => {
 
     it('should calculate startAge correctly', () => {
       // Birth date: 1960-01-01, Start date: 2024-01-01 = 64 years
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
 
       expect(socialSecurity.startAge).toBe(64);
@@ -102,10 +65,6 @@ describe('SocialSecurity', () => {
 
     it('should calculate yearTurn60 correctly', () => {
       // Birth date: 1960-01-01, turns 60 in 2020
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
 
       expect(socialSecurity.yearTurn60).toBe(2020);
@@ -113,10 +72,6 @@ describe('SocialSecurity', () => {
 
     it('should calculate collectionAge correctly', () => {
       // Start date: 2024-01-01, Birth date: 1960-01-01 = age 64
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
 
       expect(socialSecurity.collectionAge).toBe(64);
@@ -124,9 +79,8 @@ describe('SocialSecurity', () => {
 
     it('should handle different birth and start dates', () => {
       vi.clearAllMocks();
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2030-06-15T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1965-03-20T00:00:00Z')); // birthDate
+      mockGetPersonSSStartDate.mockReturnValueOnce(new Date('2030-06-15T00:00:00Z'));
+      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1965-03-20T00:00:00Z'));
 
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
 
@@ -142,10 +96,6 @@ describe('SocialSecurity', () => {
         priorAnnualNetIncomeYears: [],
       };
 
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const socialSecurity = new SocialSecurity(dataWithEmptyArrays);
 
       expect(socialSecurity.priorAnnualNetIncomes).toEqual([]);
@@ -160,10 +110,6 @@ describe('SocialSecurity', () => {
         paycheckCategories: ['Income', 'Retirement Income'],
       };
 
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const socialSecurity = new SocialSecurity(dataWithMultiplePaychecks);
 
       expect(socialSecurity.paycheckNames).toEqual(['SS Payment 1', 'SS Payment 2']);
@@ -174,9 +120,6 @@ describe('SocialSecurity', () => {
 
   describe('serialize', () => {
     it('should return a SocialSecurityData object with all non-computed fields', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
       const serialized = socialSecurity.serialize();
 
@@ -186,7 +129,6 @@ describe('SocialSecurity', () => {
         paycheckNames: ['Social Security Payment'],
         paycheckAccounts: ['account-123'],
         paycheckCategories: ['Income'],
-        startDateVariable: 'retirementDate',
         person: 'TestPerson',
         priorAnnualNetIncomes: [50000, 52000, 54000, 56000, 58000],
         priorAnnualNetIncomeYears: [2019, 2020, 2021, 2022, 2023],
@@ -194,9 +136,6 @@ describe('SocialSecurity', () => {
     });
 
     it('should not include computed fields in serialized output', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
       const serialized = socialSecurity.serialize();
 
@@ -216,10 +155,6 @@ describe('SocialSecurity', () => {
         priorAnnualNetIncomeYears: [],
       };
 
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const socialSecurity = new SocialSecurity(dataWithEmptyArrays);
       const serialized = socialSecurity.serialize();
 
@@ -235,10 +170,6 @@ describe('SocialSecurity', () => {
         paycheckCategories: ['Income', 'Retirement Income'],
       };
 
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const socialSecurity = new SocialSecurity(dataWithMultiplePaychecks);
       const serialized = socialSecurity.serialize();
 
@@ -248,10 +179,6 @@ describe('SocialSecurity', () => {
     });
 
     it('should reflect mutations made after construction', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')); // startDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
       socialSecurity.name = 'Updated Name';
       socialSecurity.priorAnnualNetIncomes = [60000, 65000];
@@ -265,10 +192,8 @@ describe('SocialSecurity', () => {
 
   describe('age calculations', () => {
     it('should handle edge case where start date is before birthday in start year', () => {
-      // Override the default mock
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-06-01T00:00:00Z')); // startDate (June)
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-08-01T00:00:00Z')); // birthDate
+      mockGetPersonSSStartDate.mockReturnValueOnce(new Date('2024-06-01T00:00:00Z'));
+      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-08-01T00:00:00Z'));
 
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
 
@@ -278,10 +203,8 @@ describe('SocialSecurity', () => {
     });
 
     it('should handle edge case where start date is after birthday in start year', () => {
-      // Override the default mock
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-10-01T00:00:00Z')); // startDate (October)
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-08-01T00:00:00Z')); // birthDate
+      mockGetPersonSSStartDate.mockReturnValueOnce(new Date('2024-10-01T00:00:00Z'));
+      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-08-01T00:00:00Z'));
 
       const socialSecurity = new SocialSecurity(mockSocialSecurityData);
 

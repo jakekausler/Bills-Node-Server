@@ -1067,67 +1067,14 @@ describe('loadUsedVariables - transfer bills', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Social Security tests
-// ---------------------------------------------------------------------------
-
-describe('loadUsedVariables - social security', () => {
-  it('should always track startDateVariable for social security', () => {
-    const ss = {
-      name: 'Alice SS',
-      startDateVariable: 'SS_START',
-      startDate: new Date('2030-01-01T12:00:00Z'),
-    };
-
-    const result = loadUsedVariables(
-      emptyAccountsAndTransfers,
-      [ss as never],
-      emptyPensions,
-      [],
-    );
-
-    expect(result['SS_START']).toEqual([
-      {
-        type: 'socialSecurity',
-        name: 'Alice SS',
-        date: '2030-01-01',
-      },
-    ]);
-  });
-
-  it('should track variables from multiple social security entries', () => {
-    const ss1 = {
-      name: 'Alice SS',
-      startDateVariable: 'SS_A_START',
-      startDate: new Date('2030-01-01T12:00:00Z'),
-    };
-    const ss2 = {
-      name: 'Bob SS',
-      startDateVariable: 'SS_B_START',
-      startDate: new Date('2032-06-01T12:00:00Z'),
-    };
-
-    const result = loadUsedVariables(
-      emptyAccountsAndTransfers,
-      [ss1 as never, ss2 as never],
-      emptyPensions,
-      [],
-    );
-
-    expect(result['SS_A_START']).toHaveLength(1);
-    expect(result['SS_B_START']).toHaveLength(1);
-  });
-});
-
 // ---------------------------------------------------------------------------
 // Pension tests
 // ---------------------------------------------------------------------------
 
 describe('loadUsedVariables - pensions', () => {
-  it('should always track startDateVariable and workStartDateVariable for pensions', () => {
+  it('should always track workStartDateVariable for pensions', () => {
     const pension = {
       name: 'State Pension',
-      startDateVariable: 'PEN_START',
-      startDate: new Date('2035-07-01T12:00:00Z'),
       workStartDateVariable: 'PEN_WORK_START',
       workStartDate: new Date('1995-08-01T12:00:00Z'),
     };
@@ -1139,13 +1086,6 @@ describe('loadUsedVariables - pensions', () => {
       [],
     );
 
-    expect(result['PEN_START']).toEqual([
-      {
-        type: 'pension',
-        name: 'State Pension',
-        date: '2035-07-01',
-      },
-    ]);
     expect(result['PEN_WORK_START']).toEqual([
       {
         type: 'pension',
@@ -1157,15 +1097,11 @@ describe('loadUsedVariables - pensions', () => {
   it('should track variables from multiple pensions', () => {
     const pen1 = {
       name: 'Pension A',
-      startDateVariable: 'PA_START',
-      startDate: new Date('2033-01-01T12:00:00Z'),
       workStartDateVariable: 'PA_WORK',
       workStartDate: new Date('1993-01-01T12:00:00Z'),
     };
     const pen2 = {
       name: 'Pension B',
-      startDateVariable: 'PB_START',
-      startDate: new Date('2040-01-01T12:00:00Z'),
       workStartDateVariable: 'PB_WORK',
       workStartDate: new Date('2000-01-01T12:00:00Z'),
     };
@@ -1177,9 +1113,7 @@ describe('loadUsedVariables - pensions', () => {
       [],
     );
 
-    expect(result['PA_START']).toHaveLength(1);
     expect(result['PA_WORK']).toHaveLength(1);
-    expect(result['PB_START']).toHaveLength(1);
     expect(result['PB_WORK']).toHaveLength(1);
   });
 });

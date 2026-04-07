@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Pension } from './pension';
 import { PensionData, BenefitRequirement } from './types';
 import { loadVariable } from '../../../utils/simulation/variable';
-import { getPersonBirthDate } from '../../../api/person-config/person-config';
+import { getPersonBirthDate, getPersonRetirementDate } from '../../../api/person-config/person-config';
 
 // Mock dependencies
 vi.mock('../../../utils/simulation/variable');
@@ -10,6 +10,7 @@ vi.mock('../../../api/person-config/person-config');
 
 const mockLoadVariable = vi.mocked(loadVariable);
 const mockGetPersonBirthDate = vi.mocked(getPersonBirthDate);
+const mockGetPersonRetirementDate = vi.mocked(getPersonRetirementDate);
 
 describe('Pension', () => {
   const mockBenefitRequirements: BenefitRequirement[] = [
@@ -25,7 +26,7 @@ describe('Pension', () => {
     paycheckNames: ['Pension Payment'],
     paycheckAccounts: ['retirement-account'],
     paycheckCategories: ['Retirement Income'],
-    startDateVariable: 'retirementDate',
+    retirementOffset: { years: 0, months: 0 },
     person: 'TestPerson',
     workStartDateVariable: 'careerStartDate',
     priorAnnualNetIncomes: [60000, 65000, 70000, 75000, 80000],
@@ -42,17 +43,15 @@ describe('Pension', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default mock for getPersonBirthDate
+    // Default mocks
     mockGetPersonBirthDate.mockReturnValue(new Date('1960-01-01T00:00:00Z'));
+    mockGetPersonRetirementDate.mockReturnValue(new Date('2024-01-01T00:00:00Z'));
+    // workStartDate mock
+    mockLoadVariable.mockReturnValue(new Date('1990-01-01T00:00:00Z'));
   });
 
   describe('constructor', () => {
     it('should create a Pension instance with provided data', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
-        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const pension = new Pension(mockPensionData);
 
       expect(pension.name).toBe('Test Pension Plan');
@@ -60,7 +59,7 @@ describe('Pension', () => {
       expect(pension.paycheckNames).toEqual(['Pension Payment']);
       expect(pension.paycheckAccounts).toEqual(['retirement-account']);
       expect(pension.paycheckCategories).toEqual(['Retirement Income']);
-      expect(pension.startDateVariable).toBe('retirementDate');
+      expect(pension.retirementOffset).toEqual({ years: 0, months: 0 });
       expect(pension.person).toBe('TestPerson');
       expect(pension.workStartDateVariable).toBe('careerStartDate');
       expect(pension.priorAnnualNetIncomes).toEqual([60000, 65000, 70000, 75000, 80000]);
@@ -72,47 +71,25 @@ describe('Pension', () => {
     });
 
     it('should load variables using the simulation parameter', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
-        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       new Pension(mockPensionData, 'CustomSimulation');
 
-      expect(mockLoadVariable).toHaveBeenCalledWith('retirementDate', 'CustomSimulation');
       expect(mockLoadVariable).toHaveBeenCalledWith('careerStartDate', 'CustomSimulation');
     });
 
     it('should use default simulation when none provided', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
-        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       new Pension(mockPensionData);
 
-      expect(mockLoadVariable).toHaveBeenCalledWith('retirementDate', 'Default');
       expect(mockLoadVariable).toHaveBeenCalledWith('careerStartDate', 'Default');
     });
 
     it('should calculate startAge correctly', () => {
       // Birth: 1960-01-01, Start: 2024-01-01 = 64 years
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
-        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const pension = new Pension(mockPensionData);
 
       expect(pension.startAge).toBe(64);
     });
 
     it('should calculate yearsWorked correctly', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
-        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const pension = new Pension(mockPensionData);
 
       expect(pension.yearsWorked).toBe(34);
@@ -121,11 +98,6 @@ describe('Pension', () => {
 
   describe('serialize', () => {
     it('should serialize pension data correctly', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
-        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const pension = new Pension(mockPensionData);
       const serialized = pension.serialize();
 
@@ -135,7 +107,7 @@ describe('Pension', () => {
         paycheckNames: ['Pension Payment'],
         paycheckAccounts: ['retirement-account'],
         paycheckCategories: ['Retirement Income'],
-        startDateVariable: 'retirementDate',
+        retirementOffset: { years: 0, months: 0 },
         person: 'TestPerson',
         workStartDateVariable: 'careerStartDate',
         priorAnnualNetIncomes: [60000, 65000, 70000, 75000, 80000],
@@ -160,10 +132,8 @@ describe('Pension', () => {
       };
 
       mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
         .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')) // workStartDate
         .mockReturnValueOnce(new Date('2020-01-01T00:00:00Z')); // workEndDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
 
       const pension = new Pension(dataWithWorkEnd);
 
@@ -173,11 +143,6 @@ describe('Pension', () => {
 
   describe('reduction factor calculation', () => {
     it('should return 1 when unreduced requirements are met', () => {
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
-        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
-
       const pension = new Pension(mockPensionData);
 
       expect(pension.reductionFactor).toBe(1);
@@ -189,11 +154,6 @@ describe('Pension', () => {
         unreducedRequirements: [{ age: 70, yearsWorked: 40 }],
         reducedRequirements: [{ age: 65, yearsWorked: 40 }],
       };
-
-      mockLoadVariable
-        .mockReturnValueOnce(new Date('2024-01-01T00:00:00Z')) // startDate
-        .mockReturnValueOnce(new Date('1990-01-01T00:00:00Z')); // workStartDate
-      mockGetPersonBirthDate.mockReturnValueOnce(new Date('1960-01-01T00:00:00Z')); // birthDate
 
       const pension = new Pension(dataWithRestrictedRequirements);
 
