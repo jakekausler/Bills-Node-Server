@@ -206,15 +206,6 @@ export function loadUsedVariables(
         date: formatDate(s.startDate),
       });
     }
-    if (s.birthDateVariable) {
-      if (!usedVariables[s.birthDateVariable]) {
-        usedVariables[s.birthDateVariable] = [];
-      }
-      usedVariables[s.birthDateVariable].push({
-        type: 'socialSecurity',
-        name: s.name,
-      });
-    }
   }
   for (const p of pensions) {
     if (p.startDateVariable) {
@@ -225,15 +216,6 @@ export function loadUsedVariables(
         type: 'pension',
         name: p.name,
         date: formatDate(p.startDate),
-      });
-    }
-    if (p.birthDateVariable) {
-      if (!usedVariables[p.birthDateVariable]) {
-        usedVariables[p.birthDateVariable] = [];
-      }
-      usedVariables[p.birthDateVariable].push({
-        type: 'pension',
-        name: p.name,
       });
     }
     if (p.workStartDateVariable) {

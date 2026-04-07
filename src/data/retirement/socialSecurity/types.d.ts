@@ -5,7 +5,7 @@ export type SocialSecurityData = {
   paycheckAccounts: string[];
   paycheckCategories: string[];
   startDateVariable: string;
-  birthDateVariable: string;
+  person: string;
   priorAnnualNetIncomes: number[];
   priorAnnualNetIncomeYears: number[];
   colaVariable?: string;

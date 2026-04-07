@@ -157,6 +157,11 @@ describe('ConsolidatedActivity', () => {
         firstInterest: true,
         spendingTrackerId: null,
         firstSpendingTracker: false,
+        cashBalance: 0,
+        costBasis: 0,
+        investmentValue: 0,
+        unrealizedGain: 0,
+        unrealizedGainPercent: 0,
       });
     });
 

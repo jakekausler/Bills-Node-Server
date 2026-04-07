@@ -2,6 +2,7 @@ import { HealthcareConfig } from '../../data/healthcare/types';
 import { loadPensionsAndSocialSecurity } from './retirement';
 import { loadHealthcareConfigs } from './healthcareConfigs';
 import { loadVariable } from '../simulation/variable';
+import { getPersonBirthDate } from '../../api/person-config/person-config';
 import { AcaManager } from '../calculate-v3/aca-manager';
 import { getPersonNames } from './persons';
 import dayjs from 'dayjs';
@@ -32,10 +33,8 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
     const { socialSecurities } = loadPensionsAndSocialSecurity(simulation);
     for (const ss of socialSecurities) {
       try {
-        const birthDateResult = loadVariable(ss.birthDateVariable, simulation);
-        if (birthDateResult instanceof Date) {
-          birthDates.push(birthDateResult);
-        }
+        const birthDate = getPersonBirthDate(ss.person);
+        birthDates.push(birthDate);
       } catch (e) {
         // Skip if birth date not found
       }

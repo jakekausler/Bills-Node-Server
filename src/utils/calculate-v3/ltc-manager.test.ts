@@ -1,5 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LTCManager } from './ltc-manager';
+
+// Mock SSA mortality to disable death checks — these tests focus on Markov LTC transitions only.
+vi.mock('./ssa-mortality', () => ({
+  getAnnualDeathProbability: vi.fn(() => 0),
+}));
 
 /**
  * IMPORTANT: LTCManager has been refactored to MortalityManager in Stage 2 (#21).
@@ -48,10 +53,12 @@ describe('LTCManager', () => {
     let callCount = 0;
     const sequencedRandom = () => {
       callCount++;
-      if (callCount === 1) return 0.0005; // HC entry
-      if (callCount === 2) return 0.5; // Box-Muller u1
-      if (callCount === 3) return 0.5; // Box-Muller u2
-      if (callCount === 4) return 0.05; // AL transition (below recovery+AL threshold)
+      if (callCount === 1) return 0.99; // SSA death check (skip)
+      if (callCount === 2) return 0.0005; // HC entry
+      if (callCount === 3) return 0.5; // Box-Muller u1
+      if (callCount === 4) return 0.5; // Box-Muller u2
+      if (callCount === 5) return 0.05; // AL transition (below recovery+AL threshold)
+      if (callCount === 6) return 0.99; // SSA death check (skip) - second stepMonth
       return 0.99;
     };
 
@@ -71,13 +78,14 @@ describe('LTCManager', () => {
     let callCount = 0;
     const sequencedRandom = () => {
       callCount++;
-      // Get to nursing home first
-      if (callCount <= 7) {
-        if (callCount === 2 || callCount === 3) return 0.5; // Box-Muller
-        return 0.001; // Low for transitions
-      }
-      // Then trigger death at NH
-      return 0.001;
+      // Each stepMonth: SSA check (1) + Markov transition (1-3)
+      // Step 0: SSA(1) + HC entry(1) = 2, then Box-Muller(2-3) = 4 total
+      // Step 1: SSA(5) + transition(1) = 6, then Box-Muller(2-3) = 8 total
+      // Step 2: SSA(9) + transition(1) = 10, then Box-Muller(2-3) = 12 total
+      // Step 3: SSA(13) + transition(1) = 14
+      if (callCount === 1 || callCount === 5 || callCount === 9 || callCount === 13) return 0.99; // SSA checks
+      if (callCount === 3 || callCount === 4 || callCount === 7 || callCount === 8 || callCount === 11 || callCount === 12) return 0.5; // Box-Muller
+      return 0.001; // Low for transitions
     };
 
     manager.stepMonth('Jake', 72, 'male', 0, sequencedRandom);
@@ -94,10 +102,14 @@ describe('LTCManager', () => {
     let callCount = 0;
     const sequencedRandom = () => {
       callCount++;
-      if (callCount === 1) return 0.0005; // HC entry
-      if (callCount === 2) return 0.5; // Box-Muller
-      if (callCount === 3) return 0.5; // Box-Muller
-      if (callCount === 4) return 0.05; // Recovery (HC healthy prob 0.12 at 72 male)
+      // Step 0: SSA(1) + HC entry(2) + BM(3-4) = 4 total
+      // Step 1: SSA(5) + recovery(6) = 6 total
+      if (callCount === 1) return 0.99; // SSA death check (skip)
+      if (callCount === 2) return 0.0005; // HC entry
+      if (callCount === 3) return 0.5; // Box-Muller u1
+      if (callCount === 4) return 0.5; // Box-Muller u2
+      if (callCount === 5) return 0.99; // SSA death check (skip) - second stepMonth
+      if (callCount === 6) return 0.05; // Recovery to healthy (HC healthy prob 0.12 at 72 male)
       return 0.99;
     };
 
@@ -114,10 +126,14 @@ describe('LTCManager', () => {
     let callCount = 0;
     const sequencedRandom = () => {
       callCount++;
-      if (callCount === 1) return 0.0005; // HC entry
-      if (callCount === 2) return 0.5; // Box-Muller
-      if (callCount === 3) return 0.5;
-      if (callCount === 4) return 0.05; // Recovery
+      // Step 0: SSA(1) + HC entry(2) + BM(3-4) = 4 total
+      // Step 1: SSA(5) + recovery(6) = 6 total
+      if (callCount === 1) return 0.99; // SSA death check (skip)
+      if (callCount === 2) return 0.0005; // HC entry
+      if (callCount === 3) return 0.5; // Box-Muller u1
+      if (callCount === 4) return 0.5; // Box-Muller u2
+      if (callCount === 5) return 0.99; // SSA death check (skip) - second stepMonth
+      if (callCount === 6) return 0.05; // Recovery to healthy
       return 0.99;
     };
 
@@ -135,11 +151,20 @@ describe('LTCManager', () => {
     let callCount = 0;
     const sequencedRandom = () => {
       callCount++;
-      // Cycle: entry, recovery, entry, recovery
-      if (callCount % 4 === 1) return 0.0005; // HC entry
-      if (callCount % 4 === 2) return 0.5; // Box-Muller u1
-      if (callCount % 4 === 3) return 0.5; // Box-Muller u2 or recovery
-      return 0.05; // Recovery
+      // Each stepMonth: SSA(1) + Markov(2-4 depending on transition)
+      // Conservative: assume 4 per step, with pattern:
+      // Step 0: SSA(1) + entry(2) + BM(3-4)
+      // Step 1: SSA(5) + recovery(6) + BM(7-8)
+      // Step 2: SSA(9) + entry(10) + BM(11-12)
+      // Step 3: SSA(13) + recovery(14) + BM(15-16)
+
+      // SSA checks on positions 1, 5, 9, 13, ...
+      if (callCount === 1 || callCount === 5 || callCount === 9 || callCount === 13) return 0.99;
+      // Entry/recovery pattern: low for entries, medium for recovery
+      if (callCount === 2 || callCount === 10) return 0.0005; // HC entries
+      if (callCount === 6 || callCount === 14) return 0.05; // Recovery
+      // Box-Muller pairs
+      return 0.5;
     };
 
     manager.stepMonth('Jake', 72, 'male', 0, sequencedRandom);
@@ -177,13 +202,15 @@ describe('LTCManager', () => {
     let callCount = 0;
     const sequencedRandom = () => {
       callCount++;
-      if (callCount === 1) return 0.0005; // HC entry
-      if (callCount === 2) return 0.5; // Box-Muller
-      if (callCount === 3) return 0.5;
-      if (callCount === 4) return 0.05; // Recovery
-      if (callCount === 5) return 0.001; // New HC entry
-      if (callCount === 6) return 0.5; // Box-Muller
-      if (callCount === 7) return 0.5;
+      // Step 0: SSA(1) + HC entry(2) + BM(3-4) = 4
+      // Step 1: SSA(5) + recovery(6) = 6
+      // Step 2: SSA(7) + HC entry(8) + BM(9-10) = 10
+      if (callCount === 1 || callCount === 5 || callCount === 7) return 0.99; // SSA death checks
+      if (callCount === 2) return 0.0005; // HC entry step 0
+      if (callCount === 3 || callCount === 4) return 0.5; // Box-Muller step 0
+      if (callCount === 6) return 0.05; // Recovery to healthy step 1
+      if (callCount === 8) return 0.001; // HC entry step 2
+      if (callCount === 9 || callCount === 10) return 0.5; // Box-Muller step 2
       return 0.99;
     };
 
@@ -200,10 +227,12 @@ describe('LTCManager', () => {
     let callCount = 0;
     const sequencedRandom = () => {
       callCount++;
-      if (callCount === 1) return 0.0005; // HC entry
-      if (callCount === 2) return 0.5; // Box-Muller
-      if (callCount === 3) return 0.5;
-      if (callCount === 4) return 0.04; // AL transition (HC->AL prob ~0.06)
+      if (callCount === 1) return 0.99; // SSA death check (skip)
+      if (callCount === 2) return 0.0005; // HC entry
+      if (callCount === 3) return 0.5; // Box-Muller
+      if (callCount === 4) return 0.5;
+      if (callCount === 5) return 0.99; // SSA death check (skip) - second stepMonth
+      if (callCount === 6) return 0.04; // AL transition (HC->AL prob ~0.06)
       return 0.99;
     };
 
@@ -318,7 +347,8 @@ describe('LTCManager', () => {
     let maleCallCount = 0;
     const maleRandom = () => {
       maleCallCount++;
-      if (maleCallCount === 1) return 0.0005; // Triggers HC
+      if (maleCallCount === 1) return 0.99; // SSA death check (skip)
+      if (maleCallCount === 2) return 0.0005; // Triggers HC
       return 0.5;
     };
 
@@ -329,7 +359,8 @@ describe('LTCManager', () => {
     let femaleCallCount = 0;
     const femaleRandom = () => {
       femaleCallCount++;
-      if (femaleCallCount === 1) return 0.99; // Stays healthy
+      if (femaleCallCount === 1) return 0.99; // SSA death check (skip)
+      if (femaleCallCount === 2) return 0.99; // Stays healthy
       return 0.5;
     };
 
@@ -400,7 +431,10 @@ describe('LTCManager', () => {
     let callCount = 0;
     const sequence = () => {
       callCount++;
-      return callCount < 7 ? 0.0001 : 0.99;
+      // Each stepMonth consumes 1 for SSA check + 1-3 for transitions
+      // Pattern: SSA check returns 0.99, then low values trigger transitions
+      if (callCount % 4 === 1) return 0.99; // SSA checks (every 4th starting at 1)
+      return callCount < 24 ? 0.0001 : 0.99; // Low for transitions, then high
     };
 
     for (let i = 0; i < 10; i++) {

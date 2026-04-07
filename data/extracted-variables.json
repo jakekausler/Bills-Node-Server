@@ -10,7 +10,6 @@
     "INVESTMENT_RATE": "0.05",
     "JAKE_401K_CONTRIBUTION": "300",
     "JAKE_401K_CONTRIBUTION_OFFSET": "550",
-    "JAKE_BIRTH_DATE": "1993-07-15",
     "JAKE_HEALTHCARE_FOR_KENDALL_ADJUSTMENT": "-200",
     "JAKE_SOCIAL_SECURITY_START_DATE": "2063-07-15",
     "JAKE_SPENDING": "0",
@@ -18,7 +17,6 @@
     "KENDALL_401K_CONTRIBUTION": "144",
     "KENDALL_401K_CONTRIBUTION_RAISE": "154",
     "KENDALL_401K_EMPLOYER_MATCH": "109",
-    "KENDALL_BIRTH_DATE": "1994-11-16",
     "KENDALL_CITY_START_DATE": "2022-05-01",
     "KENDALL_EXTRA_SPENDING": "0",
     "KENDALL_PAY": "1440",
@@ -84,11 +82,6 @@
       "type": "currency"
     },
     {
-      "name": "JAKE_BIRTH_DATE",
-      "value": "1993-07-15",
-      "type": "date"
-    },
-    {
       "name": "JAKE_HEALTHCARE_FOR_KENDALL_ADJUSTMENT",
       "value": "-200",
       "type": "currency"
@@ -122,11 +115,6 @@
       "name": "KENDALL_401K_EMPLOYER_MATCH",
       "value": "109",
       "type": "currency"
-    },
-    {
-      "name": "KENDALL_BIRTH_DATE",
-      "value": "1994-11-16",
-      "type": "date"
     },
     {
       "name": "KENDALL_CITY_START_DATE",

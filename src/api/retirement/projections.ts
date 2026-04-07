@@ -2,6 +2,7 @@ import { Request } from 'express';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { loadVariable } from '../../utils/simulation/variable';
+import { getPersonBirthDate } from '../person-config/person-config';
 import { loadRawPensionAndSS } from '../../utils/io/retirement';
 import { getAccountsAndTransfers } from '../../utils/io/accountsAndTransfers';
 import { calculateAllActivityWithEngine } from '../../utils/calculate-v3/engine';
@@ -56,11 +57,11 @@ export async function getRetirementProjections(request: Request): Promise<Retire
   let retireDate: Date;
 
   try {
-    jakeBirthDate = loadVariable('JAKE_BIRTH_DATE', simulation) as Date;
-    kendallBirthDate = loadVariable('KENDALL_BIRTH_DATE', simulation) as Date;
+    jakeBirthDate = getPersonBirthDate('Jake');
+    kendallBirthDate = getPersonBirthDate('Kendall');
     retireDate = loadVariable('RETIRE_DATE', simulation) as Date;
   } catch (e) {
-    throw new Error('Missing required variables: JAKE_BIRTH_DATE, KENDALL_BIRTH_DATE, RETIRE_DATE');
+    throw new Error('Missing required variables: Jake/Kendall birth date or RETIRE_DATE');
   }
 
   const jakeBirthYear = jakeBirthDate.getUTCFullYear();

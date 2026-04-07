@@ -51,6 +51,7 @@ describe('Specific Bill API', () => {
         const mockAccount = {
           id: 'account-1',
           consolidatedActivity: [mockConsolidatedActivity],
+          bills: [],
         };
 
         const mockData = {
@@ -86,6 +87,7 @@ describe('Specific Bill API', () => {
         const mockAccount = {
           id: 'account-1',
           consolidatedActivity: [mockConsolidatedActivity],
+          bills: [],
         };
 
         const mockData = {
@@ -112,6 +114,7 @@ describe('Specific Bill API', () => {
         const mockAccount = {
           id: 'account-1',
           consolidatedActivity: [],
+          bills: [],
         };
 
         const mockData = {

@@ -14,7 +14,6 @@ export interface PersonConfig {
 export interface LtcPersonConfig {
   personName: string;
   gender: 'male' | 'female';
-  birthDateVariable: string;
   hasInsurance: boolean;
   [key: string]: unknown;
 }

@@ -31,6 +31,12 @@ vi.mock('../io/bendPoints', () => ({
   })),
 }));
 
+vi.mock('../../api/person-config/person-config', () => ({
+  getPersonBirthDate: vi.fn((_name: string) => {
+    return new Date(Date.UTC(1960, 0, 1));
+  }),
+}));
+
 vi.mock('../io/io', () => ({
   load: vi.fn((filename: string) => {
     // Return historical rates when loading historicRates.json
@@ -68,6 +74,10 @@ vi.mock('../io/io', () => ({
 
 vi.mock('../simulation/variable', () => ({
   loadVariable: vi.fn((varName: string) => {
+    // Special case for SS_START_EARLY
+    if (varName === 'SS_START_EARLY') {
+      return new Date(Date.UTC(2020, 0, 1));
+    }
     // Return dates for date variables
     if (varName.includes('DATE') || varName.includes('START')) {
       return new Date(Date.UTC(2024, 0, 1));
@@ -418,7 +428,7 @@ describe('RetirementManager', () => {
         paycheckNames: ['Too Early Paycheck'],
         paycheckAccounts: ['checking-1'],
         paycheckCategories: ['Income.SocialSecurity'],
-        startDateVariable: 'SS_START',
+        startDateVariable: 'SS_START_EARLY',
         birthDateVariable: 'BIRTH_DATE',
         yearTurn60: 2020,
         collectionAge: 60,

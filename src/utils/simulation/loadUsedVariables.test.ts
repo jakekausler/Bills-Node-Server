@@ -1071,13 +1071,11 @@ describe('loadUsedVariables - transfer bills', () => {
 // ---------------------------------------------------------------------------
 
 describe('loadUsedVariables - social security', () => {
-  it('should always track startDateVariable and birthDateVariable for social security', () => {
+  it('should always track startDateVariable for social security', () => {
     const ss = {
       name: 'Alice SS',
       startDateVariable: 'SS_START',
       startDate: new Date('2030-01-01T12:00:00Z'),
-      birthDateVariable: 'SS_BIRTH',
-      birthDate: new Date('1965-06-15T12:00:00Z'),
     };
 
     const result = loadUsedVariables(
@@ -1094,13 +1092,6 @@ describe('loadUsedVariables - social security', () => {
         date: '2030-01-01',
       },
     ]);
-    expect(result['SS_BIRTH']).toEqual([
-      {
-        type: 'socialSecurity',
-        name: 'Alice SS',
-      },
-    ]);
-    expect(result['SS_BIRTH'][0]).not.toHaveProperty('date');
   });
 
   it('should track variables from multiple social security entries', () => {
@@ -1108,15 +1099,11 @@ describe('loadUsedVariables - social security', () => {
       name: 'Alice SS',
       startDateVariable: 'SS_A_START',
       startDate: new Date('2030-01-01T12:00:00Z'),
-      birthDateVariable: 'SS_A_BIRTH',
-      birthDate: new Date('1965-01-01T12:00:00Z'),
     };
     const ss2 = {
       name: 'Bob SS',
       startDateVariable: 'SS_B_START',
       startDate: new Date('2032-06-01T12:00:00Z'),
-      birthDateVariable: 'SS_B_BIRTH',
-      birthDate: new Date('1967-06-01T12:00:00Z'),
     };
 
     const result = loadUsedVariables(
@@ -1127,9 +1114,7 @@ describe('loadUsedVariables - social security', () => {
     );
 
     expect(result['SS_A_START']).toHaveLength(1);
-    expect(result['SS_A_BIRTH']).toHaveLength(1);
     expect(result['SS_B_START']).toHaveLength(1);
-    expect(result['SS_B_BIRTH']).toHaveLength(1);
   });
 });
 
@@ -1138,13 +1123,11 @@ describe('loadUsedVariables - social security', () => {
 // ---------------------------------------------------------------------------
 
 describe('loadUsedVariables - pensions', () => {
-  it('should always track startDateVariable, birthDateVariable, and workStartDateVariable for pensions', () => {
+  it('should always track startDateVariable and workStartDateVariable for pensions', () => {
     const pension = {
       name: 'State Pension',
       startDateVariable: 'PEN_START',
       startDate: new Date('2035-07-01T12:00:00Z'),
-      birthDateVariable: 'PEN_BIRTH',
-      birthDate: new Date('1970-04-10T12:00:00Z'),
       workStartDateVariable: 'PEN_WORK_START',
       workStartDate: new Date('1995-08-01T12:00:00Z'),
     };
@@ -1163,12 +1146,6 @@ describe('loadUsedVariables - pensions', () => {
         date: '2035-07-01',
       },
     ]);
-    expect(result['PEN_BIRTH']).toEqual([
-      {
-        type: 'pension',
-        name: 'State Pension',
-      },
-    ]);
     expect(result['PEN_WORK_START']).toEqual([
       {
         type: 'pension',
@@ -1182,8 +1159,6 @@ describe('loadUsedVariables - pensions', () => {
       name: 'Pension A',
       startDateVariable: 'PA_START',
       startDate: new Date('2033-01-01T12:00:00Z'),
-      birthDateVariable: 'PA_BIRTH',
-      birthDate: new Date('1968-01-01T12:00:00Z'),
       workStartDateVariable: 'PA_WORK',
       workStartDate: new Date('1993-01-01T12:00:00Z'),
     };
@@ -1191,8 +1166,6 @@ describe('loadUsedVariables - pensions', () => {
       name: 'Pension B',
       startDateVariable: 'PB_START',
       startDate: new Date('2040-01-01T12:00:00Z'),
-      birthDateVariable: 'PB_BIRTH',
-      birthDate: new Date('1975-01-01T12:00:00Z'),
       workStartDateVariable: 'PB_WORK',
       workStartDate: new Date('2000-01-01T12:00:00Z'),
     };
@@ -1205,10 +1178,8 @@ describe('loadUsedVariables - pensions', () => {
     );
 
     expect(result['PA_START']).toHaveLength(1);
-    expect(result['PA_BIRTH']).toHaveLength(1);
     expect(result['PA_WORK']).toHaveLength(1);
     expect(result['PB_START']).toHaveLength(1);
-    expect(result['PB_BIRTH']).toHaveLength(1);
     expect(result['PB_WORK']).toHaveLength(1);
   });
 });

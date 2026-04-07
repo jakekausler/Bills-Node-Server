@@ -74,8 +74,8 @@ describe('Accounts API', () => {
       const result = await getSimpleAccounts(mockRequest);
 
       expect(result).toEqual([
-        { id: '1', name: 'Account 1', balance: 100 },
-        { id: '2', name: 'Account 2', balance: 200 },
+        { id: '1', name: 'Account 1', balance: 100, portfolioConfig: null },
+        { id: '2', name: 'Account 2', balance: 200, portfolioConfig: null },
       ]);
       expect(mockAccounts[0].simpleAccount).toHaveBeenCalled();
       expect(mockAccounts[1].simpleAccount).toHaveBeenCalled();

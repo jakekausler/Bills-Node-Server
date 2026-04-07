@@ -91,6 +91,7 @@ function makeSegmentResult(): SegmentResult {
     balanceMinimums: new Map<string, number>(),
     balanceMaximums: new Map<string, number>(),
     taxableOccurrences: new Map<string, any[]>(),
+    withholdingOccurrences: new Map<string, any[]>(),
     spendingTrackerUpdates: [],
   };
 }
@@ -326,6 +327,7 @@ function makeTaxManager(overrides: Partial<{
     addTaxableOccurrences: vi.fn(),
     getAllOccurrencesForYear: vi.fn(() => []),
     addWithholdingOccurrence: vi.fn(),
+    addFicaOccurrence: vi.fn(),
     setCurrentDate: vi.fn(),
   };
 }
@@ -446,6 +448,7 @@ function makeLTCManager(overrides: Partial<{
     getAlivePeople: overrides.getAlivePeople ?? vi.fn(() => ['Jake', 'Kendall']),
     lockSurvivorBenefit: overrides.lockSurvivorBenefit ?? vi.fn(),
     getLockedSurvivorBenefit: overrides.getLockedSurvivorBenefit ?? vi.fn(() => 0),
+    getDeathDates: vi.fn(() => ({})),
   };
 }
 

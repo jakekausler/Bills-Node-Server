@@ -35,8 +35,14 @@ vi.mock('./calculator', () => ({
     setMCRateGetter: vi.fn(),
     getRothConversionManager: vi.fn(() => ({})),
     getMortalityManager: vi.fn(() => null),
-    getJobLossManager: vi.fn(() => ({ isUnemployed: vi.fn(() => false) })),
+    getJobLossManager: vi.fn(() => ({ isUnemployed: vi.fn(() => false), evaluateYearStart: vi.fn() })),
     setLifeInsuranceManager: vi.fn(),
+    setTaxProfile: vi.fn(),
+    setPortfolioManager: vi.fn(),
+    setPortfolioCutoffDates: vi.fn(),
+    setFutureLotTracker: vi.fn(),
+    setPendingPayouts: vi.fn(),
+    getDeductionTracker: vi.fn(() => null),
   })),
 }));
 
@@ -62,6 +68,7 @@ vi.mock('./retirement-manager', () => ({
 vi.mock('./healthcare-manager', () => ({
   HealthcareManager: vi.fn(() => ({
     setMortalityManager: vi.fn(),
+    setMCRateGetter: vi.fn(),
   })),
 }));
 
@@ -71,7 +78,10 @@ vi.mock('./spending-tracker-manager', () => ({
 
 vi.mock('./monte-carlo-handler', () => ({
   MonteCarloHandler: {
-    getInstance: vi.fn(),
+    getInstance: vi.fn(() => ({
+      getPRNG: vi.fn(() => vi.fn(() => 0.5)),
+      getSample: vi.fn(() => 0.5),
+    })),
   },
 }));
 
@@ -118,6 +128,7 @@ const mockTimeline = {
   applyMonteCarlo: vi.fn(),
   applyGlidePath: vi.fn(),
   setPortfolioMakeup: vi.fn(),
+  setCutoffDates: vi.fn(),
   clone: vi.fn(),
 };
 
@@ -126,6 +137,8 @@ const mockBalanceTracker = {
   getAccountsWithFilteredDates: vi.fn().mockReturnValue([]),
   applySegmentResult: vi.fn(),
   getAccountBalance: vi.fn().mockReturnValue(0),
+  findAccountById: vi.fn(() => null),
+  updateBalance: vi.fn(),
 };
 
 const mockSegmentProcessor = {

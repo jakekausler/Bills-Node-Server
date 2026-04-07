@@ -38,6 +38,7 @@ import { SpendingTrackerCategory } from '../../data/spendingTracker/types';
 import { computePeriodBoundaries } from './period-utils';
 import { loadVariable } from '../simulation/variable';
 import { getPersonGender } from '../io/persons';
+import { getPersonBirthDate } from '../../api/person-config/person-config';
 import type { DebugLogger } from './debug-logger';
 
 export class Timeline {
@@ -462,17 +463,12 @@ export class Timeline {
     const socialSecurities = this.accountManager.getSocialSecurities();
 
     for (const socialSecurity of socialSecurities) {
-      // Load birth date from variable
+      // Load birth date from person config
       let birthDate: Date | null = null;
-      if (socialSecurity.birthDateVariable) {
-        try {
-          const birthDateStr = loadVariable(socialSecurity.birthDateVariable, this.simulation) as string;
-          if (birthDateStr) {
-            birthDate = new Date(birthDateStr);
-          }
-        } catch (error) {
-          this.log('medicare-birthdate-variable-error', { variable: socialSecurity.birthDateVariable, name: socialSecurity.name });
-        }
+      try {
+        birthDate = getPersonBirthDate(socialSecurity.person);
+      } catch (error) {
+        this.log('medicare-birthdate-error', { name: socialSecurity.name });
       }
 
       if (!birthDate) {
@@ -534,17 +530,19 @@ export class Timeline {
     this.log('ltc-events-start', { ssCount: socialSecurities.length, paymentAccount: paymentAccount.name });
     let monthIndex = 0;
     for (const socialSecurity of socialSecurities) {
-      if (!socialSecurity.birthDateVariable) {
-        continue; // Skip if no birth date
+      let birthDate: Date | null = null;
+      try {
+        birthDate = getPersonBirthDate(socialSecurity.person);
+      } catch (error) {
+        this.log('ltc-events-person-error', { person: socialSecurity.name, error: String(error) });
+        continue;
+      }
+
+      if (!birthDate) {
+        continue;
       }
 
       try {
-        const birthDateStr = loadVariable(socialSecurity.birthDateVariable, this.simulation) as string;
-        if (!birthDateStr) {
-          continue;
-        }
-
-        const birthDate = new Date(birthDateStr);
         const age60Date = dayjs.utc(birthDate).add(60, 'year').toDate();
 
         // Extract person name by removing " Social Security" suffix
@@ -606,15 +604,10 @@ export class Timeline {
     // Get both persons' birth dates
     const birthDates: Date[] = [];
     for (const ss of socialSecurities) {
-      if (ss.birthDateVariable) {
-        try {
-          const birthDateStr = loadVariable(ss.birthDateVariable, this.simulation) as string;
-          if (birthDateStr) {
-            birthDates.push(new Date(birthDateStr));
-          }
-        } catch (error) {
-          this.log('aca-birthdate-variable-error', { variable: ss.birthDateVariable });
-        }
+      try {
+        birthDates.push(getPersonBirthDate(ss.person));
+      } catch (error) {
+        this.log('aca-birthdate-error', { name: ss.name });
       }
     }
 

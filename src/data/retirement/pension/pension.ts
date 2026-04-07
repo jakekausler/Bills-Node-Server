@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { loadVariable } from '../../../utils/simulation/variable';
+import { getPersonBirthDate } from '../../../api/person-config/person-config';
 import { BenefitRequirement, PensionData } from './types';
 
 dayjs.extend(utc);
@@ -23,8 +24,8 @@ export class Pension {
   startDateVariable: string;
   /** Calculated pension start date */
   startDate: Date;
-  /** Variable name for the birth date */
-  birthDateVariable: string;
+  /** Person name for birth date lookup */
+  person: string;
   /** Birth date for age calculations */
   birthDate: Date;
   /** Variable name for the work start date */
@@ -81,9 +82,8 @@ export class Pension {
     const startDate = loadVariable(data.startDateVariable, simulation);
     if (!(startDate instanceof Date)) throw new Error(`Invalid date variable: ${data.startDateVariable}`);
     this.startDate = startDate;
-    this.birthDateVariable = data.birthDateVariable;
-    const birthDate = loadVariable(data.birthDateVariable, simulation);
-    if (!(birthDate instanceof Date)) throw new Error(`Invalid date variable: ${data.birthDateVariable}`);
+    this.person = data.person;
+    const birthDate = getPersonBirthDate(data.person);
     this.birthDate = birthDate;
     this.workStartDateVariable = data.workStartDateVariable;
     const workStartDate = loadVariable(data.workStartDateVariable, simulation);
@@ -194,7 +194,7 @@ export class Pension {
       paycheckAccounts: this.paycheckAccounts,
       paycheckCategories: this.paycheckCategories,
       startDateVariable: this.startDateVariable,
-      birthDateVariable: this.birthDateVariable,
+      person: this.person,
       workStartDateVariable: this.workStartDateVariable,
       priorAnnualNetIncomes: this.priorAnnualNetIncomes,
       priorAnnualNetIncomeYears: this.priorAnnualNetIncomeYears,

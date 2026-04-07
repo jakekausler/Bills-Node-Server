@@ -5,7 +5,7 @@ export type PensionData = {
   paycheckAccounts: string[];
   paycheckCategories: string[];
   startDateVariable: string;
-  birthDateVariable: string;
+  person: string;
   workStartDateVariable: string;
   workEndDateVariable?: string;
   priorAnnualNetIncomes: number[];

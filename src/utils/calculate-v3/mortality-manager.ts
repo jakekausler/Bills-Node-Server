@@ -22,7 +22,6 @@ export interface LTCPersonState {
 export interface LTCConfig {
   personName: string;
   gender: 'male' | 'female';
-  birthDateVariable: string;
   hasInsurance: boolean;
   insurancePurchaseAge?: number;
   annualPremium?: number;
@@ -85,7 +84,7 @@ export class MortalityManager {
   private personNameMapping: Map<string, string> = new Map();
   private checkpointData: string | null = null;
   private lockedSurvivorBenefits: Map<string, number> = new Map();
-  private retirementPersonConfigs: Map<string, { birthDateVariable: string; gender: 'male' | 'female' }> = new Map();
+  private retirementPersonConfigs: Map<string, { gender: 'male' | 'female' }> = new Map();
   private deathCobraMonthsElapsed: Map<string, number> = new Map();  // Track months in death COBRA for each policyholder
   private lastDeathCobraMonth: Map<string, number | null> = new Map();  // Track last month COBRA was generated
 
@@ -213,11 +212,10 @@ export class MortalityManager {
       const gender = ltcConfig?.gender ?? 'male';
 
       this.retirementPersonConfigs.set(personName, {
-        birthDateVariable: ss.birthDateVariable,
         gender,
       });
 
-      this.log('person-initialized-from-retirement', { person: personName, has_ltc_config: false, birthDateVariable: ss.birthDateVariable, gender });
+      this.log('person-initialized-from-retirement', { person: personName, has_ltc_config: false, gender });
     }
   }
 
@@ -543,7 +541,7 @@ export class MortalityManager {
   /**
    * Get retirement person config (for persons initialized from Social Security, not LTC config)
    */
-  getRetirementPersonConfig(personName: string): { birthDateVariable: string; gender: 'male' | 'female' } | undefined {
+  getRetirementPersonConfig(personName: string): { gender: 'male' | 'female' } | undefined {
     return this.retirementPersonConfigs.get(personName);
   }
 

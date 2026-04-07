@@ -18,6 +18,7 @@ import { SequenceOfReturnsData, loadAndComputeSequenceOfReturns } from '../../ut
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 import { loadVariables } from '../../utils/io/variable';
+import { getPersonConfigs, getPersonBirthDate } from '../person-config/person-config';
 import dayjs from 'dayjs';
 
 // In-memory caches — cleared on simulation delete (invalidateGraphCache) and POST /api/cache/clear (clearAllGraphCache).
@@ -457,27 +458,25 @@ export async function getLongevityData(req: Request): Promise<LongevityDataPoint
     return cached;
   }
 
-  // Load birth years from simulation variables
+  // Load birth years from person config
   const simulation = (req.query.simulation as string) || 'Default';
   let personBirthYears: Record<string, number> | undefined;
   try {
-    const variables = loadVariables(simulation);
+    const personConfigs = getPersonConfigs();
     const birthYearMap: Record<string, number> = {};
-    for (const [key, entry] of Object.entries(variables)) {
-      if (key.endsWith('_BIRTH_DATE') && entry.value) {
-        const rawName = key.replace('_BIRTH_DATE', '');
-        const personName = rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase();
-        const parsed = dayjs(String(entry.value));
-        if (parsed.isValid()) {
-          birthYearMap[personName] = parsed.year();
-        }
+    for (const person of personConfigs) {
+      try {
+        const birthDate = getPersonBirthDate(person.name);
+        birthYearMap[person.name] = dayjs.utc(birthDate).year();
+      } catch (e) {
+        // Skip this person if birth date can't be loaded
       }
     }
     if (Object.keys(birthYearMap).length > 0) {
       personBirthYears = birthYearMap;
     }
   } catch {
-    // Fall back to heuristic if variables can't be loaded
+    // Fall back to heuristic if person config can't be loaded
   }
 
   // Compute on-demand

@@ -7,6 +7,7 @@ import { AcaManager } from './aca-manager';
 import { FilingStatus, getBracketDataForYear } from './bracket-calculator';
 import { loadDateOrVariable } from '../simulation/loadVariableValue';
 import { loadVariable } from '../simulation/variable';
+import { getPersonBirthDate, getPersonConfigs } from '../../api/person-config/person-config';
 import dayjs from 'dayjs';
 import type { DebugLogger } from './debug-logger';
 import type { MCRateGetter, SegmentResult } from './types';
@@ -231,30 +232,28 @@ export class RothConversionManager {
           const retireDateResult = loadVariable('RETIRE_DATE', simulation);
           const retireYear = retireDateResult instanceof Date ? retireDateResult.getUTCFullYear() : null;
 
-          // Load real birth dates from Social Security configs
+          // Load real birth dates from person config
           let birthDate1: Date | null = null;
           let birthDate2: Date | null = null;
           let age65Year1: number | null = null;
           let age65Year2: number | null = null;
 
-          try {
-            const birthDateResult1 = loadVariable('JAKE_BIRTH_DATE', simulation);
-            if (birthDateResult1 instanceof Date) {
-              birthDate1 = birthDateResult1;
+          const personConfigs = getPersonConfigs();
+          if (personConfigs.length >= 1) {
+            try {
+              birthDate1 = getPersonBirthDate(personConfigs[0].name);
               age65Year1 = dayjs.utc(birthDate1).add(65, 'year').year();
+            } catch (e) {
+              // Birth date not found, skip ACA check
             }
-          } catch (e) {
-            // Birth date variable not found, skip ACA check
           }
-
-          try {
-            const birthDateResult2 = loadVariable('KENDALL_BIRTH_DATE', simulation);
-            if (birthDateResult2 instanceof Date) {
-              birthDate2 = birthDateResult2;
+          if (personConfigs.length >= 2) {
+            try {
+              birthDate2 = getPersonBirthDate(personConfigs[1].name);
               age65Year2 = dayjs.utc(birthDate2).add(65, 'year').year();
+            } catch (e) {
+              // Birth date not found, skip ACA check
             }
-          } catch (e) {
-            // Birth date variable not found, skip ACA check
           }
 
           // Use the later (max) age 65 year (last person to reach Medicare eligibility)

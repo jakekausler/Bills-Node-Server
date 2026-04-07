@@ -20,6 +20,7 @@ const mockInterestConstructor = vi.mocked(Interest);
 // Mock classes
 const mockInterestInstance = {
   id: 'interest-123',
+  applicableDate: new Date('2024-01-01'),
   serialize: vi.fn(() => ({ id: 'interest-123', rate: 0.05 })),
 };
 
@@ -78,7 +79,7 @@ describe('Interests API', () => {
 
     beforeEach(() => {
       // Mock Interest constructor
-      mockInterestConstructor.mockImplementation(() => ({ id: 'new-interest-123' }) as any);
+      mockInterestConstructor.mockImplementation(() => ({ id: 'new-interest-123', applicableDate: new Date('2024-01-01') }) as any);
     });
 
     it('should add interest to account', async () => {
@@ -108,6 +109,7 @@ describe('Interests API', () => {
           ({
             id: `interest-${data.rate}`,
             rate: data.rate,
+            applicableDate: new Date('2024-01-01'),
           }) as any,
       );
     });
