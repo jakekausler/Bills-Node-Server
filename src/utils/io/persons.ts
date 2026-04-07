@@ -1,6 +1,17 @@
-import { load } from './io';
+import {
+  getPersonConfigs as getConfigs,
+  getPersonNames as getNames,
+  getPersonGender as getGender,
+} from '../../api/person-config/person-config';
 
-interface LtcPersonConfig {
+// Legacy interface kept for backward compatibility with existing callers
+export interface PersonConfig {
+  personName: string;
+  gender: string;
+}
+
+// LtcPersonConfig interface kept for backward compatibility with ltcConfig.json users
+export interface LtcPersonConfig {
   personName: string;
   gender: 'male' | 'female';
   birthDateVariable: string;
@@ -8,29 +19,14 @@ interface LtcPersonConfig {
   [key: string]: unknown;
 }
 
-interface PersonConfig {
-  personName: string;
-  gender: 'male' | 'female';
-}
-
 export function getPersonConfigs(): PersonConfig[] {
-  const ltcConfigs = load<LtcPersonConfig[]>('ltcConfig.json');
-  if (!ltcConfigs || ltcConfigs.length === 0) {
-    throw new Error('ltcConfig.json is empty or missing. Person configuration requires at least one LTC config entry with personName and gender fields.');
-  }
-  return ltcConfigs.map(({ personName, gender }) => ({ personName, gender }));
+  return getConfigs().map(p => ({ personName: p.name, gender: p.gender }));
 }
 
 export function getPersonNames(): string[] {
-  const configs = getPersonConfigs();
-  return configs.map(c => c.personName);
+  return getNames();
 }
 
 export function getPersonGender(personName: string): 'male' | 'female' {
-  const configs = getPersonConfigs();
-  const person = configs.find(c => c.personName === personName);
-  if (!person) {
-    throw new Error(`Unknown person: ${personName}. Known: ${configs.map(c => c.personName).join(', ')}`);
-  }
-  return person.gender;
+  return getGender(personName);
 }

@@ -106,6 +106,7 @@ import { reconcileHoldings } from './api/portfolio/reconcile';
 import { getFundMetadata, updateFundMetadata } from './api/portfolio/fund-metadata';
 import { getAssets, addAsset, updateAsset, deleteAsset } from './api/assets/assets';
 import { getLifeInsurancePolicies, createLifeInsurancePolicy, updateLifeInsurancePolicy, deleteLifeInsurancePolicy } from './api/insurance/life-insurance';
+import { getPersonConfigsHandler, createPersonConfig, updatePersonConfigs, deletePersonConfig } from './api/person-config/person-config';
 import { getLTCConfigs, updateLTCConfigs, getLTCTransitions, updateLTCTransitions } from './api/insurance/ltc';
 import { getInheritanceConfigs, updateInheritanceConfigs } from './api/inheritance/inheritance';
 
@@ -1541,6 +1542,33 @@ app
   }))
   .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await deleteLifeInsurancePolicy(req));
+  }));
+
+// ─── Person Config Routes ───
+
+app
+  .route('/api/person-configs')
+  .get(verifyToken, apiErrorHandler(getPersonConfigsHandler))
+  .post(verifyToken, express.json(), apiErrorHandler(async (req: Request) => {
+    const result = await createPersonConfig(req);
+    clearDataCache();
+    CacheManager.clearAll();
+    return result;
+  }))
+  .put(verifyToken, express.json(), apiErrorHandler(async (req: Request) => {
+    const result = await updatePersonConfigs(req);
+    clearDataCache();
+    CacheManager.clearAll();
+    return result;
+  }));
+
+app
+  .route('/api/person-configs/:name')
+  .delete(verifyToken, apiErrorHandler(async (req: Request) => {
+    const result = await deletePersonConfig(req);
+    clearDataCache();
+    CacheManager.clearAll();
+    return result;
   }));
 
 // ─── LTC Insurance Routes ───
