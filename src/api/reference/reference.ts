@@ -1,3 +1,6 @@
+// NOTE: historicRates.json is shared by multiple endpoints. Read-modify-write
+// operations are NOT concurrency-safe. Acceptable for single-user operation.
+// If multi-user access is needed, add file locking or migrate to database.
 import { Request, Response } from 'express';
 import { load, save } from '../../utils/io/io';
 
