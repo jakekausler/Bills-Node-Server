@@ -17,6 +17,44 @@ export async function getLifeInsuranceReferenceData(_req: Request, res: Response
   }
 }
 
+export async function updateLifeInsuranceReferenceData(req: Request, res: Response) {
+  try {
+    const { termLifePPI, wholeLifePPI, wholeLifeDividendScale, termRates, wholeRates } = req.body;
+    const historicRates = load<Record<string, unknown>>('historicRates.json');
+    historicRates.termLifePPI = termLifePPI;
+    historicRates.wholeLifePPI = wholeLifePPI;
+    historicRates.wholeLifeDividendScale = wholeLifeDividendScale;
+    save(historicRates, 'historicRates.json');
+    const premiumRates = load<Record<string, unknown>>('lifeInsurancePremiumRates.json');
+    (premiumRates as Record<string, unknown>).term = termRates;
+    (premiumRates as Record<string, unknown>).whole = wholeRates;
+    save(premiumRates, 'lifeInsurancePremiumRates.json');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
+export async function getLtcCosts(_req: Request, res: Response) {
+  try {
+    const data = load<Record<string, unknown>>('historicRates.json');
+    res.json((data as Record<string, unknown>).costOfCare ?? {});
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
+export async function updateLtcCosts(req: Request, res: Response) {
+  try {
+    const data = load<Record<string, unknown>>('historicRates.json');
+    (data as Record<string, unknown>).costOfCare = req.body;
+    save(data, 'historicRates.json');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+}
+
 export async function getExpectedReturns(_req: Request, res: Response) {
   try {
     const data = load<{ returns: Record<string, number> }>('expectedReturns.json');
