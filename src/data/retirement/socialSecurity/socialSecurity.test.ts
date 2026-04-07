@@ -14,8 +14,6 @@ describe('SocialSecurity', () => {
     name: 'Test Social Security',
     payToAccount: 'account-123',
     paycheckNames: ['Social Security Payment'],
-    paycheckAccounts: ['account-123'],
-    paycheckCategories: ['Income'],
     person: 'TestPerson',
     priorAnnualNetIncomes: [50000, 52000, 54000, 56000, 58000],
     priorAnnualNetIncomeYears: [2019, 2020, 2021, 2022, 2023],
@@ -35,8 +33,6 @@ describe('SocialSecurity', () => {
       expect(socialSecurity.name).toBe('Test Social Security');
       expect(socialSecurity.payToAccount).toBe('account-123');
       expect(socialSecurity.paycheckNames).toEqual(['Social Security Payment']);
-      expect(socialSecurity.paycheckAccounts).toEqual(['account-123']);
-      expect(socialSecurity.paycheckCategories).toEqual(['Income']);
       expect(socialSecurity.person).toBe('TestPerson');
       expect(socialSecurity.priorAnnualNetIncomes).toEqual([50000, 52000, 54000, 56000, 58000]);
       expect(socialSecurity.priorAnnualNetIncomeYears).toEqual([2019, 2020, 2021, 2022, 2023]);
@@ -102,19 +98,15 @@ describe('SocialSecurity', () => {
       expect(socialSecurity.priorAnnualNetIncomeYears).toEqual([]);
     });
 
-    it('should handle multiple paycheck configurations', () => {
+    it('should handle multiple paycheck names', () => {
       const dataWithMultiplePaychecks = {
         ...mockSocialSecurityData,
         paycheckNames: ['SS Payment 1', 'SS Payment 2'],
-        paycheckAccounts: ['account-1', 'account-2'],
-        paycheckCategories: ['Income', 'Retirement Income'],
       };
 
       const socialSecurity = new SocialSecurity(dataWithMultiplePaychecks);
 
       expect(socialSecurity.paycheckNames).toEqual(['SS Payment 1', 'SS Payment 2']);
-      expect(socialSecurity.paycheckAccounts).toEqual(['account-1', 'account-2']);
-      expect(socialSecurity.paycheckCategories).toEqual(['Income', 'Retirement Income']);
     });
   });
 
@@ -127,8 +119,6 @@ describe('SocialSecurity', () => {
         name: 'Test Social Security',
         payToAccount: 'account-123',
         paycheckNames: ['Social Security Payment'],
-        paycheckAccounts: ['account-123'],
-        paycheckCategories: ['Income'],
         person: 'TestPerson',
         priorAnnualNetIncomes: [50000, 52000, 54000, 56000, 58000],
         priorAnnualNetIncomeYears: [2019, 2020, 2021, 2022, 2023],
@@ -162,20 +152,16 @@ describe('SocialSecurity', () => {
       expect(serialized.priorAnnualNetIncomeYears).toEqual([]);
     });
 
-    it('should serialize data with multiple paycheck configurations', () => {
+    it('should serialize data with multiple paycheck names', () => {
       const dataWithMultiplePaychecks = {
         ...mockSocialSecurityData,
         paycheckNames: ['SS Payment 1', 'SS Payment 2'],
-        paycheckAccounts: ['account-1', 'account-2'],
-        paycheckCategories: ['Income', 'Retirement Income'],
       };
 
       const socialSecurity = new SocialSecurity(dataWithMultiplePaychecks);
       const serialized = socialSecurity.serialize();
 
       expect(serialized.paycheckNames).toEqual(['SS Payment 1', 'SS Payment 2']);
-      expect(serialized.paycheckAccounts).toEqual(['account-1', 'account-2']);
-      expect(serialized.paycheckCategories).toEqual(['Income', 'Retirement Income']);
     });
 
     it('should reflect mutations made after construction', () => {

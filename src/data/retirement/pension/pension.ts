@@ -16,10 +16,6 @@ export class Pension {
   payToAccount: string;
   /** Names for paycheck entries */
   paycheckNames: string[];
-  /** Account IDs for each paycheck */
-  paycheckAccounts: string[];
-  /** Categories for each paycheck */
-  paycheckCategories: string[];
   /** Offset from person's retirement date for pension start */
   retirementOffset: { years: number; months: number };
   /** Calculated pension start date */
@@ -76,8 +72,6 @@ export class Pension {
     this.name = data.name;
     this.payToAccount = data.payToAccount ?? (data as any).payToAcccount;
     this.paycheckNames = [...data.paycheckNames];
-    this.paycheckAccounts = [...data.paycheckAccounts];
-    this.paycheckCategories = [...data.paycheckCategories];
     this.retirementOffset = data.retirementOffset ?? { years: 0, months: 0 };
     const retirementDate = getPersonRetirementDate(data.person);
     this.startDate = dayjs.utc(retirementDate)
@@ -193,8 +187,6 @@ export class Pension {
       name: this.name,
       payToAccount: this.payToAccount,
       paycheckNames: this.paycheckNames,
-      paycheckAccounts: this.paycheckAccounts,
-      paycheckCategories: this.paycheckCategories,
       retirementOffset: this.retirementOffset,
       person: this.person,
       workStartDateVariable: this.workStartDateVariable,

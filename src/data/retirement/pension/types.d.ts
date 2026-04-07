@@ -2,8 +2,6 @@ export type PensionData = {
   name: string;
   payToAccount: string;
   paycheckNames: string[];
-  paycheckAccounts: string[];
-  paycheckCategories: string[];
   retirementOffset: { years: number; months: number };
   person: string;
   workStartDateVariable: string;

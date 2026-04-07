@@ -24,8 +24,6 @@ describe('Pension', () => {
     name: 'Test Pension Plan',
     payToAccount: 'retirement-account',
     paycheckNames: ['Pension Payment'],
-    paycheckAccounts: ['retirement-account'],
-    paycheckCategories: ['Retirement Income'],
     retirementOffset: { years: 0, months: 0 },
     person: 'TestPerson',
     workStartDateVariable: 'careerStartDate',
@@ -57,8 +55,6 @@ describe('Pension', () => {
       expect(pension.name).toBe('Test Pension Plan');
       expect(pension.payToAccount).toBe('retirement-account');
       expect(pension.paycheckNames).toEqual(['Pension Payment']);
-      expect(pension.paycheckAccounts).toEqual(['retirement-account']);
-      expect(pension.paycheckCategories).toEqual(['Retirement Income']);
       expect(pension.retirementOffset).toEqual({ years: 0, months: 0 });
       expect(pension.person).toBe('TestPerson');
       expect(pension.workStartDateVariable).toBe('careerStartDate');
@@ -105,8 +101,6 @@ describe('Pension', () => {
         name: 'Test Pension Plan',
         payToAccount: 'retirement-account',
         paycheckNames: ['Pension Payment'],
-        paycheckAccounts: ['retirement-account'],
-        paycheckCategories: ['Retirement Income'],
         retirementOffset: { years: 0, months: 0 },
         person: 'TestPerson',
         workStartDateVariable: 'careerStartDate',

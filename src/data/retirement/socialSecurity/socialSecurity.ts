@@ -15,10 +15,6 @@ export class SocialSecurity {
   payToAccount: string;
   /** Names for paycheck entries */
   paycheckNames: string[];
-  /** Account IDs for each paycheck */
-  paycheckAccounts: string[];
-  /** Categories for each paycheck */
-  paycheckCategories: string[];
   /** Calculated start date for benefits */
   startDate: Date;
   /** Person name for birth date lookup */
@@ -54,8 +50,6 @@ export class SocialSecurity {
     this.name = data.name;
     this.payToAccount = data.payToAccount ?? (data as any).payToAcccount;
     this.paycheckNames = [...data.paycheckNames];
-    this.paycheckAccounts = [...data.paycheckAccounts];
-    this.paycheckCategories = [...data.paycheckCategories];
     this.startDate = getPersonSSStartDate(data.person);
     this.person = data.person;
     const birthDate = getPersonBirthDate(data.person);
@@ -77,8 +71,6 @@ export class SocialSecurity {
       name: this.name,
       payToAccount: this.payToAccount,
       paycheckNames: this.paycheckNames,
-      paycheckAccounts: this.paycheckAccounts,
-      paycheckCategories: this.paycheckCategories,
       person: this.person,
       priorAnnualNetIncomes: this.priorAnnualNetIncomes,
       priorAnnualNetIncomeYears: this.priorAnnualNetIncomeYears,
