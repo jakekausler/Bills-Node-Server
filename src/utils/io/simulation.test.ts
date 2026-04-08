@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { loadSimulations, saveSimulations } from './simulation';
+import { loadSimulations, saveSimulations, getSimulationOverrides } from './simulation';
 import { load, save } from './io';
 import { loadVariables, saveVariables } from './variable';
 import { resetCache } from './cache';
@@ -139,6 +139,29 @@ describe('simulation IO functions', () => {
     });
   });
 
+  describe('loadSimulations', () => {
+    it('should preserve rateOverrides and systemVariableOverrides from loaded data', () => {
+      const mockLoadedSimulations = [
+        {
+          name: 'Default',
+          enabled: true,
+          selected: true,
+          rateOverrides: { INFLATION: 0.04 },
+          systemVariableOverrides: { JAKE_RETIRE_DATE: '2060-01-01' },
+        },
+      ];
+      const mockVariables = { rate: { type: 'amount' as const, value: 0.03 } };
+
+      vi.mocked(load).mockReturnValue(mockLoadedSimulations);
+      vi.mocked(loadVariables).mockReturnValue(mockVariables);
+
+      const result = loadSimulations();
+
+      expect(result[0].rateOverrides).toEqual({ INFLATION: 0.04 });
+      expect(result[0].systemVariableOverrides).toEqual({ JAKE_RETIRE_DATE: '2060-01-01' });
+    });
+  });
+
   describe('saveSimulations', () => {
     it('should save variables and metadata, then reset cache', () => {
       const simulations = [
@@ -261,6 +284,87 @@ describe('simulation IO functions', () => {
       expect(() =>
         saveSimulations([{ name: 'Scenario', enabled: true, selected: true, variables: {} }]),
       ).toThrow('Permission denied');
+    });
+
+    it('should persist rateOverrides and systemVariableOverrides to simulations.json', () => {
+      const simulations = [
+        {
+          name: 'Default',
+          enabled: true,
+          selected: true,
+          variables: {},
+          rateOverrides: { INFLATION: 0.04 },
+          systemVariableOverrides: { JAKE_RETIRE_DATE: '2060-01-01' },
+        },
+      ];
+
+      saveSimulations(simulations);
+
+      expect(save).toHaveBeenCalledWith(
+        [
+          {
+            name: 'Default',
+            enabled: true,
+            selected: true,
+            rateOverrides: { INFLATION: 0.04 },
+            systemVariableOverrides: { JAKE_RETIRE_DATE: '2060-01-01' },
+          },
+        ],
+        'simulations.json',
+      );
+    });
+
+    it('should not include override keys when simulation has no overrides', () => {
+      const simulations = [
+        {
+          name: 'Default',
+          enabled: true,
+          selected: true,
+          variables: {},
+        },
+      ];
+
+      saveSimulations(simulations);
+
+      const savedData = vi.mocked(save).mock.calls[0][0] as any[];
+      expect(savedData[0]).not.toHaveProperty('rateOverrides');
+      expect(savedData[0]).not.toHaveProperty('systemVariableOverrides');
+    });
+  });
+
+  describe('getSimulationOverrides', () => {
+    it('should return overrides when present', () => {
+      vi.mocked(load).mockReturnValue([
+        {
+          name: 'Default',
+          enabled: true,
+          selected: true,
+          rateOverrides: { INFLATION: 0.04 },
+          systemVariableOverrides: { JAKE_RETIRE_DATE: '2060-01-01' },
+        },
+      ]);
+
+      const result = getSimulationOverrides('Default');
+      expect(result).toEqual({
+        rateOverrides: { INFLATION: 0.04 },
+        systemVariableOverrides: { JAKE_RETIRE_DATE: '2060-01-01' },
+      });
+    });
+
+    it('should return null when simulation has no overrides', () => {
+      vi.mocked(load).mockReturnValue([
+        { name: 'Default', enabled: true, selected: true },
+      ]);
+
+      const result = getSimulationOverrides('Default');
+      expect(result).toBeNull();
+    });
+
+    it('should return null when simulation not found', () => {
+      vi.mocked(load).mockReturnValue([]);
+
+      const result = getSimulationOverrides('Missing');
+      expect(result).toBeNull();
     });
   });
 });

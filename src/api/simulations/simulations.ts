@@ -41,6 +41,26 @@ export function getSimulations(_request: Request) {
       };
     }
 
+    // Per-simulation overrides (take precedence over defaults)
+    if (simulation.rateOverrides) {
+      for (const [name, value] of Object.entries(simulation.rateOverrides)) {
+        if (variables[name]) {
+          variables[name] = { ...variables[name], value, source: 'override' };
+        } else {
+          variables[name] = { value, type: 'amount', source: 'override' };
+        }
+      }
+    }
+    if (simulation.systemVariableOverrides) {
+      for (const [name, value] of Object.entries(simulation.systemVariableOverrides)) {
+        if (variables[name]) {
+          variables[name] = { ...variables[name], value, source: 'override' };
+        } else {
+          variables[name] = { value, type: 'date', source: 'override' };
+        }
+      }
+    }
+
     return {
       name: simulation.name,
       enabled: simulation.enabled,
@@ -73,7 +93,7 @@ export function updateSimulations(request: Request) {
   for (const sim of simulations) {
     if (sim.variables) {
       for (const [key, val] of Object.entries(sim.variables)) {
-        if (val && typeof val === 'object' && 'source' in val && (val.source === 'system' || val.source === 'rate')) {
+        if (val && typeof val === 'object' && 'source' in val && (val.source === 'system' || val.source === 'rate' || val.source === 'override')) {
           delete sim.variables[key];
         }
       }

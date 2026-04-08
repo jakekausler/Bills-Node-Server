@@ -12,4 +12,6 @@ export type LoadedSimulations = {
   name: string;
   enabled: boolean;
   selected: boolean;
+  rateOverrides?: Record<string, number>;
+  systemVariableOverrides?: Record<string, string>;
 }[];

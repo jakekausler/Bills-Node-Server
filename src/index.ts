@@ -35,6 +35,7 @@ import { getCategoryUsage } from './api/categories/usage';
 import { getCategorySectionItemTransactions } from './api/categories/section/item/transactions';
 import { getSimulations, updateSimulations } from './api/simulations/simulations';
 import { getUsedVariables } from './api/simulations/usedVariables';
+import { getSimulationOverridesHandler, updateSimulationOverridesHandler } from './api/simulations/overrides';
 import { getNameCategories } from './api/names/names';
 import { getFlow } from './api/flow/flow';
 import { getCategorySectionTransactions } from './api/categories/section/transactions';
@@ -409,6 +410,11 @@ app
 app.get('/api/simulations/used_variables', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   res.json(await getUsedVariables(req));
 }));
+
+app
+  .route('/api/simulations/:name/overrides')
+  .get(verifyToken, apiErrorHandler(getSimulationOverridesHandler))
+  .put(verifyToken, apiErrorHandler(updateSimulationOverridesHandler));
 
 // Name categories route
 app.get('/api/names', verifyToken, asyncHandler(async (req: Request, res: Response) => {

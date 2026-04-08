@@ -44,6 +44,8 @@ export function loadSimulations() {
       enabled: simulation.enabled,
       selected: simulation.selected,
       variables: loadVariables(simulation.name),
+      ...(simulation.rateOverrides && { rateOverrides: simulation.rateOverrides }),
+      ...(simulation.systemVariableOverrides && { systemVariableOverrides: simulation.systemVariableOverrides }),
     });
   }
   return simulations;
@@ -79,9 +81,29 @@ export function saveSimulations(simulations: Simulations) {
     name: simulation.name,
     enabled: simulation.enabled,
     selected: simulation.selected,
+    ...(simulation.rateOverrides && { rateOverrides: simulation.rateOverrides }),
+    ...(simulation.systemVariableOverrides && { systemVariableOverrides: simulation.systemVariableOverrides }),
   }));
   save(toSave, FILE_PATH);
   clearDataCache();
   clearProjectionsCache();
   resetCache();
+}
+
+/**
+ * Returns the per-simulation overrides for a given simulation name,
+ * or null if the simulation has no overrides.
+ */
+export function getSimulationOverrides(simulationName: string): {
+  rateOverrides?: Record<string, number>;
+  systemVariableOverrides?: Record<string, string>;
+} | null {
+  const loaded = load<LoadedSimulations>(FILE_PATH);
+  const sim = loaded.find((s) => s.name === simulationName);
+  if (!sim) return null;
+  if (!sim.rateOverrides && !sim.systemVariableOverrides) return null;
+  return {
+    ...(sim.rateOverrides && { rateOverrides: sim.rateOverrides }),
+    ...(sim.systemVariableOverrides && { systemVariableOverrides: sim.systemVariableOverrides }),
+  };
 }

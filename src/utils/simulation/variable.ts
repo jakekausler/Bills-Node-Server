@@ -1,6 +1,6 @@
 import { parseDate } from '../date/date';
 import { DateString } from '../date/types';
-import { loadSimulations } from '../io/simulation';
+import { loadSimulations, getSimulationOverrides } from '../io/simulation';
 import { resolveSystemVariable } from '../../api/system-variables/system-variables';
 import { isRate, getRate } from '../../api/rates-config/rates-config';
 
@@ -29,18 +29,27 @@ export function loadVariable(
     return variable;
   }
 
-  // 1. System variables (person-derived dates)
+  // 1. Per-simulation overrides (highest priority after fraction tokens)
+  const overrides = getSimulationOverrides(simulation);
+  if (overrides?.systemVariableOverrides && variable in overrides.systemVariableOverrides) {
+    return parseDate(overrides.systemVariableOverrides[variable] as DateString);
+  }
+  if (overrides?.rateOverrides && variable in overrides.rateOverrides) {
+    return overrides.rateOverrides[variable];
+  }
+
+  // 2. System variables (person-derived dates)
   const systemValue = resolveSystemVariable(variable);
   if (systemValue !== null) {
     return systemValue;
   }
 
-  // 2. Rate variables (from ratesConfig.json)
+  // 3. Rate variables (from ratesConfig.json)
   if (isRate(variable)) {
     return getRate(variable);
   }
 
-  // 3. User variables (from variables.csv — existing behavior)
+  // 4. User variables (from variables.csv — existing behavior)
   const simulations = loadSimulations();
   const variables = simulations.find((s) => s.name === simulation)?.variables;
   if (!variables) {

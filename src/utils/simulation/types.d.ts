@@ -20,6 +20,8 @@ export type Simulation = {
   enabled: boolean;
   selected: boolean;
   variables: Variables;
+  rateOverrides?: Record<string, number>;
+  systemVariableOverrides?: Record<string, string>;
 };
 
 export type Variables = Record<string, VariableValue>;

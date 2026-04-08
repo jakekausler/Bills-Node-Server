@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { loadVariable } from './variable';
-import { loadSimulations } from '../io/simulation';
+import { loadSimulations, getSimulationOverrides } from '../io/simulation';
 import { resolveSystemVariable } from '../../api/system-variables/system-variables';
 import { isRate, getRate } from '../../api/rates-config/rates-config';
 
@@ -12,6 +12,7 @@ import { isRate, getRate } from '../../api/rates-config/rates-config';
 
 vi.mock('../io/simulation', () => ({
   loadSimulations: vi.fn(),
+  getSimulationOverrides: vi.fn(() => null),
 }));
 
 vi.mock('../../api/system-variables/system-variables', () => ({
@@ -24,6 +25,7 @@ vi.mock('../../api/rates-config/rates-config', () => ({
 }));
 
 const mockLoadSimulations = vi.mocked(loadSimulations);
+const mockGetSimulationOverrides = vi.mocked(getSimulationOverrides);
 const mockResolveSystemVariable = vi.mocked(resolveSystemVariable);
 const mockIsRate = vi.mocked(isRate);
 const mockGetRate = vi.mocked(getRate);
@@ -31,7 +33,8 @@ const mockGetRate = vi.mocked(getRate);
 describe('loadVariable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Defaults: system returns null, isRate returns false
+    // Defaults: system returns null, isRate returns false, no overrides
+    mockGetSimulationOverrides.mockReturnValue(null);
     mockResolveSystemVariable.mockReturnValue(null);
     mockIsRate.mockReturnValue(false);
   });
@@ -321,6 +324,78 @@ describe('loadVariable', () => {
     ]);
 
     expect(() => loadVariable('BAD_TYPE_VAR', 'Default')).toThrow("Invalid variable type 'unknown'");
+  });
+
+  // ---------------------------------------------------------------------------
+  // Per-simulation overrides
+  // ---------------------------------------------------------------------------
+
+  it('should return overridden rate value when rateOverrides contains the variable', () => {
+    mockGetSimulationOverrides.mockReturnValue({
+      rateOverrides: { INFLATION: 0.04 },
+    });
+
+    const result = loadVariable('INFLATION', 'Default');
+    expect(result).toBe(0.04);
+    expect(mockResolveSystemVariable).not.toHaveBeenCalled();
+    expect(mockIsRate).not.toHaveBeenCalled();
+    expect(mockLoadSimulations).not.toHaveBeenCalled();
+  });
+
+  it('should return overridden system variable date when systemVariableOverrides contains the variable', () => {
+    mockGetSimulationOverrides.mockReturnValue({
+      systemVariableOverrides: { JAKE_RETIRE_DATE: '2060-06-15' },
+    });
+
+    const result = loadVariable('JAKE_RETIRE_DATE', 'Default');
+    expect(result).toBeInstanceOf(Date);
+    expect((result as Date).toISOString()).toBe('2060-06-15T12:00:00.000Z');
+    expect(mockResolveSystemVariable).not.toHaveBeenCalled();
+  });
+
+  it('should fall through to normal resolution when variable is not in overrides', () => {
+    mockGetSimulationOverrides.mockReturnValue({
+      rateOverrides: { OTHER_RATE: 0.05 },
+    });
+    mockIsRate.mockReturnValue(true);
+    mockGetRate.mockReturnValue(0.03);
+
+    const result = loadVariable('INFLATION', 'Default');
+    expect(result).toBe(0.03);
+  });
+
+  it('should fall through to normal resolution when simulation has no overrides', () => {
+    mockGetSimulationOverrides.mockReturnValue(null);
+    mockIsRate.mockReturnValue(true);
+    mockGetRate.mockReturnValue(0.03);
+
+    const result = loadVariable('INFLATION', 'Default');
+    expect(result).toBe(0.03);
+  });
+
+  it('should prefer override over system variable with same name', () => {
+    mockGetSimulationOverrides.mockReturnValue({
+      systemVariableOverrides: { JAKE_RETIRE_DATE: '2065-01-01' },
+    });
+    const systemDate = new Date('2055-07-15T12:00:00.000Z');
+    mockResolveSystemVariable.mockReturnValue(systemDate);
+
+    const result = loadVariable('JAKE_RETIRE_DATE', 'Default');
+    expect(result).toBeInstanceOf(Date);
+    expect((result as Date).toISOString()).toBe('2065-01-01T12:00:00.000Z');
+    expect(mockResolveSystemVariable).not.toHaveBeenCalled();
+  });
+
+  it('should prefer rate override over rate config with same name', () => {
+    mockGetSimulationOverrides.mockReturnValue({
+      rateOverrides: { INFLATION: 0.05 },
+    });
+    mockIsRate.mockReturnValue(true);
+    mockGetRate.mockReturnValue(0.03);
+
+    const result = loadVariable('INFLATION', 'Default');
+    expect(result).toBe(0.05);
+    expect(mockIsRate).not.toHaveBeenCalled();
   });
 
   // ---------------------------------------------------------------------------
