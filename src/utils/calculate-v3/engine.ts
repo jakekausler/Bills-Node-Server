@@ -37,7 +37,7 @@ import { setTaxScenario } from './bracket-calculator';
 import { load } from '../io/io';
 import type { TaxScenario } from './tax-profile-types';
 import { loadVariable } from '../simulation/variable';
-import { getPersonBirthDate } from '../../api/person-config/person-config';
+import { getPersonBirthDate, getPersonGender } from '../../api/person-config/person-config';
 import { LedgerPrecomputer, AnchorPoint } from './ledger-precomputer';
 import { FutureLotTracker } from './future-lot-tracker';
 import { loadLedger } from '../io/portfolioLedger';
@@ -917,23 +917,12 @@ export class Engine {
 
     // Get all tracked persons from mortality manager
     for (const person of mortalityManager.getAlivePeople()) {
-      // Get person config to access gender
-      let config = mortalityManager.getConfig(person);
-      let gender = config?.gender;
-
-      // If no LTC config, try to get retirement config
-      if (!config) {
-        const retirementConfig = mortalityManager.getRetirementPersonConfig(person);
-        if (!retirementConfig) {
-          this.log('mortality-eval-skip-no-config', { person });
-          continue;
-        }
-        gender = retirementConfig.gender;
-      }
-
-      // Ensure we have the required gender
-      if (!gender) {
-        this.log('mortality-eval-skip-missing-gender', { person });
+      // Resolve gender from canonical person config
+      let gender: 'male' | 'female';
+      try {
+        gender = getPersonGender(person);
+      } catch {
+        this.log('mortality-eval-skip-no-config', { person });
         continue;
       }
 

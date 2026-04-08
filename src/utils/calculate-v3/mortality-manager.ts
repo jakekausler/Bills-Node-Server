@@ -5,6 +5,7 @@ import type { MCRateGetter } from './types';
 import { MonteCarloSampleType } from './types';
 import { compoundMCInflation } from './mc-utils';
 import { getAnnualDeathProbability, SSALifeTable } from './ssa-mortality';
+import { getPersonGender } from '../../api/person-config/person-config';
 
 // ===== Type Definitions =====
 
@@ -21,7 +22,6 @@ export interface LTCPersonState {
 
 export interface LTCConfig {
   personName: string;
-  gender: 'male' | 'female';
   hasInsurance: boolean;
   insurancePurchaseAge?: number;
   annualPremium?: number;
@@ -84,7 +84,8 @@ export class MortalityManager {
   private personNameMapping: Map<string, string> = new Map();
   private checkpointData: string | null = null;
   private lockedSurvivorBenefits: Map<string, number> = new Map();
-  private retirementPersonConfigs: Map<string, { gender: 'male' | 'female' }> = new Map();
+  // Tracks persons initialized from retirement (SS/pension) data rather than LTC config
+  private retirementPersonConfigs: Map<string, object> = new Map();
   private deathCobraMonthsElapsed: Map<string, number> = new Map();  // Track months in death COBRA for each policyholder
   private lastDeathCobraMonth: Map<string, number | null> = new Map();  // Track last month COBRA was generated
 
@@ -205,15 +206,15 @@ export class MortalityManager {
         costFactor: 1.0,
       });
 
-      // Store the SS data for later retrieval (needed for annual mortality evaluation)
-      // For now, we infer gender from ltcConfig if available, or default to 'male'
-      // A better solution would be to add gender to the SocialSecurity data model
-      const ltcConfig = this.configs.get(personName);
-      const gender = ltcConfig?.gender ?? 'male';
+      // Resolve gender from canonical person config
+      let gender: 'male' | 'female';
+      try {
+        gender = getPersonGender(personName);
+      } catch {
+        gender = 'male'; // fallback if person not found
+      }
 
-      this.retirementPersonConfigs.set(personName, {
-        gender,
-      });
+      this.retirementPersonConfigs.set(personName, {});
 
       this.log('person-initialized-from-retirement', { person: personName, has_ltc_config: false, gender });
     }
@@ -541,7 +542,7 @@ export class MortalityManager {
   /**
    * Get retirement person config (for persons initialized from Social Security, not LTC config)
    */
-  getRetirementPersonConfig(personName: string): { gender: 'male' | 'female' } | undefined {
+  getRetirementPersonConfig(personName: string): object | undefined {
     return this.retirementPersonConfigs.get(personName);
   }
 

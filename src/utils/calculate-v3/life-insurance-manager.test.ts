@@ -17,6 +17,11 @@ vi.mock('../../api/person-config/person-config', () => ({
     if (name === 'Kendall') return new Date('1988-03-20');
     throw new Error(`Unknown person: ${name}`);
   }),
+  getPersonGender: vi.fn((name: string) => {
+    if (name === 'Jake') return 'male';
+    if (name === 'Kendall') return 'female';
+    throw new Error(`Unknown person: ${name}`);
+  }),
 }));
 
 // ===== Test helpers =====
@@ -496,7 +501,6 @@ describe('LifeInsuranceManager', () => {
       premiumFrequency: 'monthly' as const,
       payFromAccountId: 'acct-payment',
       renewalOption: 'expire' as const,
-      insuredGender: 'male' as const,
       insuredBirthDate: '1985-06-15',
       ...overrides,
     } as LifeInsurancePolicyConfig;
@@ -786,7 +790,6 @@ describe('LifeInsuranceManager', () => {
       payFromAccountId: 'acct-payment',
       guaranteedRate: 0.02, // 2% guaranteed
       savingsRatio: 0.50, // 50% of premium goes to cash value
-      insuredGender: 'male' as const,
       insuredBirthDate: '1985-06-15',
       ...overrides,
     } as LifeInsurancePolicyConfig;

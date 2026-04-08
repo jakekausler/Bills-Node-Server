@@ -13,13 +13,17 @@ export interface PersonConfig {
 // LtcPersonConfig interface kept for backward compatibility with ltcConfig.json users
 export interface LtcPersonConfig {
   personName: string;
-  gender: 'male' | 'female';
   hasInsurance: boolean;
   [key: string]: unknown;
 }
 
 export function getPersonConfigs(): PersonConfig[] {
   return getConfigs().map(p => ({ personName: p.name, gender: p.gender }));
+}
+
+export function getLtcPersonConfigs(): LtcPersonConfig[] {
+  // DEPRECATED: Consider removing — no callers use insurance status from this adapter
+  return getConfigs().map(p => ({ personName: p.name, hasInsurance: false }));
 }
 
 export function getPersonNames(): string[] {

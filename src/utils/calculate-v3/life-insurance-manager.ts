@@ -15,7 +15,7 @@ import { MonteCarloSampleType } from './types';
 import { ManagerPayout, createPayoutActivity } from './manager-payout';
 import { loadVariable } from '../simulation/variable';
 import type { TermRateEntry, WholeRateEntry, LifeInsurancePremiumRates } from '../../types/life-insurance-rates';
-import { getPersonBirthDate } from '../../api/person-config/person-config';
+import { getPersonBirthDate, getPersonGender } from '../../api/person-config/person-config';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
@@ -73,7 +73,6 @@ export interface LifeInsuranceTermPolicy {
   premiumFrequency: 'monthly' | 'annual';
   payFromAccountId: string;
   renewalOption: 'expire' | 'renew' | 'convertToWhole';
-  insuredGender: 'male' | 'female';
   wholeLifeDefaults?: WholeLifeConversionDefaults;
 }
 
@@ -93,7 +92,6 @@ export interface LifeInsuranceWholePolicy {
   guaranteedRate: number; // decimal (0.02 = 2%)
   savingsRatio: number; // decimal (~0.50)
   surrenderChargeSchedule?: number[]; // optional, per-year decimals
-  insuredGender: 'male' | 'female';
 }
 
 /** Discriminated union of all life insurance policy types */
@@ -886,7 +884,7 @@ export class LifeInsuranceManager {
         // Look up new premium from rate table
         let newAnnualPremium = this.lookupTermPremiumFromTable(
           currentAge,
-          config.insuredGender,
+          getPersonGender(config.insuredPerson),
           config.termYears,
           config.faceAmount,
         );
