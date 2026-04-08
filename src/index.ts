@@ -111,6 +111,7 @@ import { getAssets, addAsset, updateAsset, deleteAsset } from './api/assets/asse
 import { getLifeInsurancePolicies, createLifeInsurancePolicy, updateLifeInsurancePolicy, deleteLifeInsurancePolicy } from './api/insurance/life-insurance';
 import { getPersonConfigsHandler, createPersonConfig, updatePersonConfigs, deletePersonConfig } from './api/person-config/person-config';
 import { getRatesConfigHandler, updateRatesConfigHandler } from './api/rates-config/rates-config';
+import { getMCMappingsHandler, updateMCMappingsHandler } from './api/mc-mappings/mc-mappings';
 import { getLTCConfigs, updateLTCConfigs, getLTCTransitions, updateLTCTransitions } from './api/insurance/ltc';
 import { getInheritanceConfigs, updateInheritanceConfigs } from './api/inheritance/inheritance';
 
@@ -1593,6 +1594,13 @@ app
   .route('/api/rates-config')
   .get(verifyToken, apiErrorHandler(getRatesConfigHandler))
   .put(verifyToken, express.json(), apiErrorHandler(updateRatesConfigHandler));
+
+// ─── MC Mappings Routes ───
+
+app
+  .route('/api/mc-mappings')
+  .get(verifyToken, apiErrorHandler(getMCMappingsHandler))
+  .put(verifyToken, express.json(), apiErrorHandler(updateMCMappingsHandler));
 
 // ─── LTC Insurance Routes ───
 
