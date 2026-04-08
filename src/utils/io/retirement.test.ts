@@ -61,7 +61,7 @@ describe('Retirement IO Functions', () => {
 
       expect(load).toHaveBeenCalledWith('pension_and_social_security.json');
       expect(Pension).toHaveBeenCalledWith(mockData.pensions[0], 'Default');
-      expect(SocialSecurity).toHaveBeenCalledWith(mockData.socialSecurities[0], 'Default');
+      expect(SocialSecurity).toHaveBeenCalledWith(mockData.socialSecurities[0]);
       expect(result.pensions).toEqual([mockPension]);
       expect(result.socialSecurities).toEqual([mockSocialSecurity]);
     });
@@ -119,7 +119,7 @@ describe('Retirement IO Functions', () => {
 
       loadPensionsAndSocialSecurity('Conservative');
 
-      expect(SocialSecurity).toHaveBeenCalledWith(mockData.socialSecurities[0], 'Conservative');
+      expect(SocialSecurity).toHaveBeenCalledWith(mockData.socialSecurities[0]);
     });
 
     it('should handle empty pensions and social securities arrays', () => {
@@ -294,7 +294,7 @@ describe('Retirement IO Functions', () => {
 
       const result = loadPensionsAndSocialSecurity('Conservative');
 
-      expect(SocialSecurity).toHaveBeenCalledWith(mockData.socialSecurities[0], 'Conservative');
+      expect(SocialSecurity).toHaveBeenCalledWith(mockData.socialSecurities[0]);
       expect(result.socialSecurities[0]).toEqual(mockSS);
     });
 
@@ -543,7 +543,6 @@ describe('Retirement IO Functions', () => {
 
       const ssCall = vi.mocked(SocialSecurity).mock.calls[0];
       expect(ssCall[0]).toEqual(ssData);
-      expect(ssCall[1]).toBe('TestSim');
     });
   });
 });

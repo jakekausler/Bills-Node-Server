@@ -51,7 +51,7 @@ export class MonteCarloHandler {
       this.historicRates = JSON.parse(historicRatesContent);
 
       // Extract yearKeyed data for correlated sampling
-      this.yearKeyedData = this.historicRates.yearKeyed || {};
+      this.yearKeyedData = this.historicRates!.yearKeyed || {};
       this.availableYears = Object.keys(this.yearKeyedData)
         .map(Number)
         .sort((a, b) => a - b);
@@ -79,7 +79,7 @@ export class MonteCarloHandler {
       const yearData = this.yearKeyedData[String(randomYear)] || {};
 
       // Build samples for this year from the drawn historical year
-      const yearSamples: Record<MonteCarloSampleType, number> = {};
+      const yearSamples = {} as Record<MonteCarloSampleType, number>;
 
       // HYSA - correlated draw from same historical year
       yearSamples[MonteCarloSampleType.HYSA] = yearData.highYield !== undefined

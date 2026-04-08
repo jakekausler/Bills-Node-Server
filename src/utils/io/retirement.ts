@@ -96,6 +96,6 @@ export function loadPensionsAndSocialSecurity(simulation = 'Default'): PensionsA
   const data = load<PensionsAndSocialSecurityData>(PENSION_SS_FILE);
   return {
     pensions: data.pensions.map((p) => new Pension(p, simulation)),
-    socialSecurities: data.socialSecurities.map((ss) => new SocialSecurity(ss, simulation)),
+    socialSecurities: data.socialSecurities.map((ss) => new SocialSecurity(ss)),
   };
 }

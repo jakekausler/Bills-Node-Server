@@ -146,7 +146,7 @@ export class Account {
       interestTaxRate: this.interestTaxRate,
       withdrawalTaxRate: this.withdrawalTaxRate,
       earlyWithdrawalPenalty: this.earlyWithdrawalPenalty,
-      earlyWithdrawalDate: this.earlyWithdrawalDate ? formatDate(this.earlyWithdrawalDate) : null,
+      earlyWithdrawalDate: (this.earlyWithdrawalDate ? formatDate(this.earlyWithdrawalDate) : null) as unknown as Date | null,
       interestPayAccount: this.interestPayAccount,
       interestAppliesToPositiveBalance: this.interestAppliesToPositiveBalance,
       expenseRatio: this.expenseRatio,

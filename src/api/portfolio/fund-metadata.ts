@@ -90,10 +90,10 @@ export async function updateFundMetadata(req: Request, res: Response) {
     if (typeof req.body.fundFamily === 'string') allowedFields.fundFamily = req.body.fundFamily;
     if (typeof req.body.category === 'string') allowedFields.category = req.body.category;
     if (typeof req.body.expenseRatio === 'number') allowedFields.expenseRatio = req.body.expenseRatio;
-    if (req.body.assetAllocation) allowedFields.assetAllocation = validateBreakdown(req.body.assetAllocation);
+    if (req.body.assetAllocation) allowedFields.assetAllocation = validateBreakdown(req.body.assetAllocation) as FundMetadata['assetAllocation'];
     if (req.body.sectorWeightings) allowedFields.sectorWeightings = validateBreakdown(req.body.sectorWeightings);
-    if (req.body.geographicBreakdown) allowedFields.geographicBreakdown = validateBreakdown(req.body.geographicBreakdown);
-    if (req.body.marketCapBreakdown) allowedFields.marketCapBreakdown = validateBreakdown(req.body.marketCapBreakdown);
+    if (req.body.geographicBreakdown) allowedFields.geographicBreakdown = validateBreakdown(req.body.geographicBreakdown) as FundMetadata['geographicBreakdown'];
+    if (req.body.marketCapBreakdown) allowedFields.marketCapBreakdown = validateBreakdown(req.body.marketCapBreakdown) as FundMetadata['marketCapBreakdown'];
 
     // Merge updates into existing entry
     metadata[symbol] = { ...existing, ...allowedFields, symbol, lastSynced: existing?.lastSynced ?? null } as FundMetadata;

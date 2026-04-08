@@ -11,7 +11,7 @@ export type TaxProfile = {
 export type Dependent = {
   name: string;
   birthYear: number;
-  relationship: 'child' | 'other';
+  relationship: 'child' | 'parent' | 'other';
 };
 
 export type TaxScenario = {

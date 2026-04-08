@@ -175,7 +175,7 @@ function filterOutAssets(yearlyAccountBalances: YearlyAccountBalances): YearlyAc
     filtered[parseInt(year)] = {};
     for (const [accountId, balance] of Object.entries(accounts)) {
       if (!accountId.startsWith('asset:')) {
-        filtered[parseInt(year)][accountId] = balance;
+        filtered[parseInt(year)][accountId] = balance as number;
       }
     }
   }
@@ -421,7 +421,7 @@ export async function computePercentileGraph(
       if (filteredBalances) {
         for (const [yearStr, accounts] of Object.entries(filteredBalances)) {
           const year = parseInt(yearStr);
-          newCombined[year] = Object.values(accounts).reduce((sum, val) => sum + val, 0);
+          newCombined[year] = (Object.values(accounts) as number[]).reduce((sum, val) => sum + val, 0);
         }
       }
 

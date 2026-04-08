@@ -12,7 +12,7 @@ export async function getCategoryUsage(request: Request) {
   const usedSections = new Set<string>();
   const usedItems = new Set<string>();
 
-  function recordCategory(cat: string | undefined) {
+  function recordCategory(cat: string | null | undefined) {
     if (!cat) return;
     const parts = cat.split('.');
     usedSections.add(parts[0]);

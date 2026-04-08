@@ -1,4 +1,5 @@
 import { HealthcareConfig } from '../../data/healthcare/types';
+import { DateString } from '../../utils/date/types';
 import { loadPensionsAndSocialSecurity } from './retirement';
 import { loadHealthcareConfigs } from './healthcareConfigs';
 import { loadVariable } from '../simulation/variable';
@@ -77,13 +78,13 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
         try {
           if (config.startDateIsVariable && config.startDateVariable) {
             const resolved = loadVariable(config.startDateVariable, simulation);
-            if (resolved instanceof Date) startDate = resolved.toISOString().split('T')[0];
+            if (resolved instanceof Date) startDate = resolved.toISOString().split('T')[0] as DateString;
           }
         } catch { /* variable not found, keep original */ }
         try {
           if (config.endDateIsVariable && config.endDateVariable) {
             const resolved = loadVariable(config.endDateVariable, simulation);
-            if (resolved instanceof Date) endDate = resolved.toISOString().split('T')[0];
+            if (resolved instanceof Date) endDate = resolved.toISOString().split('T')[0] as DateString;
           }
         } catch { /* variable not found, keep original */ }
         return { ...config, startDate, endDate };
@@ -122,9 +123,9 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
             id: 'virtual-cobra',
             name: 'COBRA (Virtual)',
             coveredPersons: getPersonNames(),
-            startDate: retireDate.toISOString().split('T')[0],
+            startDate: retireDate.toISOString().split('T')[0] as DateString,
             startDateIsVariable: false,
-            endDate: cobraEndDate.toISOString().split('T')[0],
+            endDate: cobraEndDate.toISOString().split('T')[0] as DateString,
             endDateIsVariable: false,
             individualDeductible: employerPlanAtRetirement.individualDeductible ?? 0,
             individualOutOfPocketMax: employerPlanAtRetirement.individualOutOfPocketMax ?? 0,
@@ -145,9 +146,9 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
           id: 'virtual-aca-silver',
           name: 'ACA Silver Plan (Virtual)',
           coveredPersons: getPersonNames(),
-          startDate: acaStartDate.toISOString().split('T')[0],
+          startDate: acaStartDate.toISOString().split('T')[0] as DateString,
           startDateIsVariable: false,
-          endDate: laterAge65Date.toISOString().split('T')[0],
+          endDate: laterAge65Date.toISOString().split('T')[0] as DateString,
           endDateIsVariable: false,
           individualDeductible: Math.round(acaDeductible.individual),
           individualOutOfPocketMax: Math.round(acaOOPMax.individual),
@@ -189,7 +190,7 @@ export function generateVirtualHealthcarePlans(simulation: string): HealthcareCo
         id: 'virtual-medicare',
         name: 'Medicare Plan (Virtual)',
         coveredPersons: getPersonNames(),
-        startDate: earlierAge65Date.toISOString().split('T')[0],
+        startDate: earlierAge65Date.toISOString().split('T')[0] as DateString,
         startDateIsVariable: false,
         endDate: null,
         endDateIsVariable: false,

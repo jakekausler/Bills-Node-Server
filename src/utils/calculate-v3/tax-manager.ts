@@ -405,7 +405,7 @@ export class TaxManager {
     this.ficaOccurrences = new Map();
     if (checkpoint.ficaOccurrences) {
       for (const yearStr of Object.keys(checkpoint.ficaOccurrences)) {
-        this.ficaOccurrences.set(Number(yearStr), checkpoint.ficaOccurrences[yearStr]);
+        this.ficaOccurrences.set(Number(yearStr), checkpoint.ficaOccurrences[Number(yearStr)]);
       }
     }
 

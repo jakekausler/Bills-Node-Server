@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { AssetData, Asset, ReplacementCycleData } from './types';
+import { AssetData, Asset as AssetInterface, ReplacementCycleData } from './types';
 import { formatDate, parseDate } from '../../utils/date/date';
 import { DateString } from '../../utils/date/types';
 
@@ -7,7 +7,7 @@ import { DateString } from '../../utils/date/types';
  * Represents a personal asset (home, vehicle, appliance)
  * Tracks value through appreciation/depreciation and replacement cycles
  */
-export class Asset implements Asset {
+export class Asset implements AssetInterface {
   id: string;
   name: string;
   type: 'home' | 'vehicle' | 'appliance' | 'other';

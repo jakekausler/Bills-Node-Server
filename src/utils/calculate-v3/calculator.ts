@@ -253,13 +253,13 @@ export class Calculator {
       }
       segmentResult.activitiesAdded.get(targetAccountId)!.push(activity);
       const currentChange = segmentResult.balanceChanges.get(targetAccountId) ?? 0;
-      segmentResult.balanceChanges.set(targetAccountId, currentChange + activity.amount);
+      segmentResult.balanceChanges.set(targetAccountId, currentChange + (activity.amount as number));
       const year = new Date(activity.date).getUTCFullYear();
-      if (activity.amount < 0) {
+      if ((activity.amount as number) < 0) {
         // Negative payouts are expense deductions (e.g., term life premiums)
-        this.flowAggregator?.recordExpense(year, incomeSourceName, Math.abs(activity.amount));
+        this.flowAggregator?.recordExpense(year, incomeSourceName, Math.abs(activity.amount as number));
       } else {
-        this.flowAggregator?.recordIncome(year, incomeSourceName, activity.amount);
+        this.flowAggregator?.recordIncome(year, incomeSourceName, activity.amount as number);
       }
     }
 
@@ -308,7 +308,7 @@ export class Calculator {
       incomeSourceName: string;
     }>;
     this.pendingPayouts = restored.map(r => ({
-      activity: new ConsolidatedActivity(r.activity),
+      activity: new ConsolidatedActivity(r.activity as any),
       targetAccountId: r.targetAccountId,
       incomeSourceName: r.incomeSourceName,
     }));
@@ -1733,7 +1733,7 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
     let amount = event.amount;
 
     // Apply contribution limits for transfers to retirement accounts
-    amount = this.applyCappedContribution(event, amount, event.date);
+    amount = this.applyCappedContribution(event, amount, event.date) as number | '{FULL}' | '{HALF}' | '-{FULL}' | '-{HALF}';
 
     return this.processTransferEvent(event, bill, amount, event.firstBill, segmentResult);
   }

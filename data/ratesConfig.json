@@ -1,0 +1,62 @@
+[
+  {
+    "name": "INFLATION",
+    "value": 0.03,
+    "description": "General inflation rate"
+  },
+  {
+    "name": "HEALTHCARE_INFLATION",
+    "value": 0.05,
+    "description": "Healthcare cost inflation rate"
+  },
+  {
+    "name": "HOME_APPRECIATION",
+    "value": 0.035,
+    "description": "Annual home value appreciation rate"
+  },
+  {
+    "name": "STOCK_RETURN",
+    "value": 0.06,
+    "description": "Expected annual stock market return"
+  },
+  {
+    "name": "BOND_RETURN",
+    "value": 0.02,
+    "description": "Expected annual bond return"
+  },
+  {
+    "name": "CASH_RETURN",
+    "value": 0.01,
+    "description": "Expected annual cash/savings return"
+  },
+  {
+    "name": "INVESTMENT_RATE",
+    "value": 0.05,
+    "description": "General investment return rate"
+  },
+  {
+    "name": "HIGH_YIELD_SAVINGS_RATE",
+    "value": 0.03,
+    "description": "High-yield savings account rate"
+  },
+  {
+    "name": "LOW_YIELD_SAVINGS_RATE",
+    "value": 0.01,
+    "description": "Low-yield savings account rate"
+  },
+  {
+    "name": "RAISE_RATE",
+    "value": 0.03,
+    "description": "Expected annual salary raise rate"
+  },
+  {
+    "name": "SS_COLA_RATE",
+    "value": 0.025,
+    "description": "Social Security cost-of-living adjustment rate"
+  },
+  {
+    "name": "401K_LIMIT_INCREASE_RATE",
+    "value": 0.01,
+    "description": "Annual 401(k) contribution limit increase rate"
+  }
+]

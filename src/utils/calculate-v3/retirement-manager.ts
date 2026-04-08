@@ -1,6 +1,7 @@
 import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
-import { RMDTableType } from '../calculate/types';
+/** Map of age → distribution period for Required Minimum Distributions */
+type RMDTableType = Record<number, number>;
 import { HistoricRates, MCRateGetter, MonteCarloSampleType } from './types';
 import { loadAverageWageIndex } from '../io/averageWageIndex';
 import { loadBendPoints } from '../io/bendPoints';

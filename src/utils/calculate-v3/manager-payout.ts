@@ -1,4 +1,5 @@
 import { ConsolidatedActivity } from '../../data/activity/consolidatedActivity';
+import { DateString } from '../../utils/date/types';
 
 /**
  * Wrapper pairing a payout activity with its target account and income category.
@@ -26,7 +27,7 @@ export function createPayoutActivity(
 ): ConsolidatedActivity {
   return new ConsolidatedActivity({
     id,
-    date,
+    date: date as DateString,
     dateIsVariable: false,
     dateVariable: null,
     name,

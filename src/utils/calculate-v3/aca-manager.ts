@@ -470,7 +470,7 @@ export class AcaManager {
       }
     }
 
-    const latestOOPMax = oopMaxData[latestYear.toString()] as {
+    const latestOOPMax = oopMaxData[latestYear.toString()] as unknown as {
       individual: number;
       family: number;
     } | undefined;

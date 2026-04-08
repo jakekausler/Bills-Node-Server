@@ -1,4 +1,5 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
+import { DateString } from './utils/date/types';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
@@ -108,6 +109,7 @@ import { getFundMetadata, updateFundMetadata } from './api/portfolio/fund-metada
 import { getAssets, addAsset, updateAsset, deleteAsset } from './api/assets/assets';
 import { getLifeInsurancePolicies, createLifeInsurancePolicy, updateLifeInsurancePolicy, deleteLifeInsurancePolicy } from './api/insurance/life-insurance';
 import { getPersonConfigsHandler, createPersonConfig, updatePersonConfigs, deletePersonConfig } from './api/person-config/person-config';
+import { getRatesConfigHandler, updateRatesConfigHandler } from './api/rates-config/rates-config';
 import { getLTCConfigs, updateLTCConfigs, getLTCTransitions, updateLTCTransitions } from './api/insurance/ltc';
 import { getInheritanceConfigs, updateInheritanceConfigs } from './api/inheritance/inheritance';
 
@@ -129,7 +131,7 @@ const asyncHandler =
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 
-const apiErrorHandler = (fn: (req: Request) => Promise<any>) =>
+const apiErrorHandler = (fn: (req: Request) => Promise<any> | any) =>
   asyncHandler(async (req: Request, res: Response) => {
     try {
       res.json(await fn(req));
@@ -624,7 +626,7 @@ app.get('/api/healthcare/configs', verifyToken, asyncHandler(async (req: Request
         try {
           const resolved = loadVariable(config.startDateVariable, simulation);
           if (resolved instanceof Date) {
-            config.startDate = resolved.toISOString().split('T')[0];
+            config.startDate = resolved.toISOString().split('T')[0] as DateString;
           }
         } catch { /* variable not found, keep original */ }
       }
@@ -632,7 +634,7 @@ app.get('/api/healthcare/configs', verifyToken, asyncHandler(async (req: Request
         try {
           const resolved = loadVariable(config.endDateVariable, simulation);
           if (resolved instanceof Date) {
-            config.endDate = resolved.toISOString().split('T')[0];
+            config.endDate = resolved.toISOString().split('T')[0] as DateString;
           }
         } catch { /* variable not found, keep original */ }
       }
@@ -1578,6 +1580,13 @@ app
     CacheManager.clearAll();
     return result;
   }));
+
+// ─── Rates Config Routes ───
+
+app
+  .route('/api/rates-config')
+  .get(verifyToken, apiErrorHandler(getRatesConfigHandler))
+  .put(verifyToken, express.json(), apiErrorHandler(updateRatesConfigHandler));
 
 // ─── LTC Insurance Routes ───
 

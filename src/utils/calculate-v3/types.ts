@@ -385,6 +385,8 @@ export interface HistoricRates {
   ssCola?: number[];
   ssWageBase?: Record<string, number>;
   homeAppreciation: number[];
+  unemploymentRate?: number[];
+  unemploymentDuration?: number[];
   termLifePPI?: Record<string, number>;
   wholeLifePPI?: Record<string, number>;
   wholeLifeDividendScale?: Record<string, number>;

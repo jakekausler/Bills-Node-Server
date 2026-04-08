@@ -15,6 +15,7 @@ import {
 } from './types';
 import { join } from 'path';
 import { formatDate, parseDate } from '../date/date';
+import { DateString } from '../date/types';
 import { AccountsAndTransfers, AccountsAndTransfersData } from '../../data/account/types';
 
 class Serializer {
@@ -156,7 +157,7 @@ class SegmentResultSerializer extends Serializer {
       Object.entries(segmentResultData.withholdingOccurrences || {}).map(([k, v]) => [
         k,
         v.map((occ) => ({
-          date: parseDate(occ.date),
+          date: parseDate(occ.date as DateString),
           year: occ.year,
           federalAmount: occ.federalAmount,
           stateAmount: occ.stateAmount,

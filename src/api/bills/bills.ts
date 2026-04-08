@@ -27,8 +27,8 @@ export async function getAllBills(request: Request) {
  * Body: Array of { accountId: string, billId: string, isTransfer?: boolean }
  */
 export async function bulkDeleteBills(request: Request) {
-  const data = await getData(request);
-  const items: Array<{ accountId: string; billId: string; isTransfer?: boolean }> = data.data;
+  const data = await getData<Array<{ accountId: string; billId: string; isTransfer?: boolean }>>(request);
+  const items = data.data;
 
   for (const item of items) {
     if (item.isTransfer) {
@@ -52,7 +52,7 @@ export async function bulkDeleteBills(request: Request) {
  * Body: { bills: Array<{ accountId: string, billId: string }>, newAccountId: string }
  */
 export async function bulkChangeBillAccount(request: Request) {
-  const data = await getData(request);
+  const data = await getData<{ bills: Array<{ accountId: string; billId: string }>; newAccountId: string }>(request);
   const { bills, newAccountId } = data.data;
   const newAccount = data.accountsAndTransfers.accounts.find((a: any) => a.id === newAccountId);
   if (!newAccount) throw new Error('Target account not found');
