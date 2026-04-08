@@ -1,6 +1,7 @@
 export interface RetirementAge {
   years: number;
   months: number;
+  days: number;
 }
 
 export interface PersonConfig {

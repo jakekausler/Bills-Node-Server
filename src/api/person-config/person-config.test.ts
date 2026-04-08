@@ -32,14 +32,14 @@ const seedPersons: PersonConfig[] = [
     name: 'Jake',
     gender: 'male',
     birthDate: '1993-07-15',
-    retirementAge: { years: 62, months: 0 },
+    retirementAge: { years: 62, months: 0, days: 0 },
     ssStartAge: 70,
   },
   {
     name: 'Kendall',
     gender: 'female',
     birthDate: '1994-11-16',
-    retirementAge: { years: 60, months: 8 },
+    retirementAge: { years: 60, months: 7, days: 29 },
     ssStartAge: 70,
   },
 ];
@@ -57,8 +57,8 @@ describe('computeRetirementDate', () => {
 
   it('computes Kendall retirement date', () => {
     const date = computeRetirementDate(seedPersons[1]);
-    // 1994-11-16 + 60y 8m = 2055-07-16 (1-day rounding from original 2055-07-15)
-    expect(date.toISOString().slice(0, 10)).toBe('2055-07-16');
+    // 1994-11-16 + 60y 7m 29d = 2055-07-15
+    expect(date.toISOString().slice(0, 10)).toBe('2055-07-15');
   });
 });
 
@@ -132,7 +132,7 @@ describe('CRUD handlers', () => {
         name: 'NewPerson',
         gender: 'male',
         birthDate: '2000-01-01',
-        retirementAge: { years: 65, months: 0 },
+        retirementAge: { years: 65, months: 0, days: 0 },
         ssStartAge: 67,
       },
     } as Request;
@@ -147,7 +147,7 @@ describe('CRUD handlers', () => {
         name: 'Jake',
         gender: 'male',
         birthDate: '2000-01-01',
-        retirementAge: { years: 65, months: 0 },
+        retirementAge: { years: 65, months: 0, days: 0 },
         ssStartAge: 67,
       },
     } as Request;
@@ -160,7 +160,7 @@ describe('CRUD handlers', () => {
         name: 'Test',
         gender: 'other',
         birthDate: '2000-01-01',
-        retirementAge: { years: 65, months: 0 },
+        retirementAge: { years: 65, months: 0, days: 0 },
         ssStartAge: 67,
       },
     } as Request;
@@ -172,7 +172,7 @@ describe('CRUD handlers', () => {
       body: {
         name: 'Test',
         gender: 'male',
-        retirementAge: { years: 65, months: 0 },
+        retirementAge: { years: 65, months: 0, days: 0 },
         ssStartAge: 67,
       },
     } as Request;
@@ -185,7 +185,7 @@ describe('CRUD handlers', () => {
         name: 'Test',
         gender: 'male',
         birthDate: '2000-01-01',
-        retirementAge: { years: 65, months: 13 },
+        retirementAge: { years: 65, months: 13, days: 0 },
         ssStartAge: 67,
       },
     } as Request;
@@ -219,7 +219,7 @@ describe('CRUD handlers', () => {
           name: 'Third',
           gender: 'male',
           birthDate: '2000-01-01',
-          retirementAge: { years: 65, months: 0 },
+          retirementAge: { years: 65, months: 0, days: 0 },
           ssStartAge: 67,
         },
       ],
@@ -248,7 +248,7 @@ describe('CRUD handlers', () => {
         name: 'Jake',
         gender: 'male',
         birthDate: '1993-07-15',
-        retirementAge: { years: 62, months: 0 },
+        retirementAge: { years: 62, months: 0, days: 0 },
         ssStartAge: 70,
       },
     ] as any);

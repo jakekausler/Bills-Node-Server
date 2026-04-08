@@ -55,6 +55,7 @@ export function computeRetirementDate(person: PersonConfig): Date {
   return dayjs.utc(person.birthDate)
     .add(person.retirementAge.years, 'year')
     .add(person.retirementAge.months, 'month')
+    .add(person.retirementAge.days, 'day')
     .toDate();
 }
 

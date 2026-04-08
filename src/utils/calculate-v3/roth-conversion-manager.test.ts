@@ -64,8 +64,8 @@ vi.mock('../../api/person-config/person-config', () => ({
     throw new Error(`Unknown person: ${name}`);
   }),
   getPersonConfigs: vi.fn(() => [
-    { name: 'Jake', gender: 'male', birthDate: '1993-07-15', retirementAge: { years: 62, months: 0 }, ssStartAge: 70 },
-    { name: 'Kendall', gender: 'female', birthDate: '1994-11-16', retirementAge: { years: 62, months: 0 }, ssStartAge: 70 },
+    { name: 'Jake', gender: 'male', birthDate: '1993-07-15', retirementAge: { years: 62, months: 0, days: 0 }, ssStartAge: 70 },
+    { name: 'Kendall', gender: 'female', birthDate: '1994-11-16', retirementAge: { years: 62, months: 0, days: 0 }, ssStartAge: 70 },
   ]),
 }));
 
