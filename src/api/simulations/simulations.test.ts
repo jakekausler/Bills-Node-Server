@@ -3,15 +3,21 @@ import { Request } from 'express';
 import { getSimulations, updateSimulations } from './simulations';
 import { loadSimulations, saveSimulations } from '../../utils/io/simulation';
 import { formatDate } from '../../utils/date/date';
+import { getSystemVariables } from '../system-variables/system-variables';
+import { getRates } from '../rates-config/rates-config';
 import { Simulations } from '../../utils/simulation/types';
 
 // Mock the dependencies
 vi.mock('../../utils/io/simulation');
 vi.mock('../../utils/date/date');
+vi.mock('../system-variables/system-variables');
+vi.mock('../rates-config/rates-config');
 
 const mockLoadSimulations = vi.mocked(loadSimulations);
 const mockSaveSimulations = vi.mocked(saveSimulations);
 const mockFormatDate = vi.mocked(formatDate);
+const mockGetSystemVariables = vi.mocked(getSystemVariables);
+const mockGetRates = vi.mocked(getRates);
 
 describe('Simulations API', () => {
   const mockRequest = {} as Request;
@@ -19,6 +25,8 @@ describe('Simulations API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFormatDate.mockImplementation((date) => date.toISOString().split('T')[0]);
+    mockGetSystemVariables.mockReturnValue([]);
+    mockGetRates.mockReturnValue([]);
   });
 
   describe('getSimulations', () => {
@@ -74,14 +82,17 @@ describe('Simulations API', () => {
             retirementDate: {
               value: '2030-01-01',
               type: 'date',
+              source: 'user',
             },
             initialBalance: {
               value: 100000,
               type: 'number',
+              source: 'user',
             },
             riskProfile: {
               value: 'conservative',
               type: 'string',
+              source: 'user',
             },
           },
         },
@@ -93,10 +104,12 @@ describe('Simulations API', () => {
             retirementDate: {
               value: '2025-01-01',
               type: 'date',
+              source: 'user',
             },
             initialBalance: {
               value: 150000,
               type: 'number',
+              source: 'user',
             },
           },
         },
@@ -166,14 +179,17 @@ describe('Simulations API', () => {
             salary: {
               value: 80000,
               type: 'number',
+              source: 'user',
             },
             taxRate: {
               value: 0.25,
               type: 'number',
+              source: 'user',
             },
             category: {
               value: 'high-earner',
               type: 'string',
+              source: 'user',
             },
           },
         },
@@ -230,22 +246,27 @@ describe('Simulations API', () => {
         startDate: {
           value: '2024-01-01',
           type: 'date',
+          source: 'user',
         },
         endDate: {
           value: '2024-12-31',
           type: 'date',
+          source: 'user',
         },
         amount: {
           value: 1000,
           type: 'number',
+          source: 'user',
         },
         description: {
           value: 'test scenario',
           type: 'string',
+          source: 'user',
         },
         isActive: {
           value: true,
           type: 'boolean',
+          source: 'user',
         },
       });
       expect(mockFormatDate).toHaveBeenCalledTimes(2);
@@ -380,6 +401,36 @@ describe('Simulations API', () => {
 
       expect(result).toEqual(mockSimulationsData);
       expect(mockSaveSimulations).toHaveBeenCalledWith(mockSimulationsData);
+    });
+  });
+
+  describe('getSimulations - three-source merge', () => {
+    it('should return variables from all three sources with correct source tags', () => {
+      mockGetSystemVariables.mockReturnValue([
+        { name: 'JAKE_RETIRE_DATE', value: new Date('2055-07-01') },
+      ]);
+      mockGetRates.mockReturnValue([
+        { name: 'INFLATION', value: 0.03, description: 'test' },
+      ]);
+      mockLoadSimulations.mockReturnValue([
+        {
+          name: 'Default',
+          enabled: true,
+          selected: true,
+          variables: {
+            MY_VAR: { value: 42, type: 'number' as const },
+          },
+        },
+      ]);
+      mockFormatDate.mockReturnValue('2055-07-01');
+
+      const result = getSimulations(mockRequest);
+
+      expect(result).toHaveLength(1);
+      const vars = result[0].variables;
+      expect(vars.JAKE_RETIRE_DATE).toEqual({ value: '2055-07-01', type: 'date', source: 'system' });
+      expect(vars.INFLATION).toEqual({ value: 0.03, type: 'amount', source: 'rate' });
+      expect(vars.MY_VAR).toEqual({ value: 42, type: 'number', source: 'user' });
     });
   });
 });

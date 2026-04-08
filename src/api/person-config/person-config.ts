@@ -3,7 +3,7 @@ import { load, save } from '../../utils/io/io';
 import type { PersonConfig } from './types';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { ApiError } from '../spendingTracker/spendingTracker';
+import { ApiError } from '../errors';
 
 dayjs.extend(utc);
 

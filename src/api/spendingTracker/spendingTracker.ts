@@ -116,16 +116,8 @@ function validateCategory(
   return errors;
 }
 
-/**
- * Error class with an HTTP status code for API error responses.
- */
-export class ApiError extends Error {
-  statusCode: number;
-  constructor(message: string, statusCode: number) {
-    super(message);
-    this.statusCode = statusCode;
-  }
-}
+import { ApiError } from '../errors';
+export { ApiError };
 
 /**
  * Retrieves all spending tracker categories.

@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { loadVariable } from './variable';
 import { loadSimulations } from '../io/simulation';
+import { resolveSystemVariable } from '../../api/system-variables/system-variables';
+import { isRate, getRate } from '../../api/rates-config/rates-config';
 
 // Project test conventions:
 // - Framework: Vitest with vi.mock()
@@ -12,36 +14,26 @@ vi.mock('../io/simulation', () => ({
   loadSimulations: vi.fn(),
 }));
 
+vi.mock('../../api/system-variables/system-variables', () => ({
+  resolveSystemVariable: vi.fn(() => null),
+}));
+
+vi.mock('../../api/rates-config/rates-config', () => ({
+  isRate: vi.fn(() => false),
+  getRate: vi.fn(),
+}));
+
 const mockLoadSimulations = vi.mocked(loadSimulations);
+const mockResolveSystemVariable = vi.mocked(resolveSystemVariable);
+const mockIsRate = vi.mocked(isRate);
+const mockGetRate = vi.mocked(getRate);
 
 describe('loadVariable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  // ---------------------------------------------------------------------------
-  // Simulation not found
-  // ---------------------------------------------------------------------------
-
-  it('should throw when simulation is not found', () => {
-    mockLoadSimulations.mockReturnValue([]);
-
-    expect(() => loadVariable('MY_VAR', 'NonExistent')).toThrow("Simulation 'NonExistent' not found");
-  });
-
-  it('should throw when simulation name does not match', () => {
-    mockLoadSimulations.mockReturnValue([
-      {
-        name: 'Default',
-        enabled: true,
-        selected: true,
-        variables: {
-          MY_VAR: { type: 'amount', value: 100 },
-        },
-      },
-    ]);
-
-    expect(() => loadVariable('MY_VAR', 'OtherSim')).toThrow("Simulation 'OtherSim' not found");
+    // Defaults: system returns null, isRate returns false
+    mockResolveSystemVariable.mockReturnValue(null);
+    mockIsRate.mockReturnValue(false);
   });
 
   // ---------------------------------------------------------------------------
@@ -49,77 +41,106 @@ describe('loadVariable', () => {
   // ---------------------------------------------------------------------------
 
   it('should return {HALF} directly without looking up variable', () => {
-    mockLoadSimulations.mockReturnValue([
-      {
-        name: 'Default',
-        enabled: true,
-        selected: true,
-        variables: {},
-      },
-    ]);
-
     const result = loadVariable('{HALF}', 'Default');
     expect(result).toBe('{HALF}');
+    // Should not call any source
+    expect(mockResolveSystemVariable).not.toHaveBeenCalled();
+    expect(mockIsRate).not.toHaveBeenCalled();
+    expect(mockLoadSimulations).not.toHaveBeenCalled();
   });
 
   it('should return {FULL} directly without looking up variable', () => {
-    mockLoadSimulations.mockReturnValue([
-      {
-        name: 'Default',
-        enabled: true,
-        selected: true,
-        variables: {},
-      },
-    ]);
-
     const result = loadVariable('{FULL}', 'Default');
     expect(result).toBe('{FULL}');
   });
 
   it('should return -{HALF} directly without looking up variable', () => {
-    mockLoadSimulations.mockReturnValue([
-      {
-        name: 'Default',
-        enabled: true,
-        selected: true,
-        variables: {},
-      },
-    ]);
-
     const result = loadVariable('-{HALF}', 'Default');
     expect(result).toBe('-{HALF}');
   });
 
   it('should return -{FULL} directly without looking up variable', () => {
-    mockLoadSimulations.mockReturnValue([
-      {
-        name: 'Default',
-        enabled: true,
-        selected: true,
-        variables: {},
-      },
-    ]);
-
     const result = loadVariable('-{FULL}', 'Default');
     expect(result).toBe('-{FULL}');
   });
 
   it('should trim whitespace from variable name before checking special values', () => {
-    mockLoadSimulations.mockReturnValue([
-      {
-        name: 'Default',
-        enabled: true,
-        selected: true,
-        variables: {},
-      },
-    ]);
-
     const result = loadVariable('  {HALF}  ', 'Default');
     expect(result).toBe('{HALF}');
   });
 
   // ---------------------------------------------------------------------------
-  // Amount variables
+  // System variables (source 1 — highest priority)
+  // ---------------------------------------------------------------------------
+
+  it('should resolve system variable when resolveSystemVariable returns a Date', () => {
+    const date = new Date('2055-07-15T12:00:00.000Z');
+    mockResolveSystemVariable.mockReturnValue(date);
+
+    const result = loadVariable('JAKE_RETIRE_DATE', 'Default');
+    expect(result).toBe(date);
+    expect(mockResolveSystemVariable).toHaveBeenCalledWith('JAKE_RETIRE_DATE');
+    // Should not fall through to rates or user vars
+    expect(mockIsRate).not.toHaveBeenCalled();
+    expect(mockLoadSimulations).not.toHaveBeenCalled();
+  });
+
+  it('should prefer system variable over user variable with same name', () => {
+    const systemDate = new Date('2055-07-15T12:00:00.000Z');
+    mockResolveSystemVariable.mockReturnValue(systemDate);
+    mockLoadSimulations.mockReturnValue([
+      {
+        name: 'Default',
+        enabled: true,
+        selected: true,
+        variables: {
+          JAKE_RETIRE_DATE: { type: 'date', value: '2060-01-01' },
+        },
+      },
+    ]);
+
+    const result = loadVariable('JAKE_RETIRE_DATE', 'Default');
+    expect(result).toBe(systemDate);
+    expect(mockLoadSimulations).not.toHaveBeenCalled();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Rate variables (source 2)
+  // ---------------------------------------------------------------------------
+
+  it('should resolve rate variable when isRate returns true', () => {
+    mockIsRate.mockReturnValue(true);
+    mockGetRate.mockReturnValue(0.03);
+
+    const result = loadVariable('INFLATION', 'Default');
+    expect(result).toBe(0.03);
+    expect(mockIsRate).toHaveBeenCalledWith('INFLATION');
+    expect(mockGetRate).toHaveBeenCalledWith('INFLATION');
+    // Should not fall through to user vars
+    expect(mockLoadSimulations).not.toHaveBeenCalled();
+  });
+
+  it('should prefer rate variable over user variable with same name', () => {
+    mockIsRate.mockReturnValue(true);
+    mockGetRate.mockReturnValue(0.05);
+    mockLoadSimulations.mockReturnValue([
+      {
+        name: 'Default',
+        enabled: true,
+        selected: true,
+        variables: {
+          INFLATION: { type: 'amount', value: 0.99 },
+        },
+      },
+    ]);
+
+    const result = loadVariable('INFLATION', 'Default');
+    expect(result).toBe(0.05);
+    expect(mockLoadSimulations).not.toHaveBeenCalled();
+  });
+
+  // ---------------------------------------------------------------------------
+  // User variables (source 3 — lowest priority)
   // ---------------------------------------------------------------------------
 
   it('should return numeric value for amount variable with number value', () => {
@@ -145,13 +166,13 @@ describe('loadVariable', () => {
         enabled: true,
         selected: true,
         variables: {
-          INFLATION: { type: 'amount', value: '0.03' },
+          JAKE_SPENDING: { type: 'amount', value: '100' },
         },
       },
     ]);
 
-    const result = loadVariable('INFLATION', 'Default');
-    expect(result).toBe(0.03);
+    const result = loadVariable('JAKE_SPENDING', 'Default');
+    expect(result).toBe(100);
   });
 
   it('should parse negative string to number for amount variable', () => {
@@ -170,10 +191,6 @@ describe('loadVariable', () => {
     expect(result).toBe(-1500.5);
   });
 
-  // ---------------------------------------------------------------------------
-  // Date variables
-  // ---------------------------------------------------------------------------
-
   it('should parse string date for date variable with string value', () => {
     mockLoadSimulations.mockReturnValue([
       {
@@ -188,7 +205,6 @@ describe('loadVariable', () => {
 
     const result = loadVariable('RETIRE_DATE', 'Default');
     expect(result).toBeInstanceOf(Date);
-    // parseDate adds T12:00:00Z
     expect((result as Date).toISOString()).toBe('2030-01-15T12:00:00.000Z');
   });
 
@@ -209,25 +225,6 @@ describe('loadVariable', () => {
     expect(result).toBe(dateValue);
   });
 
-  // ---------------------------------------------------------------------------
-  // Variable not found in simulation
-  // ---------------------------------------------------------------------------
-
-  it('should throw when variable is not in simulation variables', () => {
-    mockLoadSimulations.mockReturnValue([
-      {
-        name: 'Default',
-        enabled: true,
-        selected: true,
-        variables: {
-          OTHER_VAR: { type: 'amount', value: 100 },
-        },
-      },
-    ]);
-
-    expect(() => loadVariable('MISSING_VAR', 'Default')).toThrow("Invalid variable 'MISSING_VAR'");
-  });
-
   it('should trim whitespace before looking up variable name in simulation', () => {
     mockLoadSimulations.mockReturnValue([
       {
@@ -243,29 +240,6 @@ describe('loadVariable', () => {
     const result = loadVariable('  SALARY  ', 'Default');
     expect(result).toBe(3000);
   });
-
-  // ---------------------------------------------------------------------------
-  // Invalid variable type
-  // ---------------------------------------------------------------------------
-
-  it('should throw when variable has an invalid type', () => {
-    mockLoadSimulations.mockReturnValue([
-      {
-        name: 'Default',
-        enabled: true,
-        selected: true,
-        variables: {
-          BAD_TYPE_VAR: { type: 'unknown' as never, value: 42 },
-        },
-      },
-    ]);
-
-    expect(() => loadVariable('BAD_TYPE_VAR', 'Default')).toThrow("Invalid variable type 'unknown'");
-  });
-
-  // ---------------------------------------------------------------------------
-  // Multiple simulations
-  // ---------------------------------------------------------------------------
 
   it('should load from the correct simulation when multiple exist', () => {
     mockLoadSimulations.mockReturnValue([
@@ -292,5 +266,78 @@ describe('loadVariable', () => {
 
     const aggressiveResult = loadVariable('RATE', 'Aggressive');
     expect(aggressiveResult).toBe(0.08);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Error cases
+  // ---------------------------------------------------------------------------
+
+  it('should throw when simulation is not found (user variable path)', () => {
+    mockLoadSimulations.mockReturnValue([]);
+
+    expect(() => loadVariable('MY_VAR', 'NonExistent')).toThrow("Simulation 'NonExistent' not found");
+  });
+
+  it('should throw when simulation name does not match', () => {
+    mockLoadSimulations.mockReturnValue([
+      {
+        name: 'Default',
+        enabled: true,
+        selected: true,
+        variables: {
+          MY_VAR: { type: 'amount', value: 100 },
+        },
+      },
+    ]);
+
+    expect(() => loadVariable('MY_VAR', 'OtherSim')).toThrow("Simulation 'OtherSim' not found");
+  });
+
+  it('should throw when variable is not in simulation variables', () => {
+    mockLoadSimulations.mockReturnValue([
+      {
+        name: 'Default',
+        enabled: true,
+        selected: true,
+        variables: {
+          OTHER_VAR: { type: 'amount', value: 100 },
+        },
+      },
+    ]);
+
+    expect(() => loadVariable('MISSING_VAR', 'Default')).toThrow("Invalid variable 'MISSING_VAR'");
+  });
+
+  it('should throw when variable has an invalid type', () => {
+    mockLoadSimulations.mockReturnValue([
+      {
+        name: 'Default',
+        enabled: true,
+        selected: true,
+        variables: {
+          BAD_TYPE_VAR: { type: 'unknown' as never, value: 42 },
+        },
+      },
+    ]);
+
+    expect(() => loadVariable('BAD_TYPE_VAR', 'Default')).toThrow("Invalid variable type 'unknown'");
+  });
+
+  // ---------------------------------------------------------------------------
+  // Resolution order verification
+  // ---------------------------------------------------------------------------
+
+  it('should check system first, then rate, then user', () => {
+    // All sources return null/false — should reach user vars and throw
+    mockLoadSimulations.mockReturnValue([
+      { name: 'Default', enabled: true, selected: true, variables: {} },
+    ]);
+
+    expect(() => loadVariable('UNKNOWN', 'Default')).toThrow("Invalid variable 'UNKNOWN'");
+
+    // Verify call order
+    expect(mockResolveSystemVariable).toHaveBeenCalledWith('UNKNOWN');
+    expect(mockIsRate).toHaveBeenCalledWith('UNKNOWN');
+    expect(mockLoadSimulations).toHaveBeenCalled();
   });
 });

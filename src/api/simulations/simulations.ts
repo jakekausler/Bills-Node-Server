@@ -1,76 +1,63 @@
 import { Request } from 'express';
 import { loadSimulations, saveSimulations } from '../../utils/io/simulation';
 import { formatDate } from '../../utils/date/date';
+import { getSystemVariables } from '../system-variables/system-variables';
+import { getRates } from '../rates-config/rates-config';
 
 /**
- * Retrieves all simulation configurations with formatted variables.
+ * Retrieves all simulation configurations with variables merged from three sources.
  *
- * Date variables are formatted as strings using formatDate utility.
- * Other variable types (number, string, boolean) are returned as-is.
+ * Each variable includes a `source` field indicating its origin:
+ * - 'system': Person-derived dates (retirement, SS start)
+ * - 'rate': Financial rates from ratesConfig.json
+ * - 'user': User-configured variables from variables.csv
  *
  * @param _request - Express request object (unused)
- * @returns Array of simulation objects with formatted variables
- *
- * @example
- * ```typescript
- * const simulations = getSimulations(request);
- * // Returns: [
- * //   {
- * //     name: "Base Scenario",
- * //     enabled: true,
- * //     selected: true,
- * //     variables: {
- * //       retirementDate: { value: "2030-01-01", type: "date" },
- * //       initialBalance: { value: 100000, type: "number" }
- * //     }
- * //   }
- * // ]
- * ```
+ * @returns Array of simulation objects with merged, source-tagged variables
  */
 export function getSimulations(_request: Request) {
-  return loadSimulations().map((simulation) => ({
-    name: simulation.name,
-    enabled: simulation.enabled,
-    selected: simulation.selected,
-    variables: Object.fromEntries(
-      Object.entries(simulation.variables).map(([key, value]) => [
-        key,
-        {
-          value: value.type === 'date' ? formatDate(value.value as Date) : value.value,
-          type: value.type,
-        },
-      ]),
-    ),
-  }));
+  const systemVars = getSystemVariables();
+  const rates = getRates();
+
+  return loadSimulations().map((simulation) => {
+    const variables: Record<string, { value: string | number; type: string; source: string }> = {};
+
+    // System variables (person-derived dates)
+    for (const sv of systemVars) {
+      variables[sv.name] = { value: formatDate(sv.value as Date), type: 'date', source: 'system' };
+    }
+
+    // Rate variables (from ratesConfig.json)
+    for (const rate of rates) {
+      variables[rate.name] = { value: rate.value, type: 'amount', source: 'rate' };
+    }
+
+    // User variables (from variables.csv per simulation)
+    for (const [key, val] of Object.entries(simulation.variables)) {
+      variables[key] = {
+        value: val.type === 'date' ? formatDate(val.value as Date) : val.value,
+        type: val.type,
+        source: 'user',
+      };
+    }
+
+    return {
+      name: simulation.name,
+      enabled: simulation.enabled,
+      selected: simulation.selected,
+      variables,
+    };
+  });
 }
 
 /**
  * Updates simulation configurations with new data.
  *
  * Saves the provided simulation data to storage and returns the saved data.
+ * Only user variables are persisted — system and rate variables are read-only.
  *
  * @param request - Express request object containing simulation data
  * @returns The updated simulation data that was saved
- *
- * @example
- * ```typescript
- * // Request body should contain:
- * // {
- * //   data: [
- * //     {
- * //       name: "Updated Scenario",
- * //       enabled: true,
- * //       selected: true,
- * //       variables: {
- * //         retirementDate: { value: new Date('2030-01-01'), type: "date" },
- * //         initialBalance: { value: 200000, type: "number" }
- * //       }
- * //     }
- * //   ]
- * // }
- *
- * const updatedSimulations = updateSimulations(request);
- * ```
  */
 export function updateSimulations(request: Request) {
   const simulations = request.body;
@@ -80,6 +67,16 @@ export function updateSimulations(request: Request) {
   for (const sim of simulations) {
     if (typeof sim.name !== 'string' || typeof sim.enabled !== 'boolean' || typeof sim.selected !== 'boolean') {
       throw new Error('Invalid simulation format: each simulation must have name (string), enabled (boolean), and selected (boolean)');
+    }
+  }
+  // Strip system/rate variables that may have been included in client payload
+  for (const sim of simulations) {
+    if (sim.variables) {
+      for (const [key, val] of Object.entries(sim.variables)) {
+        if (val && typeof val === 'object' && 'source' in val && (val.source === 'system' || val.source === 'rate')) {
+          delete sim.variables[key];
+        }
+      }
     }
   }
   saveSimulations(simulations);

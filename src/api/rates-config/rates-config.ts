@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import { load, save } from '../../utils/io/io';
 import type { RateConfig } from './types';
-import { ApiError } from '../spendingTracker/spendingTracker';
+import { ApiError } from '../errors';
 
 const CONFIG_FILE = 'ratesConfig.json';
 
