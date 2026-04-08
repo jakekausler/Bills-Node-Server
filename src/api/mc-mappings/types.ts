@@ -1,5 +1,5 @@
 export interface MCMapping {
-  sampleType: string;       // MonteCarloSampleType enum value (e.g., 'Inflation')
-  variable: string | null;  // Rate variable name (e.g., 'INFLATION') or null if unmapped
-  description: string;      // Human-readable description of this sample type
+  variable: string;          // Rate variable name (e.g., 'INFLATION')
+  sampleType: string | null; // MonteCarloSampleType value or null if unmapped
+  description: string;       // Description of the rate variable
 }
