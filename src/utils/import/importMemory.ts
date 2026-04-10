@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { load, save, checkExists } from '../io/io';
+import { load, save } from '../io/io';
 import type { ImportMemory } from '../../api/import/types';
 
 const IMPORT_MEMORY_FILE = 'importMemory.json';

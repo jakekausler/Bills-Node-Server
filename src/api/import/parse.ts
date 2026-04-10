@@ -37,7 +37,10 @@ export async function parseStatement(req: Request, res: Response): Promise<void>
       rows = result.rows;
       malformedRows = result.malformedRows;
     } catch (err) {
-      res.status(400).json({ error: (err as Error).message });
+      const message = err instanceof Error && err.message.startsWith('CSV')
+        ? err.message
+        : 'Failed to parse file';
+      res.status(400).json({ error: message });
       return;
     }
 
@@ -59,6 +62,7 @@ export async function parseStatement(req: Request, res: Response): Promise<void>
       headers,
       rows,
       headerHash,
+      fileHash,
       malformedRows,
       duplicateWarning,
     };
@@ -66,6 +70,9 @@ export async function parseStatement(req: Request, res: Response): Promise<void>
     res.json(response);
   } catch (err) {
     console.error('Parse error:', err);
-    res.status(500).json({ error: (err as Error).message });
+    const message = err instanceof Error && err.message.startsWith('CSV')
+      ? err.message
+      : 'Failed to parse file';
+    res.status(500).json({ error: message });
   }
 }

@@ -41,6 +41,21 @@ export async function getImportMemory(req: Request, res: Response): Promise<void
  */
 export async function updateImportMemory(req: Request, res: Response): Promise<void> {
   try {
+    // Validate request body is an object
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      res.status(400).json({ error: 'Request body must be an object' });
+      return;
+    }
+
+    // Validate only known keys are present
+    const allowedKeys = new Set(['formatMappings', 'transactionMappings', 'transferOverrides', 'importedFileHashes']);
+    const providedKeys = Object.keys(req.body);
+    const unknownKeys = providedKeys.filter(key => !allowedKeys.has(key));
+    if (unknownKeys.length > 0) {
+      res.status(400).json({ error: `Unknown keys: ${unknownKeys.join(', ')}` });
+      return;
+    }
+
     const partialMemory = req.body as Partial<ImportMemory>;
 
     const memory = loadImportMemory();

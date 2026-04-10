@@ -25,6 +25,7 @@ export interface ParseResponse {
   headers: string[];
   rows: string[][];
   headerHash: string;
+  fileHash: string;
   malformedRows: { line: number; content: string }[];
   duplicateWarning: boolean;
 }
