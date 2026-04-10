@@ -114,6 +114,8 @@ import { getRatesConfigHandler, updateRatesConfigHandler } from './api/rates-con
 import { getMCMappingsHandler, updateMCMappingsHandler } from './api/mc-mappings/mc-mappings';
 import { getLTCConfigs, updateLTCConfigs, getLTCTransitions, updateLTCTransitions } from './api/insurance/ltc';
 import { getInheritanceConfigs, updateInheritanceConfigs } from './api/inheritance/inheritance';
+import { parseStatement } from './api/import/parse';
+import { getImportMemory, updateImportMemory, deleteImportMemory } from './api/import/memory';
 
 declare global {
   namespace Express {
@@ -1477,6 +1479,12 @@ app.get('/api/portfolio/ledger/:accountId', verifyToken, asyncHandler(async (req
 app.get('/api/portfolio/positions/:accountId', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   await getPositions(req, res);
 }));
+
+// Bank/CC Statement Import
+app.post('/api/import/parse', verifyToken, upload.single('file'), asyncHandler(parseStatement));
+app.get('/api/import/memory', verifyToken, asyncHandler(getImportMemory));
+app.put('/api/import/memory', verifyToken, asyncHandler(updateImportMemory));
+app.delete('/api/import/memory', verifyToken, asyncHandler(deleteImportMemory));
 
 // Portfolio price routes (note: /current and /history/:symbol must come before /:symbol)
 app.get('/api/prices/current', verifyToken, asyncHandler(async (req: Request, res: Response) => {

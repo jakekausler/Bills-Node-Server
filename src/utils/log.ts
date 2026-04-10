@@ -23,7 +23,7 @@ export function logToFile(message: string, reset: boolean = false) {
  * TODO (tech debt - no tracker item): Needs to handle recursive calls
  * @param _fn - Function or function name to start timing for
  */
-export function startTiming(_fn: Function | string) {
+export function startTiming(_fn: ((...args: unknown[]) => unknown) | string) {
   // const name = _fn instanceof Function ? _fn.name : _fn;
   // functionTimings[name] = Date.now();
   // console.log(`=== ${_getIndent()}|  ${name} started`);
@@ -35,7 +35,7 @@ export function startTiming(_fn: Function | string) {
  * Still referenced by src/utils/graph/graph.ts and legacy calculate/ code.
  * @param _fn - Function or function name to end timing for
  */
-export function endTiming(_fn: Function | string) {
+export function endTiming(_fn: ((...args: unknown[]) => unknown) | string) {
   // const name = _fn instanceof Function ? _fn.name : _fn;
   // const startTime = functionTimings[name];
   // const endTime = Date.now();
