@@ -34,3 +34,5 @@ data/currentPrices.json
 data.bak/
 .omc/
 data/personConfig.json
+data/importMemory.json
+data/*.pre-sync-backup
