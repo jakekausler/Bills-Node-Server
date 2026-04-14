@@ -116,6 +116,7 @@ import { getLTCConfigs, updateLTCConfigs, getLTCTransitions, updateLTCTransition
 import { getInheritanceConfigs, updateInheritanceConfigs } from './api/inheritance/inheritance';
 import { parseStatement } from './api/import/parse';
 import { getImportMemory, updateImportMemory, deleteImportMemory } from './api/import/memory';
+import { executeImport } from './api/import/execute';
 
 declare global {
   namespace Express {
@@ -1485,6 +1486,7 @@ app.post('/api/import/parse', verifyToken, upload.single('file'), asyncHandler(p
 app.get('/api/import/memory', verifyToken, asyncHandler(getImportMemory));
 app.put('/api/import/memory', verifyToken, asyncHandler(updateImportMemory));
 app.delete('/api/import/memory', verifyToken, asyncHandler(deleteImportMemory));
+app.post('/api/import/execute', verifyToken, asyncHandler(executeImport));
 
 // Portfolio price routes (note: /current and /history/:symbol must come before /:symbol)
 app.get('/api/prices/current', verifyToken, asyncHandler(async (req: Request, res: Response) => {

@@ -19,6 +19,12 @@ vi.mock('../../utils/simulation/loadVariableValue', () => ({
 
 vi.mock('../../utils/date/date', () => ({
   formatDate: vi.fn((date) => date.toISOString().split('T')[0]),
+  parseDate: vi.fn((dateString) => new Date(dateString + 'T12:00:00Z')),
+  isBeforeOrSame: vi.fn((d1, d2) => {
+    const a = new Date(d1).setHours(0, 0, 0, 0);
+    const b = new Date(d2).setHours(0, 0, 0, 0);
+    return a <= b;
+  }),
 }));
 
 vi.mock('../activity/activity', () => ({

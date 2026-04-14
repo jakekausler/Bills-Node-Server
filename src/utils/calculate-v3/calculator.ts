@@ -529,15 +529,23 @@ export class Calculator {
       return new Map([[accountId, balanceChange]]);
     }
 
-    // Calculate patient cost
-    const patientCost = this.healthcareManager.calculatePatientCost(activity, config, event.date);
-    this.log('healthcare-patient-cost', { name: activity.name, billAmount: activity.amount, patientCost, configName: config.name });
+    // For entered activities, the amount IS the actual patient cost (what they actually paid)
+    // Just track it against deductible/OOP limits (don't recalculate)
+    const actualCost = Math.abs(activity.amount as number);
 
-    // Create the healthcare expense activity with actual patient cost
-    const healthcareActivity = new ConsolidatedActivity({
-      ...activity.serialize(),
-      amount: -patientCost, // Negative = expense
-    });
+    // Track against healthcare limits
+    this.healthcareManager.recordHealthcareExpense(
+      activity.healthcarePerson || '',
+      event.date,
+      actualCost, // toward deductible
+      actualCost, // toward OOP
+      config,
+    );
+
+    this.log('healthcare-patient-cost', { name: activity.name, billAmount: activity.amount, patientCost: actualCost, configName: config.name });
+
+    // Use the activity's original amount (already the patient cost)
+    const healthcareActivity = new ConsolidatedActivity(activity.serialize());
 
     // Add to segment result
     if (!segmentResult.activitiesAdded.has(event.accountId)) {
@@ -546,20 +554,21 @@ export class Calculator {
     segmentResult.activitiesAdded.get(event.accountId)?.push(healthcareActivity);
 
     // Record healthcare out-of-pocket flow
-    if (this.flowAggregator && patientCost > 0) {
-      this.flowAggregator.recordHealthcare(event.date.getUTCFullYear(), 'outOfPocket', patientCost);
+    if (this.flowAggregator && actualCost > 0) {
+      this.flowAggregator.recordHealthcare(event.date.getUTCFullYear(), 'outOfPocket', actualCost);
     }
 
     // Generate HSA reimbursement if enabled
     if (config.hsaReimbursementEnabled && config.hsaAccountId) {
-      this.generateHSAReimbursement(config.hsaAccountId, event.accountId, patientCost, event.date, segmentResult, activity.name);
+      this.generateHSAReimbursement(config.hsaAccountId, event.accountId, actualCost, event.date, segmentResult, activity.name);
     }
 
     // Update balance
     const currentChange = segmentResult.balanceChanges.get(event.accountId) || 0;
-    segmentResult.balanceChanges.set(event.accountId, currentChange - patientCost);
+    const balanceChange = activity.amount as number; // Use original amount (already negative for expenses)
+    segmentResult.balanceChanges.set(event.accountId, currentChange + balanceChange);
 
-    return new Map([[event.accountId, -patientCost]]);
+    return new Map([[event.accountId, balanceChange]]);
   }
 
   /**

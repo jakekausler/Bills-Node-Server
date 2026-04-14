@@ -94,6 +94,10 @@ export async function updateSpecificActivity(request: Request) {
     activity.to = data.data.to;
   }
 
+  if (activity.isTransfer) {
+    activity.amount = Math.abs(Number(activity.amount));
+  }
+
   if (!activity.isTransfer && originalIsTransfer) {
     // If the new activity is not a transfer but the old activity was, remove the old activity from the transfers and add it to the account
     if (!account) {

@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-import { formatDate } from '../../utils/date/date';
+import { formatDate, parseDate, isBeforeOrSame } from '../../utils/date/date';
 import { loadDateOrVariable } from '../../utils/simulation/loadVariableValue';
 import { loadNumberOrVariable } from '../../utils/simulation/loadVariableValue';
 import { InterestData } from './types';
@@ -128,7 +128,13 @@ export function insertInterest(
   simulation: string = 'Default',
 ) {
   account.activity.push(new Activity(data, simulation));
-  interest.advance();
+
+  // Advance interest until applicableDate passes the entered activity's date
+  const entryDate = parseDate(data.date);
+  do {
+    interest.advance();
+  } while (isBeforeOrSame(interest.applicableDate, entryDate));
+
   account.interests = account.interests.filter(
     (i) => i.id === interest.id || i.applicableDate > interest.applicableDate,
   );

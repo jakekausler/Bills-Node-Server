@@ -577,7 +577,7 @@ describe('Calculator', () => {
       const mockConfig = { hsaReimbursementEnabled: false, hsaAccountId: null };
       const healthcareManager = makeHealthcareManager({
         getActiveConfig: vi.fn(() => mockConfig),
-        calculatePatientCost: vi.fn(() => 75),
+        recordHealthcareExpense: vi.fn(),
       });
       const balanceTracker = makeBalanceTracker({
         getAccountBalance: vi.fn(() => 0),
@@ -598,10 +598,10 @@ describe('Calculator', () => {
 
       const result = calculator.processActivityEvent(event, segmentResult);
 
-      expect(healthcareManager.calculatePatientCost).toHaveBeenCalledWith(activity, mockConfig, event.date);
-      // Patient cost 75 → balance change -75
-      expect(result.get('account-1')).toBe(-75);
-      expect(segmentResult.balanceChanges.get('account-1')).toBe(-75);
+      expect(healthcareManager.recordHealthcareExpense).toHaveBeenCalledWith('Jane', event.date, 200, 200, mockConfig);
+      // Activity's original amount is preserved: -200
+      expect(result.get('account-1')).toBe(-200);
+      expect(segmentResult.balanceChanges.get('account-1')).toBe(-200);
     });
 
     it('generates HSA reimbursement when config has it enabled', () => {
@@ -613,7 +613,7 @@ describe('Calculator', () => {
       const paymentAccount = makeAccount({ id: 'account-1', name: 'Checking' });
       const healthcareManager = makeHealthcareManager({
         getActiveConfig: vi.fn(() => mockConfig),
-        calculatePatientCost: vi.fn(() => 100),
+        recordHealthcareExpense: vi.fn(),
       });
       const balanceTracker = makeBalanceTracker({
         getAccountBalance: vi.fn((id: string) => (id === 'hsa-account' ? 500 : 1000)),
@@ -638,9 +638,10 @@ describe('Calculator', () => {
       expect(segmentResult.activitiesAdded.get('hsa-account')).toBeDefined();
       expect(segmentResult.activitiesAdded.get('hsa-account')!.length).toBeGreaterThanOrEqual(1);
       // The HSA withdrawal should be negative (money leaving HSA)
-      expect(segmentResult.activitiesAdded.get('hsa-account')![0].amount).toBe(-100);
+      // HSA reimbursement is based on actualCost (absolute value of activity amount = 200)
+      expect(segmentResult.activitiesAdded.get('hsa-account')![0].amount).toBe(-200);
       // Payment account should have a positive deposit
-      // (healthcare expense -100 AND reimbursement +100 → net 0 but 2 activities)
+      // (healthcare expense -200 AND reimbursement +200 → net 0 but 2 activities)
       const payActivities = segmentResult.activitiesAdded.get('account-1')!;
       expect(payActivities.length).toBeGreaterThanOrEqual(2);
     });
