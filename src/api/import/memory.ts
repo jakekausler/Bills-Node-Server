@@ -161,6 +161,14 @@ export async function deleteImportMemory(req: Request, res: Response): Promise<v
       return;
     }
 
+    // Clear file hashes
+    if (req.query.clearFileHashes === 'true') {
+      memory.importedFileHashes = [];
+      saveImportMemory(memory);
+      res.json({ success: true });
+      return;
+    }
+
     res.status(400).json({ error: 'Invalid delete parameters' });
   } catch (err) {
     console.error('Delete import memory error:', err);
