@@ -110,6 +110,7 @@ import { getFundMetadata, updateFundMetadata } from './api/portfolio/fund-metada
 import { getAssets, addAsset, updateAsset, deleteAsset } from './api/assets/assets';
 import { getLifeInsurancePolicies, createLifeInsurancePolicy, updateLifeInsurancePolicy, deleteLifeInsurancePolicy } from './api/insurance/life-insurance';
 import { getPersonConfigsHandler, createPersonConfig, updatePersonConfigs, deletePersonConfig } from './api/person-config/person-config';
+import { getPreferencesHandler, updatePreferences } from './api/preferences/preferences';
 import { getRatesConfigHandler, updateRatesConfigHandler } from './api/rates-config/rates-config';
 import { getMCMappingsHandler, updateMCMappingsHandler } from './api/mc-mappings/mc-mappings';
 import { getLTCConfigs, updateLTCConfigs, getLTCTransitions, updateLTCTransitions } from './api/insurance/ltc';
@@ -1570,6 +1571,13 @@ app
   .delete(verifyToken, asyncHandler(async (req: Request, res: Response) => {
     res.json(await deleteLifeInsurancePolicy(req));
   }));
+
+// ─── Preferences Routes ───
+
+app
+  .route('/api/preferences')
+  .get(verifyToken, apiErrorHandler(getPreferencesHandler))
+  .put(verifyToken, express.json(), apiErrorHandler(updatePreferences));
 
 // ─── Person Config Routes ───
 
