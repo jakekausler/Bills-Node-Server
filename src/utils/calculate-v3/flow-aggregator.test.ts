@@ -30,13 +30,26 @@ describe('FlowAggregator', () => {
     expect(flows['2030'].totalExpenses).toBe(3200);
   });
 
-  it('recordTax sets federal and penalty correctly', () => {
-    agg.recordTax(2030, 15000, 500);
+  it('recordTax sets all 7 tax fields correctly', () => {
+    agg.recordTax(2030, {
+      federalIncome: 15000,
+      stateIncome: 1500,
+      capitalGains: 2000,
+      niit: 500,
+      fica: 5000,
+      additionalMedicare: 200,
+      penalty: 500,
+    });
 
     const flows = agg.getYearlyFlows();
-    expect(flows['2030'].expenses.taxes.federal).toBe(15000);
+    expect(flows['2030'].expenses.taxes.federalIncome).toBe(15000);
+    expect(flows['2030'].expenses.taxes.stateIncome).toBe(1500);
+    expect(flows['2030'].expenses.taxes.capitalGains).toBe(2000);
+    expect(flows['2030'].expenses.taxes.niit).toBe(500);
+    expect(flows['2030'].expenses.taxes.fica).toBe(5000);
+    expect(flows['2030'].expenses.taxes.additionalMedicare).toBe(200);
     expect(flows['2030'].expenses.taxes.penalty).toBe(500);
-    expect(flows['2030'].totalExpenses).toBe(15500);
+    expect(flows['2030'].totalExpenses).toBe(24700);
   });
 
   it('recordHealthcare accumulates by type', () => {
@@ -80,7 +93,7 @@ describe('FlowAggregator', () => {
   it('getYearlyFlows computes netCashFlow correctly', () => {
     agg.recordIncome(2030, 'Salary', 80000);
     agg.recordExpense(2030, 'Housing', 24000);
-    agg.recordTax(2030, 10000, 0);
+    agg.recordTax(2030, { federalIncome: 10000 });
 
     const flows = agg.getYearlyFlows();
     // netCashFlow = totalIncome - totalExpenses = 80000 - 34000 = 46000
@@ -117,13 +130,14 @@ describe('FlowAggregator', () => {
     expect(agg.getYearlyFlows()).toEqual({});
   });
 
-  it('handles double recordTax correctly', () => {
-    agg.recordTax(2030, 5000, 200);
-    agg.recordTax(2030, 8000, 300);
+  it('accumulates multiple recordTax calls', () => {
+    agg.recordTax(2030, { fica: 5000, penalty: 200 });
+    agg.recordTax(2030, { federalIncome: 8000, penalty: 300 });
     const flows = agg.getYearlyFlows();
-    expect(flows['2030'].expenses.taxes.federal).toBe(8000);
-    expect(flows['2030'].expenses.taxes.penalty).toBe(300);
-    expect(flows['2030'].totalExpenses).toBe(8300); // not 13500
+    expect(flows['2030'].expenses.taxes.fica).toBe(5000);
+    expect(flows['2030'].expenses.taxes.federalIncome).toBe(8000);
+    expect(flows['2030'].expenses.taxes.penalty).toBe(500); // 200 + 300
+    expect(flows['2030'].totalExpenses).toBe(13500); // 5000 + 8000 + 500
   });
 
   it('handles negative amounts (refunds)', () => {
@@ -147,8 +161,9 @@ describe('FlowAggregator', () => {
     expect(() => agg.recordIncome(2030, 'Bad', NaN)).toThrow('invalid amount');
     expect(() => agg.recordIncome(2030, 'Bad', Infinity)).toThrow('invalid amount');
     expect(() => agg.recordExpense(2030, 'Bad', NaN)).toThrow('invalid amount');
-    expect(() => agg.recordTax(2030, NaN, 0)).toThrow('invalid amount');
-    expect(() => agg.recordTax(2030, 0, Infinity)).toThrow('invalid amount');
+    expect(() => agg.recordTax(2030, { federalIncome: NaN })).toThrow('invalid amount');
+    expect(() => agg.recordTax(2030, { penalty: Infinity })).toThrow('invalid amount');
+    expect(() => agg.recordTax(2030, { fica: NaN })).toThrow('invalid amount');
     expect(() => agg.recordHealthcare(2030, 'cobra', NaN)).toThrow('invalid amount');
     expect(() => agg.recordTransfer(2030, 'autoPulls', NaN)).toThrow('invalid amount');
     expect(() => agg.recordInterest(2030, NaN)).toThrow('invalid amount');

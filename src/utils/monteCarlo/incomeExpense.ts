@@ -75,8 +75,10 @@ function flattenExpenses(flow: YearlyFlowSummary): Record<string, number> {
     }
   }
 
-  // Taxes (federal + penalty combined)
-  const totalTax = flow.expenses.taxes.federal + flow.expenses.taxes.penalty;
+  // Taxes (all 7 categories combined)
+  const totalTax = flow.expenses.taxes.federalIncome + flow.expenses.taxes.stateIncome
+    + flow.expenses.taxes.capitalGains + flow.expenses.taxes.niit + flow.expenses.taxes.fica
+    + flow.expenses.taxes.additionalMedicare + flow.expenses.taxes.penalty;
   if (totalTax !== 0) {
     result['Taxes'] = totalTax;
   }

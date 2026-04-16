@@ -136,6 +136,7 @@ export class Calculator {
       debugLogger,
       simNumber,
       this.jobLossManager,
+      flowAggregator,
     );
     this.rothConversionManager = new RothConversionManager(accountManager, acaManager, debugLogger, simNumber);
     this.rothConversionManager.setBalanceTracker(balanceTracker);
@@ -2305,16 +2306,17 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
       },
     });
 
-    // Record tax flow with federal/state breakdown
+    // Record tax flow — always record full liability regardless of settlement/refund state
     if (this.flowAggregator) {
-      // If settlement is positive, the taxpayer owes (payment)
-      // If settlement is negative, taxpayer gets refund
-      if (reconciliation.settlement > 0) {
-        this.flowAggregator.recordTax(taxYear, reconciliation.federalTax, reconciliation.ssTax);
-      } else {
-        // Refund: record as negative (credit back)
-        this.flowAggregator.recordTax(taxYear, -reconciliation.settlement, 0);
-      }
+      this.flowAggregator.recordTax(taxYear, {
+        federalIncome: reconciliation.federalTax,
+        stateIncome: reconciliation.stateTax,
+        capitalGains: reconciliation.longTermCapitalGainsTax,
+        niit: reconciliation.niitTax,
+        penalty: reconciliation.penaltyTotal,
+        // fica and additionalMedicare come from paycheck processor (accumulated separately)
+        // Note: tax on SS benefits is already folded into federalTax via ordinary income
+      });
     }
 
     // Create the tax activity

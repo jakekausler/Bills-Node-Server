@@ -16,7 +16,15 @@ export interface YearlyFlowSummary {
 
   expenses: {
     bills: Record<string, number>; // keyed by bill category
-    taxes: { federal: number; penalty: number };
+    taxes: {
+      federalIncome: number;      // Federal income tax on ordinary income
+      stateIncome: number;        // State income tax (NC)
+      capitalGains: number;       // Long-term capital gains tax
+      niit: number;               // Net Investment Income Tax (3.8%)
+      fica: number;               // Social Security (6.2%) + Medicare base (1.45%)
+      additionalMedicare: number; // Additional 0.9% Medicare on high earners
+      penalty: number;            // Early withdrawal penalty
+    };
     healthcare: {
       cobra: number;
       aca: number;
@@ -40,6 +48,16 @@ export interface YearlyFlowSummary {
 export type HealthcareType = 'cobra' | 'aca' | 'medicare' | 'hospital' | 'ltcInsurance' | 'ltcCare' | 'outOfPocket' | 'hsaReimbursements';
 export type TransferType = 'rothConversions' | 'rmdDistributions' | 'autoPulls' | 'autoPushes';
 
+export interface TaxBreakdown {
+  federalIncome?: number;
+  stateIncome?: number;
+  capitalGains?: number;
+  niit?: number;
+  fica?: number;
+  additionalMedicare?: number;
+  penalty?: number;
+}
+
 function createEmptySummary(): YearlyFlowSummary {
   return {
     income: {},
@@ -51,7 +69,15 @@ function createEmptySummary(): YearlyFlowSummary {
     },
     expenses: {
       bills: {},
-      taxes: { federal: 0, penalty: 0 },
+      taxes: {
+        federalIncome: 0,
+        stateIncome: 0,
+        capitalGains: 0,
+        niit: 0,
+        fica: 0,
+        additionalMedicare: 0,
+        penalty: 0,
+      },
       healthcare: {
         cobra: 0,
         aca: 0,
@@ -107,15 +133,33 @@ export class FlowAggregator {
     s.totalExpenses += amount;
   }
 
-  recordTax(year: number, federal: number, penalty: number): void {
-    this.validateAmount(federal, 'recordTax federal');
-    this.validateAmount(penalty, 'recordTax penalty');
+  recordTax(year: number, breakdown: TaxBreakdown): void {
     const s = this.getOrCreate(year);
-    // Subtract old values before overwriting to keep totalExpenses consistent
-    s.totalExpenses -= (s.expenses.taxes.federal + s.expenses.taxes.penalty);
-    s.expenses.taxes.federal = federal;
-    s.expenses.taxes.penalty = penalty;
-    s.totalExpenses += federal + penalty;
+
+    // Compute old total before accumulating
+    const oldTotal = s.expenses.taxes.federalIncome + s.expenses.taxes.stateIncome
+      + s.expenses.taxes.capitalGains + s.expenses.taxes.niit + s.expenses.taxes.fica
+      + s.expenses.taxes.additionalMedicare + s.expenses.taxes.penalty;
+
+    // Validate provided fields
+    for (const [key, value] of Object.entries(breakdown)) {
+      if (value !== undefined) this.validateAmount(value, `recordTax ${key}`);
+    }
+
+    // Accumulate (additive semantics)
+    s.expenses.taxes.federalIncome += breakdown.federalIncome ?? 0;
+    s.expenses.taxes.stateIncome += breakdown.stateIncome ?? 0;
+    s.expenses.taxes.capitalGains += breakdown.capitalGains ?? 0;
+    s.expenses.taxes.niit += breakdown.niit ?? 0;
+    s.expenses.taxes.fica += breakdown.fica ?? 0;
+    s.expenses.taxes.additionalMedicare += breakdown.additionalMedicare ?? 0;
+    s.expenses.taxes.penalty += breakdown.penalty ?? 0;
+
+    const newTotal = s.expenses.taxes.federalIncome + s.expenses.taxes.stateIncome
+      + s.expenses.taxes.capitalGains + s.expenses.taxes.niit + s.expenses.taxes.fica
+      + s.expenses.taxes.additionalMedicare + s.expenses.taxes.penalty;
+
+    s.totalExpenses += (newTotal - oldTotal);
   }
 
   recordHealthcare(year: number, type: HealthcareType, amount: number): void {

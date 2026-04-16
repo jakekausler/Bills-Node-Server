@@ -48,7 +48,15 @@ function makeFlow(overrides: Partial<{
     income,
     expenses: {
       bills,
-      taxes: { federal, penalty },
+      taxes: {
+        federalIncome: federal,
+        stateIncome: 0,
+        capitalGains: 0,
+        niit: 0,
+        fica: 0,
+        additionalMedicare: 0,
+        penalty,
+      },
       healthcare: { cobra, aca, medicare, hospital, ltcInsurance, ltcCare, outOfPocket, hsaReimbursements },
     },
     transfers: { rothConversions: 0, rmdDistributions: 0, autoPulls: 0, autoPushes: 0 },

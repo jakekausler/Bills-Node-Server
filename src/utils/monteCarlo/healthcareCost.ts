@@ -6,35 +6,61 @@ import { getLastFlowAggregator } from '../calculate-v3/engine';
 import { loadData } from '../io/accountsAndTransfers';
 import { hasAnyoneSurvivingInYear, getYearWhenAllDead } from './statisticsGraph';
 
-// Cache for waterfall computation results
-const waterfallCache = new Map<string, WaterfallResult>();
+// Cache for healthcare cost computation results
+const healthcareCostCache = new Map<string, HealthcareCostResult>();
 
-// Cache for deterministic waterfall (same pattern as statisticsGraph.ts detCache)
-const detWaterfallCache = new Map<string, { years: string[]; netWorth: number[]; realNetWorth: number[] }>();
+// Cache for deterministic healthcare cost
+const detHealthcareCostCache = new Map<string, { years: string[]; totalHealthcare: number[]; percentOfExpenses: number[]; realTotalHealthcare: number[] }>();
 
-export function clearDetWaterfallCache(): void {
-  detWaterfallCache.clear();
+export function clearDetHealthcareCostCache(): void {
+  detHealthcareCostCache.clear();
 }
 
-export interface WaterfallCohort {
+export interface HealthcareCostCohort {
   label: string;
   years: string[];
-  income: Record<string, number[]>;
-  expenses: Record<string, number[]>;
-  investmentReturns: number[];
-  averageNetWorth: number[];
-  realIncome: Record<string, number[]>;
-  realExpenses: Record<string, number[]>;
-  realInvestmentReturns: number[];
-  realAverageNetWorth: number[];
+  healthcare: {
+    cobra: number[];
+    aca: number[];
+    medicare: number[];
+    hospital: number[];
+    ltcInsurance: number[];
+    ltcCare: number[];
+    outOfPocket: number[];
+    hsaReimbursements: number[]; // NEGATIVE (reduces cost)
+  };
+  totalHealthcare: number[]; // Sum of 7 (HSA subtracts)
+  totalExpenses: number[]; // For % calculation
+  percentOfExpenses: number[]; // totalHealthcare / totalExpenses * 100
+
+  // Real variants
+  realHealthcare: {
+    cobra: number[];
+    aca: number[];
+    medicare: number[];
+    hospital: number[];
+    ltcInsurance: number[];
+    ltcCare: number[];
+    outOfPocket: number[];
+    hsaReimbursements: number[];
+  };
+  realTotalHealthcare: number[];
+  realTotalExpenses: number[];
+
+  // Summary stats (MEDIAN across years)
+  medianAnnualCost: number; // Median of totalHealthcare
+  peakHealthcareYear: { year: string; amount: number };
+  lifetimeHealthcareTotal: number;
+  lifetimePercentOfExpenses: number; // lifetime healthcare / lifetime total expenses
 }
 
-export interface WaterfallResult {
-  cohorts: WaterfallCohort[];
+export interface HealthcareCostResult {
+  cohorts: HealthcareCostCohort[];
   deterministic?: {
     years: string[];
-    netWorth: number[];
-    realNetWorth: number[];
+    totalHealthcare: number[];
+    percentOfExpenses: number[];
+    realTotalHealthcare: number[];
   };
 }
 
@@ -46,52 +72,13 @@ interface SimFlowData {
 }
 
 /**
- * Flatten expense subcategories from a YearlyFlowSummary into a flat Record.
- * Produces keys like: bill category names, "Taxes", and healthcare subcategories.
- * Matches the pattern from incomeExpense.ts.
+ * Compute deterministic healthcare cost overlay (non-Monte Carlo).
+ * Returns total healthcare, percent of expenses, and real variants per year.
  */
-function flattenExpenses(flow: YearlyFlowSummary): Record<string, number> {
-  const result: Record<string, number> = {};
-
-  // Bill categories (grouped by top-level category)
-  for (const [category, amount] of Object.entries(flow.expenses.bills)) {
-    if (category.toLowerCase().includes('ignore')) continue;
-    if (amount !== 0) {
-      result[category] = (result[category] ?? 0) + amount;
-    }
-  }
-
-  // Taxes (all 7 categories combined)
-  const totalTax = flow.expenses.taxes.federalIncome + flow.expenses.taxes.stateIncome
-    + flow.expenses.taxes.capitalGains + flow.expenses.taxes.niit + flow.expenses.taxes.fica
-    + flow.expenses.taxes.additionalMedicare + flow.expenses.taxes.penalty;
-  if (totalTax !== 0) {
-    result['Taxes'] = totalTax;
-  }
-
-  // Healthcare subcategories
-  const hc = flow.expenses.healthcare;
-  if (hc.cobra !== 0) result['COBRA'] = hc.cobra;
-  if (hc.aca !== 0) result['ACA Premiums'] = hc.aca;
-  if (hc.medicare !== 0) result['Medicare'] = hc.medicare;
-  if (hc.hospital !== 0) result['Hospital'] = hc.hospital;
-  if (hc.ltcInsurance !== 0) result['LTC Insurance'] = hc.ltcInsurance;
-  if (hc.ltcCare !== 0) result['LTC Care'] = hc.ltcCare;
-  if (hc.outOfPocket !== 0) result['Out of Pocket'] = hc.outOfPocket;
-  // HSA reimbursements are negative (reduce cost), include if non-zero
-  if (hc.hsaReimbursements !== 0) result['HSA Reimbursements'] = hc.hsaReimbursements;
-
-  return result;
-}
-
-/**
- * Compute deterministic waterfall overlay (non-Monte Carlo).
- * Returns net worth per year and real (inflation-adjusted) variants.
- */
-async function computeDeterministicWaterfall(
+async function computeDeterministicHealthcareCost(
   simulationId: string,
   fileData?: { metadata?: { startDate: string; endDate: string }; results?: SimFlowData[] },
-): Promise<{ years: string[]; netWorth: number[]; realNetWorth: number[] } | null> {
+): Promise<{ years: string[]; totalHealthcare: number[]; percentOfExpenses: number[]; realTotalHealthcare: number[] } | null> {
   const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
 
   try {
@@ -103,7 +90,7 @@ async function computeDeterministicWaterfall(
     }
 
     if (!data?.metadata) {
-      console.warn('No metadata found in simulation file, skipping deterministic waterfall');
+      console.warn('No metadata found in simulation file, skipping deterministic healthcare cost');
       return null;
     }
 
@@ -112,7 +99,7 @@ async function computeDeterministicWaterfall(
 
     // Check cache
     const detCacheKey = `${data.metadata.startDate}:${data.metadata.endDate}:Default`;
-    const cached = detWaterfallCache.get(detCacheKey);
+    const cached = detHealthcareCostCache.get(detCacheKey);
     if (cached) {
       return cached;
     }
@@ -142,8 +129,9 @@ async function computeDeterministicWaterfall(
       .sort((a, b) => a - b);
 
     const years = sortedYears.map((y) => y.toString());
-    const netWorth: number[] = [];
-    const realNetWorth: number[] = [];
+    const totalHealthcare: number[] = [];
+    const percentOfExpenses: number[] = [];
+    const realTotalHealthcare: number[] = [];
 
     // Compute median inflation from MC results for real values
     const mcResults: SimFlowData[] = data.results ?? [];
@@ -166,34 +154,41 @@ async function computeDeterministicWaterfall(
 
     for (const year of sortedYears) {
       const flow = yearlyFlows[year.toString()];
-      netWorth.push(flow.endingBalance);
+      const hc = flow.expenses.healthcare;
+      const yearHealthcare = hc.cobra + hc.aca + hc.medicare + hc.hospital
+        + hc.ltcInsurance + hc.ltcCare + hc.outOfPocket - Math.abs(hc.hsaReimbursements);
+      const yearTotal = flow.totalExpenses;
+
+      totalHealthcare.push(yearHealthcare);
+      percentOfExpenses.push(yearTotal > 0 ? (yearHealthcare / yearTotal) * 100 : 0);
+
       const inflation = medianInflationByYear.get(year) ?? 1.0;
-      realNetWorth.push(flow.endingBalance / inflation);
+      realTotalHealthcare.push(yearHealthcare / inflation);
     }
 
-    const result = { years, netWorth, realNetWorth };
-    detWaterfallCache.set(detCacheKey, result);
+    const result = { years, totalHealthcare, percentOfExpenses, realTotalHealthcare };
+    detHealthcareCostCache.set(detCacheKey, result);
     return result;
   } catch (error) {
-    console.error('Failed to compute deterministic waterfall:', error);
+    console.error('Failed to compute deterministic healthcare cost:', error);
     return null;
   }
 }
 
 /**
- * Compute net worth waterfall using cohort averaging.
+ * Compute healthcare cost using cohort averaging.
  * Ranks simulations by final balance and splits into 5 quintile cohorts.
- * For each cohort, averages category values per year.
+ * For each cohort, averages healthcare sub-categories per year.
  *
  * @param simulationId - ID of the completed MC simulation
  * @param survivingOnly - If true, only include simulations where at least one person survives each year
  * @param survivingYearsOnly - If true, truncate per-sim data at the year all persons die
  */
-export async function computeWaterfall(
+export async function computeHealthcareCost(
   simulationId: string,
   survivingOnly: boolean = false,
   survivingYearsOnly: boolean = false,
-): Promise<WaterfallResult> {
+): Promise<HealthcareCostResult> {
   if (!UUID_REGEX.test(simulationId)) {
     throw new Error('Invalid simulation ID format');
   }
@@ -288,111 +283,82 @@ export async function computeWaterfall(
   const cohortLabels = ['<P20', 'P20-P40', 'P40-P60', 'P60-P80', '>P80'];
 
   // Compute per-cohort averages
-  const cohorts: WaterfallCohort[] = [];
+  const cohorts: HealthcareCostCohort[] = [];
 
   for (let q = 0; q < quintiles.length; q++) {
     const cohortSims = quintiles[q];
     const label = cohortLabels[q];
 
-    // Collect all income sources and expense categories for this cohort
-    const incomeSourcesSet = new Set<string>();
-    const expenseCategoriesSet = new Set<string>();
+    // Initialize per-year arrays for each healthcare category
+    const healthcareCategories = [
+      'cobra',
+      'aca',
+      'medicare',
+      'hospital',
+      'ltcInsurance',
+      'ltcCare',
+      'outOfPocket',
+      'hsaReimbursements',
+    ] as const;
 
-    for (const { sim } of cohortSims) {
-      for (const yearStr of Object.keys(sim.yearlyFlows)) {
-        const flow = sim.yearlyFlows[yearStr];
-        for (const source of Object.keys(flow.income)) {
-          incomeSourcesSet.add(source);
-        }
-        const expenses = flattenExpenses(flow);
-        for (const cat of Object.keys(expenses)) {
-          expenseCategoriesSet.add(cat);
-        }
-      }
-    }
+    const healthcare: Record<string, number[]> = {};
+    const realHealthcare: Record<string, number[]> = {};
+    const totalHealthcare: number[] = [];
+    const totalExpenses: number[] = [];
+    const percentOfExpenses: number[] = [];
+    const realTotalHealthcare: number[] = [];
+    const realTotalExpenses: number[] = [];
 
-    const incomeSources = Array.from(incomeSourcesSet).filter(source => !source.toLowerCase().includes('ignore'));
-    const expenseCategories = Array.from(expenseCategoriesSet).filter(cat => !cat.toLowerCase().includes('ignore'));
-
-    // Initialize per-year arrays
-    const income: Record<string, number[]> = {};
-    const expenses: Record<string, number[]> = {};
-    const investmentReturns: number[] = [];
-    const averageNetWorth: number[] = [];
-    const realIncome: Record<string, number[]> = {};
-    const realExpenses: Record<string, number[]> = {};
-    const realInvestmentReturns: number[] = [];
-    const realAverageNetWorth: number[] = [];
-
-    for (const source of incomeSources) {
-      income[source] = [];
-      realIncome[source] = [];
-    }
-    for (const cat of expenseCategories) {
-      expenses[cat] = [];
-      realExpenses[cat] = [];
+    for (const cat of healthcareCategories) {
+      healthcare[cat] = [];
+      realHealthcare[cat] = [];
     }
 
     // Compute averages per year
     for (const year of sortedYears) {
       const yearStr = year.toString();
 
-      // Income: average for each source (grouped by top-level category)
-      for (const source of incomeSources) {
+      // Healthcare categories: average for each
+      for (const cat of healthcareCategories) {
         const values: number[] = [];
         for (const { sim } of cohortSims) {
           const flow = sim.yearlyFlows?.[yearStr];
           if (flow) {
-            values.push(flow.income[source] ?? 0);
+            values.push(flow.expenses.healthcare[cat as keyof typeof flow.expenses.healthcare] ?? 0);
           }
         }
         const avg = values.length > 0 ? values.reduce((sum, v) => sum + v, 0) / values.length : 0;
-        income[source].push(avg);
+        healthcare[cat].push(avg);
       }
 
-      // Expenses: pre-compute flattened expenses for each sim at this year
-      const flattenedExpenses = cohortSims.map(({ sim }) => {
-        const flow = sim.yearlyFlows?.[yearStr];
-        return flow ? flattenExpenses(flow) : null;
-      });
-
-      // Expenses: average for each category
-      for (const cat of expenseCategories) {
-        const values: number[] = [];
-        for (let si = 0; si < cohortSims.length; si++) {
-          const flat = flattenedExpenses[si];
-          if (flat) {
-            values.push(flat[cat] ?? 0);
-          }
+      // Total healthcare: sum of all 8 categories (HSA is negative, so subtracts)
+      {
+        let sum = 0;
+        for (const cat of healthcareCategories) {
+          sum += healthcare[cat][healthcare[cat].length - 1];
         }
-        const avg = values.length > 0 ? values.reduce((sum, v) => sum + v, 0) / values.length : 0;
-        expenses[cat].push(avg);
+        totalHealthcare.push(sum);
       }
 
-      // Investment returns: average totalInterestEarned
+      // Total expenses
       {
         const values: number[] = [];
         for (const { sim } of cohortSims) {
           const flow = sim.yearlyFlows?.[yearStr];
           if (flow) {
-            values.push(flow.totalInterestEarned ?? 0);
+            values.push(flow.totalExpenses);
           }
         }
         const avg = values.length > 0 ? values.reduce((sum, v) => sum + v, 0) / values.length : 0;
-        investmentReturns.push(avg);
+        totalExpenses.push(avg);
       }
 
-      // Net worth: average endingBalance
+      // Percent of expenses
       {
-        const values: number[] = [];
-        for (const { sim } of cohortSims) {
-          const flow = sim.yearlyFlows?.[yearStr];
-          if (flow) {
-            values.push(flow.endingBalance ?? 0);
-          }
-        }
-        const avg = values.length > 0 ? values.reduce((sum, v) => sum + v, 0) / values.length : 0;
-        averageNetWorth.push(avg);
+        const rate = totalExpenses[totalExpenses.length - 1] > 0
+          ? (totalHealthcare[totalHealthcare.length - 1] / totalExpenses[totalExpenses.length - 1]) * 100
+          : 0;
+        percentOfExpenses.push(rate);
       }
 
       // Median cumulative inflation for this cohort/year
@@ -411,50 +377,90 @@ export async function computeWaterfall(
       }
 
       // Real values: divide by median inflation
-      for (const source of incomeSources) {
-        realIncome[source].push(income[source][income[source].length - 1] / medianInflation);
+      for (const cat of healthcareCategories) {
+        realHealthcare[cat].push(healthcare[cat][healthcare[cat].length - 1] / medianInflation);
       }
-      for (const cat of expenseCategories) {
-        realExpenses[cat].push(expenses[cat][expenses[cat].length - 1] / medianInflation);
-      }
-      realInvestmentReturns.push(investmentReturns[investmentReturns.length - 1] / medianInflation);
-      realAverageNetWorth.push(averageNetWorth[averageNetWorth.length - 1] / medianInflation);
+      realTotalHealthcare.push(totalHealthcare[totalHealthcare.length - 1] / medianInflation);
+      realTotalExpenses.push(totalExpenses[totalExpenses.length - 1] / medianInflation);
     }
 
-    // Filter out zero-value categories
-    const filterZeros = (record: Record<string, number[]>): Record<string, number[]> => {
-      const result: Record<string, number[]> = {};
-      for (const [key, values] of Object.entries(record)) {
-        if (values.some((v) => v !== 0)) {
-          result[key] = values;
-        }
+    // Clip per-year total to >= 0 before computing summary stats, so HSA
+    // reimbursements exceeding OOP in a year do not yield negative median / peak
+    // values. This matches the frontend netting logic which displays clipped
+    // net out-of-pocket in the stacked area view.
+    const clippedTotalHealthcare = totalHealthcare.map((v) => Math.max(0, v));
+
+    // Compute summary stats
+    const medianAnnualCostValue = clippedTotalHealthcare.length > 0
+      ? (() => {
+          const sorted = [...clippedTotalHealthcare].sort((a, b) => a - b);
+          const midIdx = Math.floor(sorted.length / 2);
+          return sorted[midIdx];
+        })()
+      : 0;
+
+    // Single-pass argmax for peak healthcare year (avoids O(N²) pattern)
+    let peakHealthcareYearIndex = -1;
+    let peakHealthcareAmount = 0;
+    for (let i = 0; i < clippedTotalHealthcare.length; i++) {
+      if (clippedTotalHealthcare[i] > peakHealthcareAmount) {
+        peakHealthcareAmount = clippedTotalHealthcare[i];
+        peakHealthcareYearIndex = i;
       }
-      return result;
-    };
+    }
+
+    const lifetimeHealthcareTotal = clippedTotalHealthcare.reduce((sum, v) => sum + v, 0);
+    const lifetimeTotalExpenses = totalExpenses.reduce((sum, v) => sum + v, 0);
+    const lifetimePercentOfExpensesValue = lifetimeTotalExpenses > 0
+      ? (lifetimeHealthcareTotal / lifetimeTotalExpenses) * 100
+      : 0;
 
     cohorts.push({
       label,
       years: yearStrings,
-      income: filterZeros(income),
-      expenses: filterZeros(expenses),
-      investmentReturns,
-      averageNetWorth,
-      realIncome: filterZeros(realIncome),
-      realExpenses: filterZeros(realExpenses),
-      realInvestmentReturns,
-      realAverageNetWorth,
+      healthcare: {
+        cobra: healthcare.cobra,
+        aca: healthcare.aca,
+        medicare: healthcare.medicare,
+        hospital: healthcare.hospital,
+        ltcInsurance: healthcare.ltcInsurance,
+        ltcCare: healthcare.ltcCare,
+        outOfPocket: healthcare.outOfPocket,
+        hsaReimbursements: healthcare.hsaReimbursements,
+      },
+      totalHealthcare,
+      totalExpenses,
+      percentOfExpenses,
+      realHealthcare: {
+        cobra: realHealthcare.cobra,
+        aca: realHealthcare.aca,
+        medicare: realHealthcare.medicare,
+        hospital: realHealthcare.hospital,
+        ltcInsurance: realHealthcare.ltcInsurance,
+        ltcCare: realHealthcare.ltcCare,
+        outOfPocket: realHealthcare.outOfPocket,
+        hsaReimbursements: realHealthcare.hsaReimbursements,
+      },
+      realTotalHealthcare,
+      realTotalExpenses,
+      medianAnnualCost: medianAnnualCostValue,
+      peakHealthcareYear: peakHealthcareYearIndex >= 0
+        ? { year: yearStrings[peakHealthcareYearIndex], amount: peakHealthcareAmount }
+        : { year: '', amount: 0 },
+      lifetimeHealthcareTotal,
+      lifetimePercentOfExpenses: lifetimePercentOfExpensesValue,
     });
   }
 
   // Compute deterministic overlay
-  let deterministic: { years: string[]; netWorth: number[]; realNetWorth: number[] } | undefined;
+  let deterministic: { years: string[]; totalHealthcare: number[]; percentOfExpenses: number[]; realTotalHealthcare: number[] } | undefined;
   try {
-    const detResult = await computeDeterministicWaterfall(simulationId, fileData);
+    const detResult = await computeDeterministicHealthcareCost(simulationId, fileData);
     if (detResult) {
       deterministic = detResult;
     }
   } catch (error) {
-    console.warn('Failed to compute deterministic waterfall overlay:', error);
+    console.warn('Failed to compute deterministic healthcare cost overlay:', error);
   }
 
   return {

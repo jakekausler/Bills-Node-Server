@@ -87,6 +87,7 @@ async function computeDeterministicWithdrawalRate(
       {},
       {
         monteCarlo: false,
+        forceRecalculation: true,
       },
     );
 

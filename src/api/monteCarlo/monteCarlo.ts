@@ -18,6 +18,8 @@ import { SequenceOfReturnsData, loadAndComputeSequenceOfReturns } from '../../ut
 import { WithdrawalRateResult, computeWithdrawalRate, clearDetWithdrawalRateCache } from '../../utils/monteCarlo/withdrawalRate';
 import { SpendingLevelResult, computeSpendingLevel } from '../../utils/monteCarlo/spendingLevel';
 import { WaterfallResult, computeWaterfall, clearDetWaterfallCache } from '../../utils/monteCarlo/waterfall';
+import { TaxBurdenResult, computeTaxBurden, clearDetTaxBurdenCache } from '../../utils/monteCarlo/taxBurden';
+import { HealthcareCostResult, computeHealthcareCost, clearDetHealthcareCostCache } from '../../utils/monteCarlo/healthcareCost';
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 import { loadVariables } from '../../utils/io/variable';
@@ -52,6 +54,12 @@ const spendingLevelCache = new Map<string, SpendingLevelResult>();
 
 // Key: `{simulationId}:{survivingOnly}:{survivingYearsOnly}`
 const waterfallCache = new Map<string, WaterfallResult>();
+
+// Key: `{simulationId}:{survivingOnly}:{survivingYearsOnly}`
+const taxBurdenCache = new Map<string, TaxBurdenResult>();
+
+// Key: `{simulationId}:{survivingOnly}:{survivingYearsOnly}`
+const healthcareCostCache = new Map<string, HealthcareCostResult>();
 
 /**
  * Invalidate all cached graph data for a given simulation
@@ -94,6 +102,16 @@ export function invalidateGraphCache(simulationId: string): void {
       waterfallCache.delete(key);
     }
   }
+  for (const key of taxBurdenCache.keys()) {
+    if (key.startsWith(`${simulationId}:`)) {
+      taxBurdenCache.delete(key);
+    }
+  }
+  for (const key of healthcareCostCache.keys()) {
+    if (key.startsWith(`${simulationId}:`)) {
+      healthcareCostCache.delete(key);
+    }
+  }
 }
 
 /**
@@ -109,9 +127,13 @@ export function clearAllGraphCache(): void {
   withdrawalRateCache.clear();
   spendingLevelCache.clear();
   waterfallCache.clear();
+  taxBurdenCache.clear();
+  healthcareCostCache.clear();
   clearDetCache();
   clearDetWithdrawalRateCache();
   clearDetWaterfallCache();
+  clearDetTaxBurdenCache();
+  clearDetHealthcareCostCache();
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -695,5 +717,91 @@ export async function getWaterfall(req: Request): Promise<WaterfallResult> {
       throw new Error('Flow data not available for this simulation. Please re-run.');
     }
     throw new Error(`Failed to compute waterfall data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Get tax burden analysis for a completed Monte Carlo simulation.
+ * Uses cohort averaging to rank simulations by final balance and split into 5 quintiles.
+ * Returns per-cohort tax sub-categories, effective rates, and summary stats.
+ * Query params: survivingOnly (boolean), survivingYearsOnly (boolean).
+ */
+export async function getTaxBurden(req: Request): Promise<TaxBurdenResult> {
+  const { id } = req.params;
+  const survivingOnly = req.query.survivingOnly === 'true';
+  const survivingYearsOnly = req.query.survivingYearsOnly === 'true';
+
+  if (!id) {
+    throw new Error('Simulation ID is required');
+  }
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
+  if (!(await isSimulationComplete(id))) {
+    throw new Error(`Simulation with ID ${id} is not yet completed`);
+  }
+
+  // Check cache (include survivingOnly and survivingYearsOnly in key)
+  const cacheKey = `${id}:${survivingOnly}:${survivingYearsOnly}`;
+  const cached = taxBurdenCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Compute on-demand
+  try {
+    const result = await computeTaxBurden(id, survivingOnly, survivingYearsOnly);
+    taxBurdenCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Flow data not available') {
+      throw new Error('Flow data not available for this simulation. Please re-run.');
+    }
+    throw new Error(`Failed to compute tax burden data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Get healthcare cost analysis for a completed Monte Carlo simulation.
+ * Uses cohort averaging to rank simulations by final balance and split into 5 quintiles.
+ * Returns per-cohort healthcare sub-categories, percent of expenses, and summary stats.
+ * Query params: survivingOnly (boolean), survivingYearsOnly (boolean).
+ */
+export async function getHealthcareCost(req: Request): Promise<HealthcareCostResult> {
+  const { id } = req.params;
+  const survivingOnly = req.query.survivingOnly === 'true';
+  const survivingYearsOnly = req.query.survivingYearsOnly === 'true';
+
+  if (!id) {
+    throw new Error('Simulation ID is required');
+  }
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
+  if (!(await isSimulationComplete(id))) {
+    throw new Error(`Simulation with ID ${id} is not yet completed`);
+  }
+
+  // Check cache (include survivingOnly and survivingYearsOnly in key)
+  const cacheKey = `${id}:${survivingOnly}:${survivingYearsOnly}`;
+  const cached = healthcareCostCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Compute on-demand
+  try {
+    const result = await computeHealthcareCost(id, survivingOnly, survivingYearsOnly);
+    healthcareCostCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Flow data not available') {
+      throw new Error('Flow data not available for this simulation. Please re-run.');
+    }
+    throw new Error(`Failed to compute healthcare cost data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

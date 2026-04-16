@@ -6,35 +6,59 @@ import { getLastFlowAggregator } from '../calculate-v3/engine';
 import { loadData } from '../io/accountsAndTransfers';
 import { hasAnyoneSurvivingInYear, getYearWhenAllDead } from './statisticsGraph';
 
-// Cache for waterfall computation results
-const waterfallCache = new Map<string, WaterfallResult>();
+// Cache for tax burden computation results
+const taxBurdenCache = new Map<string, TaxBurdenResult>();
 
-// Cache for deterministic waterfall (same pattern as statisticsGraph.ts detCache)
-const detWaterfallCache = new Map<string, { years: string[]; netWorth: number[]; realNetWorth: number[] }>();
+// Cache for deterministic tax burden
+const detTaxBurdenCache = new Map<string, { years: string[]; totalTax: number[]; effectiveRate: number[]; realTotalTax: number[] }>();
 
-export function clearDetWaterfallCache(): void {
-  detWaterfallCache.clear();
+export function clearDetTaxBurdenCache(): void {
+  detTaxBurdenCache.clear();
 }
 
-export interface WaterfallCohort {
+export interface TaxBurdenCohort {
   label: string;
   years: string[];
-  income: Record<string, number[]>;
-  expenses: Record<string, number[]>;
-  investmentReturns: number[];
-  averageNetWorth: number[];
-  realIncome: Record<string, number[]>;
-  realExpenses: Record<string, number[]>;
-  realInvestmentReturns: number[];
-  realAverageNetWorth: number[];
+  taxes: {
+    federalIncome: number[];
+    stateIncome: number[];
+    capitalGains: number[];
+    niit: number[];
+    fica: number[];
+    additionalMedicare: number[];
+    penalty: number[];
+  };
+  effectiveRate: number[]; // (totalTax / totalIncome) * 100 per year
+  totalIncome: number[]; // for effective rate calculation
+  rothConversions: number[];
+
+  // Real (inflation-adjusted) variants
+  realTaxes: {
+    federalIncome: number[];
+    stateIncome: number[];
+    capitalGains: number[];
+    niit: number[];
+    fica: number[];
+    additionalMedicare: number[];
+    penalty: number[];
+  };
+  realTotalIncome: number[];
+  realRothConversions: number[];
+
+  // Summary stats (using MEDIAN across years for cohort's average timeseries)
+  medianEffectiveRate: number; // Median of effectiveRate array
+  peakTaxYear: { year: string; amount: number };
+  lifetimeTaxTotal: number;
+  lifetimeRothConverted: number;
 }
 
-export interface WaterfallResult {
-  cohorts: WaterfallCohort[];
+export interface TaxBurdenResult {
+  cohorts: TaxBurdenCohort[];
   deterministic?: {
     years: string[];
-    netWorth: number[];
-    realNetWorth: number[];
+    totalTax: number[];
+    effectiveRate: number[];
+    realTotalTax: number[];
   };
 }
 
@@ -46,52 +70,13 @@ interface SimFlowData {
 }
 
 /**
- * Flatten expense subcategories from a YearlyFlowSummary into a flat Record.
- * Produces keys like: bill category names, "Taxes", and healthcare subcategories.
- * Matches the pattern from incomeExpense.ts.
+ * Compute deterministic tax burden overlay (non-Monte Carlo).
+ * Returns total tax, effective rate, and real variants per year.
  */
-function flattenExpenses(flow: YearlyFlowSummary): Record<string, number> {
-  const result: Record<string, number> = {};
-
-  // Bill categories (grouped by top-level category)
-  for (const [category, amount] of Object.entries(flow.expenses.bills)) {
-    if (category.toLowerCase().includes('ignore')) continue;
-    if (amount !== 0) {
-      result[category] = (result[category] ?? 0) + amount;
-    }
-  }
-
-  // Taxes (all 7 categories combined)
-  const totalTax = flow.expenses.taxes.federalIncome + flow.expenses.taxes.stateIncome
-    + flow.expenses.taxes.capitalGains + flow.expenses.taxes.niit + flow.expenses.taxes.fica
-    + flow.expenses.taxes.additionalMedicare + flow.expenses.taxes.penalty;
-  if (totalTax !== 0) {
-    result['Taxes'] = totalTax;
-  }
-
-  // Healthcare subcategories
-  const hc = flow.expenses.healthcare;
-  if (hc.cobra !== 0) result['COBRA'] = hc.cobra;
-  if (hc.aca !== 0) result['ACA Premiums'] = hc.aca;
-  if (hc.medicare !== 0) result['Medicare'] = hc.medicare;
-  if (hc.hospital !== 0) result['Hospital'] = hc.hospital;
-  if (hc.ltcInsurance !== 0) result['LTC Insurance'] = hc.ltcInsurance;
-  if (hc.ltcCare !== 0) result['LTC Care'] = hc.ltcCare;
-  if (hc.outOfPocket !== 0) result['Out of Pocket'] = hc.outOfPocket;
-  // HSA reimbursements are negative (reduce cost), include if non-zero
-  if (hc.hsaReimbursements !== 0) result['HSA Reimbursements'] = hc.hsaReimbursements;
-
-  return result;
-}
-
-/**
- * Compute deterministic waterfall overlay (non-Monte Carlo).
- * Returns net worth per year and real (inflation-adjusted) variants.
- */
-async function computeDeterministicWaterfall(
+async function computeDeterministicTaxBurden(
   simulationId: string,
   fileData?: { metadata?: { startDate: string; endDate: string }; results?: SimFlowData[] },
-): Promise<{ years: string[]; netWorth: number[]; realNetWorth: number[] } | null> {
+): Promise<{ years: string[]; totalTax: number[]; effectiveRate: number[]; realTotalTax: number[] } | null> {
   const resultsPath = join(MC_RESULTS_DIR, `${simulationId}.json`);
 
   try {
@@ -103,7 +88,7 @@ async function computeDeterministicWaterfall(
     }
 
     if (!data?.metadata) {
-      console.warn('No metadata found in simulation file, skipping deterministic waterfall');
+      console.warn('No metadata found in simulation file, skipping deterministic tax burden');
       return null;
     }
 
@@ -112,7 +97,7 @@ async function computeDeterministicWaterfall(
 
     // Check cache
     const detCacheKey = `${data.metadata.startDate}:${data.metadata.endDate}:Default`;
-    const cached = detWaterfallCache.get(detCacheKey);
+    const cached = detTaxBurdenCache.get(detCacheKey);
     if (cached) {
       return cached;
     }
@@ -142,8 +127,9 @@ async function computeDeterministicWaterfall(
       .sort((a, b) => a - b);
 
     const years = sortedYears.map((y) => y.toString());
-    const netWorth: number[] = [];
-    const realNetWorth: number[] = [];
+    const totalTax: number[] = [];
+    const effectiveRate: number[] = [];
+    const realTotalTax: number[] = [];
 
     // Compute median inflation from MC results for real values
     const mcResults: SimFlowData[] = data.results ?? [];
@@ -166,34 +152,41 @@ async function computeDeterministicWaterfall(
 
     for (const year of sortedYears) {
       const flow = yearlyFlows[year.toString()];
-      netWorth.push(flow.endingBalance);
+      const t = flow.expenses.taxes;
+      const yearTax = t.federalIncome + t.stateIncome + t.capitalGains + t.niit
+        + t.fica + t.additionalMedicare + t.penalty;
+      const yearIncome = Object.values(flow.income).reduce((sum, v) => sum + v, 0);
+
+      totalTax.push(yearTax);
+      effectiveRate.push(yearIncome > 0 ? (yearTax / yearIncome) * 100 : 0);
+
       const inflation = medianInflationByYear.get(year) ?? 1.0;
-      realNetWorth.push(flow.endingBalance / inflation);
+      realTotalTax.push(yearTax / inflation);
     }
 
-    const result = { years, netWorth, realNetWorth };
-    detWaterfallCache.set(detCacheKey, result);
+    const result = { years, totalTax, effectiveRate, realTotalTax };
+    detTaxBurdenCache.set(detCacheKey, result);
     return result;
   } catch (error) {
-    console.error('Failed to compute deterministic waterfall:', error);
+    console.error('Failed to compute deterministic tax burden:', error);
     return null;
   }
 }
 
 /**
- * Compute net worth waterfall using cohort averaging.
+ * Compute tax burden using cohort averaging.
  * Ranks simulations by final balance and splits into 5 quintile cohorts.
- * For each cohort, averages category values per year.
+ * For each cohort, averages tax sub-categories per year.
  *
  * @param simulationId - ID of the completed MC simulation
  * @param survivingOnly - If true, only include simulations where at least one person survives each year
  * @param survivingYearsOnly - If true, truncate per-sim data at the year all persons die
  */
-export async function computeWaterfall(
+export async function computeTaxBurden(
   simulationId: string,
   survivingOnly: boolean = false,
   survivingYearsOnly: boolean = false,
-): Promise<WaterfallResult> {
+): Promise<TaxBurdenResult> {
   if (!UUID_REGEX.test(simulationId)) {
     throw new Error('Invalid simulation ID format');
   }
@@ -288,111 +281,90 @@ export async function computeWaterfall(
   const cohortLabels = ['<P20', 'P20-P40', 'P40-P60', 'P60-P80', '>P80'];
 
   // Compute per-cohort averages
-  const cohorts: WaterfallCohort[] = [];
+  const cohorts: TaxBurdenCohort[] = [];
 
   for (let q = 0; q < quintiles.length; q++) {
     const cohortSims = quintiles[q];
     const label = cohortLabels[q];
 
-    // Collect all income sources and expense categories for this cohort
-    const incomeSourcesSet = new Set<string>();
-    const expenseCategoriesSet = new Set<string>();
+    // Initialize per-year arrays for each tax category
+    const taxCategories = [
+      'federalIncome',
+      'stateIncome',
+      'capitalGains',
+      'niit',
+      'fica',
+      'additionalMedicare',
+      'penalty',
+    ] as const;
 
-    for (const { sim } of cohortSims) {
-      for (const yearStr of Object.keys(sim.yearlyFlows)) {
-        const flow = sim.yearlyFlows[yearStr];
-        for (const source of Object.keys(flow.income)) {
-          incomeSourcesSet.add(source);
-        }
-        const expenses = flattenExpenses(flow);
-        for (const cat of Object.keys(expenses)) {
-          expenseCategoriesSet.add(cat);
-        }
-      }
-    }
+    const taxes: Record<string, number[]> = {};
+    const realTaxes: Record<string, number[]> = {};
+    const effectiveRate: number[] = [];
+    const totalIncome: number[] = [];
+    const rothConversions: number[] = [];
+    const realTotalIncome: number[] = [];
+    const realRothConversions: number[] = [];
 
-    const incomeSources = Array.from(incomeSourcesSet).filter(source => !source.toLowerCase().includes('ignore'));
-    const expenseCategories = Array.from(expenseCategoriesSet).filter(cat => !cat.toLowerCase().includes('ignore'));
-
-    // Initialize per-year arrays
-    const income: Record<string, number[]> = {};
-    const expenses: Record<string, number[]> = {};
-    const investmentReturns: number[] = [];
-    const averageNetWorth: number[] = [];
-    const realIncome: Record<string, number[]> = {};
-    const realExpenses: Record<string, number[]> = {};
-    const realInvestmentReturns: number[] = [];
-    const realAverageNetWorth: number[] = [];
-
-    for (const source of incomeSources) {
-      income[source] = [];
-      realIncome[source] = [];
-    }
-    for (const cat of expenseCategories) {
-      expenses[cat] = [];
-      realExpenses[cat] = [];
+    for (const cat of taxCategories) {
+      taxes[cat] = [];
+      realTaxes[cat] = [];
     }
 
     // Compute averages per year
     for (const year of sortedYears) {
       const yearStr = year.toString();
 
-      // Income: average for each source (grouped by top-level category)
-      for (const source of incomeSources) {
+      // Tax categories: average for each
+      for (const cat of taxCategories) {
         const values: number[] = [];
         for (const { sim } of cohortSims) {
           const flow = sim.yearlyFlows?.[yearStr];
           if (flow) {
-            values.push(flow.income[source] ?? 0);
+            values.push(flow.expenses.taxes[cat as keyof typeof flow.expenses.taxes] ?? 0);
           }
         }
         const avg = values.length > 0 ? values.reduce((sum, v) => sum + v, 0) / values.length : 0;
-        income[source].push(avg);
+        taxes[cat].push(avg);
       }
 
-      // Expenses: pre-compute flattened expenses for each sim at this year
-      const flattenedExpenses = cohortSims.map(({ sim }) => {
-        const flow = sim.yearlyFlows?.[yearStr];
-        return flow ? flattenExpenses(flow) : null;
-      });
-
-      // Expenses: average for each category
-      for (const cat of expenseCategories) {
-        const values: number[] = [];
-        for (let si = 0; si < cohortSims.length; si++) {
-          const flat = flattenedExpenses[si];
-          if (flat) {
-            values.push(flat[cat] ?? 0);
-          }
-        }
-        const avg = values.length > 0 ? values.reduce((sum, v) => sum + v, 0) / values.length : 0;
-        expenses[cat].push(avg);
-      }
-
-      // Investment returns: average totalInterestEarned
+      // Total income: sum all income sources
       {
         const values: number[] = [];
         for (const { sim } of cohortSims) {
           const flow = sim.yearlyFlows?.[yearStr];
           if (flow) {
-            values.push(flow.totalInterestEarned ?? 0);
+            const income = Object.values(flow.income).reduce((sum, v) => sum + v, 0);
+            values.push(income);
           }
         }
         const avg = values.length > 0 ? values.reduce((sum, v) => sum + v, 0) / values.length : 0;
-        investmentReturns.push(avg);
+        totalIncome.push(avg);
       }
 
-      // Net worth: average endingBalance
+      // Effective rate: (sum of all taxes) / totalIncome * 100
+      {
+        let sumTaxes = 0;
+        for (const cat of taxCategories) {
+          sumTaxes += taxes[cat][taxes[cat].length - 1];
+        }
+        const rate = totalIncome[totalIncome.length - 1] > 0
+          ? (sumTaxes / totalIncome[totalIncome.length - 1]) * 100
+          : 0;
+        effectiveRate.push(rate);
+      }
+
+      // Roth conversions: average from transfers
       {
         const values: number[] = [];
         for (const { sim } of cohortSims) {
           const flow = sim.yearlyFlows?.[yearStr];
           if (flow) {
-            values.push(flow.endingBalance ?? 0);
+            values.push(flow.transfers.rothConversions ?? 0);
           }
         }
         const avg = values.length > 0 ? values.reduce((sum, v) => sum + v, 0) / values.length : 0;
-        averageNetWorth.push(avg);
+        rothConversions.push(avg);
       }
 
       // Median cumulative inflation for this cohort/year
@@ -411,50 +383,92 @@ export async function computeWaterfall(
       }
 
       // Real values: divide by median inflation
-      for (const source of incomeSources) {
-        realIncome[source].push(income[source][income[source].length - 1] / medianInflation);
+      for (const cat of taxCategories) {
+        realTaxes[cat].push(taxes[cat][taxes[cat].length - 1] / medianInflation);
       }
-      for (const cat of expenseCategories) {
-        realExpenses[cat].push(expenses[cat][expenses[cat].length - 1] / medianInflation);
-      }
-      realInvestmentReturns.push(investmentReturns[investmentReturns.length - 1] / medianInflation);
-      realAverageNetWorth.push(averageNetWorth[averageNetWorth.length - 1] / medianInflation);
+      realTotalIncome.push(totalIncome[totalIncome.length - 1] / medianInflation);
+      realRothConversions.push(rothConversions[rothConversions.length - 1] / medianInflation);
     }
 
-    // Filter out zero-value categories
-    const filterZeros = (record: Record<string, number[]>): Record<string, number[]> => {
-      const result: Record<string, number[]> = {};
-      for (const [key, values] of Object.entries(record)) {
-        if (values.some((v) => v !== 0)) {
-          result[key] = values;
-        }
+    // Compute summary stats
+    const medianEffectiveRateValue = effectiveRate.length > 0
+      ? (() => {
+          const sorted = [...effectiveRate].sort((a, b) => a - b);
+          const midIdx = Math.floor(sorted.length / 2);
+          return sorted[midIdx];
+        })()
+      : 0;
+
+    // Compute total tax per year ONCE, then find the argmax in a single pass
+    const totalTaxByYear: number[] = sortedYears.map((_, idx) => {
+      let total = 0;
+      for (const cat of taxCategories) {
+        total += taxes[cat][idx];
       }
-      return result;
-    };
+      return total;
+    });
+
+    let peakTaxYearIndex = -1;
+    let peakTaxAmount = 0;
+    for (let i = 0; i < totalTaxByYear.length; i++) {
+      if (totalTaxByYear[i] > peakTaxAmount) {
+        peakTaxAmount = totalTaxByYear[i];
+        peakTaxYearIndex = i;
+      }
+    }
+
+    const lifetimeTaxTotal = taxCategories.reduce((sum, cat) => {
+      return sum + taxes[cat].reduce((s, v) => s + v, 0);
+    }, 0);
+
+    const lifetimeRothConverted = rothConversions.reduce((sum, v) => sum + v, 0);
+
+    const peakTaxYear = peakTaxYearIndex >= 0
+      ? { year: yearStrings[peakTaxYearIndex], amount: peakTaxAmount }
+      : { year: '', amount: 0 };
 
     cohorts.push({
       label,
       years: yearStrings,
-      income: filterZeros(income),
-      expenses: filterZeros(expenses),
-      investmentReturns,
-      averageNetWorth,
-      realIncome: filterZeros(realIncome),
-      realExpenses: filterZeros(realExpenses),
-      realInvestmentReturns,
-      realAverageNetWorth,
+      taxes: {
+        federalIncome: taxes.federalIncome,
+        stateIncome: taxes.stateIncome,
+        capitalGains: taxes.capitalGains,
+        niit: taxes.niit,
+        fica: taxes.fica,
+        additionalMedicare: taxes.additionalMedicare,
+        penalty: taxes.penalty,
+      },
+      effectiveRate,
+      totalIncome,
+      rothConversions,
+      realTaxes: {
+        federalIncome: realTaxes.federalIncome,
+        stateIncome: realTaxes.stateIncome,
+        capitalGains: realTaxes.capitalGains,
+        niit: realTaxes.niit,
+        fica: realTaxes.fica,
+        additionalMedicare: realTaxes.additionalMedicare,
+        penalty: realTaxes.penalty,
+      },
+      realTotalIncome,
+      realRothConversions,
+      medianEffectiveRate: medianEffectiveRateValue,
+      peakTaxYear,
+      lifetimeTaxTotal,
+      lifetimeRothConverted,
     });
   }
 
   // Compute deterministic overlay
-  let deterministic: { years: string[]; netWorth: number[]; realNetWorth: number[] } | undefined;
+  let deterministic: { years: string[]; totalTax: number[]; effectiveRate: number[]; realTotalTax: number[] } | undefined;
   try {
-    const detResult = await computeDeterministicWaterfall(simulationId, fileData);
+    const detResult = await computeDeterministicTaxBurden(simulationId, fileData);
     if (detResult) {
       deterministic = detResult;
     }
   } catch (error) {
-    console.warn('Failed to compute deterministic waterfall overlay:', error);
+    console.warn('Failed to compute deterministic tax burden overlay:', error);
   }
 
   return {

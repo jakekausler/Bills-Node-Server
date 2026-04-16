@@ -742,6 +742,7 @@ export class TaxManager {
       capitalLossCarryforwardUsed: carryforwardUsed,
       capitalLossCarryforwardRemaining: newCarryforward,
       longTermCapitalGainsTax,
+      penaltyTotal,
       settlement,
     };
   }

@@ -9,6 +9,7 @@ import type { DebugLogger } from './debug-logger';
 import { JobLossManager } from './job-loss-manager';
 import { compoundMCInflation } from './mc-utils';
 import { MonteCarloSampleType } from './types';
+import { FlowAggregator } from './flow-aggregator';
 
 /**
  * Create an empty paycheck result (used when paychecks are suppressed during unemployment)
@@ -42,6 +43,7 @@ export class PaycheckProcessor {
   private taxManager: TaxManager | null;
   private jobLossManager: JobLossManager | null;
   private debugLogger: DebugLogger | null;
+  private flowAggregator: FlowAggregator | null;
   private simNumber: number;
   private currentDate: string = '';
 
@@ -53,6 +55,7 @@ export class PaycheckProcessor {
     debugLogger?: DebugLogger | null,
     simNumber: number = 0,
     jobLossManager?: JobLossManager | null,
+    flowAggregator?: FlowAggregator | null,
   ) {
     this.paycheckStateTracker = paycheckStateTracker;
     this.contributionLimitManager = contributionLimitManager;
@@ -61,6 +64,7 @@ export class PaycheckProcessor {
     this.debugLogger = debugLogger ?? null;
     this.simNumber = simNumber;
     this.jobLossManager = jobLossManager ?? null;
+    this.flowAggregator = flowAggregator ?? null;
   }
 
   setCurrentDate(date: string): void {
@@ -443,6 +447,14 @@ export class PaycheckProcessor {
       this.taxManager.addFicaOccurrence(year, billName, ssTax, medicareTax);
     }
 
+    // Record FICA and additional Medicare in FlowAggregator
+    if (this.flowAggregator && (ssTax > 0 || baseMedicare > 0 || additionalMedicare > 0)) {
+      this.flowAggregator.recordTax(year, {
+        fica: ssTax + baseMedicare,
+        additionalMedicare: additionalMedicare,
+      });
+    }
+
     this.log('paycheck-processed', {
       grossPay,
       netPay,
@@ -657,6 +669,14 @@ export class PaycheckProcessor {
     // Record FICA in TaxManager
     if (this.taxManager && (ssTax > 0 || medicareTax > 0)) {
       this.taxManager.addFicaOccurrence(year, billName, ssTax, medicareTax);
+    }
+
+    // Record FICA and additional Medicare in FlowAggregator
+    if (this.flowAggregator && (ssTax > 0 || baseMedicare > 0 || additionalMedicare > 0)) {
+      this.flowAggregator.recordTax(year, {
+        fica: ssTax + baseMedicare,
+        additionalMedicare: additionalMedicare,
+      });
     }
 
     this.log('bonus-paycheck-processed', {

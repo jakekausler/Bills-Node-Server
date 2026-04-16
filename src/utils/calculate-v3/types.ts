@@ -536,6 +536,8 @@ export type TaxReconciliation = {
   capitalLossCarryforwardUsed: number;
   capitalLossCarryforwardRemaining: number;
   longTermCapitalGainsTax: number;
+  // Early withdrawal penalty (10% penalty on early retirement account withdrawals)
+  penaltyTotal: number;
   // Settlement
   settlement: number; // positive = owes, negative = refund
 };
