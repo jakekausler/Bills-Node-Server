@@ -16,6 +16,7 @@ import { IncomeExpenseResult, computeIncomeExpense } from '../../utils/monteCarl
 import { LongevityDataPoint, computeLongevityAnalysis } from '../../utils/monteCarlo/longevityAnalysis';
 import { SequenceOfReturnsData, loadAndComputeSequenceOfReturns } from '../../utils/monteCarlo/sequenceOfReturns';
 import { WithdrawalRateResult, computeWithdrawalRate, clearDetWithdrawalRateCache } from '../../utils/monteCarlo/withdrawalRate';
+import { SpendingLevelResult, computeSpendingLevel } from '../../utils/monteCarlo/spendingLevel';
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 import { loadVariables } from '../../utils/io/variable';
@@ -44,6 +45,9 @@ const sequenceOfReturnsCache = new Map<string, SequenceOfReturnsData>();
 
 // Key: `{simulationId}`
 const withdrawalRateCache = new Map<string, WithdrawalRateResult>();
+
+// Key: `{simulationId}:{retirementYear}:{survivingOnly}:{survivingYearsOnly}`
+const spendingLevelCache = new Map<string, SpendingLevelResult>();
 
 /**
  * Invalidate all cached graph data for a given simulation
@@ -76,6 +80,11 @@ export function invalidateGraphCache(simulationId: string): void {
       withdrawalRateCache.delete(key);
     }
   }
+  for (const key of spendingLevelCache.keys()) {
+    if (key.startsWith(`${simulationId}:`)) {
+      spendingLevelCache.delete(key);
+    }
+  }
 }
 
 /**
@@ -89,6 +98,7 @@ export function clearAllGraphCache(): void {
   longevityCache.clear();
   sequenceOfReturnsCache.clear();
   withdrawalRateCache.clear();
+  spendingLevelCache.clear();
   clearDetCache();
   clearDetWithdrawalRateCache();
 }
@@ -584,5 +594,52 @@ export async function getWithdrawalRate(req: Request): Promise<WithdrawalRateRes
       throw new Error('Flow data not available for this simulation. Please re-run.');
     }
     throw new Error(`Failed to compute withdrawal rate data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Get sustainable spending level analysis for a completed MC simulation.
+ * Sweeps spending levels against balance trajectories to find safe spending amounts.
+ * Query params: retirementYear (required), survivingOnly, survivingYearsOnly.
+ */
+export async function getSpendingLevel(req: Request): Promise<SpendingLevelResult> {
+  const { id } = req.params;
+  const survivingOnly = req.query.survivingOnly === 'true';
+  const survivingYearsOnly = req.query.survivingYearsOnly === 'true';
+
+  if (!id) {
+    throw new Error('Simulation ID is required');
+  }
+
+  if (!UUID_REGEX.test(id)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
+  if (!(await isSimulationComplete(id))) {
+    throw new Error(`Simulation with ID ${id} is not yet completed`);
+  }
+
+  const retirementYear = parseInt(req.query.retirementYear as string, 10);
+  if (isNaN(retirementYear)) {
+    throw new Error('retirementYear query parameter is required and must be a number');
+  }
+
+  // Check cache
+  const cacheKey = `${id}:${retirementYear}:${survivingOnly}:${survivingYearsOnly}`;
+  const cached = spendingLevelCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Compute on-demand
+  try {
+    const result = await computeSpendingLevel(id, retirementYear, survivingOnly, survivingYearsOnly);
+    spendingLevelCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Flow data not available') {
+      throw new Error('Flow data not available for this simulation. Please re-run.');
+    }
+    throw new Error(`Failed to compute spending level data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
