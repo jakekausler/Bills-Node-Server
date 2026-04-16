@@ -54,6 +54,7 @@ import {
   getIncomeExpense,
   getLongevityData,
   getSequenceOfReturns,
+  getWithdrawalRate,
 } from './api/monteCarlo/monteCarlo';
 import { getHealthcareProgress } from './api/healthcare/progress';
 import { getHealthcareExpenses } from './api/healthcare/expenses';
@@ -522,6 +523,18 @@ app.get('/api/monte_carlo/simulations/:id/longevity', verifyToken, asyncHandler(
 app.get('/api/monte_carlo/simulations/:id/sequence-of-returns', verifyToken, asyncHandler(async (req: Request, res: Response) => {
   try {
     res.json(await getSequenceOfReturns(req));
+  } catch (error) {
+    const statusCode =
+      error instanceof Error && (error.message.includes('not found') || error.message.includes('not yet completed'))
+        ? 404
+        : 400;
+    res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}));
+
+app.get('/api/monte_carlo/simulations/:id/withdrawal-rate', verifyToken, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    res.json(await getWithdrawalRate(req));
   } catch (error) {
     const statusCode =
       error instanceof Error && (error.message.includes('not found') || error.message.includes('not yet completed'))

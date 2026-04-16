@@ -186,7 +186,7 @@ function filterOutAssets(yearlyAccountBalances: YearlyAccountBalances): YearlyAc
  * #14: Check if at least one person is alive at a given year
  * Converts ISO date strings to year and checks if any are >= the given year
  */
-function hasAnyoneSurvivingInYear(deathDates: Record<string, string | null> | undefined, year: number): boolean {
+export function hasAnyoneSurvivingInYear(deathDates: Record<string, string | null> | undefined, year: number): boolean {
   if (!deathDates) return true; // No death data, assume all alive
 
   for (const [_person, deathDateStr] of Object.entries(deathDates)) {
@@ -213,7 +213,7 @@ function hasAnyoneSurvivingInYear(deathDates: Record<string, string | null> | un
  * Get the year when all modeled persons have died
  * Returns null if anyone survives to the end of the simulation
  */
-function getYearWhenAllDead(deathDates: Record<string, string | null> | undefined): number | null {
+export function getYearWhenAllDead(deathDates: Record<string, string | null> | undefined): number | null {
   if (!deathDates) return null;
   let maxDeathYear: number | null = null;
   for (const deathDateStr of Object.values(deathDates)) {

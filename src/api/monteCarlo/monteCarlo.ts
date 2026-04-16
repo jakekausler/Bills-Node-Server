@@ -15,6 +15,7 @@ import { WorstCasesResult, computeWorstCases } from '../../utils/monteCarlo/wors
 import { IncomeExpenseResult, computeIncomeExpense } from '../../utils/monteCarlo/incomeExpense';
 import { LongevityDataPoint, computeLongevityAnalysis } from '../../utils/monteCarlo/longevityAnalysis';
 import { SequenceOfReturnsData, loadAndComputeSequenceOfReturns } from '../../utils/monteCarlo/sequenceOfReturns';
+import { WithdrawalRateResult, computeWithdrawalRate, clearDetWithdrawalRateCache } from '../../utils/monteCarlo/withdrawalRate';
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 import { loadVariables } from '../../utils/io/variable';
@@ -40,6 +41,9 @@ const longevityCache = new Map<string, LongevityDataPoint[]>();
 
 // Key: `{simulationId}:{retirementYear}:{window}:{survivingOnly}`
 const sequenceOfReturnsCache = new Map<string, SequenceOfReturnsData>();
+
+// Key: `{simulationId}`
+const withdrawalRateCache = new Map<string, WithdrawalRateResult>();
 
 /**
  * Invalidate all cached graph data for a given simulation
@@ -67,6 +71,11 @@ export function invalidateGraphCache(simulationId: string): void {
       sequenceOfReturnsCache.delete(key);
     }
   }
+  for (const key of withdrawalRateCache.keys()) {
+    if (key.startsWith(`${simulationId}:`)) {
+      withdrawalRateCache.delete(key);
+    }
+  }
 }
 
 /**
@@ -79,7 +88,9 @@ export function clearAllGraphCache(): void {
   incomeExpenseCache.clear();
   longevityCache.clear();
   sequenceOfReturnsCache.clear();
+  withdrawalRateCache.clear();
   clearDetCache();
+  clearDetWithdrawalRateCache();
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -532,5 +543,46 @@ export async function getSequenceOfReturns(req: Request): Promise<SequenceOfRetu
     return result;
   } catch (error) {
     throw new Error(`Failed to compute sequence-of-returns data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Get net withdrawal rate analysis for a completed Monte Carlo simulation.
+ * Returns fan chart percentile bands + summary statistics.
+ */
+export async function getWithdrawalRate(req: Request): Promise<WithdrawalRateResult> {
+  const { id } = req.params;
+  const survivingOnly = req.query.survivingOnly === 'true';
+  const survivingYearsOnly = req.query.survivingYearsOnly === 'true';
+
+  if (!id) {
+    throw new Error('Simulation ID is required');
+  }
+
+  if (!UUID_REGEX.test(id)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
+  if (!(await isSimulationComplete(id))) {
+    throw new Error(`Simulation with ID ${id} is not yet completed`);
+  }
+
+  // Check cache (include survivingOnly and survivingYearsOnly in key)
+  const cacheKey = `${id}:${survivingOnly}:${survivingYearsOnly}`;
+  const cached = withdrawalRateCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Compute on-demand
+  try {
+    const result = await computeWithdrawalRate(id, survivingOnly, survivingYearsOnly);
+    withdrawalRateCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Flow data not available') {
+      throw new Error('Flow data not available for this simulation. Please re-run.');
+    }
+    throw new Error(`Failed to compute withdrawal rate data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
