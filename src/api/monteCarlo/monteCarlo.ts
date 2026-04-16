@@ -17,6 +17,7 @@ import { LongevityDataPoint, computeLongevityAnalysis } from '../../utils/monteC
 import { SequenceOfReturnsData, loadAndComputeSequenceOfReturns } from '../../utils/monteCarlo/sequenceOfReturns';
 import { WithdrawalRateResult, computeWithdrawalRate, clearDetWithdrawalRateCache } from '../../utils/monteCarlo/withdrawalRate';
 import { SpendingLevelResult, computeSpendingLevel } from '../../utils/monteCarlo/spendingLevel';
+import { WaterfallResult, computeWaterfall, clearDetWaterfallCache } from '../../utils/monteCarlo/waterfall';
 import { MC_RESULTS_DIR } from '../../utils/monteCarlo/paths';
 import { DebugLogger } from '../../utils/calculate-v3/debug-logger';
 import { loadVariables } from '../../utils/io/variable';
@@ -48,6 +49,9 @@ const withdrawalRateCache = new Map<string, WithdrawalRateResult>();
 
 // Key: `{simulationId}:{retirementYear}:{survivingOnly}:{survivingYearsOnly}`
 const spendingLevelCache = new Map<string, SpendingLevelResult>();
+
+// Key: `{simulationId}:{survivingOnly}:{survivingYearsOnly}`
+const waterfallCache = new Map<string, WaterfallResult>();
 
 /**
  * Invalidate all cached graph data for a given simulation
@@ -85,6 +89,11 @@ export function invalidateGraphCache(simulationId: string): void {
       spendingLevelCache.delete(key);
     }
   }
+  for (const key of waterfallCache.keys()) {
+    if (key.startsWith(`${simulationId}:`)) {
+      waterfallCache.delete(key);
+    }
+  }
 }
 
 /**
@@ -99,8 +108,10 @@ export function clearAllGraphCache(): void {
   sequenceOfReturnsCache.clear();
   withdrawalRateCache.clear();
   spendingLevelCache.clear();
+  waterfallCache.clear();
   clearDetCache();
   clearDetWithdrawalRateCache();
+  clearDetWaterfallCache();
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -641,5 +652,48 @@ export async function getSpendingLevel(req: Request): Promise<SpendingLevelResul
       throw new Error('Flow data not available for this simulation. Please re-run.');
     }
     throw new Error(`Failed to compute spending level data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Get net worth waterfall analysis for a completed Monte Carlo simulation.
+ * Uses cohort averaging to rank simulations by final balance and split into 5 quintiles.
+ * Returns per-cohort income, expenses, investment returns, and average net worth.
+ * Query params: survivingOnly (boolean), survivingYearsOnly (boolean).
+ */
+export async function getWaterfall(req: Request): Promise<WaterfallResult> {
+  const { id } = req.params;
+  const survivingOnly = req.query.survivingOnly === 'true';
+  const survivingYearsOnly = req.query.survivingYearsOnly === 'true';
+
+  if (!id) {
+    throw new Error('Simulation ID is required');
+  }
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    throw new Error('Invalid simulation ID format');
+  }
+
+  if (!(await isSimulationComplete(id))) {
+    throw new Error(`Simulation with ID ${id} is not yet completed`);
+  }
+
+  // Check cache (include survivingOnly and survivingYearsOnly in key)
+  const cacheKey = `${id}:${survivingOnly}:${survivingYearsOnly}`;
+  const cached = waterfallCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Compute on-demand
+  try {
+    const result = await computeWaterfall(id, survivingOnly, survivingYearsOnly);
+    waterfallCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Flow data not available') {
+      throw new Error('Flow data not available for this simulation. Please re-run.');
+    }
+    throw new Error(`Failed to compute waterfall data for simulation ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
