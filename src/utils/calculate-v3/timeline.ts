@@ -1412,9 +1412,17 @@ export class Timeline {
     let segmentCount = 0;
     let eventIndex = 0; // Track our position in the sorted events array
 
-    while (currentStart <= endDate) {
+    // Normalize horizon to end-of-day so events scheduled at noon UTC (e.g.,
+    // spending-tracker period-end events, per timeline.ts:687) on the horizon
+    // date are included in the final segment. Without this, a midnight-UTC
+    // horizon (e.g., 2028-12-31T00:00) would truncate the last segment's
+    // actualEnd to midnight, excluding noon-scheduled events on that day and
+    // causing stale cache hits when later runs extend the horizon further.
+    const horizonEnd = dayjs.utc(endDate).endOf('day').toDate();
+
+    while (currentStart <= horizonEnd) {
       const currentEnd = dayjs.utc(currentStart).endOf(segmentSize).toDate();
-      const actualEnd = currentEnd > endDate ? endDate : currentEnd;
+      const actualEnd = currentEnd > horizonEnd ? horizonEnd : currentEnd;
 
       const segmentEvents: TimelineEvent[] = [];
       const affectedAccountIds = new Set<string>();
