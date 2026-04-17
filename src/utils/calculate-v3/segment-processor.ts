@@ -37,6 +37,7 @@ import { HealthcareManager } from './healthcare-manager';
 import { SpendingTrackerManager } from './spending-tracker-manager';
 import type { DebugLogger } from './debug-logger';
 import { AssetManager } from './asset-manager';
+import { RothConversionManager } from './roth-conversion-manager';
 
 export class SegmentProcessor {
   private cache: CacheManager;
@@ -168,6 +169,13 @@ export class SegmentProcessor {
         // Replay taxable occurrences from cached segments into TaxManager
         // Without this, tax reconciliation is missing income from cached segments
         for (const [accountName, taxableOccurrences] of cachedResult.taxableOccurrences) {
+          // Special case: Roth conversion uses synthetic key instead of real account name
+          if (accountName === RothConversionManager.CONVERSION_TAX_KEY) {
+            for (const occ of taxableOccurrences) {
+              this.taxManager.addTaxableOccurrence(accountName, occ);
+            }
+            continue;
+          }
           const account = this.accountManager.getAccountByName(accountName);
           if (account) {
             this.taxManager.addTaxableOccurrences(account.id, taxableOccurrences);

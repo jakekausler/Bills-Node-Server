@@ -8,7 +8,7 @@ import { FilingStatus, getBracketDataForYear } from './bracket-calculator';
 import { getPersonBirthDate, getPersonConfigs, getPersonRetirementDate, getPersonSSStartDate } from '../../api/person-config/person-config';
 import dayjs from 'dayjs';
 import type { DebugLogger } from './debug-logger';
-import type { MCRateGetter, SegmentResult } from './types';
+import type { IncomeType, MCRateGetter, SegmentResult } from './types';
 
 interface ConversionLot {
   year: number;
@@ -75,7 +75,7 @@ export class RothConversionManager {
    *
    */
   /** Key used to store conversion taxable occurrences so they can be cleared on reprocess */
-  private static readonly CONVERSION_TAX_KEY = '__roth_conversion__';
+  public static readonly CONVERSION_TAX_KEY = '__roth_conversion__';
 
   public processConversions(
     year: number,
@@ -428,12 +428,22 @@ export class RothConversionManager {
 
       // Add taxable occurrence for the conversion using a dedicated key
       // so we can clear just these on segment reprocessing
-      taxManager.addTaxableOccurrence(RothConversionManager.CONVERSION_TAX_KEY, {
+      const conversionOccurrence = {
         date: new Date(year, 11, 31), // Dec 31
         year,
         amount: conversionAmount,
-        incomeType: 'retirement',
-      });
+        incomeType: 'retirement' as IncomeType,
+      };
+      taxManager.addTaxableOccurrence(RothConversionManager.CONVERSION_TAX_KEY, conversionOccurrence);
+      // Also mirror into segmentResult for warm-cache replay: direct taxManager
+      // writes don't survive cache replay, so we stash the occurrence keyed by
+      // CONVERSION_TAX_KEY so segment-processor.ts can replay it.
+      if (segmentResult) {
+        if (!segmentResult.taxableOccurrences.has(RothConversionManager.CONVERSION_TAX_KEY)) {
+          segmentResult.taxableOccurrences.set(RothConversionManager.CONVERSION_TAX_KEY, []);
+        }
+        segmentResult.taxableOccurrences.get(RothConversionManager.CONVERSION_TAX_KEY)!.push(conversionOccurrence);
+      }
     }
 
     return this.conversionsThisYear;
