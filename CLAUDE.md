@@ -92,3 +92,9 @@ The system uses JSON files for data persistence in `src/utils/io/data/`:
 ### Calculation Engine
 
 The codebase uses `src/utils/calculate-v3/` as its sole calculation engine for all financial projections, bill scheduling, interest calculations, retirement planning, and Monte Carlo simulations.
+
+## Code Review Graph (MCP)
+
+This submodule has its own graph at `.code-review-graph/graph.db` (auto-maintained). MCP tools prefer `repo_root="/storage/programs/billsV2Dev/Bills-Node-Server"` when called from outside this directory. See parent CLAUDE.md's "Code Review Graph (MCP)" section for full usage, tool list, and configuration details.
+
+**Quick reference**: Use `detect_changes_tool` for code review, `get_impact_radius_tool` for blast radius, `query_graph_tool` for callers/callees/tests, and `get_architecture_overview_tool` for structure. All prefer explicit `repo_root` parameter.

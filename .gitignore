@@ -39,3 +39,5 @@ data/personConfig.json
 data/importMemory.json
 data/*.pre-sync-backup
 *.bak-*
+# Added by code-review-graph
+.code-review-graph/
