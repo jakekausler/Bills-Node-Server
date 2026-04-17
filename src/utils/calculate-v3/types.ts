@@ -9,6 +9,7 @@ import { DateString } from '../date/types';
 import { FilingStatus } from './bracket-calculator';
 import type { DebugLogger } from './debug-logger';
 import type { TaxScenario } from './tax-profile-types';
+import { AssetAllocation } from './portfolio-types';
 
 export type IncomeType = 'ordinary' | 'retirement' | 'socialSecurity' | 'interest' | 'penalty' | 'shortTermCapitalGain' | 'longTermCapitalGain' | 'qualifiedDividend' | 'ordinaryDividend';
 
@@ -170,6 +171,14 @@ export type RetirementStateUpdate =
 // Serialized form is identical — all fields are JSON-safe primitives.
 export type RetirementStateUpdateData = RetirementStateUpdate;
 
+export type LotUpdate =
+  | { kind: 'deposit'; accountId: string; amount: number; date: DateString; allocation: AssetAllocation; source: 'contribution' | 'dividend'; cashReserve?: { amount: number } }
+  | { kind: 'withdraw'; accountId: string; amount: number; date: DateString; strategy?: 'fifo' | 'highest-cost'; cashFirst?: boolean }
+  | { kind: 'applyReturns'; year: number; assetClassReturns: Record<string, number> };
+
+// Serialized form is identical — all fields are JSON-safe primitives.
+export type LotUpdateData = LotUpdate;
+
 /**
  * Results of a calculation segment
  */
@@ -196,6 +205,8 @@ export interface SegmentResult {
   healthcareExpenseUpdates: HealthcareExpenseUpdate[];
   /** Retirement state mutations captured during cold compute for cache replay */
   retirementStateUpdates: RetirementStateUpdate[];
+  /** Lot mutations captured during cold compute for cache replay */
+  lotUpdates: LotUpdate[];
   /** Accounts and Transfers */
   accountsAndTransfers?: AccountsAndTransfers;
 }
@@ -212,6 +223,7 @@ export type SegmentResultData = {
   spendingTrackerUpdates: SpendingTrackerUpdateData[];
   healthcareExpenseUpdates: HealthcareExpenseUpdateData[];
   retirementStateUpdates: RetirementStateUpdateData[];
+  lotUpdates: LotUpdateData[];
 };
 
 /**

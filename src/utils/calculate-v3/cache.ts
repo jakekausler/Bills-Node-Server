@@ -15,6 +15,8 @@ import {
   HealthcareExpenseUpdateData,
   RetirementStateUpdateData,
   RetirementStateUpdate,
+  LotUpdate,
+  LotUpdateData,
 } from './types';
 import { join } from 'path';
 import { formatDate, parseDate } from '../date/date';
@@ -131,6 +133,7 @@ class SegmentResultSerializer extends Serializer {
         configId: u.configId,
       })),
       retirementStateUpdates: (data.data.retirementStateUpdates ?? []) as RetirementStateUpdateData[],
+      lotUpdates: (data.data.lotUpdates ?? []) as LotUpdateData[],
     };
 
     return JSON.stringify({
@@ -211,6 +214,7 @@ class SegmentResultSerializer extends Serializer {
     );
 
     const retirementStateUpdates = (segmentResultData.retirementStateUpdates ?? []) as RetirementStateUpdate[];
+    const lotUpdates = (segmentResultData.lotUpdates ?? []) as LotUpdate[];
 
     const segmentResult: SegmentResult = {
       balanceChanges,
@@ -224,6 +228,7 @@ class SegmentResultSerializer extends Serializer {
       spendingTrackerUpdates,
       healthcareExpenseUpdates,
       retirementStateUpdates,
+      lotUpdates,
     };
 
     return {

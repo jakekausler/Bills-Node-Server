@@ -52,6 +52,7 @@ import {
   MedicareHospitalEvent,
   AcaPremiumEvent,
   LTCCheckEvent,
+  LotUpdate,
 } from './types';
 import { computeAnnualFederalTax } from './bracket-calculator';
 import { computeNetPay } from './compute-net-pay';
@@ -88,6 +89,8 @@ export class Calculator {
   private portfolioManager: PortfolioManager | null = null;
   private futureLotTracker: FutureLotTracker | null = null;
   private portfolioCutoffDates: Map<string, string> = new Map();
+  private currentSegmentLotUpdates: LotUpdate[] = [];
+  private isReplayingLots: boolean = false;
   private pendingPayouts: ManagerPayout[] = [];
   private taxProfile: TaxProfile;
 
@@ -232,6 +235,20 @@ export class Calculator {
 
   setFutureLotTracker(tracker: FutureLotTracker): void {
     this.futureLotTracker = tracker;
+  }
+
+  public drainLotUpdates(): LotUpdate[] {
+    const updates = this.currentSegmentLotUpdates;
+    this.currentSegmentLotUpdates = [];
+    return updates;
+  }
+
+  public setReplayingLots(flag: boolean): void {
+    this.isReplayingLots = flag;
+  }
+
+  public getFutureLotTracker(): FutureLotTracker | null {
+    return this.futureLotTracker;
   }
 
   /**
@@ -1659,6 +1676,13 @@ export class Calculator {
       if (this.futureLotTracker && this.isTaxablePortfolioAccount(event.accountId)) {
         const assetClassReturns = mcReturns || getExpectedReturns();
         this.futureLotTracker.applyAnnualReturns(year, assetClassReturns);
+        if (!this.isReplayingLots) {
+          this.currentSegmentLotUpdates.push({
+            kind: 'applyReturns',
+            year,
+            assetClassReturns,
+          });
+        }
       }
     }
 
@@ -2027,6 +2051,16 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
           const strategy = portfolioConfig?.lotSelectionStrategy ?? 'fifo';
           const hasCashReserve = !!portfolioConfig?.cashReserve;
           const gainsResult = this.futureLotTracker.withdraw(fromAccountId, internalAmount, eventDate, strategy, hasCashReserve);
+          if (!this.isReplayingLots) {
+            this.currentSegmentLotUpdates.push({
+              kind: 'withdraw',
+              accountId: fromAccountId,
+              amount: internalAmount,
+              date: eventDate,
+              strategy,
+              cashFirst: hasCashReserve,
+            });
+          }
 
           this.log('transfer-cg-withdraw', {
             accountId: fromAccountId,
@@ -2078,6 +2112,17 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
             const year = event.date.getUTCFullYear();
             const allocation = getAllocationForYear(portfolioConfig, year);
             this.futureLotTracker.deposit(toAccountId, internalAmount, eventDate, allocation, 'contribution', portfolioConfig?.cashReserve);
+            if (!this.isReplayingLots) {
+              this.currentSegmentLotUpdates.push({
+                kind: 'deposit',
+                accountId: toAccountId,
+                amount: internalAmount,
+                date: eventDate,
+                allocation,
+                source: 'contribution',
+                cashReserve: portfolioConfig?.cashReserve,
+              });
+            }
           }
         }
       }

@@ -53,6 +53,7 @@ function makeSegmentResult(overrides: Partial<SegmentResult> = {}): SegmentResul
     balanceMaximums: new Map(),
     taxableOccurrences: new Map(),
     spendingTrackerUpdates: [],
+    lotUpdates: [],
     ...overrides,
   };
 }

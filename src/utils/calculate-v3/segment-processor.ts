@@ -227,6 +227,30 @@ export class SegmentProcessor {
           });
         }
 
+        // Replay lot mutations from cached segments into FutureLotTracker
+        if (cachedResult.lotUpdates && cachedResult.lotUpdates.length > 0) {
+          const ftl = this.calculator.getFutureLotTracker();
+          if (ftl) {
+            this.calculator.setReplayingLots(true);
+            try {
+              for (const update of cachedResult.lotUpdates) {
+                if (update.kind === 'deposit') {
+                  ftl.deposit(update.accountId, update.amount, update.date, update.allocation, update.source, update.cashReserve);
+                } else if (update.kind === 'withdraw') {
+                  ftl.withdraw(update.accountId, update.amount, update.date, update.strategy, update.cashFirst);
+                } else if (update.kind === 'applyReturns') {
+                  ftl.applyAnnualReturns(update.year, update.assetClassReturns);
+                }
+              }
+            } finally {
+              this.calculator.setReplayingLots(false);
+            }
+            this.log('lot-tracker-state-restored', {
+              lotUpdatesReplayed: cachedResult.lotUpdates.length,
+            });
+          }
+        }
+
         // Drain any pending payouts that accumulated from year-boundary hooks
         // before this cached segment. The cached activitiesAdded already includes
         // whatever was injected during the original cold compute, so we clear
@@ -264,6 +288,8 @@ export class SegmentProcessor {
     segmentResult.healthcareExpenseUpdates = this.healthcareManager.drainExpenseUpdates();
     // Drain retirement state update buffer from this fresh compute pass
     segmentResult.retirementStateUpdates = this.retirementManager.drainRetirementUpdates();
+    // Drain lot update buffer from this fresh compute pass
+    segmentResult.lotUpdates = this.calculator.drainLotUpdates();
 
     // Deal with pushes and pulls
     // Use today (or options.startDate if it's in the future) as the reference date to prevent auto-push/pull before the current date
@@ -285,6 +311,8 @@ export class SegmentProcessor {
       segmentResult.healthcareExpenseUpdates = this.healthcareManager.drainExpenseUpdates();
       // Drain retirement state update buffer from the reprocessed pass (replaces the first drain)
       segmentResult.retirementStateUpdates = this.retirementManager.drainRetirementUpdates();
+      // Drain lot update buffer from the reprocessed pass (replaces the first drain)
+      segmentResult.lotUpdates = this.calculator.drainLotUpdates();
     }
 
     // Record tagged spending from the FINAL segment result
@@ -347,6 +375,7 @@ export class SegmentProcessor {
       spendingTrackerUpdates: [],
       healthcareExpenseUpdates: [],
       retirementStateUpdates: [],
+      lotUpdates: [],
     };
 
     // Inject any pending payouts from inheritance/life insurance managers

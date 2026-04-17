@@ -113,6 +113,7 @@ function makeSegmentResult(overrides: Partial<SegmentResult> = {}): SegmentResul
     spendingTrackerUpdates: [],
     healthcareExpenseUpdates: [],
     retirementStateUpdates: [],
+    lotUpdates: [],
     ...overrides,
   };
 }
@@ -154,6 +155,9 @@ function makeMockCalculator(overrides: Partial<any> = {}) {
     restore: vi.fn(),
     injectPendingPayouts: vi.fn(),
     clearPendingPayouts: vi.fn(),
+    drainLotUpdates: vi.fn().mockReturnValue([]),
+    setReplayingLots: vi.fn(),
+    getFutureLotTracker: vi.fn().mockReturnValue(null),
     ...overrides,
   };
 }
