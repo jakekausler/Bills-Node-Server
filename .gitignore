@@ -17,6 +17,7 @@ data/userPreferences.json
 data/simulations/*
 data/backup/
 **/cache
+!test/cache/
 .vscode
 **/testing/**/*.json
 logs

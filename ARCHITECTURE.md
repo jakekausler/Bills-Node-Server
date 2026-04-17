@@ -489,6 +489,40 @@ Each manager exposes a `snapshot()` method returning a deterministic plain objec
 
 Files matching `**/*.long.test.ts` run only via `npm run test:long` (uses `vitest.long.config.ts`, 120 s timeout, coverage disabled). The default `npm test` and `npm run test:run` exclude them.
 
+### Cache Effectiveness Tests (EPIC-033 STAGE-033-003)
+
+These tests prove that the segment cache **actually skips work** on warm runs. They are not correctness tests — result accuracy is addressed in stages 004 and 005.
+
+#### Test files
+
+| Path | What it asserts |
+|------|-----------------|
+| `test/cache/effectiveness-cold-run.test.ts` | Cold run emits `cache-populate` for every segment and zero `cache-hit` events. |
+| `test/cache/effectiveness-warm-run.test.ts` | Warm run (following a cold run) emits `cache-hit` for every segment and zero `segment-compute-start` events. |
+| `test/cache/effectiveness-incremental-extend.test.ts` | Cold run to 2028, then warm run to 2029. Segments within the original range emit `cache-hit`; only the newly added range emits `cache-miss` and `cache-populate`. |
+| `test/cache/effectiveness-incremental-extend-far.long.test.ts` | Same incremental pattern at 2030→2080 scale. Opt-in only via `npm run test:long`. |
+| `test/cache/effectiveness-zero-compute-on-hit.test.ts` | For every `cache-hit` event, asserts that no `segment-compute-start` event shares the same `segmentId`. This is a regression guard for the early-return path at `src/utils/calculate-v3/segment-processor.ts:176`. |
+
+All five files use `createHarness()` and the frozen `test/fixtures/epic-033-data/` fixture from STAGE-033-002.
+
+#### How to run
+
+```bash
+# Default suite (excludes long-horizon file)
+npx vitest run test/cache/
+
+# Include long-horizon file (2030→2080 scale, ~120 s timeout)
+npm run test:long
+```
+
+#### What this suite does NOT prove
+
+These tests verify work-skipping behavior only. They do not assert that warm and cold runs produce identical financial results — that is the responsibility of the correctness tests in stages 004 and 005.
+
+#### Known gap
+
+Harness cleanup may leak `/tmp/debug-<uuid>` directories on test-failure paths. This is non-blocking and documented in `epics/EPIC-033-calculation-cache/regression.md`.
+
 ---
 
 ## API Endpoints
