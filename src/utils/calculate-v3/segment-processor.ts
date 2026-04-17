@@ -95,11 +95,20 @@ export class SegmentProcessor {
       eventCount: segment.events.length,
     });
 
+    if (options.forceRecalculation || options.monteCarlo) {
+      this.log('cache-skip', {
+        segmentId: segment.id,
+        startDate: dayjs.utc(segment.startDate).format('YYYY-MM-DD'),
+        endDate: dayjs.utc(segment.endDate).format('YYYY-MM-DD'),
+        reason: options.forceRecalculation ? 'forceRecalculation' : 'monteCarlo',
+      });
+    }
     // Check if segment result is cached (will return null if monteCarlo is true)
     if (!options.forceRecalculation && !options.monteCarlo) {
       const cachedResult = await this.cache.getSegmentResult(segment);
       if (cachedResult) {
         this.log('cache-hit', {
+          segmentId: segment.id,
           startDate: dayjs.utc(segment.startDate).format('YYYY-MM-DD'),
           endDate: dayjs.utc(segment.endDate).format('YYYY-MM-DD'),
         });
@@ -166,7 +175,19 @@ export class SegmentProcessor {
 
         return;
       }
+      // Log cache-miss immediately after null cache result
+      this.log('cache-miss', {
+        segmentId: segment.id,
+        startDate: dayjs.utc(segment.startDate).format('YYYY-MM-DD'),
+        endDate: dayjs.utc(segment.endDate).format('YYYY-MM-DD'),
+      });
     }
+
+    this.log('segment-compute-start', {
+      segmentId: segment.id,
+      startDate: dayjs.utc(segment.startDate).format('YYYY-MM-DD'),
+      endDate: dayjs.utc(segment.endDate).format('YYYY-MM-DD'),
+    });
 
     // Save spending tracker, healthcare manager, and contribution limit state BEFORE processing any events in this segment
     this.spendingTrackerManager.checkpoint();
@@ -200,6 +221,11 @@ export class SegmentProcessor {
     // Cache the segment result (will skip if monteCarlo is true)
     if (!options.monteCarlo) {
       await this.cache.setSegmentResult(segment, segmentResult);
+      this.log('cache-populate', {
+        segmentId: segment.id,
+        startDate: dayjs.utc(segment.startDate).format('YYYY-MM-DD'),
+        endDate: dayjs.utc(segment.endDate).format('YYYY-MM-DD'),
+      });
     }
 
     // Apply the result to balance tracker

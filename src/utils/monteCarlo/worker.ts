@@ -67,7 +67,7 @@ async function runWorkerSimulations(): Promise<void> {
         startDate,
         endDate,
         simulation: data.simulation,
-        monteCarlo: true,
+        monteCarlo: !data.skipMonteCarlo,
         simulationNumber: 0,
         totalSimulations: 0,
         forceRecalculation: false,
@@ -175,7 +175,7 @@ async function runSingleSimulation(
       startDate,
       endDate,
       data.simulation,
-      true, // monteCarlo: true
+      !data.skipMonteCarlo, // monteCarlo: false when skipMonteCarlo set
       simulationNumber,
       totalSimulations,
       false,

@@ -407,6 +407,39 @@ The Calculator handles these distinct event types:
 - Supports disk persistence for cache durability
 - Cache is reset on data save
 
+### Cache Observability Events
+
+The calc-v3 segment processor emits debug events under the `segment` component. All events are emitted only when a `DebugLogger` is attached to the current calculation and are zero-cost otherwise.
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `cache-hit` | `segmentId`, `startDate`, `endDate` | Segment result found in cache |
+| `cache-miss` | `segmentId`, `startDate`, `endDate` | Cache lookup returned null |
+| `cache-populate` | `segmentId`, `startDate`, `endDate` | Fresh result written via `setSegmentResult` |
+| `segment-compute-start` | `segmentId`, `startDate`, `endDate` | Fresh segment computation beginning |
+| `cache-skip` | `segmentId`, `startDate`, `endDate`, `reason` | Cache lookup skipped; `reason` is `'forceRecalculation'` or `'monteCarlo'` |
+
+### Enabling Debug Logging
+
+Two paths attach a `DebugLogger` to a calculation run:
+
+**Monte Carlo runs** — pass `--debug <sim-numbers>` to `scripts/run_mc.sh`. For a deterministic-only run (skips Monte Carlo variance), also pass `--deterministic-only`. The deterministic-only pass logs to `sim-1.jsonl` (batch loop numbering starts at 1).
+
+**Main server HTTP requests** — append `?debug=true` to any endpoint that routes through `getData()` (e.g., `/api/accounts/graph`, `/api/healthcare/projections`). The `debugLoggerMiddleware` creates a `DebugLogger`, attaches it to `req._debugLogger`, and writes the `X-Debug-Log-Dir` response header with the output path. Main-process calculations log under simulation number 0 to `/tmp/debug-<uuid>/det.jsonl`.
+
+Debug logging is independent of cache bypass. To force recalculation, pass `?forceRecalculation=true` separately.
+
+### Selective Cache Clearing
+
+`POST /api/cache/clear` accepts an optional `target` query parameter:
+
+| `target` value | Effect |
+|----------------|--------|
+| `all` (default) | Clears everything: engine calc results, segment cache, balance snapshots, projections, graph cache, data cache, retirement/ACA/Medicare/contribution/glide-path caches |
+| `calc` | Clears engine calc results, projections, graph, and data caches only. Preserves segment cache and balance snapshots, allowing warm segment-level hits on the next request. |
+
+Unknown `target` values return `400`. Future target values (`segments`, `balance-snapshots`, `ancillary`) are planned.
+
 ---
 
 ## API Endpoints

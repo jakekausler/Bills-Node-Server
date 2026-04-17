@@ -2,6 +2,7 @@ import express, { Express, NextFunction, Request, Response } from 'express';
 import { DateString } from './utils/date/types';
 import path from 'path';
 import fs from 'fs';
+import { debugLoggerMiddleware } from './utils/net/debugLoggerMiddleware';
 import multer from 'multer';
 import { appendFile } from 'fs/promises';
 import { getSimpleAccounts, addAccount, updateAccounts, loadPortfolioConfigs, savePortfolioConfigs } from './api/accounts/accounts';
@@ -82,7 +83,6 @@ import { loadRMDTable, saveRMDTable, loadRothConversionConfigs, saveRothConversi
 import { loadVariable } from './utils/simulation/variable';
 import { v4 as uuidv4 } from 'uuid';
 import { clearDataCache } from './utils/io/dataCache';
-import { DebugLogger } from './utils/calculate-v3/debug-logger';
 import { CacheManager } from './utils/calculate-v3/cache';
 import { clearRetirementCache, RetirementManager } from './utils/calculate-v3/retirement-manager';
 import { SocialSecurity } from './data/retirement/socialSecurity/socialSecurity';
@@ -174,6 +174,7 @@ const pool = mysql.createPool({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(debugLoggerMiddleware);
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
@@ -225,17 +226,12 @@ app
 
 // Account graph routes
 app.get('/api/accounts/graph', verifyToken, asyncHandler(async (req: Request, res: Response) => {
-  if (req.query.debug === 'true') {
-    const logger = new DebugLogger();
-    // Store logger on request for downstream access
-    (req as any)._debugLogger = logger;
-    const result = await getGraphForAccounts(req);
-    res.setHeader('X-Debug-Log', logger.getDir());
+  const result = await getGraphForAccounts(req);
+  const logger = req._debugLogger;
+  if (logger) {
     logger.close();
-    res.json(result);
-    return;
   }
-  res.json(await getGraphForAccounts(req));
+  res.json(result);
 }));
 
 app.get('/api/accounts/:accountId/graph', verifyToken, asyncHandler(async (req: Request, res: Response) => {
@@ -1524,16 +1520,37 @@ app.post('/api/paycheck/compute', verifyToken, asyncHandler(async (req: Request,
 }));
 
 // Cache clear endpoint (for development — forces re-reads of data files)
-app.post('/api/cache/clear', verifyToken, (_req: Request, res: Response) => {
-  clearDataCache();
-  CacheManager.clearAll();
-  clearRetirementCache();
-  clearProjectionsCache();
-  clearAcaCache();
-  clearMedicareCache();
-  clearContributionLimitCache();
-  clearAllGraphCache();
-  clearGlidePathCache();
+app.post('/api/cache/clear', verifyToken, (req: Request, res: Response) => {
+  const target = req.query.target as string | undefined;
+
+  // TODO(STAGE-033-010): Expand supported target values. Currently only 'all' (default, full clear) and 'calc' (preserves segment + balance_snapshot + ancillary static caches) are supported. Future targets: 'segments', 'balance-snapshots', 'ancillary'. See epics/EPIC-033-calculation-cache/STAGE-033-010.md.
+
+  if (target && target !== 'all' && target !== 'calc') {
+    return res.status(400).json({ error: "Unsupported target. Use 'all' or 'calc'. See STAGE-033-010." });
+  }
+
+  const clearAll = !target || target === 'all';
+
+  if (clearAll) {
+    // Full clear: default backward-compatible behavior
+    clearDataCache();
+    CacheManager.clearAll();
+    clearRetirementCache();
+    clearProjectionsCache();
+    clearAcaCache();
+    clearMedicareCache();
+    clearContributionLimitCache();
+    clearAllGraphCache();
+    clearGlidePathCache();
+  } else if (target === 'calc') {
+    // Selective clear: only calculation results, projections, graphs, and data cache
+    // PRESERVES: segment cache, balance snapshots, retirement cache, ACA/Medicare/contribution-limit caches, glide-path cache
+    clearDataCache();
+    CacheManager.clearCalculationResultsOnly();
+    clearProjectionsCache();
+    clearAllGraphCache();
+  }
+
   res.json({ success: true });
 });
 

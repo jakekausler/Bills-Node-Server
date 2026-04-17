@@ -753,4 +753,250 @@ describe('SegmentProcessor', () => {
       expect(retirementManager.tryAddToAnnualIncomes).toHaveBeenCalledWith('Bonus', expect.any(Date), 2000);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // cache observability events
+  // -------------------------------------------------------------------------
+  describe('cache observability events', () => {
+    it('logs cache-hit with segmentId when segment is cached', async () => {
+      const cachedResult = makeSegmentResult({
+        balanceChanges: new Map([['acct-1', 500]]),
+        activitiesAdded: new Map(),
+        spendingTrackerUpdates: [],
+      });
+
+      const debugLogger = {
+        log: vi.fn(),
+      };
+
+      // Create processor with debugLogger by manually constructing it
+      const cache = makeMockCache({ getSegmentResult: vi.fn().mockResolvedValue(cachedResult) });
+      const balanceTracker = makeMockBalanceTracker();
+      const calculator = makeMockCalculator();
+      const pushPullHandler = makeMockPushPullHandler();
+      const retirementManager = makeMockRetirementManager();
+      const taxManager = makeMockTaxManager();
+      const accountManager = makeMockAccountManager();
+      const healthcareManager = makeMockHealthcareManager();
+      const spendingTrackerManager = makeMockSpendingTrackerManager();
+
+      const processor = new SegmentProcessor(
+        cache,
+        balanceTracker,
+        calculator,
+        pushPullHandler,
+        retirementManager,
+        taxManager,
+        accountManager,
+        healthcareManager,
+        spendingTrackerManager,
+        debugLogger as any,
+        1,
+      );
+
+      const segment = makeSegment();
+      const options = makeOptions();
+
+      await processor.processSegment(segment, options);
+
+      // Assert cache-hit was logged with segmentId
+      expect(debugLogger.log).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          component: 'segment',
+          event: 'cache-hit',
+          segmentId: segment.id,
+          startDate: '2025-01-01',
+          endDate: '2025-01-31',
+        }),
+      );
+
+      // Assert cache-miss, segment-compute-start, cache-populate were NOT logged
+      const calls = (debugLogger.log as any).mock.calls;
+      const events = calls.map((call: any) => call[1].event);
+      expect(events).toContain('cache-hit');
+      expect(events).not.toContain('cache-miss');
+      expect(events).not.toContain('segment-compute-start');
+      expect(events).not.toContain('cache-populate');
+    });
+
+    it('logs cache-miss, segment-compute-start, and cache-populate in order when cache returns null', async () => {
+      const debugLogger = {
+        log: vi.fn(),
+      };
+
+      const cache = makeMockCache({ getSegmentResult: vi.fn().mockResolvedValue(null) });
+      const balanceTracker = makeMockBalanceTracker();
+      const calculator = makeMockCalculator();
+      const pushPullHandler = makeMockPushPullHandler();
+      const retirementManager = makeMockRetirementManager();
+      const taxManager = makeMockTaxManager();
+      const accountManager = makeMockAccountManager();
+      const healthcareManager = makeMockHealthcareManager();
+      const spendingTrackerManager = makeMockSpendingTrackerManager();
+
+      const processor = new SegmentProcessor(
+        cache,
+        balanceTracker,
+        calculator,
+        pushPullHandler,
+        retirementManager,
+        taxManager,
+        accountManager,
+        healthcareManager,
+        spendingTrackerManager,
+        debugLogger as any,
+        1,
+      );
+
+      const segment = makeSegment([makeEvent()]);
+      const options = makeOptions();
+
+      await processor.processSegment(segment, options);
+
+      // Collect all logged events
+      const calls = (debugLogger.log as any).mock.calls;
+      const events = calls.map((call: any) => call[1].event);
+
+      // Assert cache-hit was NOT logged
+      expect(events).not.toContain('cache-hit');
+
+      // Assert cache-miss, segment-compute-start, cache-populate were logged
+      expect(events).toContain('cache-miss');
+      expect(events).toContain('segment-compute-start');
+      expect(events).toContain('cache-populate');
+
+      // Assert they fired in the correct order
+      const cacheHitIndex = events.indexOf('cache-miss');
+      const computeStartIndex = events.indexOf('segment-compute-start');
+      const populateIndex = events.indexOf('cache-populate');
+
+      expect(cacheHitIndex).toBeLessThan(computeStartIndex);
+      expect(computeStartIndex).toBeLessThan(populateIndex);
+
+      // Verify all three have segmentId, startDate, endDate
+      const cacheMissCall = calls.find((call: any) => call[1].event === 'cache-miss');
+      expect(cacheMissCall[1]).toMatchObject({
+        component: 'segment',
+        event: 'cache-miss',
+        segmentId: segment.id,
+        startDate: '2025-01-01',
+        endDate: '2025-01-31',
+      });
+
+      const computeStartCall = calls.find((call: any) => call[1].event === 'segment-compute-start');
+      expect(computeStartCall[1]).toMatchObject({
+        component: 'segment',
+        event: 'segment-compute-start',
+        segmentId: segment.id,
+        startDate: '2025-01-01',
+        endDate: '2025-01-31',
+      });
+
+      const populateCall = calls.find((call: any) => call[1].event === 'cache-populate');
+      expect(populateCall[1]).toMatchObject({
+        component: 'segment',
+        event: 'cache-populate',
+        segmentId: segment.id,
+        startDate: '2025-01-01',
+        endDate: '2025-01-31',
+      });
+    });
+
+    it('logs segment-compute-start but no cache events when monteCarlo is true', async () => {
+      const debugLogger = {
+        log: vi.fn(),
+      };
+
+      const cache = makeMockCache();
+      const balanceTracker = makeMockBalanceTracker();
+      const calculator = makeMockCalculator();
+      const pushPullHandler = makeMockPushPullHandler();
+      const retirementManager = makeMockRetirementManager();
+      const taxManager = makeMockTaxManager();
+      const accountManager = makeMockAccountManager();
+      const healthcareManager = makeMockHealthcareManager();
+      const spendingTrackerManager = makeMockSpendingTrackerManager();
+
+      const processor = new SegmentProcessor(
+        cache,
+        balanceTracker,
+        calculator,
+        pushPullHandler,
+        retirementManager,
+        taxManager,
+        accountManager,
+        healthcareManager,
+        spendingTrackerManager,
+        debugLogger as any,
+        1,
+      );
+
+      const segment = makeSegment([makeEvent()]);
+      const options = makeOptions({ monteCarlo: true });
+
+      await processor.processSegment(segment, options);
+
+      const calls = (debugLogger.log as any).mock.calls;
+      const events = calls.map((call: any) => call[1].event);
+
+      // Assert none of the cache events were logged
+      expect(events).not.toContain('cache-hit');
+      expect(events).not.toContain('cache-miss');
+      expect(events).not.toContain('cache-populate');
+
+      // Assert segment-compute-start WAS logged
+      expect(events).toContain('segment-compute-start');
+    });
+
+    it('skips cache-miss but logs segment-compute-start and cache-populate when forceRecalculation is true', async () => {
+      const debugLogger = {
+        log: vi.fn(),
+      };
+
+      const cache = makeMockCache();
+      const balanceTracker = makeMockBalanceTracker();
+      const calculator = makeMockCalculator();
+      const pushPullHandler = makeMockPushPullHandler();
+      const retirementManager = makeMockRetirementManager();
+      const taxManager = makeMockTaxManager();
+      const accountManager = makeMockAccountManager();
+      const healthcareManager = makeMockHealthcareManager();
+      const spendingTrackerManager = makeMockSpendingTrackerManager();
+
+      const processor = new SegmentProcessor(
+        cache,
+        balanceTracker,
+        calculator,
+        pushPullHandler,
+        retirementManager,
+        taxManager,
+        accountManager,
+        healthcareManager,
+        spendingTrackerManager,
+        debugLogger as any,
+        1,
+      );
+
+      const segment = makeSegment([makeEvent()]);
+      const options = makeOptions({ forceRecalculation: true });
+
+      await processor.processSegment(segment, options);
+
+      const calls = (debugLogger.log as any).mock.calls;
+      const events = calls.map((call: any) => call[1].event);
+
+      // Assert cache-miss was NOT logged (lookup was skipped)
+      expect(events).not.toContain('cache-miss');
+
+      // Assert segment-compute-start WAS logged
+      expect(events).toContain('segment-compute-start');
+
+      // Assert cache-populate WAS logged (result still gets cached)
+      expect(events).toContain('cache-populate');
+
+      // Assert cache lookup was never called
+      expect(cache.getSegmentResult).not.toHaveBeenCalled();
+    });
+  });
 });

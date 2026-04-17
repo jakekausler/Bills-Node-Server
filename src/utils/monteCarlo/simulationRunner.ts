@@ -14,7 +14,7 @@ export class MonteCarloSimulationRunner {
   private activeWorker: Worker | null = null;
   private activeJobId: string | null = null;
   private pendingQueue: SimulationJob[] = [];
-  private debugConfigs: Map<string, { debugLogDir?: string; debugSims?: number[] }> = new Map();
+  private debugConfigs: Map<string, { debugLogDir?: string; debugSims?: number[]; skipMonteCarlo?: boolean }> = new Map();
 
   private constructor() {
     // Ensure directories exist
@@ -143,6 +143,7 @@ export class MonteCarloSimulationRunner {
     seed?: number,
     debugLogDir?: string,
     debugSims?: number[],
+    skipMonteCarlo?: boolean,
   ): string {
     const id = uuidv4();
     // Generate a random seed if not provided
@@ -165,8 +166,8 @@ export class MonteCarloSimulationRunner {
 
     this.jobs.set(id, job);
 
-    if (debugLogDir || debugSims) {
-      this.debugConfigs.set(id, { debugLogDir, debugSims });
+    if (debugLogDir || debugSims || skipMonteCarlo) {
+      this.debugConfigs.set(id, { debugLogDir, debugSims, skipMonteCarlo });
     }
 
     if (this.activeWorker) {
@@ -193,6 +194,7 @@ export class MonteCarloSimulationRunner {
       seed: job.seed,
       debugLogDir: debugConfig?.debugLogDir,
       debugSims: debugConfig?.debugSims,
+      skipMonteCarlo: debugConfig?.skipMonteCarlo,
     };
 
     const workerPath = join(__dirname, 'worker.ts');
@@ -368,9 +370,10 @@ export async function startMonteCarloSimulation(
   seed?: number,
   debugLogDir?: string,
   debugSims?: number[],
+  skipMonteCarlo?: boolean,
 ): Promise<string> {
   const runner = await MonteCarloSimulationRunner.getInstance();
-  return runner.startSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate, seed, debugLogDir, debugSims);
+  return runner.startSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate, seed, debugLogDir, debugSims, skipMonteCarlo);
 }
 
 export async function getSimulationProgress(id: string): Promise<SimulationProgress | null> {

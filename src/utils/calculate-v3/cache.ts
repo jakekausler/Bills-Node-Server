@@ -388,6 +388,26 @@ export class CacheManager {
     CacheManager.memoryCache.clear();
   }
 
+  /**
+   * Clears only calculation result entries (calc_* prefix) from the static memory cache.
+   * Used by the cache-clear endpoint with target=calc.
+   *
+   * Does NOT clear disk cache. This matches the behavior of clearAll(), which is also
+   * memory-only. Disk cache is scoped per-simulation and cleared via the instance
+   * method clear().
+   */
+  static clearCalculationResultsOnly(): void {
+    const keysToDelete: string[] = [];
+    for (const key of CacheManager.memoryCache.keys()) {
+      if (key.startsWith('calc_')) {
+        keysToDelete.push(key);
+      }
+    }
+    for (const key of keysToDelete) {
+      CacheManager.memoryCache.delete(key);
+    }
+  }
+
   async clear(): Promise<void> {
     // Only delete entries belonging to this simulation
     for (const key of CacheManager.memoryCache.keys()) {

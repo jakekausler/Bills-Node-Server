@@ -163,7 +163,7 @@ export async function getData<T>(
   const isTransfer = getIsTransfer(request, fullDefaults.defaultIsTransfer);
   const skip = getSkip(request, fullDefaults.defaultSkip);
   const combineGraphAccounts = getCombineGraphAccounts(request, fullDefaults.defaultCombineGraphAccounts);
-  const debugLogger = (request as any)._debugLogger ?? null;
+  const debugLogger = request._debugLogger ?? null;
   const accountsAndTransfers = await loadData(
     options.overrideStartDateForCalculations || startDate,
     endDate,
@@ -171,7 +171,7 @@ export async function getData<T>(
     {},
     {
       debugLogger,
-      forceRecalculation: !!debugLogger,
+      forceRecalculation: request.query.forceRecalculation === 'true',
     },
   );
   const { socialSecurities, pensions } = loadPensionsAndSocialSecurity(simulation);

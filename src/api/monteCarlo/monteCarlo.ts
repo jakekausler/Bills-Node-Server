@@ -144,6 +144,7 @@ interface MonteCarloRequestData {
   seed?: number; // Optional seed for reproducibility
   debug?: boolean; // Enable debug logging for selected sims
   debugSims?: number[]; // Which simulation numbers to log (default: [1,2,3])
+  skipMonteCarlo?: boolean; // Run only deterministic (1 simulation, batch size 1)
 }
 
 /**
@@ -161,9 +162,14 @@ export async function startSimulation(req: Request): Promise<{ id: string; debug
 
   const { accountsAndTransfers, data, startDate, endDate } = await getData<MonteCarloRequestData>(req);
 
+  const skipMonteCarlo = data?.skipMonteCarlo ?? false;
   const totalSimulations = data?.totalSimulations || 1000;
   const batchSize = data?.batchSize || 5;
   const seed = data?.seed; // Optional seed for reproducibility
+
+  // Compute effective simulation count and batch size
+  const effectiveSimulations = skipMonteCarlo ? 1 : totalSimulations;
+  const effectiveBatchSize = skipMonteCarlo ? 1 : batchSize;
 
   // Debug logging: create a shared DebugLogger directory if requested
   let debugLogDir: string | undefined;
@@ -176,7 +182,11 @@ export async function startSimulation(req: Request): Promise<{ id: string; debug
     console.log(`🔍 [MC] Debug enabled: dir=${debugLogDir}, sims=${JSON.stringify(debugSims)}`);
   }
 
-  const id = await startMonteCarloSimulation(accountsAndTransfers, totalSimulations, batchSize, startDate, endDate, seed, debugLogDir, debugSims);
+  if (skipMonteCarlo) {
+    console.log(`📊 [MC] Deterministic-only mode: running 1 simulation with batch size 1`);
+  }
+
+  const id = await startMonteCarloSimulation(accountsAndTransfers, effectiveSimulations, effectiveBatchSize, startDate, endDate, seed, debugLogDir, debugSims, skipMonteCarlo);
 
   return { id, ...(debugLogDir ? { debugLogDir } : {}) };
 }

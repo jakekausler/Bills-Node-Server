@@ -448,6 +448,73 @@ describe('CacheManager', () => {
   });
 
   // -------------------------------------------------------------------------
+  // clearCalculationResultsOnly (static)
+  // -------------------------------------------------------------------------
+  describe('clearCalculationResultsOnly', () => {
+    it('removes only calc_* entries from memoryCache', async () => {
+      const mgr = new CacheManager(config, 'sim-1');
+      const serializer = makeSimpleSerializer();
+
+      await mgr.set('calc_2025-01-01_2025-12-31_sim-1', 'calc-value', serializer);
+      await mgr.set('segment_1_2025-01-01_2025-01-31_sim-1', 'segment-value', serializer);
+      await mgr.setBalanceSnapshot(new Date(Date.UTC(2025, 0, 1)), {
+        date: new Date(Date.UTC(2025, 0, 1)),
+        balances: { 'acct-1': 100 },
+        activityIndices: {},
+        processedEventIds: new Set(),
+      });
+
+      CacheManager.clearCalculationResultsOnly();
+
+      // calc_ entry should be gone
+      expect(await mgr.get('calc_2025-01-01_2025-12-31_sim-1', serializer)).toBeNull();
+      // segment_ entry should remain
+      expect(await mgr.get('segment_1_2025-01-01_2025-01-31_sim-1', serializer)).toBe('segment-value');
+      // balance_snapshot_ entry should remain
+      expect(await mgr.getBalanceSnapshot(new Date(Date.UTC(2025, 0, 1)))).not.toBeNull();
+    });
+
+    it('is a no-op when no calc_* entries exist', async () => {
+      const mgr = new CacheManager(config, 'sim-1');
+      const serializer = makeSimpleSerializer();
+
+      await mgr.set('segment_1_2025-01-01_2025-01-31_sim-1', 'segment-value', serializer);
+      await mgr.setBalanceSnapshot(new Date(Date.UTC(2025, 0, 1)), {
+        date: new Date(Date.UTC(2025, 0, 1)),
+        balances: {},
+        activityIndices: {},
+        processedEventIds: new Set(),
+      });
+
+      CacheManager.clearCalculationResultsOnly();
+
+      expect(await mgr.get('segment_1_2025-01-01_2025-01-31_sim-1', serializer)).toBe('segment-value');
+      expect(await mgr.getBalanceSnapshot(new Date(Date.UTC(2025, 0, 1)))).not.toBeNull();
+    });
+
+    it('preserves entries from different simulations', async () => {
+      const mgrDefault = new CacheManager(config, 'Default');
+      const mgrAlt = new CacheManager(config, 'Alt');
+      const serializer = makeSimpleSerializer();
+
+      await mgrDefault.set('calc_2025-01-01_2025-12-31_Default', 'calc-default', serializer);
+      await mgrAlt.set('calc_2025-01-01_2025-12-31_Alt', 'calc-alt', serializer);
+      await mgrDefault.set('segment_1_2025-01-01_2025-01-31_Default', 'seg-default', serializer);
+      await mgrAlt.set('segment_1_2025-01-01_2025-01-31_Alt', 'seg-alt', serializer);
+
+      CacheManager.clearCalculationResultsOnly();
+
+      // All calc_ entries (both sims) should be gone
+      expect(await mgrDefault.get('calc_2025-01-01_2025-12-31_Default', serializer)).toBeNull();
+      expect(await mgrAlt.get('calc_2025-01-01_2025-12-31_Alt', serializer)).toBeNull();
+
+      // All segment_ entries (both sims) should remain
+      expect(await mgrDefault.get('segment_1_2025-01-01_2025-01-31_Default', serializer)).toBe('seg-default');
+      expect(await mgrAlt.get('segment_1_2025-01-01_2025-01-31_Alt', serializer)).toBe('seg-alt');
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // clearCalculationResultsFromDate
   // -------------------------------------------------------------------------
   describe('clearCalculationResultsFromDate', () => {

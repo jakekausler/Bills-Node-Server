@@ -113,4 +113,5 @@ export interface WorkerData {
   seed: number; // Base seed for this MC run
   debugLogDir?: string; // Shared debug log directory (from DebugLogger)
   debugSims?: number[]; // Which simulation numbers to log (empty = no debug)
+  skipMonteCarlo?: boolean; // When true, use monteCarlo: false so segment cache is consulted
 }

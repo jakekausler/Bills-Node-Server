@@ -219,5 +219,79 @@ describe('Request Utility', () => {
       );
       expect(mockLoadPensionsAndSocialSecurity).toHaveBeenCalledWith('TestSim');
     });
+
+    it('passes forceRecalculation: true when query.forceRecalculation === "true"', async () => {
+      const mockRequest = {
+        query: { forceRecalculation: 'true' },
+        body: '',
+      } as Request;
+
+      await getData(mockRequest);
+
+      expect(mockLoadData).toHaveBeenCalledWith(
+        expect.any(Date),
+        expect.any(Date),
+        'Default',
+        {},
+        expect.objectContaining({ forceRecalculation: true }),
+      );
+    });
+
+    it('passes forceRecalculation: false when query.forceRecalculation is absent', async () => {
+      const mockRequest = {
+        query: {},
+        body: '',
+      } as Request;
+
+      await getData(mockRequest);
+
+      expect(mockLoadData).toHaveBeenCalledWith(
+        expect.any(Date),
+        expect.any(Date),
+        'Default',
+        {},
+        expect.objectContaining({ forceRecalculation: false }),
+      );
+    });
+
+    it('does NOT force recalculation when _debugLogger is set but forceRecalculation query is absent', async () => {
+      const mockRequest = {
+        query: {},
+        body: '',
+        _debugLogger: { getDir: vi.fn().mockReturnValue('/tmp/debug-test') },
+      } as unknown as Request;
+
+      await getData(mockRequest);
+
+      expect(mockLoadData).toHaveBeenCalledWith(
+        expect.any(Date),
+        expect.any(Date),
+        'Default',
+        {},
+        expect.objectContaining({ forceRecalculation: false }),
+      );
+    });
+
+    it('passes forceRecalculation: true when BOTH _debugLogger AND forceRecalculation query are set', async () => {
+      const mockDebugLogger = { getDir: vi.fn().mockReturnValue('/tmp/debug-test') };
+      const mockRequest = {
+        query: { forceRecalculation: 'true' },
+        body: '',
+        _debugLogger: mockDebugLogger,
+      } as unknown as Request;
+
+      await getData(mockRequest);
+
+      expect(mockLoadData).toHaveBeenCalledWith(
+        expect.any(Date),
+        expect.any(Date),
+        'Default',
+        {},
+        expect.objectContaining({
+          forceRecalculation: true,
+          debugLogger: mockDebugLogger,
+        }),
+      );
+    });
   });
 });
