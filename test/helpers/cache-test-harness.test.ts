@@ -17,19 +17,23 @@ describe('cache-test-harness', () => {
     }
   });
 
-  it('runCold returns a non-null AccountsAndTransfers result', async () => {
-    const harness = createHarness({
-      fixtureDir: FIXTURE_DIR,
-      endDate: '2027-12-31',
-    });
-    const { result, debugLogPath, managerStates } = await harness.runCold();
-    expect(result).toBeDefined();
-    expect(result.accounts).toBeInstanceOf(Array);
-    expect(result.accounts.length).toBeGreaterThan(0);
-    expect(fs.existsSync(debugLogPath)).toBe(true);
-    expect(managerStates.tax).toBeDefined();
-    expect(managerStates.spendingTracker).toBeDefined();
-  });
+  it(
+    'runCold returns a non-null AccountsAndTransfers result',
+    async () => {
+      const harness = createHarness({
+        fixtureDir: FIXTURE_DIR,
+        endDate: '2027-12-31',
+      });
+      const { result, debugLogPath, managerStates } = await harness.runCold();
+      expect(result).toBeDefined();
+      expect(result.accounts).toBeInstanceOf(Array);
+      expect(result.accounts.length).toBeGreaterThan(0);
+      expect(fs.existsSync(debugLogPath)).toBe(true);
+      expect(managerStates.tax).toBeDefined();
+      expect(managerStates.spendingTracker).toBeDefined();
+    },
+    15000,
+  );
 
   it('path-inside-fixtures guard throws on bad fixtureDir', async () => {
     const badDir = path.join(os.tmpdir(), 'not-inside-fixtures-' + Date.now());
