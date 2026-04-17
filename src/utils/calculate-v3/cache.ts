@@ -13,6 +13,8 @@ import {
   WithholdingOccurrence,
   SpendingTrackerUpdateData,
   HealthcareExpenseUpdateData,
+  RetirementStateUpdateData,
+  RetirementStateUpdate,
 } from './types';
 import { join } from 'path';
 import { formatDate, parseDate } from '../date/date';
@@ -128,6 +130,7 @@ class SegmentResultSerializer extends Serializer {
         amountTowardOOP: u.amountTowardOOP,
         configId: u.configId,
       })),
+      retirementStateUpdates: (data.data.retirementStateUpdates ?? []) as RetirementStateUpdateData[],
     };
 
     return JSON.stringify({
@@ -207,6 +210,8 @@ class SegmentResultSerializer extends Serializer {
       }),
     );
 
+    const retirementStateUpdates = (segmentResultData.retirementStateUpdates ?? []) as RetirementStateUpdate[];
+
     const segmentResult: SegmentResult = {
       balanceChanges,
       activitiesAdded,
@@ -218,6 +223,7 @@ class SegmentResultSerializer extends Serializer {
       ficaOccurrences,
       spendingTrackerUpdates,
       healthcareExpenseUpdates,
+      retirementStateUpdates,
     };
 
     return {

@@ -22,6 +22,7 @@ import {
   AcaPremiumEvent,
   LTCCheckEvent,
   HealthcareExpenseUpdate,
+  RetirementStateUpdate,
 } from './types';
 import { CacheManager } from './cache';
 import { BalanceTracker } from './balance-tracker';
@@ -191,6 +192,33 @@ export class SegmentProcessor {
           }
         }
 
+        // Replay retirement state updates from cached segments into RetirementManager
+        if (cachedResult.retirementStateUpdates && cachedResult.retirementStateUpdates.length > 0) {
+          this.retirementManager.setReplaying(true);
+          try {
+            for (const update of cachedResult.retirementStateUpdates) {
+              if (update.type === 'socialSecurityMonthlyPay') {
+                this.retirementManager.setSocialSecurityMonthlyPayRaw(update.name, update.value);
+              } else if (update.type === 'socialSecurityFirstPaymentYear') {
+                this.retirementManager.setSocialSecurityFirstPaymentYear(update.name, update.year);
+              } else if (update.type === 'pensionMonthlyPay') {
+                this.retirementManager.setPensionMonthlyPayRaw(update.name, update.value);
+              } else if (update.type === 'pensionFirstPaymentYear') {
+                this.retirementManager.setPensionFirstPaymentYear(update.name, update.year);
+              } else if (update.type === 'annualIncomeSS') {
+                this.retirementManager.setSocialSecurityAnnualIncomeRaw(update.name, update.year, update.value);
+              } else if (update.type === 'annualIncomePension') {
+                this.retirementManager.setPensionAnnualIncomeRaw(update.name, update.year, update.value);
+              }
+            }
+          } finally {
+            this.retirementManager.setReplaying(false);
+          }
+          this.log('retirement-state-restored', {
+            retirementUpdatesReplayed: cachedResult.retirementStateUpdates.length,
+          });
+        }
+
         // Drain any pending payouts that accumulated from year-boundary hooks
         // before this cached segment. The cached activitiesAdded already includes
         // whatever was injected during the original cold compute, so we clear
@@ -226,6 +254,8 @@ export class SegmentProcessor {
     let segmentResult = this.processSegmentEvents(segment, options);
     // Drain healthcare expense buffer from this fresh compute pass
     segmentResult.healthcareExpenseUpdates = this.healthcareManager.drainExpenseUpdates();
+    // Drain retirement state update buffer from this fresh compute pass
+    segmentResult.retirementStateUpdates = this.retirementManager.drainRetirementUpdates();
 
     // Deal with pushes and pulls
     // Use today (or options.startDate if it's in the future) as the reference date to prevent auto-push/pull before the current date
@@ -245,6 +275,8 @@ export class SegmentProcessor {
       segmentResult = this.processSegmentEvents(segment, options);
       // Drain healthcare expense buffer from the reprocessed pass (replaces the first drain)
       segmentResult.healthcareExpenseUpdates = this.healthcareManager.drainExpenseUpdates();
+      // Drain retirement state update buffer from the reprocessed pass (replaces the first drain)
+      segmentResult.retirementStateUpdates = this.retirementManager.drainRetirementUpdates();
     }
 
     // Record tagged spending from the FINAL segment result
@@ -306,6 +338,7 @@ export class SegmentProcessor {
       ficaOccurrences: new Map<number, Array<{ source: string; ssTax: number; medicareTax: number }>>(),
       spendingTrackerUpdates: [],
       healthcareExpenseUpdates: [],
+      retirementStateUpdates: [],
     };
 
     // Inject any pending payouts from inheritance/life insurance managers

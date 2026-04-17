@@ -159,6 +159,17 @@ export type HealthcareExpenseUpdateData = {
   configId: string;
 };
 
+export type RetirementStateUpdate =
+  | { type: 'socialSecurityMonthlyPay'; name: string; value: number }
+  | { type: 'socialSecurityFirstPaymentYear'; name: string; year: number }
+  | { type: 'pensionMonthlyPay'; name: string; value: number }
+  | { type: 'pensionFirstPaymentYear'; name: string; year: number }
+  | { type: 'annualIncomeSS'; name: string; year: number; value: number }
+  | { type: 'annualIncomePension'; name: string; year: number; value: number };
+
+// Serialized form is identical — all fields are JSON-safe primitives.
+export type RetirementStateUpdateData = RetirementStateUpdate;
+
 /**
  * Results of a calculation segment
  */
@@ -183,6 +194,8 @@ export interface SegmentResult {
   spendingTrackerUpdates: SpendingTrackerUpdate[];
   /** Healthcare expense updates captured during cold compute for cache replay */
   healthcareExpenseUpdates: HealthcareExpenseUpdate[];
+  /** Retirement state mutations captured during cold compute for cache replay */
+  retirementStateUpdates: RetirementStateUpdate[];
   /** Accounts and Transfers */
   accountsAndTransfers?: AccountsAndTransfers;
 }
@@ -198,6 +211,7 @@ export type SegmentResultData = {
   ficaOccurrences: Record<number, Array<{ source: string; ssTax: number; medicareTax: number }>>;
   spendingTrackerUpdates: SpendingTrackerUpdateData[];
   healthcareExpenseUpdates: HealthcareExpenseUpdateData[];
+  retirementStateUpdates: RetirementStateUpdateData[];
 };
 
 /**

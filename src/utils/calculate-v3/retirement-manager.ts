@@ -2,7 +2,7 @@ import { Pension } from '../../data/retirement/pension/pension';
 import { SocialSecurity } from '../../data/retirement/socialSecurity/socialSecurity';
 /** Map of age → distribution period for Required Minimum Distributions */
 type RMDTableType = Record<number, number>;
-import { HistoricRates, MCRateGetter, MonteCarloSampleType } from './types';
+import { HistoricRates, MCRateGetter, MonteCarloSampleType, RetirementStateUpdate } from './types';
 import { loadAverageWageIndex } from '../io/averageWageIndex';
 import { loadBendPoints } from '../io/bendPoints';
 import { load } from '../io/io';
@@ -120,6 +120,8 @@ export class RetirementManager {
   private simNumber: number;
   private currentDate: string = '';
   private mcRateGetter: MCRateGetter | null = null;
+  private currentSegmentRetirementUpdates: RetirementStateUpdate[] = [];
+  private isReplaying: boolean = false;
 
   constructor(socialSecurities: SocialSecurity[], pensions: Pension[], debugLogger?: DebugLogger | null, simNumber: number = 0, mortalityManager?: MortalityManager | null) {
     this.socialSecurities = socialSecurities;
@@ -206,7 +208,7 @@ export class RetirementManager {
     }
   }
 
-  private addSocialSecurityAnnualIncome(name: string, year: number, income: number) {
+  public addSocialSecurityAnnualIncome(name: string, year: number, income: number) {
     // Ensure the map for this social security exists
     if (!this.socialSecurityAnnualIncomes.has(name)) {
       this.socialSecurityAnnualIncomes.set(name, new Map());
@@ -221,6 +223,14 @@ export class RetirementManager {
       this.log('wage-base-capped', { year, total_income: totalIncome, wage_base_cap: wageBaseCap, capped_income: cappedIncome });
     }
     this.socialSecurityAnnualIncomes.get(name)?.set(year, cappedIncome);
+    if (!this.isReplaying) {
+      this.currentSegmentRetirementUpdates.push({
+        type: 'annualIncomeSS',
+        name,
+        year,
+        value: cappedIncome,
+      });
+    }
   }
 
   private tryAddPensionAnnualIncome(activityName: string, date: Date, income: number) {
@@ -230,7 +240,7 @@ export class RetirementManager {
     }
   }
 
-  private addPensionAnnualIncome(name: string, year: number, income: number) {
+  public addPensionAnnualIncome(name: string, year: number, income: number) {
     // Ensure the map for this pension exists
     if (!this.pensionAnnualIncomes.has(name)) {
       this.pensionAnnualIncomes.set(name, new Map());
@@ -238,6 +248,14 @@ export class RetirementManager {
     // Add the income for the year, summing with any prior balance
     const priorBalance = this.pensionAnnualIncomes.get(name)?.get(year) || 0;
     this.pensionAnnualIncomes.get(name)?.set(year, income + priorBalance);
+    if (!this.isReplaying) {
+      this.currentSegmentRetirementUpdates.push({
+        type: 'annualIncomePension',
+        name,
+        year,
+        value: income + priorBalance,
+      });
+    }
   }
 
   public calculateSocialSecurityMonthlyPay(socialSecurity: SocialSecurity): void {
@@ -276,6 +294,13 @@ export class RetirementManager {
     }
 
     this.socialSecurityMonthlyPay.set(socialSecurity.name, monthlyPay);
+    if (!this.isReplaying) {
+      this.currentSegmentRetirementUpdates.push({
+        type: 'socialSecurityMonthlyPay',
+        name: socialSecurity.name,
+        value: monthlyPay,
+      });
+    }
   }
 
   /**
@@ -307,8 +332,22 @@ export class RetirementManager {
       (highestCompensationAverage * pension.accrualFactor * pension.yearsWorked * pension.reductionFactor) / 12;
     this.log('pension-monthly-calculated', { name: pension.name, monthly_pay: monthlyPay, avg_compensation: highestCompensationAverage, years_worked: pension.yearsWorked });
     this.pensionMonthlyPay.set(pension.name, monthlyPay);
+    if (!this.isReplaying) {
+      this.currentSegmentRetirementUpdates.push({
+        type: 'pensionMonthlyPay',
+        name: pension.name,
+        value: monthlyPay,
+      });
+    }
     if (startYear !== undefined) {
       this.pensionFirstPaymentYear.set(pension.name, startYear);
+      if (!this.isReplaying) {
+        this.currentSegmentRetirementUpdates.push({
+          type: 'pensionFirstPaymentYear',
+          name: pension.name,
+          year: startYear,
+        });
+      }
     }
   }
 
@@ -330,6 +369,23 @@ export class RetirementManager {
 
   public setSocialSecurityFirstPaymentYear(name: string, year: number): void {
     this.socialSecurityFirstPaymentYear.set(name, year);
+    if (!this.isReplaying) {
+      this.currentSegmentRetirementUpdates.push({
+        type: 'socialSecurityFirstPaymentYear',
+        name,
+        year,
+      });
+    }
+  }
+
+  /**
+   * Set the pension first payment year (used by cache-replay for direct state restoration).
+   */
+  public setPensionFirstPaymentYear(name: string, year: number): void {
+    this.pensionFirstPaymentYear.set(name, year);
+    if (!this.isReplaying) {
+      this.currentSegmentRetirementUpdates.push({ type: 'pensionFirstPaymentYear', name, year });
+    }
   }
 
   /** Get all social security config names */
@@ -634,5 +690,43 @@ export class RetirementManager {
         firstPaymentYear: this.getPensionFirstPaymentYear(name),
       })),
     };
+  }
+
+  /** Raw setter for replay — sets monthly pay directly without recalculating. */
+  public setSocialSecurityMonthlyPayRaw(name: string, value: number): void {
+    this.socialSecurityMonthlyPay.set(name, value);
+  }
+
+  /** Raw setter for replay — sets monthly pay directly without recalculating. */
+  public setPensionMonthlyPayRaw(name: string, value: number): void {
+    this.pensionMonthlyPay.set(name, value);
+  }
+
+  /** Raw setter for replay — sets annual SS income directly (does not sum or cap). */
+  public setSocialSecurityAnnualIncomeRaw(name: string, year: number, value: number): void {
+    if (!this.socialSecurityAnnualIncomes.has(name)) {
+      this.socialSecurityAnnualIncomes.set(name, new Map());
+    }
+    this.socialSecurityAnnualIncomes.get(name)!.set(year, value);
+  }
+
+  /** Raw setter for replay — sets annual pension income directly (does not sum). */
+  public setPensionAnnualIncomeRaw(name: string, year: number, value: number): void {
+    if (!this.pensionAnnualIncomes.has(name)) {
+      this.pensionAnnualIncomes.set(name, new Map());
+    }
+    this.pensionAnnualIncomes.get(name)!.set(year, value);
+  }
+
+  /** Drain the accumulated retirement state updates and reset the buffer. */
+  public drainRetirementUpdates(): RetirementStateUpdate[] {
+    const updates = this.currentSegmentRetirementUpdates;
+    this.currentSegmentRetirementUpdates = [];
+    return updates;
+  }
+
+  /** Set replaying flag — suppresses buffer writes during replay. */
+  public setReplaying(flag: boolean): void {
+    this.isReplaying = flag;
   }
 }

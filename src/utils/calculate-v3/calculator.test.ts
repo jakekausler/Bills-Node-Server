@@ -95,6 +95,7 @@ function makeSegmentResult(): SegmentResult {
     ficaOccurrences: new Map<number, Array<{ source: string; ssTax: number; medicareTax: number }>>(),
     spendingTrackerUpdates: [],
     healthcareExpenseUpdates: [],
+    retirementStateUpdates: [],
   };
 }
 

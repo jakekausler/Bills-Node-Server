@@ -112,6 +112,7 @@ function makeSegmentResult(overrides: Partial<SegmentResult> = {}): SegmentResul
     taxableOccurrences: new Map(),
     spendingTrackerUpdates: [],
     healthcareExpenseUpdates: [],
+    retirementStateUpdates: [],
     ...overrides,
   };
 }
@@ -167,6 +168,14 @@ function makeMockPushPullHandler(overrides: Partial<any> = {}) {
 function makeMockRetirementManager(overrides: Partial<any> = {}) {
   return {
     tryAddToAnnualIncomes: vi.fn(),
+    drainRetirementUpdates: vi.fn().mockReturnValue([]),
+    setReplaying: vi.fn(),
+    setSocialSecurityMonthlyPayRaw: vi.fn(),
+    setSocialSecurityFirstPaymentYear: vi.fn(),
+    setPensionMonthlyPayRaw: vi.fn(),
+    setPensionFirstPaymentYear: vi.fn(),
+    setSocialSecurityAnnualIncomeRaw: vi.fn(),
+    setPensionAnnualIncomeRaw: vi.fn(),
     ...overrides,
   };
 }
