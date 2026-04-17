@@ -417,6 +417,22 @@ export class Calculator {
         segmentResult.withholdingOccurrences.get(accountId)!.push(withholdingOcc);
       }
 
+      // Mirror FICA for activity-paycheck path (paycheck-processor writes to
+      // live TaxManager on fresh compute; this ensures warm replay reconstructs it)
+      const ssTax = paycheckDetails.ssTax || 0;
+      const medicareTax = paycheckDetails.medicareTax || 0;
+      if (ssTax > 0 || medicareTax > 0) {
+        this.taxManager.addFicaOccurrence(year, activity.name, ssTax, medicareTax);
+        if (!segmentResult.ficaOccurrences.has(year)) {
+          segmentResult.ficaOccurrences.set(year, []);
+        }
+        segmentResult.ficaOccurrences.get(year)!.push({
+          source: activity.name,
+          ssTax,
+          medicareTax,
+        });
+      }
+
       // Report gross income minus pre-tax deductions as ordinary taxable income
       let taxableWages = paycheckDetails.grossPay - (paycheckDetails.traditional401k || 0) - (paycheckDetails.hsa || 0) - (paycheckDetails.hsaEmployer || 0);
       for (const ded of (paycheckDetails.preTaxDeductions || [])) {
@@ -1049,6 +1065,17 @@ export class Calculator {
         source: bill.name,
       });
     }
+    // Store FICA in segmentResult for caching (bill-path regular paycheck)
+    if (paycheckResult.ssTax > 0 || paycheckResult.medicareTax > 0) {
+      if (!segmentResult.ficaOccurrences.has(year)) {
+        segmentResult.ficaOccurrences.set(year, []);
+      }
+      segmentResult.ficaOccurrences.get(year)!.push({
+        source: bill.name,
+        ssTax: paycheckResult.ssTax,
+        medicareTax: paycheckResult.medicareTax,
+      });
+    }
 
     // Skip downstream processing if paycheck is empty (suppressed during unemployment)
     if (paycheckResult.grossPay === 0) {
@@ -1348,6 +1375,8 @@ export class Calculator {
         );
 
         // Store bonus withholding in segmentResult for caching
+        // Note: source matches paycheck-processor.ts:660 (uses billName, not ${billName} Bonus)
+        // so cache-replay withholding entries align with cold-run fresh-compute entries.
         if (bonusResult.federalWithholding > 0 || bonusResult.stateWithholding > 0) {
           const whKey = account.name || event.accountId;
           if (!segmentResult.withholdingOccurrences.has(whKey)) {
@@ -1358,7 +1387,21 @@ export class Calculator {
             year,
             federalAmount: bonusResult.federalWithholding,
             stateAmount: bonusResult.stateWithholding,
-            source: `${bill.name} Bonus`,
+            source: bill.name,
+          });
+        }
+        // Store bonus FICA in segmentResult for caching
+        // Note: source matches paycheck-processor.ts:671 (uses billName, not ${billName} Bonus)
+        // so the FICA entries from fresh compute (via processBonusPaycheck live call) and
+        // cache replay (via this mirror) have identical source names.
+        if (bonusResult.ssTax > 0 || bonusResult.medicareTax > 0) {
+          if (!segmentResult.ficaOccurrences.has(year)) {
+            segmentResult.ficaOccurrences.set(year, []);
+          }
+          segmentResult.ficaOccurrences.get(year)!.push({
+            source: bill.name,
+            ssTax: bonusResult.ssTax,
+            medicareTax: bonusResult.medicareTax,
           });
         }
 

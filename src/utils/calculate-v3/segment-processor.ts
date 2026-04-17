@@ -173,6 +173,15 @@ export class SegmentProcessor {
           }
         }
 
+        // Replay FICA occurrences from cached segments into TaxManager
+        if (cachedResult.ficaOccurrences) {
+          for (const [year, occurrences] of cachedResult.ficaOccurrences) {
+            for (const f of occurrences) {
+              this.taxManager.addFicaOccurrence(year, f.source, f.ssTax, f.medicareTax);
+            }
+          }
+        }
+
         return;
       }
       // Log cache-miss immediately after null cache result
@@ -275,6 +284,7 @@ export class SegmentProcessor {
       balanceMaximums: new Map<string, number>(),
       taxableOccurrences: new Map<string, TaxableOccurrence[]>(),
       withholdingOccurrences: new Map<string, WithholdingOccurrence[]>(),
+      ficaOccurrences: new Map<number, Array<{ source: string; ssTax: number; medicareTax: number }>>(),
       spendingTrackerUpdates: [],
     };
 

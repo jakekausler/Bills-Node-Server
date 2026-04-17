@@ -107,6 +107,12 @@ class SegmentResultSerializer extends Serializer {
           })),
         ]),
       ),
+      ficaOccurrences: Object.fromEntries(
+        Array.from((data.data.ficaOccurrences ?? new Map()).entries()).map(([year, arr]) => [
+          year,
+          arr.map((f) => ({ source: f.source, ssTax: f.ssTax, medicareTax: f.medicareTax })),
+        ]),
+      ),
       spendingTrackerUpdates: (data.data.spendingTrackerUpdates || []).map((u) => ({
         categoryId: u.categoryId,
         totalSpent: u.totalSpent,
@@ -166,6 +172,13 @@ class SegmentResultSerializer extends Serializer {
       ]),
     );
 
+    const ficaOccurrences = new Map<number, Array<{ source: string; ssTax: number; medicareTax: number }>>(
+      Object.entries(segmentResultData.ficaOccurrences || {}).map(([year, arr]) => [
+        Number(year),
+        arr.map((f) => ({ source: f.source, ssTax: f.ssTax, medicareTax: f.medicareTax })),
+      ]),
+    );
+
     const spendingTrackerUpdates = (segmentResultData.spendingTrackerUpdates || []).map(
       (u: SpendingTrackerUpdateData) => ({
         categoryId: u.categoryId,
@@ -184,6 +197,7 @@ class SegmentResultSerializer extends Serializer {
       balanceMaximums,
       taxableOccurrences,
       withholdingOccurrences,
+      ficaOccurrences,
       spendingTrackerUpdates,
     };
 

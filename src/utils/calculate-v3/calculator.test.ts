@@ -92,6 +92,7 @@ function makeSegmentResult(): SegmentResult {
     balanceMaximums: new Map<string, number>(),
     taxableOccurrences: new Map<string, any[]>(),
     withholdingOccurrences: new Map<string, any[]>(),
+    ficaOccurrences: new Map<number, Array<{ source: string; ssTax: number; medicareTax: number }>>(),
     spendingTrackerUpdates: [],
   };
 }

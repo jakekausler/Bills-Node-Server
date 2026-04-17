@@ -172,6 +172,10 @@ function makeMockRetirementManager(overrides: Partial<any> = {}) {
 function makeMockTaxManager(overrides: Partial<any> = {}) {
   return {
     addTaxableOccurrences: vi.fn(),
+    addWithholdingOccurrence: vi.fn(),
+    addFicaOccurrence: vi.fn(),
+    checkpoint: vi.fn(),
+    restore: vi.fn(),
     ...overrides,
   };
 }

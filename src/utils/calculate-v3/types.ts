@@ -158,6 +158,8 @@ export interface SegmentResult {
   taxableOccurrences: Map<string, TaxableOccurrence[]>;
   /** Withholding occurrences indexed by account name */
   withholdingOccurrences: Map<string, WithholdingOccurrence[]>;
+  /** FICA occurrences keyed by year (source + ssTax + medicareTax per paycheck) */
+  ficaOccurrences: Map<number, Array<{ source: string; ssTax: number; medicareTax: number }>>;
   /** Spending tracker period completions for cache replay */
   spendingTrackerUpdates: SpendingTrackerUpdate[];
   /** Accounts and Transfers */
@@ -172,6 +174,7 @@ export type SegmentResultData = {
   balanceMaximums: Record<string, number>;
   taxableOccurrences: Record<string, TaxableOccurrenceData[]>;
   withholdingOccurrences: Record<string, WithholdingOccurrenceData[]>;
+  ficaOccurrences: Record<number, Array<{ source: string; ssTax: number; medicareTax: number }>>;
   spendingTrackerUpdates: SpendingTrackerUpdateData[];
 };
 
