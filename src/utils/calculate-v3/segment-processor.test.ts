@@ -152,6 +152,7 @@ function makeMockCalculator(overrides: Partial<any> = {}) {
     checkpoint: vi.fn(),
     restore: vi.fn(),
     injectPendingPayouts: vi.fn(),
+    clearPendingPayouts: vi.fn(),
     ...overrides,
   };
 }
