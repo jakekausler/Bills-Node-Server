@@ -189,11 +189,14 @@ export class SegmentProcessor {
       endDate: dayjs.utc(segment.endDate).format('YYYY-MM-DD'),
     });
 
-    // Save spending tracker, healthcare manager, and contribution limit state BEFORE processing any events in this segment
+    // Save spending tracker, healthcare, calculator, asset, and tax state
+    // BEFORE processing any events in this segment. These checkpoints are restored if push-pull reprocess fires,
+    // ensuring the second pass doesn't double-write to managers that accumulate per-event state.
     this.spendingTrackerManager.checkpoint();
     this.healthcareManager.checkpoint();
     this.calculator.checkpoint();
     this.assetManager?.checkpoint();
+    this.taxManager.checkpoint();
 
     // Process events in the segment
     let segmentResult = this.processSegmentEvents(segment, options);
@@ -212,6 +215,7 @@ export class SegmentProcessor {
       this.healthcareManager.restore();
       this.calculator.restore();
       this.assetManager?.restore();
+      this.taxManager.restore();
       segmentResult = this.processSegmentEvents(segment, options);
     }
 
