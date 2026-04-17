@@ -1,6 +1,8 @@
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 import { getDataDir } from '../../src/utils/io/io';
 import { getAccountsAndTransfers, clearDataCache } from '../../src/utils/io/accountsAndTransfers';
@@ -15,6 +17,9 @@ import { clearGlidePathCache } from '../../src/utils/calculate-v3/glide-path-ble
 import { clearProjectionsCache } from '../../src/utils/io/projectionsCache';
 import { clearAllGraphCache } from '../../src/api/monteCarlo/monteCarlo';
 import type { AccountsAndTransfers } from '../../src/data/account/types';
+import type { ManagerStatesSnapshot } from '../../src/utils/calculate-v3/types';
+
+dayjs.extend(utc);
 
 //
 // Types
@@ -34,19 +39,22 @@ export interface HarnessOptions {
   debugLogDir?: string;
 }
 
-export interface ManagerStatesSnapshot {
-  tax: ReturnType<import('../../src/utils/calculate-v3/tax-manager').TaxManager['snapshot']> | null;
-  healthcare: ReturnType<import('../../src/utils/calculate-v3/healthcare-manager').HealthcareManager['snapshot']> | null;
-  spendingTracker: ReturnType<import('../../src/utils/calculate-v3/spending-tracker-manager').SpendingTrackerManager['snapshot']> | null;
-  retirement: ReturnType<import('../../src/utils/calculate-v3/retirement-manager').RetirementManager['snapshot']> | null;
-  medicare: ReturnType<import('../../src/utils/calculate-v3/medicare-manager').MedicareManager['snapshot']> | null;
-  aca: ReturnType<import('../../src/utils/calculate-v3/aca-manager').AcaManager['snapshot']> | null;
-}
+export type { ManagerStatesSnapshot };
 
 export interface RunResult {
   result: AccountsAndTransfers;
   debugLogPath: string;
   managerStates: ManagerStatesSnapshot;
+}
+
+export interface BoundarySnapshot {
+  segmentId: string;
+  endDate: string; // YYYY-MM-DD
+  managerState: ManagerStatesSnapshot;
+}
+
+export interface RunResultWithBoundaries extends RunResult {
+  boundarySnapshots: BoundarySnapshot[];
 }
 
 export interface DebugEvent {
@@ -69,11 +77,19 @@ export interface DateRange {
 export interface Harness {
   runCold(): Promise<RunResult>;
   runWarm(): Promise<RunResult>;
+  runColdWithBoundarySnapshots(): Promise<RunResultWithBoundaries>;
+  runWarmWithBoundarySnapshots(): Promise<RunResultWithBoundaries>;
   loadDebugEvents(logPath: string): DebugEvent[];
   assertCacheHits(events: DebugEvent[], opts: { dateRange: DateRange }): void;
   assertCacheMisses(events: DebugEvent[], opts: { dateRange: DateRange }): void;
   compareManagerStates(warm: ManagerStatesSnapshot, cold: ManagerStatesSnapshot): void;
   compareAccountsAndTransfers(warm: AccountsAndTransfers, cold: AccountsAndTransfers): void;
+  compareBoundarySnapshots<T>(
+    warm: BoundarySnapshot[],
+    cold: BoundarySnapshot[],
+    extractor: (snapshot: ManagerStatesSnapshot) => T,
+    label: string,
+  ): void;
 }
 
 //
@@ -228,12 +244,68 @@ export function createHarness(options: HarnessOptions): Harness {
     };
   }
 
+  async function runInternalWithBoundaries(clearCachesFirst: boolean): Promise<RunResultWithBoundaries> {
+    process.env.BILLS_DATA_DIR = fixtureDirAbs;
+    assertInsideFixtures(getDataDir());
+
+    if (clearCachesFirst) {
+      clearAllCaches();
+    } else {
+      clearCalcCachesOnly();
+    }
+
+    const dir = debugLogDir ?? path.join('/tmp', `debug-${randomUUID()}`);
+    const debugLogger = new DebugLogger({ dir });
+
+    const boundarySnapshots: BoundarySnapshot[] = [];
+
+    const accountsAndTransfers = getAccountsAndTransfers(simulation);
+
+    const { accountsAndTransfers: result, engine } = await calculateAllActivityWithEngine(
+      accountsAndTransfers,
+      null,
+      endDate,
+      simulation,
+      false,
+      1,
+      1,
+      false,
+      false,
+      {},
+      undefined,
+      undefined,
+      debugLogger,
+      (segmentId, segmentEndDate, snapshot) => {
+        boundarySnapshots.push({
+          segmentId,
+          endDate: dayjs.utc(segmentEndDate).format('YYYY-MM-DD'),
+          managerState: snapshot,
+        });
+      },
+    );
+
+    const managerStates = snapshotManagers(engine);
+
+    return {
+      result,
+      debugLogPath: debugLogger.getDir(),
+      managerStates,
+      boundarySnapshots,
+    };
+  }
+
   return {
     runCold(): Promise<RunResult> {
       return runInternal(true);
     },
     runWarm(): Promise<RunResult> {
       return runInternal(false);
+    },
+    runColdWithBoundarySnapshots(): Promise<RunResultWithBoundaries> {
+      return runInternalWithBoundaries(true);
+    },
+    runWarmWithBoundarySnapshots(): Promise<RunResultWithBoundaries> {
+      return runInternalWithBoundaries(false);
     },
     loadDebugEvents(logPath: string): DebugEvent[] {
       // Log dir contains det.jsonl and/or sim-N.jsonl files. Non-MC runs write det.jsonl.
@@ -371,6 +443,46 @@ export function createHarness(options: HarnessOptions): Harness {
       deepEqualWithEpsilon(warm.transfers.bills.length, cold.transfers.bills.length, 'transfers.bills.length', diffs);
       if (diffs.length > 0) {
         throw new Error(`compareAccountsAndTransfers: warm vs cold differ:\n${diffs.map((d) => '  ' + d).join('\n')}`);
+      }
+    },
+    compareBoundarySnapshots<T>(
+      warm: BoundarySnapshot[],
+      cold: BoundarySnapshot[],
+      extractor: (snapshot: ManagerStatesSnapshot) => T,
+      label: string,
+    ): void {
+      if (warm.length !== cold.length) {
+        throw new Error(
+          `compareBoundarySnapshots[${label}]: segment count mismatch: warm=${warm.length} cold=${cold.length}`,
+        );
+      }
+      if (cold.length === 0) {
+        throw new Error(`compareBoundarySnapshots[${label}]: no segments to compare (both arrays empty)`);
+      }
+      const anyNonNull = cold.some((c) => extractor(c.managerState) !== null && extractor(c.managerState) !== undefined);
+      if (!anyNonNull) {
+        throw new Error(
+          `compareBoundarySnapshots[${label}]: extractor returned null/undefined for ALL ${cold.length} segments — test is vacuous (no data to compare)`,
+        );
+      }
+      for (let i = 0; i < warm.length; i++) {
+        const w = warm[i];
+        const c = cold[i];
+        if (w.segmentId !== c.segmentId) {
+          throw new Error(
+            `compareBoundarySnapshots[${label}]: segment order mismatch at index ${i}: warm=${w.segmentId} cold=${c.segmentId}`,
+          );
+        }
+        const wVal = extractor(w.managerState);
+        const cVal = extractor(c.managerState);
+        const diffs: string[] = [];
+        deepEqualWithEpsilon(wVal, cVal, label, diffs);
+        if (diffs.length > 0) {
+          throw new Error(
+            `compareBoundarySnapshots[${label}]: divergence at segment ${w.segmentId} (endDate=${w.endDate}):\n` +
+            diffs.map((d) => '  ' + d).join('\n'),
+          );
+        }
       }
     },
   };

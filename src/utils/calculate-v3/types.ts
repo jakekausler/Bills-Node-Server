@@ -37,7 +37,55 @@ export type CalculationOptions = {
   withdrawalStrategy?: 'manual' | 'taxOptimized'; // Account withdrawal strategy
   taxAccountName?: string; // Explicit account name for tax events (from taxConfig)
   taxScenario?: TaxScenario; // Tax scenario for bracket evolution
+  /**
+   * Optional callback fired after each segment is processed (hit or miss path).
+   * Production code should leave this undefined.
+   */
+  onSegmentComplete?: (segmentId: string, segmentEndDate: Date, snapshot: ManagerStatesSnapshot) => void;
 };
+
+/**
+ * Snapshot of all manager states at a point in time.
+ * Used by onSegmentComplete callback and test harness.
+ */
+export interface ManagerStatesSnapshot {
+  tax: {
+    years: Array<{
+      year: number;
+      occurrencesByAccount: Record<string, Array<{ amount: number; incomeType: string; date?: string }>>;
+      withholding: Array<{ source: string; federal: number; state: number }>;
+      fica: Array<{ source: string; ssTax: number; medicareTax: number }>;
+    }>;
+    capitalLossCarryforward: number;
+  } | null;
+  healthcare: {
+    trackers: Array<{
+      key: string;
+      planYear: number;
+      lastResetCheck: string;
+      individualDeductible: Record<string, number>;
+      individualOOP: Record<string, number>;
+      familyDeductible: number;
+      familyOOP: number;
+    }>;
+    processedExpenseCount: number;
+  } | null;
+  spendingTracker: {
+    categories: Array<{
+      id: string;
+      carryBalance: number;
+      periodSpending: number;
+      lastProcessedPeriodEnd: string | null;
+      hasHadActivity: boolean;
+    }>;
+  } | null;
+  retirement: {
+    socialSecurity: Array<{ name: string; monthlyPay: number; firstPaymentYear: number | null }>;
+    pensions: Array<{ name: string; monthlyPay: number; firstPaymentYear: number | null }>;
+  } | null;
+  medicare: ReturnType<import('./medicare-manager').MedicareManager['snapshot']> | null;
+  aca: ReturnType<import('./aca-manager').AcaManager['snapshot']> | null;
+}
 
 export type TaxableOccurrence = {
   /** Date of the taxable event */

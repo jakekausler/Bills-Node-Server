@@ -562,6 +562,63 @@ The three short-horizon tests **currently FAIL by design**. They detect four pre
 
 This stage verifies correctness at the **end** of a complete run. Per-segment-boundary correctness (verifying that the engine state at each segment handoff is consistent) is the responsibility of STAGE-033-005.
 
+### Cache Segment-Level Drill-Down Tests (EPIC-033 STAGE-033-005)
+
+These tests complement the whole-run correctness suite (STAGE-033-004) by asserting correct engine state **at every segment boundary** during a run, not only at the final result.
+
+#### Purpose
+
+A whole-run test can detect that something is wrong without indicating where. A segment-level test catches bugs that manifest at a specific segment boundary — for example, a manager that accumulates state incorrectly during replay but self-corrects by end-of-run. If a segment-level test passes while the whole-run test fails, the bug is aggregate-only (not a per-segment replay gap). This shapes the fix strategy directly. See `epics/EPIC-033-calculation-cache/regression.md` for details.
+
+#### New engine API
+
+The calc-v3 engine accepts an optional `onSegmentComplete` callback on its calculation options:
+
+```typescript
+onSegmentComplete?: (segmentId: string, segmentEndDate: string, snapshot: ManagerSnapshot) => void
+```
+
+The callback fires after each segment finishes. When undefined (all production paths), the engine pays zero cost. The `ManagerSnapshot` type mirrors the shape returned by `compareManagerStates`.
+
+#### New harness API
+
+Two new run methods and one comparison helper are added to `cache-test-harness.ts`:
+
+| Method | Description |
+|--------|-------------|
+| `runColdWithBoundarySnapshots(options?)` | Same as `runCold` but collects a `ManagerSnapshot` at each segment boundary. Returns `{ ...runColdResult, boundarySnapshots: BoundarySnapshot[] }`. |
+| `runWarmWithBoundarySnapshots(options?)` | Same as `runWarm` but with boundary collection. Returns the same extended shape. |
+| `compareBoundarySnapshots<T>(warm, cold, extractor, label)` | Iterates boundary pairs in lock-step, applies `extractor` to each snapshot, and throws on the first divergence. The error message includes `segmentId`, `endDate`, and `label` for immediate localization. |
+
+`BoundarySnapshot` is `{ segmentId: string; endDate: string; snapshot: ManagerSnapshot }`.
+
+#### Test files
+
+| Path | What it asserts |
+|------|-----------------|
+| `test/cache/segment-healthcare-deductible.test.ts` | HealthcareManager deductible and OOP accumulators match at every segment boundary between cold and warm runs. |
+| `test/cache/segment-tax-income.test.ts` | TaxManager taxable income and withholding totals match at every segment boundary. |
+| `test/cache/segment-withholding.test.ts` | Withholding specifically — localizes Bug 2 (cached segments not replaying withholding) to the exact segment where divergence begins. |
+| `test/cache/segment-spending-tracker.test.ts` | SpendingTrackerManager carry-over/under state matches at every segment boundary. |
+| `test/cache/segment-retirement-drawdown.long.test.ts` | RMD and Social Security event timing at the retirement transition boundary. Opt-in via `npm run test:long`. |
+| `test/cache/segment-rmd-triggering.long.test.ts` | First RMD event fires at the correct age-73 segment. Opt-in via `npm run test:long`. |
+
+#### How to run
+
+```bash
+# Short-horizon segment tests (excludes .long.test.ts files)
+npx vitest run test/cache/segment-*.test.ts
+
+# Long-horizon variants (~120 s timeout, coverage disabled)
+npm run test:long
+```
+
+#### Current status (2026-04-17)
+
+Two tests pass (`segment-healthcare-deductible`, `segment-tax-income`). Four fail with localized per-segment diagnostics (`segment-withholding`, `segment-spending-tracker`, and both long-horizon files). The failing tests provide per-segment evidence that drives fix stages 007, 008, and 009.
+
+A passing segment-level test alongside a failing whole-run test is a signal that the bug is aggregate-only. See `epics/EPIC-033-calculation-cache/regression.md` for the full bug inventory.
+
 ---
 
 ## API Endpoints

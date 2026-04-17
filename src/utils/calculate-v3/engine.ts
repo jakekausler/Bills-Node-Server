@@ -824,6 +824,10 @@ export class Engine {
       }
 
       await this.segmentProcessor.processSegment(segment, options);
+      if (options.onSegmentComplete) {
+        const snap = this.buildManagerSnapshot();
+        options.onSegmentComplete(segment.id, segment.endDate, snap);
+      }
     }
 
     // Set ending balance for the final year
@@ -1108,6 +1112,21 @@ export class Engine {
   getDeductionTracker(): import('./deduction-tracker').DeductionTracker {
     return this.calculator.getDeductionTracker();
   }
+
+  /**
+   * Build a ManagerStatesSnapshot from current manager state.
+   * Used by the onSegmentComplete callback for test harness boundary snapshots.
+   */
+  private buildManagerSnapshot(): import('./types').ManagerStatesSnapshot {
+    return {
+      tax: this.taxManager?.snapshot() ?? null,
+      healthcare: this.healthcareManager?.snapshot() ?? null,
+      spendingTracker: this.spendingTrackerManager?.snapshot() ?? null,
+      retirement: this.retirementManager?.snapshot() ?? null,
+      medicare: this.medicareManager?.snapshot() ?? null,
+      aca: this.acaManager?.snapshot() ?? null,
+    };
+  }
 }
 
 /**
@@ -1167,6 +1186,7 @@ export async function calculateAllActivityWithEngine(
   timeline?: Timeline,
   seed?: number,
   debugLogger?: DebugLogger | null,
+  onSegmentComplete?: CalculationOptions['onSegmentComplete'],
 ): Promise<CalculationResult> {
   const engine = new Engine(simulation, config, monteCarlo, debugLogger);
 
@@ -1182,6 +1202,7 @@ export async function calculateAllActivityWithEngine(
     config,
     seed,
     debugLogger: debugLogger ?? null,
+    onSegmentComplete,
   };
 
   const accountsAndTransfersResult = await engine.calculate(accountsAndTransfers, options, timeline);
