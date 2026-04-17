@@ -12,6 +12,7 @@ import {
   TaxableOccurrence,
   WithholdingOccurrence,
   SpendingTrackerUpdateData,
+  HealthcareExpenseUpdateData,
 } from './types';
 import { join } from 'path';
 import { formatDate, parseDate } from '../date/date';
@@ -120,6 +121,13 @@ class SegmentResultSerializer extends Serializer {
         periodEnd: formatDate(u.periodEnd),
         carryAfter: u.carryAfter,
       })),
+      healthcareExpenseUpdates: (data.data.healthcareExpenseUpdates || []).map((u) => ({
+        personName: u.personName,
+        date: formatDate(u.date),
+        amountTowardDeductible: u.amountTowardDeductible,
+        amountTowardOOP: u.amountTowardOOP,
+        configId: u.configId,
+      })),
     };
 
     return JSON.stringify({
@@ -189,6 +197,16 @@ class SegmentResultSerializer extends Serializer {
       }),
     );
 
+    const healthcareExpenseUpdates = (segmentResultData.healthcareExpenseUpdates || []).map(
+      (u: HealthcareExpenseUpdateData) => ({
+        personName: u.personName,
+        date: parseDate(u.date),
+        amountTowardDeductible: u.amountTowardDeductible,
+        amountTowardOOP: u.amountTowardOOP,
+        configId: u.configId,
+      }),
+    );
+
     const segmentResult: SegmentResult = {
       balanceChanges,
       activitiesAdded,
@@ -199,6 +217,7 @@ class SegmentResultSerializer extends Serializer {
       withholdingOccurrences,
       ficaOccurrences,
       spendingTrackerUpdates,
+      healthcareExpenseUpdates,
     };
 
     return {

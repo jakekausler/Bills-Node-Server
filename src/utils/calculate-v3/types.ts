@@ -68,7 +68,6 @@ export interface ManagerStatesSnapshot {
       familyDeductible: number;
       familyOOP: number;
     }>;
-    processedExpenseCount: number;
   } | null;
   spendingTracker: {
     categories: Array<{
@@ -141,6 +140,26 @@ export type SpendingTrackerUpdateData = {
 };
 
 /**
+ * Records a single healthcare expense update captured during cold compute,
+ * for direct replay into recordHealthcareExpense on cache hit.
+ */
+export interface HealthcareExpenseUpdate {
+  personName: string;
+  date: Date;
+  amountTowardDeductible: number;
+  amountTowardOOP: number;
+  configId: string; // HealthcareConfig.id — used to look up config on replay
+}
+
+export type HealthcareExpenseUpdateData = {
+  personName: string;
+  date: DateString;
+  amountTowardDeductible: number;
+  amountTowardOOP: number;
+  configId: string;
+};
+
+/**
  * Results of a calculation segment
  */
 export interface SegmentResult {
@@ -162,6 +181,8 @@ export interface SegmentResult {
   ficaOccurrences: Map<number, Array<{ source: string; ssTax: number; medicareTax: number }>>;
   /** Spending tracker period completions for cache replay */
   spendingTrackerUpdates: SpendingTrackerUpdate[];
+  /** Healthcare expense updates captured during cold compute for cache replay */
+  healthcareExpenseUpdates: HealthcareExpenseUpdate[];
   /** Accounts and Transfers */
   accountsAndTransfers?: AccountsAndTransfers;
 }
@@ -176,6 +197,7 @@ export type SegmentResultData = {
   withholdingOccurrences: Record<string, WithholdingOccurrenceData[]>;
   ficaOccurrences: Record<number, Array<{ source: string; ssTax: number; medicareTax: number }>>;
   spendingTrackerUpdates: SpendingTrackerUpdateData[];
+  healthcareExpenseUpdates: HealthcareExpenseUpdateData[];
 };
 
 /**

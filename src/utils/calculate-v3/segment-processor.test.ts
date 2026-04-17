@@ -111,6 +111,7 @@ function makeSegmentResult(overrides: Partial<SegmentResult> = {}): SegmentResul
     balanceMaximums: new Map(),
     taxableOccurrences: new Map(),
     spendingTrackerUpdates: [],
+    healthcareExpenseUpdates: [],
     ...overrides,
   };
 }
@@ -193,6 +194,12 @@ function makeMockHealthcareManager(overrides: Partial<any> = {}) {
     calculatePatientCost: vi.fn(),
     checkpoint: vi.fn(),
     restore: vi.fn(),
+    drainExpenseUpdates: vi.fn().mockReturnValue([]),
+    resetExpenseUpdateBuffer: vi.fn(),
+    setReplaying: vi.fn(),
+    getConfigById: vi.fn().mockReturnValue(undefined),
+    recordHealthcareExpense: vi.fn(),
+    advanceToDate: vi.fn(),
     ...overrides,
   };
 }
@@ -342,19 +349,20 @@ describe('SegmentProcessor', () => {
       expect(cache.getSegmentResult).not.toHaveBeenCalled();
     });
 
-    it('replays healthcare state from cached activities when healthcare activity present', async () => {
-      const healthcareActivity = {
-        isHealthcare: true,
-        healthcarePerson: 'John',
+    it('replays healthcare expense updates from cached result using recordHealthcareExpense directly', async () => {
+      const mockConfig = { id: 'hc-config-1', name: 'BCBS' };
+      const expenseUpdate = {
+        personName: 'John',
         date: new Date(Date.UTC(2025, 0, 15)),
-        name: 'Medical',
-        amount: -100,
+        amountTowardDeductible: 200,
+        amountTowardOOP: 200,
+        configId: 'hc-config-1',
       };
       const cachedResult = makeSegmentResult({
-        activitiesAdded: new Map([['acct-1', [healthcareActivity]]]),
+        activitiesAdded: new Map(),
         spendingTrackerUpdates: [],
+        healthcareExpenseUpdates: [expenseUpdate],
       });
-      const mockConfig = { id: 'hc-config-1' };
 
       const { processor, healthcareManager } = makeProcessor(
         { getSegmentResult: vi.fn().mockResolvedValue(cachedResult) },
@@ -364,19 +372,46 @@ describe('SegmentProcessor', () => {
         {},
         {},
         {},
-        { getActiveConfig: vi.fn().mockReturnValue(mockConfig), calculatePatientCost: vi.fn() },
+        {
+          getConfigById: vi.fn().mockReturnValue(mockConfig),
+          recordHealthcareExpense: vi.fn(),
+          setReplaying: vi.fn(),
+        },
       );
       const segment = makeSegment();
       const options = makeOptions();
 
       await processor.processSegment(segment, options);
 
-      expect(healthcareManager.getActiveConfig).toHaveBeenCalledWith('John', expect.any(Date));
-      expect(healthcareManager.calculatePatientCost).toHaveBeenCalledWith(
-        healthcareActivity,
-        mockConfig,
+      expect(healthcareManager.setReplaying).toHaveBeenCalledWith(true);
+      expect(healthcareManager.getConfigById).toHaveBeenCalledWith('hc-config-1');
+      expect(healthcareManager.recordHealthcareExpense).toHaveBeenCalledWith(
+        'John',
         expect.any(Date),
+        200,
+        200,
+        mockConfig,
       );
+      expect(healthcareManager.setReplaying).toHaveBeenCalledWith(false);
+    });
+
+    it('does not replay healthcare when healthcareExpenseUpdates is empty', async () => {
+      const cachedResult = makeSegmentResult({
+        activitiesAdded: new Map(),
+        spendingTrackerUpdates: [],
+        healthcareExpenseUpdates: [],
+      });
+
+      const { processor, healthcareManager } = makeProcessor(
+        { getSegmentResult: vi.fn().mockResolvedValue(cachedResult) },
+      );
+      const segment = makeSegment();
+      const options = makeOptions();
+
+      await processor.processSegment(segment, options);
+
+      expect(healthcareManager.setReplaying).not.toHaveBeenCalled();
+      expect(healthcareManager.recordHealthcareExpense).not.toHaveBeenCalled();
     });
   });
 
@@ -503,6 +538,38 @@ describe('SegmentProcessor', () => {
 
       // Should not throw when account is not found (logged via debugLogger)
       await processor.processSegment(segment, options);
+    });
+
+    it('drains healthcare expense buffer into segmentResult after fresh compute', async () => {
+      const event = makeEvent({ type: EventType.activity, id: 'act-1', date: new Date(Date.UTC(2025, 0, 15)) });
+      const segment = makeSegment([event]);
+      const options = makeOptions();
+
+      const expenseUpdate = {
+        personName: 'Jane',
+        date: new Date(Date.UTC(2025, 0, 15)),
+        amountTowardDeductible: 100,
+        amountTowardOOP: 100,
+        configId: 'hc-config-2',
+      };
+
+      const { processor, cache, healthcareManager } = makeProcessor(
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        { drainExpenseUpdates: vi.fn().mockReturnValue([expenseUpdate]) },
+      );
+
+      await processor.processSegment(segment, options);
+
+      expect(healthcareManager.drainExpenseUpdates).toHaveBeenCalled();
+      // The cached result should include the drained updates
+      const cachedSegmentResult = (cache.setSegmentResult as any).mock.calls[0][1];
+      expect(cachedSegmentResult.healthcareExpenseUpdates).toEqual([expenseUpdate]);
     });
   });
 

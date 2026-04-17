@@ -21,6 +21,7 @@ import {
   MedicareHospitalEvent,
   AcaPremiumEvent,
   LTCCheckEvent,
+  HealthcareExpenseUpdate,
 } from './types';
 import { CacheManager } from './cache';
 import { BalanceTracker } from './balance-tracker';
@@ -114,31 +115,33 @@ export class SegmentProcessor {
         });
         this.balanceTracker.applySegmentResult(cachedResult, segment.startDate);
 
-        // Restore healthcare manager state from cached activities
-        // This is critical for deductible/OOP tracking to work correctly across segment boundaries
-        if (cachedResult.activitiesAdded && this.healthcareManager) {
-          let healthcareActivitiesReprocessed = 0;
-          for (const [_accountId, activities] of cachedResult.activitiesAdded) {
-            for (const activity of activities) {
-              if (activity.isHealthcare && activity.healthcarePerson) {
-                healthcareActivitiesReprocessed++;
-                const config = this.healthcareManager.getActiveConfig(
-                  activity.healthcarePerson,
-                  new Date(activity.date)
+        // Replay healthcare expense updates from cached segments into HealthcareManager.
+        // Uses recordHealthcareExpense directly (NOT calculatePatientCost) to avoid
+        // re-applying the deductible/coinsurance split to already-post-discount amounts.
+        if (cachedResult.healthcareExpenseUpdates && cachedResult.healthcareExpenseUpdates.length > 0 && this.healthcareManager) {
+          this.healthcareManager.setReplaying(true);
+          try {
+            for (const update of cachedResult.healthcareExpenseUpdates) {
+              const config = this.healthcareManager.getConfigById(update.configId);
+              if (config) {
+                const updateDate = new Date(update.date);
+                // Advance lastResetCheck (may reset tracker at year boundary)
+                this.healthcareManager.advanceToDate(config, updateDate);
+                this.healthcareManager.recordHealthcareExpense(
+                  update.personName,
+                  updateDate,
+                  update.amountTowardDeductible,
+                  update.amountTowardOOP,
+                  config,
                 );
-                if (config) {
-                  // Replay through calculatePatientCost to rebuild tracking state
-                  // The idempotency cache prevents duplicate calculations
-                  this.healthcareManager.calculatePatientCost(
-                    activity as any,  // ConsolidatedActivity has the necessary fields (name, amount, date)
-                    config,
-                    new Date(activity.date)
-                  );
-                }
               }
             }
+          } finally {
+            this.healthcareManager.setReplaying(false);
           }
-          this.log('healthcare-state-restored', { activitiesReprocessed: healthcareActivitiesReprocessed });
+          this.log('healthcare-state-restored', {
+            expenseUpdatesReplayed: cachedResult.healthcareExpenseUpdates.length,
+          });
         }
 
         // Record tagged spending from cached results for cross-segment period tracking
@@ -209,6 +212,8 @@ export class SegmentProcessor {
 
     // Process events in the segment
     let segmentResult = this.processSegmentEvents(segment, options);
+    // Drain healthcare expense buffer from this fresh compute pass
+    segmentResult.healthcareExpenseUpdates = this.healthcareManager.drainExpenseUpdates();
 
     // Deal with pushes and pulls
     // Use today (or options.startDate if it's in the future) as the reference date to prevent auto-push/pull before the current date
@@ -226,6 +231,8 @@ export class SegmentProcessor {
       this.assetManager?.restore();
       this.taxManager.restore();
       segmentResult = this.processSegmentEvents(segment, options);
+      // Drain healthcare expense buffer from the reprocessed pass (replaces the first drain)
+      segmentResult.healthcareExpenseUpdates = this.healthcareManager.drainExpenseUpdates();
     }
 
     // Record tagged spending from the FINAL segment result
@@ -286,6 +293,7 @@ export class SegmentProcessor {
       withholdingOccurrences: new Map<string, WithholdingOccurrence[]>(),
       ficaOccurrences: new Map<number, Array<{ source: string; ssTax: number; medicareTax: number }>>(),
       spendingTrackerUpdates: [],
+      healthcareExpenseUpdates: [],
     };
 
     // Inject any pending payouts from inheritance/life insurance managers

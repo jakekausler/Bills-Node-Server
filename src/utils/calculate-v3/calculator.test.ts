@@ -94,6 +94,7 @@ function makeSegmentResult(): SegmentResult {
     withholdingOccurrences: new Map<string, any[]>(),
     ficaOccurrences: new Map<number, Array<{ source: string; ssTax: number; medicareTax: number }>>(),
     spendingTrackerUpdates: [],
+    healthcareExpenseUpdates: [],
   };
 }
 

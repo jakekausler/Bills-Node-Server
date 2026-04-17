@@ -8,6 +8,7 @@ import type { DebugLogger } from './debug-logger';
 import type { MortalityManager } from './mortality-manager';
 import { MCRateGetter, MonteCarloSampleType } from './types';
 import { loadVariable } from '../../utils/simulation/variable';
+import type { HealthcareExpenseUpdate } from './types';
 
 type YearTracker = {
   planYear: number;
@@ -36,6 +37,10 @@ export class HealthcareManager {
   private mortalityManager: MortalityManager | null;
   private mcRateGetter: MCRateGetter | null = null;
   private simulation: string = 'Default';
+  /** Buffer of expense updates accumulated during cold compute (cleared on drain) */
+  private currentSegmentExpenseUpdates: HealthcareExpenseUpdate[] = [];
+  /** When true, recordHealthcareExpense skips buffering (replay mode) */
+  private isReplaying: boolean = false;
 
   constructor(healthcareConfigs: HealthcareConfig[], simulation: string = 'Default', debugLogger?: DebugLogger | null, simNumber: number = 0, mortalityManager?: MortalityManager | null) {
     this.simulation = simulation;
@@ -350,6 +355,14 @@ export class HealthcareManager {
   }
 
   /**
+   * Public accessor for resetIfNeeded, used by cache-replay to advance
+   * lastResetCheck and perform year-boundary resets during replay.
+   */
+  public advanceToDate(config: HealthcareConfig, date: Date): void {
+    this.resetIfNeeded(config, date);
+  }
+
+  /**
    * Record a healthcare expense toward deductible and OOP tracking
    */
   recordHealthcareExpense(
@@ -375,6 +388,17 @@ export class HealthcareManager {
       const currentOOP = tracker.individualOOP.get(personName) || 0;
       const newOOP = currentOOP + amountTowardOOP;
       tracker.individualOOP.set(personName, newOOP);
+    }
+
+    // Buffer this update for cold-compute capture (skip during replay to avoid re-buffering)
+    if (!this.isReplaying) {
+      this.currentSegmentExpenseUpdates.push({
+        personName,
+        date,
+        amountTowardDeductible,
+        amountTowardOOP,
+        configId: config.id,
+      });
     }
   }
 
@@ -641,6 +665,8 @@ export class HealthcareManager {
     }
     // Restore the processed expenses cache
     this.processedExpenses = new Map(this.checkpointProcessedExpenses);
+    // Clear the expense update buffer — the segment will be re-processed fresh
+    this.currentSegmentExpenseUpdates = [];
   }
 
   /**
@@ -657,7 +683,6 @@ export class HealthcareManager {
       familyDeductible: number;
       familyOOP: number;
     }>;
-    processedExpenseCount: number;
   } {
     const trackers: Array<{
       key: string;
@@ -682,7 +707,39 @@ export class HealthcareManager {
     trackers.sort((a, b) => a.key.localeCompare(b.key));
     return {
       trackers,
-      processedExpenseCount: this.processedExpenses.size,
     };
+  }
+
+  /**
+   * Returns and clears the buffered expense updates accumulated since the last drain.
+   * Called by segment-processor after fresh compute to capture updates for the cache.
+   */
+  drainExpenseUpdates(): HealthcareExpenseUpdate[] {
+    const updates = this.currentSegmentExpenseUpdates;
+    this.currentSegmentExpenseUpdates = [];
+    return updates;
+  }
+
+  /**
+   * Clears the expense update buffer without returning it.
+   * Used when push-pull restore resets state before reprocessing.
+   */
+  resetExpenseUpdateBuffer(): void {
+    this.currentSegmentExpenseUpdates = [];
+  }
+
+  /**
+   * Toggle replay mode. When true, recordHealthcareExpense does not buffer updates.
+   */
+  setReplaying(flag: boolean): void {
+    this.isReplaying = flag;
+  }
+
+  /**
+   * Look up a HealthcareConfig by its id field.
+   * Used during cache-hit replay to resolve the config from stored configId.
+   */
+  getConfigById(id: string): HealthcareConfig | undefined {
+    return this.configs.find((c) => c.id === id);
   }
 }
