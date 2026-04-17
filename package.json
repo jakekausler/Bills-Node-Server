@@ -16,7 +16,7 @@
     "test:e2e": "vitest run --config src/e2e/vitest.config.ts",
     "test:long": "vitest run --config vitest.long.config.ts",
     "test:long:watch": "vitest --config vitest.long.config.ts",
-    "lint": "eslint src/**/*.ts"
+    "lint": "eslint --no-warn-ignored src/**/*.ts"
   },
   "keywords": [],
   "author": "",

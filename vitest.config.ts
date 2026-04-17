@@ -6,13 +6,13 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/**/*.{test,spec}.{js,ts}', 'test/**/*.{test,spec}.{js,ts}'],
-    exclude: ['node_modules', 'dist', '**/*.long.test.ts'],
+    exclude: ['node_modules', 'dist', '**/*.long.test.ts', 'src/e2e/**'],
     coverage: {
       enabled: true,
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.{test,spec}.ts', '**/*.long.test.ts'],
+      exclude: ['src/**/*.{test,spec}.ts', '**/*.long.test.ts', 'src/e2e/**'],
     },
   },
   resolve: {
