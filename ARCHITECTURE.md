@@ -523,6 +523,45 @@ These tests verify work-skipping behavior only. They do not assert that warm and
 
 Harness cleanup may leak `/tmp/debug-<uuid>` directories on test-failure paths. This is non-blocking and documented in `epics/EPIC-033-calculation-cache/regression.md`.
 
+### Cache Correctness Tests (EPIC-033 STAGE-033-004)
+
+These tests prove that the segment cache produces **correct results**, not just that it skips work. They complement the effectiveness suite by comparing cold-run and warm-run outputs for equality.
+
+#### Purpose
+
+The effectiveness tests (STAGE-033-003) verify work-skipping. The correctness tests verify that a warm run — which replays state from cached segments — produces financially identical output to a fresh cold run. This closes the gap between "cache hit observed" and "cache hit was safe".
+
+#### Test files
+
+| Path | What it asserts |
+|------|-----------------|
+| `test/cache/correctness-whole-run.test.ts` | Short-horizon (to 2030-12-31); deep-equals the full `AccountsAndTransfers` result between cold and warm runs. |
+| `test/cache/correctness-manager-state.test.ts` | Short-horizon; **primary CI default test**; compares six manager snapshots — TaxManager, HealthcareManager, SpendingTrackerManager, RetirementManager, MedicareManager, AcaManager — between cold and warm runs. Regression net targeting the March 25 tax-replay bug class (cached segments failing to replay taxable occurrences and withholding). |
+| `test/cache/correctness-incremental-extend.test.ts` | Cold run to 2028, warm extension to 2029, vs. fresh cold run to 2029. Verifies incremental warm runs stay correct at a boundary. |
+| `test/cache/correctness-whole-run.long.test.ts` | Same as `correctness-whole-run` at 2080 horizon. Opt-in via `npm run test:long`. |
+| `test/cache/correctness-manager-state.long.test.ts` | Same as `correctness-manager-state` at 2080 horizon. Opt-in via `npm run test:long`. |
+| `test/cache/correctness-incremental-extend.long.test.ts` | Same as `correctness-incremental-extend` at 2080 horizon. Opt-in via `npm run test:long`. |
+
+All six files use `createHarness()` and the frozen `test/fixtures/epic-033-data/` fixture from STAGE-033-002.
+
+#### How to run
+
+```bash
+# Short-horizon correctness tests (default suite)
+npx vitest run test/cache/correctness-*.test.ts
+
+# Long-horizon variants (~120 s timeout, coverage disabled)
+npm run test:long
+```
+
+#### Current status (2026-04-17)
+
+The three short-horizon tests **currently FAIL by design**. They detect four pre-existing bugs in the calc-v3 cache replay logic (cached segments not replaying taxable occurrences, withholding, paycheck gross income, or dividend generation flags). These tests are the regression net; the bugs are the target. Fixes are planned for stages after STAGE-033-005. See `epics/EPIC-033-calculation-cache/regression.md` for full bug details.
+
+#### Scope note
+
+This stage verifies correctness at the **end** of a complete run. Per-segment-boundary correctness (verifying that the engine state at each segment handoff is consistent) is the responsibility of STAGE-033-005.
+
 ---
 
 ## API Endpoints
