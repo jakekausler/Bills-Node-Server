@@ -369,4 +369,17 @@ export class MedicareManager {
 
     return count;
   }
+
+  /**
+   * Returns a POJO summary of Medicare enrollment state for the test harness.
+   * Captures who is enrolled and when (year of first enrollment).
+   */
+  public snapshot(): {
+    enrollments: Array<{ person: string; enrolledYear: number | null }>;
+  } {
+    // TODO(STAGE-033-005): MedicareManager does not currently track enrollment state.
+    // Drill-down tests in STAGE-033-005 will require deeper manager state here.
+    const enrollments: Array<{ person: string; enrolledYear: number | null }> = [];
+    return { enrollments };
+  }
 }

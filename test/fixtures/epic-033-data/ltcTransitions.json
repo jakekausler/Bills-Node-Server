@@ -1,0 +1,122 @@
+{
+  "65-69": {
+    "male": {
+      "healthy_to_homeCare": 0.0008,
+      "healthy_to_assistedLiving": 0.0001,
+      "healthy_to_nursingHome": 0.00005,
+      "homeCare": {"healthy": 0.15, "assistedLiving": 0.05, "nursingHome": 0.03, "deceased": 0.02},
+      "assistedLiving": {"healthy": 0.02, "nursingHome": 0.08, "deceased": 0.015},
+      "nursingHome": {"deceased": 0.03, "remain": 0.97},
+      "mortality_multiplier": {"homeCare": 2.0, "assistedLiving": 3.5, "nursingHome": 4.5}
+    },
+    "female": {
+      "healthy_to_homeCare": 0.0006,
+      "healthy_to_assistedLiving": 0.00008,
+      "healthy_to_nursingHome": 0.00003,
+      "homeCare": {"healthy": 0.18, "assistedLiving": 0.04, "nursingHome": 0.02, "deceased": 0.012},
+      "assistedLiving": {"healthy": 0.03, "nursingHome": 0.06, "deceased": 0.01},
+      "nursingHome": {"deceased": 0.025, "remain": 0.975},
+      "mortality_multiplier": {"homeCare": 1.8, "assistedLiving": 3.0, "nursingHome": 4.0}
+    }
+  },
+  "70-74": {
+    "male": {
+      "healthy_to_homeCare": 0.0015,
+      "healthy_to_assistedLiving": 0.0003,
+      "healthy_to_nursingHome": 0.0001,
+      "homeCare": {"healthy": 0.12, "assistedLiving": 0.06, "nursingHome": 0.04, "deceased": 0.025},
+      "assistedLiving": {"healthy": 0.015, "nursingHome": 0.10, "deceased": 0.02},
+      "nursingHome": {"deceased": 0.04, "remain": 0.96},
+      "mortality_multiplier": {"homeCare": 2.2, "assistedLiving": 3.8, "nursingHome": 5.0}
+    },
+    "female": {
+      "healthy_to_homeCare": 0.0012,
+      "healthy_to_assistedLiving": 0.00025,
+      "healthy_to_nursingHome": 0.00008,
+      "homeCare": {"healthy": 0.14, "assistedLiving": 0.05, "nursingHome": 0.03, "deceased": 0.018},
+      "assistedLiving": {"healthy": 0.02, "nursingHome": 0.08, "deceased": 0.015},
+      "nursingHome": {"deceased": 0.032, "remain": 0.968},
+      "mortality_multiplier": {"homeCare": 2.0, "assistedLiving": 3.3, "nursingHome": 4.3}
+    }
+  },
+  "75-79": {
+    "male": {
+      "healthy_to_homeCare": 0.0030,
+      "healthy_to_assistedLiving": 0.0008,
+      "healthy_to_nursingHome": 0.0003,
+      "homeCare": {"healthy": 0.08, "assistedLiving": 0.08, "nursingHome": 0.06, "deceased": 0.035},
+      "assistedLiving": {"healthy": 0.01, "nursingHome": 0.12, "deceased": 0.028},
+      "nursingHome": {"deceased": 0.055, "remain": 0.945},
+      "mortality_multiplier": {"homeCare": 2.5, "assistedLiving": 4.2, "nursingHome": 5.5}
+    },
+    "female": {
+      "healthy_to_homeCare": 0.0025,
+      "healthy_to_assistedLiving": 0.0006,
+      "healthy_to_nursingHome": 0.00025,
+      "homeCare": {"healthy": 0.10, "assistedLiving": 0.07, "nursingHome": 0.05, "deceased": 0.025},
+      "assistedLiving": {"healthy": 0.015, "nursingHome": 0.10, "deceased": 0.022},
+      "nursingHome": {"deceased": 0.045, "remain": 0.955},
+      "mortality_multiplier": {"homeCare": 2.2, "assistedLiving": 3.6, "nursingHome": 4.8}
+    }
+  },
+  "80-84": {
+    "male": {
+      "healthy_to_homeCare": 0.0060,
+      "healthy_to_assistedLiving": 0.0020,
+      "healthy_to_nursingHome": 0.0008,
+      "homeCare": {"healthy": 0.05, "assistedLiving": 0.10, "nursingHome": 0.08, "deceased": 0.05},
+      "assistedLiving": {"healthy": 0.005, "nursingHome": 0.15, "deceased": 0.04},
+      "nursingHome": {"deceased": 0.075, "remain": 0.925},
+      "mortality_multiplier": {"homeCare": 3.0, "assistedLiving": 4.8, "nursingHome": 6.5}
+    },
+    "female": {
+      "healthy_to_homeCare": 0.0050,
+      "healthy_to_assistedLiving": 0.0015,
+      "healthy_to_nursingHome": 0.0006,
+      "homeCare": {"healthy": 0.06, "assistedLiving": 0.09, "nursingHome": 0.07, "deceased": 0.038},
+      "assistedLiving": {"healthy": 0.008, "nursingHome": 0.12, "deceased": 0.032},
+      "nursingHome": {"deceased": 0.060, "remain": 0.94},
+      "mortality_multiplier": {"homeCare": 2.6, "assistedLiving": 4.2, "nursingHome": 5.8}
+    }
+  },
+  "85-89": {
+    "male": {
+      "healthy_to_homeCare": 0.0100,
+      "healthy_to_assistedLiving": 0.0040,
+      "healthy_to_nursingHome": 0.0015,
+      "homeCare": {"healthy": 0.03, "assistedLiving": 0.12, "nursingHome": 0.10, "deceased": 0.07},
+      "assistedLiving": {"healthy": 0.002, "nursingHome": 0.18, "deceased": 0.055},
+      "nursingHome": {"deceased": 0.095, "remain": 0.905},
+      "mortality_multiplier": {"homeCare": 3.5, "assistedLiving": 5.5, "nursingHome": 7.5}
+    },
+    "female": {
+      "healthy_to_homeCare": 0.0085,
+      "healthy_to_assistedLiving": 0.0032,
+      "healthy_to_nursingHome": 0.0012,
+      "homeCare": {"healthy": 0.04, "assistedLiving": 0.11, "nursingHome": 0.09, "deceased": 0.055},
+      "assistedLiving": {"healthy": 0.003, "nursingHome": 0.15, "deceased": 0.045},
+      "nursingHome": {"deceased": 0.078, "remain": 0.922},
+      "mortality_multiplier": {"homeCare": 3.0, "assistedLiving": 4.8, "nursingHome": 6.8}
+    }
+  },
+  "90+": {
+    "male": {
+      "healthy_to_homeCare": 0.0150,
+      "healthy_to_assistedLiving": 0.0065,
+      "healthy_to_nursingHome": 0.0025,
+      "homeCare": {"healthy": 0.015, "assistedLiving": 0.14, "nursingHome": 0.12, "deceased": 0.10},
+      "assistedLiving": {"healthy": 0.001, "nursingHome": 0.20, "deceased": 0.08},
+      "nursingHome": {"deceased": 0.12, "remain": 0.88},
+      "mortality_multiplier": {"homeCare": 4.0, "assistedLiving": 6.5, "nursingHome": 9.0}
+    },
+    "female": {
+      "healthy_to_homeCare": 0.0130,
+      "healthy_to_assistedLiving": 0.0055,
+      "healthy_to_nursingHome": 0.0020,
+      "homeCare": {"healthy": 0.02, "assistedLiving": 0.13, "nursingHome": 0.11, "deceased": 0.08},
+      "assistedLiving": {"healthy": 0.001, "nursingHome": 0.18, "deceased": 0.065},
+      "nursingHome": {"deceased": 0.10, "remain": 0.90},
+      "mortality_multiplier": {"homeCare": 3.5, "assistedLiving": 5.8, "nursingHome": 8.2}
+    }
+  }
+}

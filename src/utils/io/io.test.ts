@@ -29,12 +29,20 @@ vi.mock('url', () => ({
 }));
 
 describe('IO utilities', () => {
+  const originalEnv = process.env.BILLS_DATA_DIR;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.BILLS_DATA_DIR;
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    if (originalEnv === undefined) {
+      delete process.env.BILLS_DATA_DIR;
+    } else {
+      process.env.BILLS_DATA_DIR = originalEnv;
+    }
   });
 
   describe('load', () => {

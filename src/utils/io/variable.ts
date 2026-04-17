@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { Simulations, Variables } from '../simulation/types';
 import { loadVariableValue } from '../simulation/loadVariableValue';
 import { formatDate } from '../date/date';
-import { backup, BASE_DATA_DIR, shouldBackup } from './io';
+import { backup, getDataDir, shouldBackup } from './io';
 import path from 'path';
 
 const FILE_PATH = 'variables.csv';
@@ -29,7 +29,7 @@ const FILE_PATH = 'variables.csv';
  */
 export function loadVariables(simulation: string): Variables {
   const variables: Variables = {};
-  const fileContent = readFileSync(path.join(BASE_DATA_DIR, FILE_PATH), 'utf-8');
+  const fileContent = readFileSync(path.join(getDataDir(), FILE_PATH), 'utf-8');
   const rows = parseSync(fileContent, { columns: true });
 
   for (const row of rows) {
@@ -121,5 +121,5 @@ export function saveVariables(simulations: Simulations) {
   }
 
   // Write synchronously
-  writeFileSync(path.join(BASE_DATA_DIR, FILE_PATH), lines.join('\n'));
+  writeFileSync(path.join(getDataDir(), FILE_PATH), lines.join('\n'));
 }

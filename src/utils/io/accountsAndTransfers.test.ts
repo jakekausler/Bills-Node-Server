@@ -5,6 +5,7 @@ vi.mock('./io', () => ({
   load: vi.fn(),
   save: vi.fn(),
   BASE_DATA_DIR: '/mock/data',
+  getDataDir: () => '/mock/data',
 }));
 
 // Mock the cache module

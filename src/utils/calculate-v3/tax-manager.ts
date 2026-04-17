@@ -746,4 +746,65 @@ export class TaxManager {
       settlement,
     };
   }
+
+  /**
+   * Returns a deterministic, POJO-serializable summary of tax state for the
+   * test harness. Includes per-year totals, per-account taxable income, and
+   * withholding totals. Does NOT include internal caches that vary with
+   * compute order (e.g., taxCache entries that may be populated lazily).
+   */
+  public snapshot(): {
+    years: Array<{
+      year: number;
+      occurrencesByAccount: Record<string, Array<{ amount: number; incomeType: string; date?: string }>>;
+      withholding: Array<{ source: string; federal: number; state: number }>;
+      fica: Array<{ source: string; ssTax: number; medicareTax: number }>;
+    }>;
+    capitalLossCarryforward: number;
+  } {
+    const years: Array<{
+      year: number;
+      occurrencesByAccount: Record<string, Array<{ amount: number; incomeType: string; date?: string }>>;
+      withholding: Array<{ source: string; federal: number; state: number }>;
+      fica: Array<{ source: string; ssTax: number; medicareTax: number }>;
+    }> = [];
+
+    const allYears = new Set<number>([
+      ...this.taxableOccurrences.keys(),
+      ...this.withholdingOccurrences.keys(),
+      ...this.ficaOccurrences.keys(),
+    ]);
+
+    for (const year of Array.from(allYears).sort()) {
+      const accountMap = this.taxableOccurrences.get(year) ?? new Map();
+      const occurrencesByAccount: Record<string, Array<{ amount: number; incomeType: string; date?: string }>> = {};
+      for (const [accountId, occurrences] of accountMap.entries()) {
+        occurrencesByAccount[accountId] = occurrences.map((o: TaxableOccurrence) => {
+          const dateVal = o.date instanceof Date
+            ? o.date.toISOString().slice(0, 10)
+            : (typeof o.date === 'string' ? o.date : undefined);
+          return {
+            amount: o.amount,
+            incomeType: o.incomeType,
+            date: dateVal,
+          };
+        });
+      }
+      years.push({
+        year,
+        occurrencesByAccount,
+        withholding: this.getWithholdingBySource(year),
+        fica: (this.ficaOccurrences.get(year) ?? []).map((f) => ({
+          source: f.source,
+          ssTax: f.ssTax,
+          medicareTax: f.medicareTax,
+        })),
+      });
+    }
+
+    return {
+      years,
+      capitalLossCarryforward: this.capitalLossCarryforward,
+    };
+  }
 }

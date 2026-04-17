@@ -440,6 +440,55 @@ Debug logging is independent of cache bypass. To force recalculation, pass `?for
 
 Unknown `target` values return `400`. Future target values (`segments`, `balance-snapshots`, `ancillary`) are planned.
 
+### Cache Test Harness (EPIC-033 verification)
+
+Provides a reproducible way to invoke the calc-v3 engine against a frozen data fixture. Stages 003–005 of EPIC-033 build their verification tests on top of this harness.
+
+#### Key files
+
+| Path | Purpose |
+|------|---------|
+| `test/fixtures/epic-033-data/` | Frozen ~16 MB snapshot of `data/`, excluding `backup/`, `monteCarlo/`, and `simulations/` subdirectories. Contains input-structural state only. |
+| `test/helpers/cache-test-harness.ts` | Exports `createHarness(options)` factory. |
+| `test/helpers/cache-test-harness.test.ts` | 3 smoke tests (no engine run). |
+| `test/helpers/cache-test-harness.integration.test.ts` | 4 integration tests that run the real engine against the fixture. |
+| `scripts/refresh-epic-033-fixture.sh` | Regenerates the fixture from the current `data/` directory, excluding stateful subdirs. Run when real data gains a new input-structural field. |
+
+#### `createHarness` options
+
+```typescript
+createHarness({
+  fixtureDir: string,   // path to frozen fixture (usually test/fixtures/epic-033-data/)
+  endDate: string,      // projection end date (YYYY-MM-DD)
+  simulation?: string,  // simulation name; defaults to "Default"
+  debugLogDir?: string, // directory for JSONL debug output; defaults to a temp path
+})
+```
+
+#### Harness methods
+
+| Method | Description |
+|--------|-------------|
+| `runCold(options?)` | Clears all caches (mirrors `?target=all`), then runs the engine. Returns `{ result, debugLogPath, managerStates }`. |
+| `runWarm(options?)` | Clears only outer calculation caches (mirrors `?target=calc`), preserving the segment cache from a prior cold run. Returns the same shape. Segments with preserved entries emit `cache-hit` events (see [Cache Observability Events](#cache-observability-events)). |
+| `loadDebugEvents(logPath)` | Parses JSONL debug output into typed events. |
+| `assertCacheHits(events, { dateRange })` | Asserts every segment overlapping the range had a `cache-hit` and no `segment-compute-start`. Throws with a diff on failure. |
+| `assertCacheMisses(events, { dateRange })` | Inverse of `assertCacheHits`. |
+| `compareManagerStates(warm, cold)` | Deep-equal comparison across TaxManager, HealthcareManager, SpendingTrackerManager, RetirementManager, MedicareManager, and AcaManager snapshots. Epsilon-aware for floats; null-safe for partially-populated managers. |
+| `compareAccountsAndTransfers(warm, cold)` | Deep-equal comparison of the top-level `AccountsAndTransfers` result. |
+
+#### Data-path override
+
+The harness sets `process.env.BILLS_DATA_DIR` to the fixture path before engine boot. All callers that reach data via `getDataDir()` in `src/utils/io/io.ts` see the fixture instead of `data/`. A path-inside-fixture guard inside `runCold`/`runWarm` throws if the resolved env var points outside `test/fixtures/`.
+
+#### Manager snapshots
+
+Each manager exposes a `snapshot()` method returning a deterministic plain object. TaxManager and HealthcareManager have rich state. MedicareManager and AcaManager are placeholders — `TODO(STAGE-033-005)` to flesh out when drill-down tests need them.
+
+#### Long-horizon tests
+
+Files matching `**/*.long.test.ts` run only via `npm run test:long` (uses `vitest.long.config.ts`, 120 s timeout, coverage disabled). The default `npm test` and `npm run test:run` exclude them.
+
 ---
 
 ## API Endpoints

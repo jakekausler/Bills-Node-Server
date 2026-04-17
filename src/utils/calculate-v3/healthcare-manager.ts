@@ -642,4 +642,47 @@ export class HealthcareManager {
     // Restore the processed expenses cache
     this.processedExpenses = new Map(this.checkpointProcessedExpenses);
   }
+
+  /**
+   * Returns a POJO summary of healthcare tracker state for the test harness.
+   * Includes per-tracker-key deductible/OOP progression and idempotency cache.
+   */
+  public snapshot(): {
+    trackers: Array<{
+      key: string;
+      planYear: number;
+      lastResetCheck: string; // ISO date
+      individualDeductible: Record<string, number>;
+      individualOOP: Record<string, number>;
+      familyDeductible: number;
+      familyOOP: number;
+    }>;
+    processedExpenseCount: number;
+  } {
+    const trackers: Array<{
+      key: string;
+      planYear: number;
+      lastResetCheck: string;
+      individualDeductible: Record<string, number>;
+      individualOOP: Record<string, number>;
+      familyDeductible: number;
+      familyOOP: number;
+    }> = [];
+    for (const [key, t] of this.trackers.entries()) {
+      trackers.push({
+        key,
+        planYear: t.planYear,
+        lastResetCheck: t.lastResetCheck.toISOString().slice(0, 10),
+        individualDeductible: Object.fromEntries(t.individualDeductible.entries()),
+        individualOOP: Object.fromEntries(t.individualOOP.entries()),
+        familyDeductible: t.familyDeductible,
+        familyOOP: t.familyOOP,
+      });
+    }
+    trackers.sort((a, b) => a.key.localeCompare(b.key));
+    return {
+      trackers,
+      processedExpenseCount: this.processedExpenses.size,
+    };
+  }
 }

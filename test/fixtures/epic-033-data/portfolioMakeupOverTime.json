@@ -1,0 +1,50 @@
+{
+  "2023": {
+    "cash": 0.01,
+    "stock": 0.79,
+    "bond": 0.20,
+    "preferred": 0.0,
+    "convertible": 0.0,
+    "other": 0.0
+  },
+  "2033": {
+    "cash": 0.01,
+    "stock": 0.69,
+    "bond": 0.30,
+    "preferred": 0.0,
+    "convertible": 0.0,
+    "other": 0.0
+  },
+  "2043": {
+    "cash": 0.01,
+    "stock": 0.59,
+    "bond": 0.40,
+    "preferred": 0.0,
+    "convertible": 0.0,
+    "other": 0.0
+  },
+  "2053": {
+    "cash": 0.01,
+    "stock": 0.49,
+    "bond": 0.50,
+    "preferred": 0.0,
+    "convertible": 0.0,
+    "other": 0.0
+  },
+  "2063": {
+    "cash": 0.01,
+    "stock": 0.39,
+    "bond": 0.60,
+    "preferred": 0.0,
+    "convertible": 0.0,
+    "other": 0.0
+  },
+  "2073": {
+    "cash": 0.01,
+    "stock": 0.29,
+    "bond": 0.70,
+    "preferred": 0.0,
+    "convertible": 0.0,
+    "other": 0.0
+  }
+}

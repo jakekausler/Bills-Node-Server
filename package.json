@@ -14,6 +14,8 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "vitest run --config src/e2e/vitest.config.ts",
+    "test:long": "vitest run --config vitest.long.config.ts",
+    "test:long:watch": "vitest --config vitest.long.config.ts",
     "lint": "eslint src/**/*.ts"
   },
   "keywords": [],

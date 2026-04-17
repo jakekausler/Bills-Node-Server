@@ -494,4 +494,16 @@ export class AcaManager {
 
     return latestOOPMax;
   }
+
+  /**
+   * Returns a POJO summary of ACA enrollment/subsidy state for the test harness.
+   */
+  public snapshot(): {
+    enrollments: Array<{ person: string; enrolledYear: number | null; subsidyApplied?: boolean }>;
+  } {
+    // TODO(STAGE-033-005): ACA state is primarily driven by external healthcare configs.
+    // Drill-down tests in STAGE-033-005 will require deeper manager state here.
+    const enrollments: Array<{ person: string; enrolledYear: number | null; subsidyApplied?: boolean }> = [];
+    return { enrollments };
+  }
 }

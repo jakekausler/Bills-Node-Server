@@ -1,0 +1,65 @@
+{
+  "pensions": [],
+  "socialSecurities": [
+    {
+      "name": "Jake Social Security",
+      "paycheckNames": [
+        "Nearpod"
+      ],
+      "person": "Jake",
+      "priorAnnualNetIncomes": [
+        50000,
+        50000,
+        50000,
+        50000,
+        50000,
+        50000,
+        75000,
+        75000
+      ],
+      "priorAnnualNetIncomeYears": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023
+      ],
+      "colaVariable": "SS_COLA_RATE",
+      "spouseName": "Kendall",
+      "id": "eeeb3414-35ef-41a3-8eea-924aea289154",
+      "payToAccount": "Jake"
+    },
+    {
+      "name": "Kendall Social Security",
+      "paycheckNames": [
+        "Kendall Income"
+      ],
+      "person": "Kendall",
+      "priorAnnualNetIncomes": [
+        30000,
+        32000,
+        34000,
+        36000,
+        38000,
+        40000,
+        42000
+      ],
+      "priorAnnualNetIncomeYears": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023
+      ],
+      "colaVariable": "SS_COLA_RATE",
+      "spouseName": "Jake",
+      "id": "722a53af-a1eb-4cc4-87b1-8bbd488d0898",
+      "payToAccount": "Kendall"
+    }
+  ]
+}

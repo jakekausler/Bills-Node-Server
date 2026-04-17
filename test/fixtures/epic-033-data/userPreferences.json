@@ -1,0 +1,20 @@
+{
+  "hiddenPages": [],
+  "pinnedPages": [
+    "bills",
+    "accounts",
+    "tax"
+  ],
+  "tabPreferences": {
+    "healthcare": {
+      "hiddenTabs": [],
+      "tabOrder": [
+        "plans",
+        "progress",
+        "expenses",
+        "history",
+        "projections"
+      ]
+    }
+  }
+}

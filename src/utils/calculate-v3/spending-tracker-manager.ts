@@ -796,4 +796,39 @@ export class SpendingTrackerManager {
       cumulativeThreshold,
     };
   }
+
+  /**
+   * Returns a POJO summary of spending tracker state for the test harness.
+   * Includes per-category carry balance, period spending, and last-processed period.
+   */
+  public snapshot(): {
+    categories: Array<{
+      id: string;
+      carryBalance: number;
+      periodSpending: number;
+      lastProcessedPeriodEnd: string | null;
+      hasHadActivity: boolean;
+    }>;
+  } {
+    const categories: Array<{
+      id: string;
+      carryBalance: number;
+      periodSpending: number;
+      lastProcessedPeriodEnd: string | null;
+      hasHadActivity: boolean;
+    }> = [];
+    for (const [id, state] of this.categoryStates.entries()) {
+      categories.push({
+        id,
+        carryBalance: state.carryBalance,
+        periodSpending: state.periodSpending,
+        lastProcessedPeriodEnd: state.lastProcessedPeriodEnd
+          ? state.lastProcessedPeriodEnd.toISOString().slice(0, 10)
+          : null,
+        hasHadActivity: state.hasHadActivity,
+      });
+    }
+    categories.sort((a, b) => a.id.localeCompare(b.id));
+    return { categories };
+  }
 }

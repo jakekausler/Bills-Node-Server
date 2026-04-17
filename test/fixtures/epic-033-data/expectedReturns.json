@@ -1,0 +1,10 @@
+{
+  "returns": {
+    "stock": 0.057,
+    "bond": 0.03,
+    "cash": 0.015,
+    "preferred": 0.05,
+    "convertible": 0.06,
+    "other": 0.04
+  }
+}

@@ -607,4 +607,32 @@ export class RetirementManager {
   public getWageBaseCapForYear(year: number): number {
     return getWageBaseCap(year, this.mcRateGetter);
   }
+
+  /**
+   * Returns a POJO summary of retirement benefit state for the test harness.
+   * Enumerates known SS + pension names and captures their monthly pay and
+   * first-payment year. Drawdown events are not tracked here — they live in
+   * the AccountsAndTransfers result (compareAccountsAndTransfers).
+   */
+  public snapshot(): {
+    socialSecurity: Array<{ name: string; monthlyPay: number; firstPaymentYear: number | null }>;
+    pensions: Array<{ name: string; monthlyPay: number; firstPaymentYear: number | null }>;
+  } {
+    // Collect names from internal maps.
+    const ssNames = Array.from(this.socialSecurityAnnualIncomes.keys()).sort();
+    const pensionNames = Array.from(this.pensionAnnualIncomes.keys()).sort();
+
+    return {
+      socialSecurity: ssNames.map((name) => ({
+        name,
+        monthlyPay: this.getSocialSecurityMonthlyPay(name),
+        firstPaymentYear: this.getSocialSecurityFirstPaymentYear(name),
+      })),
+      pensions: pensionNames.map((name) => ({
+        name,
+        monthlyPay: this.getPensionMonthlyPay(name),
+        firstPaymentYear: this.getPensionFirstPaymentYear(name),
+      })),
+    };
+  }
 }

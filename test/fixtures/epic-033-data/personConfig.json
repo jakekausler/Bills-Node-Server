@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Jake",
+    "gender": "male",
+    "birthDate": "1993-07-15",
+    "retirementAge": {
+      "years": 62,
+      "months": 0,
+      "days": 0
+    },
+    "ssStartAge": 70
+  },
+  {
+    "name": "Kendall",
+    "gender": "female",
+    "birthDate": "1994-11-16",
+    "retirementAge": {
+      "years": 60,
+      "months": 7,
+      "days": 29
+    },
+    "ssStartAge": 70
+  }
+]

@@ -1,0 +1,34 @@
+{
+  "baseYear": 2024,
+  "2024": {
+    "longTermRates": {
+      "single": [
+        { "min": 0, "max": 47025, "rate": 0 },
+        { "min": 47025, "max": 518900, "rate": 0.15 },
+        { "min": 518900, "max": null, "rate": 0.20 }
+      ],
+      "mfj": [
+        { "min": 0, "max": 94050, "rate": 0 },
+        { "min": 94050, "max": 583750, "rate": 0.15 },
+        { "min": 583750, "max": null, "rate": 0.20 }
+      ],
+      "mfs": [
+        { "min": 0, "max": 47025, "rate": 0 },
+        { "min": 47025, "max": 291850, "rate": 0.15 },
+        { "min": 291850, "max": null, "rate": 0.20 }
+      ],
+      "hoh": [
+        { "min": 0, "max": 63000, "rate": 0 },
+        { "min": 63000, "max": 551350, "rate": 0.15 },
+        { "min": 551350, "max": null, "rate": 0.20 }
+      ]
+    },
+    "niitThresholds": {
+      "single": 200000,
+      "mfj": 250000,
+      "mfs": 125000,
+      "hoh": 200000
+    },
+    "niitRate": 0.038
+  }
+}

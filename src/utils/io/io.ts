@@ -2,18 +2,34 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, unlinkS
 import path from 'path';
 import lockfile from 'proper-lockfile';
 
-// Point to data directory at repository root (CommonJS)
+// Default data directory at repository root (CommonJS). Kept exported so existing
+// test mocks (`vi.mock('./io', () => ({ BASE_DATA_DIR: '/mock/data' }))`) continue
+// to work. Production code should call getDataDir() instead of reading this directly.
 export const BASE_DATA_DIR = path.join(__dirname, '../../../data');
 
 /**
- * Validates that a file path is within the BASE_DATA_DIR to prevent path traversal attacks
+ * Returns the active data directory, honoring BILLS_DATA_DIR when set.
+ *
+ * Lazy: re-read on every call so test harnesses can set the env var inside
+ * `beforeEach` and have it take effect without module-reload gymnastics.
+ *
+ * All I/O call sites MUST go through this function. Reading BASE_DATA_DIR
+ * directly bypasses the override.
+ */
+export function getDataDir(): string {
+  return process.env.BILLS_DATA_DIR ?? BASE_DATA_DIR;
+}
+
+/**
+ * Validates that a file path is within the active data directory to prevent path traversal attacks.
  * @param fn - Filename to validate
  * @returns Resolved path if valid
  * @throws Error if path traversal is attempted
  */
 function safePath(fn: string): string {
-  const resolved = path.resolve(BASE_DATA_DIR, fn);
-  if (!resolved.startsWith(path.resolve(BASE_DATA_DIR))) {
+  const dataDir = getDataDir();
+  const resolved = path.resolve(dataDir, fn);
+  if (!resolved.startsWith(path.resolve(dataDir))) {
     throw new Error('Invalid file path');
   }
   return resolved;
@@ -32,7 +48,6 @@ export function load<T>(fn: string): T {
 }
 
 const SAVES_BEFORE_BACKUP = 10;
-const BACKUP_DIR = path.join(BASE_DATA_DIR, 'backup');
 const MAX_BACKUPS = 10;
 let saveCounter: Record<string, number> = {};
 
@@ -42,14 +57,15 @@ let saveCounter: Record<string, number> = {};
  * @param fn - Filename to backup
  */
 export const backup = (fn: string) => {
-  if (!existsSync(BACKUP_DIR)) {
-    mkdirSync(BACKUP_DIR);
+  const backupDir = path.join(getDataDir(), 'backup');
+  if (!existsSync(backupDir)) {
+    mkdirSync(backupDir);
   }
-  const backups = readdirSync(BACKUP_DIR).filter((f) => f.startsWith(fn + '.'));
+  const backups = readdirSync(backupDir).filter((f) => f.startsWith(fn + '.'));
   while (backups.length >= MAX_BACKUPS) {
-    unlinkSync(path.join(BACKUP_DIR, backups.shift()!));
+    unlinkSync(path.join(backupDir, backups.shift()!));
   }
-  copyFileSync(safePath(fn), path.join(BACKUP_DIR, `${fn}.${Date.now()}`));
+  copyFileSync(safePath(fn), path.join(backupDir, `${fn}.${Date.now()}`));
 };
 
 /**

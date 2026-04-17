@@ -1,0 +1,237 @@
+{
+  "5019": {
+    "symbol": "5019",
+    "name": null,
+    "fundFamily": null,
+    "category": null,
+    "expenseRatio": null,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": null,
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "5021": {
+    "symbol": "5021",
+    "name": null,
+    "fundFamily": null,
+    "category": null,
+    "expenseRatio": null,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": null,
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "FSKAX": {
+    "symbol": "FSKAX",
+    "name": "Fidelity Total Market Index",
+    "fundFamily": "Fidelity Investments",
+    "category": "Large Blend",
+    "expenseRatio": 0.00015,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": {
+      "stock": 0.9995,
+      "bond": 0,
+      "cash": 0.0005,
+      "other": 0
+    },
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "FTIHX": {
+    "symbol": "FTIHX",
+    "name": "Fidelity Total International Index",
+    "fundFamily": "Fidelity Investments",
+    "category": "Foreign Large Blend",
+    "expenseRatio": 0.0006,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": {
+      "stock": 1.0,
+      "bond": 0,
+      "cash": -0.0013,
+      "other": 0.0012
+    },
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "FXAIX": {
+    "symbol": "FXAIX",
+    "name": "Fidelity 500 Index",
+    "fundFamily": "Fidelity Investments",
+    "category": "Large Blend",
+    "expenseRatio": 0.00015,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": {
+      "stock": 0.9997,
+      "bond": 0,
+      "cash": 0.0002,
+      "other": 0
+    },
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "FXNAX": {
+    "symbol": "FXNAX",
+    "name": "Fidelity U.S. Bond Index",
+    "fundFamily": "Fidelity Investments",
+    "category": "Intermediate Core Bond",
+    "expenseRatio": 0.00025,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": {
+      "stock": 0,
+      "bond": 0.997,
+      "cash": 0.0029,
+      "other": 0
+    },
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "SPAXX": {
+    "symbol": "SPAXX",
+    "name": "Fidelity Hereford Street Trust - Fidelity Government Money Market Fund",
+    "fundFamily": null,
+    "category": null,
+    "expenseRatio": null,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": null,
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "SPRXX": {
+    "symbol": "SPRXX",
+    "name": "Fidelity Hereford Street Trust - Fidelity Money Market Fund",
+    "fundFamily": null,
+    "category": null,
+    "expenseRatio": null,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": null,
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "VFIFX": {
+    "symbol": "VFIFX",
+    "name": "Vanguard Target Retirement 2050 Fund",
+    "fundFamily": "Vanguard",
+    "category": "Target-Date 2050",
+    "expenseRatio": 0.0008,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": {
+      "stock": 0.8781,
+      "bond": 0.0972,
+      "cash": 0.0236,
+      "other": 0.0011
+    },
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "VFORX": {
+    "symbol": "VFORX",
+    "name": "Vanguard Target Retirement 2040 Fund",
+    "fundFamily": "Vanguard",
+    "category": "Target-Date 2040",
+    "expenseRatio": 0.0008,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": {
+      "stock": 0.7358,
+      "bond": 0.2345,
+      "cash": 0.0284,
+      "other": 0.0013
+    },
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "VSVNX": {
+    "symbol": "VSVNX",
+    "name": "Vanguard Target Retirement 2070 Fund",
+    "fundFamily": "Vanguard",
+    "category": "Target-Date 2065+",
+    "expenseRatio": 0.0008,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": {
+      "stock": 0.8831,
+      "bond": 0.0901,
+      "cash": 0.0252,
+      "other": 0.0015
+    },
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "VTHRX": {
+    "symbol": "VTHRX",
+    "name": "Vanguard Target Retirement 2030 Fund",
+    "fundFamily": "Vanguard",
+    "category": "Target-Date 2030",
+    "expenseRatio": 0.0008,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": {
+      "stock": 0.5912,
+      "bond": 0.3718,
+      "cash": 0.0363,
+      "other": 0.0007
+    },
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "VTINX": {
+    "symbol": "VTINX",
+    "name": "Vanguard Target Retirement Income Fund",
+    "fundFamily": "Vanguard",
+    "category": "Target-Date Retirement",
+    "expenseRatio": 0.0008,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": {
+      "stock": 0.3074,
+      "bond": 0.6426,
+      "cash": 0.0496,
+      "other": 0.0004
+    },
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "VTTSX": {
+    "symbol": "VTTSX",
+    "name": "Vanguard Target Retirement 2060 Fund",
+    "fundFamily": "Vanguard",
+    "category": "Target-Date 2060+",
+    "expenseRatio": 0.0008,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": {
+      "stock": 0.8855,
+      "bond": 0.0896,
+      "cash": 0.0238,
+      "other": 0.0011
+    },
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  },
+  "VTWNX": {
+    "symbol": "VTWNX",
+    "name": "Vanguard Target Retirement 2020 Fund",
+    "fundFamily": "Vanguard",
+    "category": "Target-Date 2020",
+    "expenseRatio": 0.0008,
+    "lastSynced": "2026-04-03T19:10:10.772057+00:00",
+    "assetAllocation": {
+      "stock": 0.3453,
+      "bond": 0.6064,
+      "cash": 0.0479,
+      "other": 0.0004
+    },
+    "sectorWeightings": null,
+    "geographicBreakdown": null,
+    "marketCapBreakdown": null
+  }
+}

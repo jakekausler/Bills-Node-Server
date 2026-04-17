@@ -65,6 +65,7 @@ export class Engine {
   private healthcareManager: HealthcareManager;
   private medicareManager: MedicareManager;
   private acaManager: AcaManager;
+  private spendingTrackerManager: SpendingTrackerManager;
   private mortalityManager: MortalityManager;
   private inheritanceManager: InheritanceManager | null = null;
   private lifeInsuranceManager: LifeInsuranceManager | null = null;
@@ -455,7 +456,7 @@ export class Engine {
     if (options.enableLogging) {
       console.log('Initializing spending tracker manager...', Date.now() - this.calculationBegin, 'ms');
     }
-    const spendingTrackerManager = new SpendingTrackerManager(
+    this.spendingTrackerManager = new SpendingTrackerManager(
       spendingTrackerCategories,
       options.simulation,
       actualStartDate,
@@ -479,7 +480,7 @@ export class Engine {
       );
       if (currentPeriod) {
         const filterDate = dayjs.utc(currentPeriod.periodStart).subtract(1, 'day').toDate();
-        spendingTrackerManager.markPeriodProcessed(category.id, filterDate);
+        this.spendingTrackerManager.markPeriodProcessed(category.id, filterDate);
       }
     }
 
@@ -506,7 +507,7 @@ export class Engine {
       this.mortalityManager,
       this.accountManager,
       options.simulation,
-      spendingTrackerManager,
+      this.spendingTrackerManager,
       this.acaManager,
       (options.filingStatus as FilingStatus) || 'mfj',
       options.bracketInflationRate || 0.03,
@@ -636,7 +637,7 @@ export class Engine {
       this.taxManager,
       this.accountManager,
       this.healthcareManager,
-      spendingTrackerManager,
+      this.spendingTrackerManager,
       this.debugLogger,
       this.simNumber,
       this.assetManager,
@@ -1085,6 +1086,20 @@ export class Engine {
    */
   getRetirementManager(): RetirementManager {
     return this.retirementManager;
+  }
+
+  /**
+   * Get the HealthcareManager instance (for test harness to snapshot state).
+   */
+  getHealthcareManager(): import('./healthcare-manager').HealthcareManager {
+    return this.healthcareManager;
+  }
+
+  /**
+   * Get the SpendingTrackerManager instance (for test harness to snapshot state).
+   */
+  getSpendingTrackerManager(): import('./spending-tracker-manager').SpendingTrackerManager {
+    return this.spendingTrackerManager;
   }
 
   /**

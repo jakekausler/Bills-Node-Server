@@ -1,0 +1,26 @@
+{
+  "configs": [
+    {
+      "name": "Health Insurance",
+      "coveredPersons": [
+        "Jake",
+        "Kendall"
+      ],
+      "policyholder": "Jake",
+      "startDate": "2026-01-01",
+      "endDate": null,
+      "individualDeductible": 2500,
+      "individualOutOfPocketMax": 5000,
+      "familyDeductible": 5000,
+      "familyOutOfPocketMax": 10000,
+      "hsaAccountId": "2be562a4-e082-48ea-9094-ed865d207376",
+      "hsaReimbursementEnabled": false,
+      "resetMonth": 0,
+      "resetDay": 1,
+      "id": "test-1",
+      "monthlyPremium": 1124,
+      "monthlyPremiumInflationVariable": "HEALTHCARE_INFLATION",
+      "deductibleInflationRate": 0.05
+    }
+  ]
+}

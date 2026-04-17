@@ -1,0 +1,10 @@
+{
+  "HEALTHCARE_INFLATION": "HealthcareInflation",
+  "LOW_YIELD_SAVINGS_RATE": "LYSA",
+  "INVESTMENT_RATE": "Portfolio",
+  "INFLATION": "Inflation",
+  "RAISE_RATE": "Raise",
+  "401K_LIMIT_INCREASE_RATE": "401k_limit_increase_rate",
+  "SS_COLA_RATE": "SS_COLA",
+  "HIGH_YIELD_SAVINGS_RATE": "HYSA"
+}

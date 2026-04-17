@@ -1,0 +1,504 @@
+{
+  "formatMappings": {
+    "4911eeaed6116413fb4d802265e19463287ff3780a8172340080c0bdd258e2b8": {
+      "headers": [
+        "Account ID",
+        "Transaction ID",
+        "Date",
+        "Description",
+        "Check Number",
+        "Category",
+        "Tags",
+        "Amount",
+        "Balance"
+      ],
+      "columnMapping": {
+        "date": 2,
+        "name": 3,
+        "amount": 7,
+        "debit": null,
+        "credit": null,
+        "balance": 8
+      },
+      "invertSigns": false,
+      "dateFormat": "MM/DD/YY"
+    },
+    "335c31ed2d1625fd9a4f11b982bdfd49a2a1bc132eb8380cc61c34502d4daf00": {
+      "headers": [
+        "Transaction Date",
+        "Posted Date",
+        "Card No.",
+        "Description",
+        "Category",
+        "Debit",
+        "Credit"
+      ],
+      "columnMapping": {
+        "date": 0,
+        "name": 3,
+        "amount": null,
+        "debit": 5,
+        "credit": 6,
+        "balance": null
+      },
+      "invertSigns": false,
+      "dateFormat": "YYYY-MM-DD"
+    },
+    "5af94eca17fbc7fb62fc860765b792dfc3988d95c91914a8c339ed7d7bac3eb1": {
+      "headers": [
+        "Transaction Date",
+        "Post Date",
+        "Description",
+        "Category",
+        "Type",
+        "Amount",
+        "Memo"
+      ],
+      "columnMapping": {
+        "date": 0,
+        "name": 2,
+        "amount": 5,
+        "debit": null,
+        "credit": null,
+        "balance": null
+      },
+      "invertSigns": false,
+      "dateFormat": "MM/DD/YYYY"
+    }
+  },
+  "transactionMappings": {
+    "4911eeaed6116413fb4d802265e19463287ff3780a8172340080c0bdd258e2b8": {
+      "soarion fcu": [
+        {
+          "name": "Transfer from Jake to Solar",
+          "category": "Ignore.Transfer",
+          "spendingCategory": null,
+          "isTransfer": true,
+          "from": "Jake",
+          "to": "Solar"
+        }
+      ],
+      "capital one": [
+        {
+          "name": "CAPITAL ONE",
+          "category": "",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "citi card online": [
+        {
+          "name": "CITI CARD ONLINE",
+          "category": "",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "cash app*daniel morales oakland ca": [
+        {
+          "name": "Lawnmower",
+          "category": "Housing.Maintenance & Repairs",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "deposit ach renaissance lear": [
+        {
+          "name": "Deposit ACH RENAISSANCE LEAR",
+          "category": "",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "deposit atm #000000009808 coastal fcu 1060 timber drive east garner nc": [
+        {
+          "name": "Deposit",
+          "category": "Amusement.Travel",
+          "spendingCategory": "Spending Tracker.Vacation",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "deposit atm #000000009807 coastal fcu 1060 timber drive east garner nc": [
+        {
+          "name": "Deposit",
+          "category": "Amusement.Travel",
+          "spendingCategory": "Spending Tracker.Vacation",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "deposit shared branch #205242 coastal fcu mobile raleigh nc": [
+        {
+          "name": "Deposit",
+          "category": "Income.Other",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "online banking transfer to share 0001 ref # 1827612": [
+        {
+          "name": "Transfer from Jake to Spending",
+          "category": "Ignore.Transfer",
+          "spendingCategory": null,
+          "isTransfer": true,
+          "from": "Jake",
+          "to": "Spending"
+        }
+      ],
+      "deposit ach rl serviceco": [
+        {
+          "name": "Deposit ACH RL SERVICECO",
+          "category": "",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "deposit ach irs  treas 310": [
+        {
+          "name": "Federal Taxes",
+          "category": "Banking.Taxes",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "att": [
+        {
+          "name": "ATT",
+          "category": "",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "online banking transfer to loan 24003033 ref # 2116570": [
+        {
+          "name": "Online Banking Transfer To Loan 24003033 REF # 2116570",
+          "category": "",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "bill payment #609228101812 amazon web services aws.amazon.co wa": [
+        {
+          "name": "Bill Payment #609228101812 Amazon web services aws.amazon.co WA",
+          "category": "",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "recurring withdrawal debit card patreon* membership internet ca": [
+        {
+          "name": "Angry Games",
+          "category": "Gifts.Donations",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "deposit dividend split rate annual percentage yield earned 0.05% from 03/01/26 through 03/31/26 based on average daily balance of 1978.62": [
+        {
+          "name": "Cash Back",
+          "category": "Banking.Interest",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "recurring withdrawal bill payment #608221100021 backblaze inc backblaze.com ca": [
+        {
+          "name": "Recurring Withdrawal Bill Payment #608221100021 BACKBLAZE INC BACKBLAZE.COM CA",
+          "category": "",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "recurring withdrawal debit card crooked.com crooked.com ca": [
+        {
+          "name": "Crooked Media",
+          "category": "Gifts.Donations",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "pos #000000028357 ebay c 24646350325 hamilton avenue www.ebay.com ca": [
+        {
+          "name": "Usps",
+          "category": "Shopping.Other",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "deposit debit card ebay p7363576909 san jose ca": [
+        {
+          "name": "Synology",
+          "category": "Shopping.Electronics & Software",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "bill payment #606020105297 amazon web services aws.amazon.co wa": [
+        {
+          "name": "AWS",
+          "category": "Shopping.Electronics & Software",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ]
+    },
+    "335c31ed2d1625fd9a4f11b982bdfd49a2a1bc132eb8380cc61c34502d4daf00": {
+      "claude.ai subscription": [
+        {
+          "name": "Claude",
+          "category": "Shopping.Electronics & Software",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        },
+        {
+          "name": "CLAUDE.AI SUBSCRIPTION",
+          "category": "",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "headway": [
+        {
+          "name": "HEADWAY",
+          "category": "",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        },
+        {
+          "name": "Headway",
+          "category": "Health.Doctor",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "9221 great clips at ki": [
+        {
+          "name": "Book",
+          "category": "Shopping.Books",
+          "spendingCategory": "28621384-3ff1-4246-a75d-b3d3d247a1e8",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "capital one online pymt": [
+        {
+          "name": "Book",
+          "category": "Shopping.Books",
+          "spendingCategory": "28621384-3ff1-4246-a75d-b3d3d247a1e8",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "interest charge:purchases": [
+        {
+          "name": "INTEREST CHARGE:PURCHASES",
+          "category": "",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "amazon.com*b73ly3z52": [
+        {
+          "name": "Book",
+          "category": "Shopping.Books",
+          "spendingCategory": "28621384-3ff1-4246-a75d-b3d3d247a1e8",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "amazon.com*bg3006p50": [
+        {
+          "name": "Book",
+          "category": "Shopping.Books",
+          "spendingCategory": "28621384-3ff1-4246-a75d-b3d3d247a1e8",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "past due fee": [
+        {
+          "name": "Past Due Fee",
+          "category": "Banking.Fees",
+          "spendingCategory": null,
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ]
+    },
+    "5af94eca17fbc7fb62fc860765b792dfc3988d95c91914a8c339ed7d7bac3eb1": {
+      "amazon.com*bg73h91f0": [
+        {
+          "name": "Book",
+          "category": "Shopping.Books",
+          "spendingCategory": "27536e72-c897-498d-be22-a63236d35383",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "thecarpark 223 s west gar": [
+        {
+          "name": "Parking",
+          "category": "Transportation.Parking",
+          "spendingCategory": "27536e72-c897-498d-be22-a63236d35383",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "tst*the bowls - the kats": [
+        {
+          "name": "Morgan Street Food Hall",
+          "category": "Food.Restaurants",
+          "spendingCategory": "27536e72-c897-498d-be22-a63236d35383",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "tst*buena papa fry bar m": [
+        {
+          "name": "Morgan Street Food Hall",
+          "category": "Food.Restaurants",
+          "spendingCategory": "27536e72-c897-498d-be22-a63236d35383",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "side quest game lounge": [
+        {
+          "name": "Side Quest Game Lounge",
+          "category": "Amusement.Places",
+          "spendingCategory": "27536e72-c897-498d-be22-a63236d35383",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "hibachi china 88": [
+        {
+          "name": "Hibachi China 88",
+          "category": "Food.Restaurants",
+          "spendingCategory": "27536e72-c897-498d-be22-a63236d35383",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "sheetz 2897": [
+        {
+          "name": "Sheetz",
+          "category": "Food.Restaurants",
+          "spendingCategory": "27536e72-c897-498d-be22-a63236d35383",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "amazon mktpl*bg9db9nz2": [
+        {
+          "name": "Amazon",
+          "category": "Pets.Supplies",
+          "spendingCategory": "27536e72-c897-498d-be22-a63236d35383",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ],
+      "amazon mktpl*b59lf8ll2": [
+        {
+          "name": "Amazon",
+          "category": "Gifts.Other",
+          "spendingCategory": "27536e72-c897-498d-be22-a63236d35383",
+          "isTransfer": false,
+          "from": null,
+          "to": null
+        }
+      ]
+    }
+  },
+  "transferOverrides": {
+    "f2eba978-1ba4-40da-87eb-7671e73c0ad0": {
+      "capital one": {
+        "from": "Jake",
+        "to": "REI"
+      },
+      "citi card online": {
+        "from": "Jake",
+        "to": "Costco"
+      }
+    },
+    "soarion fcu": {
+      "Transfer from Jake to Solar": {
+        "from": "Jake",
+        "to": "Solar"
+      }
+    },
+    "online banking transfer to share 0001 ref # 1827612": {
+      "Transfer from Jake to Spending": {
+        "from": "Jake",
+        "to": "Spending"
+      }
+    },
+    "online payment, thank you": {
+      "Transfer from Jake to Costco": {
+        "from": "Jake",
+        "to": "Costco"
+      }
+    }
+  },
+  "importedFileHashes": []
+}

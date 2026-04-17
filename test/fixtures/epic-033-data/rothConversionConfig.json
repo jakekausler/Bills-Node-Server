@@ -1,0 +1,22 @@
+[
+  {
+    "enabled": true,
+    "person": "Jake",
+    "sourceAccount": "Jake 401(k)",
+    "destinationAccount": "Jake Roth IRA",
+    "strategy": "fillBracket",
+    "targetBracketRate": 0.22,
+    "priority": "largerFirst",
+    "id": "95781171-76db-4978-a1c9-dd167260a7d1"
+  },
+  {
+    "enabled": true,
+    "person": "Kendall",
+    "sourceAccount": "Kendall 401(k)",
+    "destinationAccount": "Kendall Roth IRA",
+    "strategy": "fillBracket",
+    "targetBracketRate": 0.22,
+    "priority": "largerFirst",
+    "id": "14f0ca84-4228-4308-8782-773928829d7f"
+  }
+]

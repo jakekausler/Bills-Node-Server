@@ -20,6 +20,7 @@ vi.mock('./io', () => ({
   backup: vi.fn(),
   shouldBackup: vi.fn().mockReturnValue(false),
   BASE_DATA_DIR: '/mock/data',
+  getDataDir: () => '/mock/data',
 }));
 
 // Mock the loadVariableValue function
