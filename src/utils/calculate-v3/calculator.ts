@@ -268,6 +268,19 @@ export class Calculator {
   }
 
   /**
+   * Clear the pendingPayouts buffer without injecting them into a segment.
+   * Used during cache-hit replay: the cached segment's activitiesAdded
+   * already contains any payouts that were injected during its original
+   * cold compute. Any payouts that accumulated in the buffer during
+   * year-boundary hooks leading up to this cached segment are already
+   * reflected in the cached data, so we discard the buffer to avoid
+   * double-injecting them into a subsequent fresh-computed segment.
+   */
+  clearPendingPayouts(): void {
+    this.pendingPayouts = [];
+  }
+
+  /**
    * Save a checkpoint of contribution limit, deduction tracker, paycheck state, job loss state, and mortality state.
    * Used for push/pull reprocessing to restore state if segment needs to be recomputed.
    */

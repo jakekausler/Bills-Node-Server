@@ -191,6 +191,12 @@ export class SegmentProcessor {
           }
         }
 
+        // Drain any pending payouts that accumulated from year-boundary hooks
+        // before this cached segment. The cached activitiesAdded already includes
+        // whatever was injected during the original cold compute, so we clear
+        // the buffer to avoid re-injecting into a later fresh-computed segment.
+        this.calculator.clearPendingPayouts();
+
         return;
       }
       // Log cache-miss immediately after null cache result
