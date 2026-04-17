@@ -2635,10 +2635,20 @@ private getPortfolioConfig(accountId: string): AccountPortfolioConfig | null {
     }
 
     // 2b. Skip carry tracking and remainder generation for periods before initializeDate.
-    //     These periods are completely invisible to the spending tracker.
+    //     These periods are completely invisible to the spending tracker, but we still
+    //     need to record the markPeriodProcessed call into segmentResult so warm-cache
+    //     replay advances lastProcessedPeriodEnd identically to cold compute.
     if (this.spendingTrackerManager.isBeforeInitializeDate(event.categoryId, event.periodEnd)) {
       this.spendingTrackerManager.resetPeriodSpending(event.categoryId);
       this.spendingTrackerManager.markPeriodProcessed(event.categoryId, event.periodEnd);
+      // Record the update for cache replay (totalSpent=0 means no carry change on replay)
+      segmentResult.spendingTrackerUpdates.push({
+        categoryId: event.categoryId,
+        totalSpent: 0,
+        date: event.date,
+        periodEnd: event.periodEnd,
+        carryAfter: this.spendingTrackerManager.getCarryBalance(event.categoryId),
+      });
       return new Map();
     }
 

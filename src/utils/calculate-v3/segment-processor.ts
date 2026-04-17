@@ -144,12 +144,13 @@ export class SegmentProcessor {
           });
         }
 
-        // Record tagged spending from cached results for cross-segment period tracking
-        this.spendingTrackerManager.recordSegmentActivities(cachedResult);
-
         // Replay spending tracker state changes (carry, reset, markPeriodProcessed)
         // that were recorded when this segment was originally processed.
-        // Without this, carry-over/carry-under state is lost when loading from cache.
+        // IMPORTANT: this must run BEFORE recordSegmentActivities so that the
+        // resetPeriodSpending and markPeriodProcessed calls establish the correct
+        // lastProcessedPeriodEnd baseline. recordSegmentActivities then only
+        // accumulates activities that happened AFTER that baseline, matching how
+        // cold compute naturally interleaves period-close events with activities.
         if (cachedResult.spendingTrackerUpdates) {
           for (const update of cachedResult.spendingTrackerUpdates) {
             this.spendingTrackerManager.setCarryBalance(update.categoryId, update.carryAfter);
@@ -157,6 +158,11 @@ export class SegmentProcessor {
             this.spendingTrackerManager.markPeriodProcessed(update.categoryId, update.periodEnd);
           }
         }
+
+        // Record tagged spending from cached results for cross-segment period tracking.
+        // This accumulates into periodSpending for the current (in-progress) period,
+        // after the boundary updates above have set lastProcessedPeriodEnd.
+        this.spendingTrackerManager.recordSegmentActivities(cachedResult);
 
         // Replay taxable occurrences from cached segments into TaxManager
         // Without this, tax reconciliation is missing income from cached segments
